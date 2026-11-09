@@ -1,0 +1,217 @@
+{
+  "schema_version": "daily-report/0.4",
+  "day": "2026-11-03",
+  "synthetic": true,
+  "coverage_notice": "【合成测试材料，不是真实性能结果】已通过、待核查与缺少分类的条目共同展示。",
+  "summary": "合成样例仅归纳已通过的模型准备条目，不代表真实性能结论。",
+  "chapters": [
+    {
+      "key": "startup",
+      "title": "三 服务启动与模型准备",
+      "groups": [
+        {
+          "title": "准备模型运行依赖",
+          "entries": [
+            {
+              "number": "V1",
+              "card": {
+                "card_id": "s-v",
+                "work_id": "github:vllm-project/vllm#2",
+                "source_type": "upstream",
+                "content": {
+                  "chapter": "startup",
+                  "title_zh": "复用已交付的权重张量",
+                  "original_title": "[合成] 复用已交付的权重张量",
+                  "title_status": "reused",
+                  "body": null,
+                  "body_source": null,
+                  "problem": "加载器已独立持有张量，调用方仍再复制一次。",
+                  "optimization": "支持独立持有时直接接收，旧格式保留复制。",
+                  "effects_and_limits": "合成演示；尚无设备或端到端测量，不据此宣称实际性能收益。",
+                  "source_links": [
+                    {
+                      "label": "合成来源 s-v",
+                      "url": "https://example.invalid/source/s-v"
+                    }
+                  ],
+                  "diagram_nodes": [
+                    "startup"
+                  ]
+                }
+              }
+            },
+            {
+              "number": "A1",
+              "card": {
+                "card_id": "pending-101",
+                "work_id": "github:vllm-project/vllm-ascend#101",
+                "source_type": "ascend",
+                "content": {
+                  "chapter": "startup",
+                  "title_zh": "修复启动加载",
+                  "original_title": "修复启动加载",
+                  "title_status": "reused",
+                  "body": null,
+                  "body_source": "analysis_projection",
+                  "problem": "现有材料尚不足以概括原有问题。",
+                  "optimization": "原始条目描述的改动为「修复启动加载」。",
+                  "effects_and_limits": "现有材料尚不足以确认效果和适用边界。",
+                  "source_links": [
+                    {
+                      "label": "Ascend #101",
+                      "url": "https://github.com/vllm-project/vllm-ascend/pull/101"
+                    }
+                  ],
+                  "diagram_nodes": [
+                    "startup"
+                  ],
+                  "location_basis": "title_hint"
+                },
+                "needs_review": true
+              }
+            }
+          ]
+        }
+      ],
+      "intro": "合成样例展示两项模型准备工作。"
+    },
+    {
+      "key": "scheduling",
+      "title": "四 请求接入与调度",
+      "groups": [
+        {
+          "title": "待核对的请求处理",
+          "entries": [
+            {
+              "number": "A2",
+              "card": {
+                "card_id": "pending-102",
+                "work_id": "github:vllm-project/vllm-ascend#102",
+                "source_type": "ascend",
+                "content": {
+                  "chapter": "scheduling",
+                  "title_zh": "修复未知行为",
+                  "original_title": "修复未知行为",
+                  "title_status": "reused",
+                  "body": null,
+                  "body_source": "analysis_projection",
+                  "problem": "现有材料尚不足以概括原有问题。",
+                  "optimization": "原始条目描述的改动为「修复未知行为」。",
+                  "effects_and_limits": "现有材料尚不足以确认效果和适用边界。",
+                  "source_links": [
+                    {
+                      "label": "Ascend #102",
+                      "url": "https://github.com/vllm-project/vllm-ascend/pull/102"
+                    }
+                  ],
+                  "diagram_nodes": [
+                    "scheduling"
+                  ],
+                  "location_basis": "default_scheduling"
+                },
+                "needs_review": true
+              }
+            }
+          ]
+        }
+      ],
+      "intro": "合成样例保留尚缺分类的待核查工作。"
+    },
+    {
+      "key": "prefill",
+      "title": "五 Prefill 输入上下文处理",
+      "groups": [],
+      "intro": ""
+    },
+    {
+      "key": "pd_transfer",
+      "title": "六 P/D 分离部署的缓存交接",
+      "groups": [],
+      "intro": ""
+    },
+    {
+      "key": "decode",
+      "title": "七 Decode 常规生成",
+      "groups": [],
+      "intro": ""
+    },
+    {
+      "key": "speculative",
+      "title": "八 推测解码",
+      "groups": [],
+      "intro": ""
+    },
+    {
+      "key": "output_return",
+      "title": "九 输出返回与状态更新",
+      "groups": [],
+      "intro": ""
+    },
+    {
+      "key": "resource_reclaim",
+      "title": "十 资源回收与缓存保留",
+      "groups": [],
+      "intro": ""
+    },
+    {
+      "key": "papers",
+      "title": "十一 论文",
+      "groups": [
+        {
+          "title": "论文",
+          "entries": [
+            {
+              "number": "P1",
+              "card": {
+                "card_id": "p-1",
+                "work_id": "paper:synthetic:chunked-context",
+                "source_type": "paper",
+                "content": {
+                  "chapter": "papers",
+                  "title_zh": "分块处理长输入",
+                  "original_title": "分块处理长输入",
+                  "title_status": "reused",
+                  "body": null,
+                  "body_source": null,
+                  "problem": "长输入的临时分数占用过大。",
+                  "optimization": "按块计算并只保存候选。",
+                  "effects_and_limits": "合成演示；尚无设备或端到端测量，不据此宣称实际性能收益。",
+                  "source_links": [
+                    {
+                      "label": "合成来源 p-1",
+                      "url": "https://example.invalid/source/p-1"
+                    }
+                  ],
+                  "diagram_nodes": []
+                },
+                "needs_review": true
+              }
+            }
+          ]
+        }
+      ],
+      "intro": "合成论文条目继续独立呈现。"
+    }
+  ],
+  "numbers": {
+    "s-v": "V1",
+    "pending-101": "A1",
+    "pending-102": "A2",
+    "p-1": "P1"
+  },
+  "diagram_numbers": {
+    "startup": [
+      "V1",
+      "A1"
+    ],
+    "scheduling": [
+      "A2"
+    ],
+    "prefill": [],
+    "pd_transfer": [],
+    "decode": [],
+    "speculative": [],
+    "output_return": [],
+    "resource_reclaim": []
+  }
+}

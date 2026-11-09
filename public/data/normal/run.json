@@ -1,0 +1,55 @@
+{
+  "id": "fixture-normal",
+  "report_id": "normal",
+  "synthetic": true,
+  "program_status": "completed_program_checks",
+  "semantic_quality": "not_assessed",
+  "published": null,
+  "discovery": null,
+  "analysis_failures": 0,
+  "title_failures": 0,
+  "input_sha256": "a73693aced8290fb7da50e20e736eb6e306025883f4341bc389932641fd98b67",
+  "checks": {
+    "chinese_titles": "passed",
+    "structure_coverage_originals_numbers_intros": "passed",
+    "diagram_structure_positions_numbers": "passed",
+    "markdown_word_text_sources_image": "passed",
+    "word_font_settings": "passed",
+    "word_figure_alignment": "passed",
+    "page_layout": "not_checked_by_runtime"
+  },
+  "evidence": {
+    "s-v": {
+      "excerpt": "Synthetic fixture only.",
+      "note": "合成输入中的原始材料；尚未交付逐条引用定位，不能据此认定结论通过核验。"
+    },
+    "s-a": {
+      "excerpt": "Synthetic fixture only.",
+      "note": "合成输入中的原始材料；尚未交付逐条引用定位，不能据此认定结论通过核验。"
+    },
+    "q-2": {
+      "excerpt": "Synthetic fixture only.",
+      "note": "合成输入中的原始材料；尚未交付逐条引用定位，不能据此认定结论通过核验。"
+    },
+    "q-1": {
+      "excerpt": "Synthetic fixture only.",
+      "note": "合成输入中的原始材料；尚未交付逐条引用定位，不能据此认定结论通过核验。"
+    },
+    "f-1": {
+      "excerpt": "Synthetic fixture only.",
+      "note": "合成输入中的原始材料；尚未交付逐条引用定位，不能据此认定结论通过核验。"
+    },
+    "o-1": {
+      "excerpt": "Synthetic fixture only.",
+      "note": "合成输入中的原始材料；尚未交付逐条引用定位，不能据此认定结论通过核验。"
+    },
+    "o-2": {
+      "excerpt": "Synthetic fixture only.",
+      "note": "合成输入中的原始材料；尚未交付逐条引用定位，不能据此认定结论通过核验。"
+    },
+    "p-1": {
+      "excerpt": null,
+      "note": "合成输入中的原始材料；尚未交付逐条引用定位，不能据此认定结论通过核验。"
+    }
+  }
+}

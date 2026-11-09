@@ -1,0 +1,117 @@
+{
+  "schema_version": "site-index/0.1",
+  "items": [
+    {
+      "id": "failed",
+      "day": "2026-11-06",
+      "version": "state-demo",
+      "run": "fixture-failed",
+      "title": "生成失败状态演示",
+      "scenario": "状态演示",
+      "status": "failed",
+      "synthetic": true,
+      "notice": "合成界面状态：模拟上游产物缺失；没有用旧报告替代该日期，也没有真实错误日志。",
+      "entries": 0,
+      "pending": 0,
+      "assets": {}
+    },
+    {
+      "id": "not-generated",
+      "day": "2026-11-05",
+      "version": "state-demo",
+      "run": "fixture-not-generated",
+      "title": "尚未生成状态演示",
+      "scenario": "状态演示",
+      "status": "not_generated",
+      "synthetic": true,
+      "notice": "合成界面状态：模拟尚未生成报告，不代表真实任务运行状态。",
+      "entries": 0,
+      "pending": 0,
+      "assets": {}
+    },
+    {
+      "id": "empty",
+      "day": "2026-11-04",
+      "version": "state-demo",
+      "run": "fixture-empty",
+      "title": "零候选状态演示",
+      "scenario": "状态演示",
+      "status": "zero_candidates",
+      "synthetic": true,
+      "notice": "合成界面状态：模拟已完整发现且当天合入候选为零；未执行该日期的真实采集。",
+      "entries": 0,
+      "pending": 0,
+      "assets": {}
+    },
+    {
+      "id": "normal",
+      "day": "2026-11-03",
+      "version": "sample-1",
+      "run": "fixture-normal",
+      "title": "完整日报阅读样例",
+      "scenario": "完整阅读",
+      "status": "available",
+      "synthetic": true,
+      "notice": "合成离线样例，仅验证组装；不是当日采集结果。论文身份为最小交接示例。",
+      "entries": 8,
+      "pending": 0,
+      "report": {
+        "path": "/data/normal/report.json",
+        "sha256": "9ff296d6fbfd3456b5659b2e914b7da1752ac55e27061370c3db3c8e002e5f49"
+      },
+      "assets": {
+        "word": {
+          "path": "/data/normal/report.docx",
+          "sha256": "6ca00e1a927d43a9106246868ead8d74e5cb2a1b5dda393e0c2da27168ffddc3"
+        },
+        "markdown": {
+          "path": "/data/normal/report.md",
+          "sha256": "7efa2674d2996ba892659512b3cba4ca5aa797302f88514a198012376edf5bea"
+        },
+        "flow": {
+          "path": "/data/normal/flow.png",
+          "sha256": "226fc15a248b0f86efa06a5b621bbf8ecaec01776a9b862f66866c0ee3128f5f"
+        }
+      },
+      "runData": {
+        "path": "/data/normal/run.json",
+        "sha256": "6e45838657c4c4ba05924bb56eef44e96bac09be13b56eaeba4ce8940de4faa9"
+      }
+    },
+    {
+      "id": "pending",
+      "day": "2026-11-03",
+      "version": "sample-2",
+      "run": "fixture-pending",
+      "title": "包含待核查条目的样例",
+      "scenario": "待核查展示",
+      "status": "available",
+      "synthetic": true,
+      "notice": "【合成测试材料，不是真实性能结果】已通过、待核查与缺少分类的条目共同展示。",
+      "entries": 4,
+      "pending": 3,
+      "report": {
+        "path": "/data/pending/report.json",
+        "sha256": "3b115eecda2288a003358203d70af80fcf993ec606624054947af923c089e35d"
+      },
+      "assets": {
+        "word": {
+          "path": "/data/pending/report.docx",
+          "sha256": "a716392dc9ee8818185e9ff4d51c3cc60dc90eed8d1e560f9817736d81577cab"
+        },
+        "markdown": {
+          "path": "/data/pending/report.md",
+          "sha256": "c47de2a1faf929409d9c8f961b98c29a4cab119d62e63c66dd3cf03a4f5747b9"
+        },
+        "flow": {
+          "path": "/data/pending/flow.png",
+          "sha256": "85c787b0c6ac250899af39dc8eb7f7ffff345032c051340b672557e6f245ed86"
+        }
+      },
+      "runData": {
+        "path": "/data/pending/run.json",
+        "sha256": "92dac09e86123d6fc1028be169f8c83a6a203d81d8f21fcb47daca6b6d362669"
+      }
+    }
+  ]
+}

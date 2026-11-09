@@ -1,0 +1,358 @@
+{
+  "schema_version": "daily-report/0.4",
+  "day": "2026-11-03",
+  "synthetic": true,
+  "coverage_notice": "合成离线样例，仅验证组装；不是当日采集结果。论文身份为最小交接示例。",
+  "summary": "本批次示例从权重接收和信息整理中省去重复工作；初始化调整只改变建立资源的时机，不表示消除了初始化开销。\n\n融合和分块处理分别减少中间数据往返与临时存储。所有条目均为合成演示，没有设备或端到端测量，不作收益比较。",
+  "chapters": [
+    {
+      "key": "startup",
+      "title": "三 服务启动与模型准备",
+      "groups": [
+        {
+          "title": "省去权重重复复制",
+          "entries": [
+            {
+              "number": "V1",
+              "card": {
+                "card_id": "s-v",
+                "work_id": "github:vllm-project/vllm#2",
+                "source_type": "upstream",
+                "content": {
+                  "chapter": "startup",
+                  "title_zh": "复用已交付的权重张量",
+                  "original_title": "[合成] 复用已交付的权重张量",
+                  "title_status": "reused",
+                  "body": null,
+                  "body_source": null,
+                  "problem": "加载器已独立持有张量，调用方仍再复制一次。",
+                  "optimization": "支持独立持有时直接接收，旧格式保留复制。",
+                  "effects_and_limits": "合成演示；尚无设备或端到端测量，不据此宣称实际性能收益。",
+                  "source_links": [
+                    {
+                      "label": "合成来源 s-v",
+                      "url": "https://example.invalid/source/s-v"
+                    }
+                  ],
+                  "diagram_nodes": [
+                    "startup"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "title": "调整初始化时机",
+          "entries": [
+            {
+              "number": "A1",
+              "card": {
+                "card_id": "s-a",
+                "work_id": "github:vllm-project/vllm-ascend#1",
+                "source_type": "ascend",
+                "content": {
+                  "chapter": "startup",
+                  "title_zh": "延后建立缓存池",
+                  "original_title": "[合成] 延后建立缓存池",
+                  "title_status": "reused",
+                  "body": null,
+                  "body_source": null,
+                  "problem": "缓存尚未注册就建立存储资源，会阻塞启动。",
+                  "optimization": "等缓存注册后，在首次使用时初始化。",
+                  "effects_and_limits": "合成演示；尚无设备或端到端测量，不据此宣称实际性能收益。",
+                  "source_links": [
+                    {
+                      "label": "合成来源 s-a",
+                      "url": "https://example.invalid/source/s-a"
+                    }
+                  ],
+                  "diagram_nodes": [
+                    "startup"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "intro": "本节关注权重接收中的重复复制，以及缓存初始化时机。"
+    },
+    {
+      "key": "scheduling",
+      "title": "四 请求接入与调度",
+      "groups": [
+        {
+          "title": "减少重复信息整理",
+          "entries": [
+            {
+              "number": "V2",
+              "card": {
+                "card_id": "q-2",
+                "work_id": "github:vllm-project/vllm#4",
+                "source_type": "upstream",
+                "content": {
+                  "chapter": "scheduling",
+                  "title_zh": "索引替代重复扫描",
+                  "original_title": "[合成] 索引替代重复扫描",
+                  "title_status": "reused",
+                  "body": null,
+                  "body_source": null,
+                  "problem": "每轮按请求重复扫描列表。",
+                  "optimization": "建立索引并直接查找。",
+                  "effects_and_limits": "合成演示；尚无设备或端到端测量，不据此宣称实际性能收益。",
+                  "source_links": [
+                    {
+                      "label": "合成来源 q-2",
+                      "url": "https://example.invalid/source/q-2"
+                    }
+                  ],
+                  "diagram_nodes": [
+                    "scheduling"
+                  ]
+                }
+              }
+            },
+            {
+              "number": "A2",
+              "card": {
+                "card_id": "q-1",
+                "work_id": "github:vllm-project/vllm-ascend#3",
+                "source_type": "ascend",
+                "content": {
+                  "chapter": "scheduling",
+                  "title_zh": "连续输入只登记一次范围",
+                  "original_title": "[合成] 连续输入只登记一次范围",
+                  "title_status": "reused",
+                  "body": null,
+                  "body_source": null,
+                  "problem": "连续写入仍逐元素登记。",
+                  "optimization": "把连续写入登记为范围。",
+                  "effects_and_limits": "合成演示；尚无设备或端到端测量，不据此宣称实际性能收益。",
+                  "source_links": [
+                    {
+                      "label": "合成来源 q-1",
+                      "url": "https://example.invalid/source/q-1"
+                    }
+                  ],
+                  "diagram_nodes": [
+                    "scheduling"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "intro": "本节关注请求信息整理中的重复扫描与逐项登记。"
+    },
+    {
+      "key": "prefill",
+      "title": "五 Prefill 输入上下文处理",
+      "groups": [
+        {
+          "title": "融合计算以减少中间读写",
+          "entries": [
+            {
+              "number": "V3",
+              "card": {
+                "card_id": "f-1",
+                "work_id": "github:vllm-project/vllm#5",
+                "source_type": "upstream",
+                "content": {
+                  "chapter": "prefill",
+                  "title_zh": "融合相邻计算",
+                  "original_title": "[合成] 融合相邻计算",
+                  "title_status": "reused",
+                  "body": null,
+                  "body_source": null,
+                  "problem": "相邻步骤反复写出和读取中间结果。",
+                  "optimization": "融合计算并在片内消费中间结果。",
+                  "effects_and_limits": "合成演示；尚无设备或端到端测量，不据此宣称实际性能收益。",
+                  "source_links": [
+                    {
+                      "label": "合成来源 f-1",
+                      "url": "https://example.invalid/source/f-1"
+                    }
+                  ],
+                  "diagram_nodes": [
+                    "prefill"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "intro": "本节关注通过融合计算减少中间结果读写。"
+    },
+    {
+      "key": "pd_transfer",
+      "title": "六 P/D 分离部署的缓存交接",
+      "groups": [],
+      "intro": ""
+    },
+    {
+      "key": "decode",
+      "title": "七 Decode 常规生成",
+      "groups": [],
+      "intro": ""
+    },
+    {
+      "key": "speculative",
+      "title": "八 推测解码",
+      "groups": [],
+      "intro": ""
+    },
+    {
+      "key": "output_return",
+      "title": "九 输出返回与状态更新",
+      "groups": [
+        {
+          "title": "合并返回通知",
+          "entries": [
+            {
+              "number": "V4",
+              "card": {
+                "card_id": "o-1",
+                "work_id": "github:vllm-project/vllm#6",
+                "source_type": "upstream",
+                "content": {
+                  "chapter": "output_return",
+                  "title_zh": "合并返回通知",
+                  "original_title": "[合成] 合并返回通知",
+                  "title_status": "reused",
+                  "body": null,
+                  "body_source": null,
+                  "problem": "每个片段分别发送通知。",
+                  "optimization": "汇集同轮通知后发送。",
+                  "effects_and_limits": "合成演示；尚无设备或端到端测量，不据此宣称实际性能收益。",
+                  "source_links": [
+                    {
+                      "label": "合成来源 o-1",
+                      "url": "https://example.invalid/source/o-1"
+                    }
+                  ],
+                  "diagram_nodes": [
+                    "output_return"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "intro": "本节关注返回通知中的逐项发送开销。"
+    },
+    {
+      "key": "resource_reclaim",
+      "title": "十 资源回收与缓存保留",
+      "groups": [
+        {
+          "title": "批量回收资源",
+          "entries": [
+            {
+              "number": "A3",
+              "card": {
+                "card_id": "o-2",
+                "work_id": "github:vllm-project/vllm-ascend#7",
+                "source_type": "ascend",
+                "content": {
+                  "chapter": "resource_reclaim",
+                  "title_zh": "批量释放缓存块",
+                  "original_title": "[合成] 批量释放缓存块",
+                  "title_status": "reused",
+                  "body": null,
+                  "body_source": null,
+                  "problem": "逐块释放产生多次登记。",
+                  "optimization": "批量登记待释放块并统一回收。",
+                  "effects_and_limits": "合成演示；尚无设备或端到端测量，不据此宣称实际性能收益。",
+                  "source_links": [
+                    {
+                      "label": "合成来源 o-2",
+                      "url": "https://example.invalid/source/o-2"
+                    }
+                  ],
+                  "diagram_nodes": [
+                    "resource_reclaim"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "intro": "本节关注资源回收中的逐项登记开销。"
+    },
+    {
+      "key": "papers",
+      "title": "十一 论文",
+      "groups": [
+        {
+          "title": "论文",
+          "entries": [
+            {
+              "number": "P1",
+              "card": {
+                "card_id": "p-1",
+                "work_id": "paper:synthetic:chunked-context",
+                "source_type": "paper",
+                "content": {
+                  "chapter": "papers",
+                  "title_zh": "分块处理长输入",
+                  "original_title": "分块处理长输入",
+                  "title_status": "reused",
+                  "body": null,
+                  "body_source": null,
+                  "problem": "长输入的临时分数占用过大。",
+                  "optimization": "按块计算并只保存候选。",
+                  "effects_and_limits": "合成演示；尚无设备或端到端测量，不据此宣称实际性能收益。",
+                  "source_links": [
+                    {
+                      "label": "合成来源 p-1",
+                      "url": "https://example.invalid/source/p-1"
+                    }
+                  ],
+                  "diagram_nodes": []
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "intro": "本节收录通过分块计算减少临时存储的研究。"
+    }
+  ],
+  "numbers": {
+    "s-v": "V1",
+    "s-a": "A1",
+    "q-2": "V2",
+    "q-1": "A2",
+    "f-1": "V3",
+    "o-1": "V4",
+    "o-2": "A3",
+    "p-1": "P1"
+  },
+  "diagram_numbers": {
+    "startup": [
+      "V1",
+      "A1"
+    ],
+    "scheduling": [
+      "V2",
+      "A2"
+    ],
+    "prefill": [
+      "V3"
+    ],
+    "pd_transfer": [],
+    "decode": [],
+    "speculative": [],
+    "output_return": [
+      "V4"
+    ],
+    "resource_reclaim": [
+      "A3"
+    ]
+  }
+}

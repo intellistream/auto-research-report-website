@@ -1,0 +1,39 @@
+{
+  "id": "fixture-pending",
+  "report_id": "pending",
+  "synthetic": true,
+  "program_status": "partial_draft",
+  "semantic_quality": "not_assessed",
+  "published": null,
+  "discovery": null,
+  "analysis_failures": 0,
+  "title_failures": 0,
+  "input_sha256": "8dd5e5da60d6269b6947c394b9450917bdde1753c9750a040c129391fc4900bf",
+  "checks": {
+    "chinese_titles": "passed",
+    "structure_coverage_originals_numbers_intros": "passed",
+    "diagram_structure_positions_numbers": "passed",
+    "markdown_word_text_sources_image": "passed",
+    "word_font_settings": "passed",
+    "word_figure_alignment": "passed",
+    "page_layout": "not_checked_by_runtime"
+  },
+  "evidence": {
+    "s-v": {
+      "excerpt": "Synthetic fixture only.",
+      "note": "合成输入中的原始材料；尚未交付逐条引用定位，不能据此认定结论通过核验。"
+    },
+    "pending-101": {
+      "excerpt": null,
+      "note": "合成输入中的原始材料；尚未交付逐条引用定位，不能据此认定结论通过核验。"
+    },
+    "pending-102": {
+      "excerpt": null,
+      "note": "合成输入中的原始材料；尚未交付逐条引用定位，不能据此认定结论通过核验。"
+    },
+    "p-1": {
+      "excerpt": null,
+      "note": "合成输入中的原始材料；尚未交付逐条引用定位，不能据此认定结论通过核验。"
+    }
+  }
+}
