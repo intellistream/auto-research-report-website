@@ -1,0 +1,121 @@
+.docx-preview {
+  min-height: 100vh;
+  background: #f5f7f6;
+  color: #20302d;
+}
+
+.docx-preview a { color: #17604b; }
+.docx-preview a:hover { text-decoration: underline; }
+
+.docx-nav {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 3;
+  width: 223px;
+  gap: 7px;
+  padding: 32px 19px;
+  background: #fff;
+  border-right: 1px solid #e5eae7;
+}
+
+.docx-nav a { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-radius: 7px; font-size: 13px; color: #64736c; }
+.docx-nav a:hover { background: #f2f6f3; text-decoration: none; }
+.docx-nav a[aria-current] { background: #eaf2ee; color: #176d5e; font-weight: 650; }
+.docx-nav a.docx-brand { padding: 0; margin: 0 9px 42px; color: #20302d; font-weight: 700; font-size: 20px; }
+.docx-brand i { display: grid; place-items: center; width: 37px; height: 40px; border-radius: 10px; background: #183e35; color: #e1f3e9; }
+.docx-brand small { display: block; font-size: 8px; letter-spacing: 2px; color: #83918b; margin-top: 5px; }
+.docx-nav-caption { font-size: 10px; letter-spacing: 1.3px; color: #697970; padding: 0 15px; margin-bottom: 8px; }
+.docx-communities { display: grid; gap: 14px; margin-top: 32px; font-size: 12px; color: #6f7a75; }
+.docx-communities > span:not(.docx-nav-caption) { padding: 0 15px; }
+.docx-communities > span:not(.docx-nav-caption)::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 10px; background: #398f7e; }
+.docx-communities > span:nth-child(3)::before { background: #9281b7; }
+.docx-communities > span:nth-child(4)::before { background: #9ba6a1; }
+.docx-workspace { margin-left: 223px; min-width: 0; }
+.docx-topbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; height: 72px; padding: 0 41px; border-bottom: 1px solid #e5eae7; background: #ffffffbc; color: #61746a; font-size: 11px; }
+.docx-main { max-width: 72rem; margin: auto; padding: 2rem 1rem 4rem; }
+.docx-main:has(.docx-overview) { max-width: 1460px; padding: 34px 41px 30px; }
+.docx-eyebrow { display: flex; flex-wrap: wrap; gap: 12px; font-size: 10px; letter-spacing: 2px; font-weight: 650; color: #5e8576; }
+.docx-eyebrow span { letter-spacing: .4px; color: #75817c; }
+.docx-overview-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin: 10px 0 20px; }
+.docx-overview-heading h1 { font-size: clamp(1.65rem, 3vw, 2.25rem); line-height: 1.35; margin: 0 0 5px; }
+.docx-overview-heading h1 span { color: #14776a; }
+.docx-overview-heading p { color: #61746a; margin: 0; font-size: 13px; }
+.docx-secondary { display: inline-flex; align-items: center; gap: .5rem; white-space: nowrap; background: #fff; padding: 8px 12px; border: 1px solid #dbe6df; border-radius: 8px; font-size: 12px; }
+.docx-flow-toolbar, .docx-flow-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.docx-flow-toolbar { justify-content: space-between; margin-bottom: 14px; color: #61746a; font-size: 12px; }
+.docx-flow-toolbar i { display: inline-block; background: #58a28a; width: 7px; height: 7px; border-radius: 50%; }
+.docx-flow-toolbar strong { color: #20302d; margin: 0 4px; }
+.docx-flow-toolbar select { font: inherit; color: #385247; border: 1px solid #dbe6df; border-radius: 8px; padding: 7px 9px; background: #fff; }
+.docx-flow-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: 12px; margin: 20px 0; }
+.docx-flow-summary > div, .docx-recent { border: 1px solid #dce6e0; border-radius: 12px; background: #fff; padding: 18px; }
+.docx-flow-summary dt, .docx-recent p { font-size: 12px; color: #61746a; }
+.docx-flow-summary dd { font-size: 26px; color: #2d634e; margin: 5px 0 0; font-weight: 650; }
+.docx-flow-summary dd small { font-size: 12px; font-weight: 400; }
+.docx-recent header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.docx-recent h2, .docx-recent p { margin-bottom: 4px; }
+.docx-recent a { display: inline-flex; align-items: center; gap: 6px; }
+.docx-recent ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; }
+.docx-recent li a { padding: 7px 12px; background: #f4f8f5; border-radius: 7px; }
+.docx-heading { margin-bottom: 2rem; }
+.docx-heading h1 { margin: .45rem 0; font-size: clamp(1.65rem, 4vw, 2.6rem); }
+.docx-heading time { color: #52665a; }
+.docx-counts, .docx-actions { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; }
+.docx-counts { margin: .75rem 0; color: #52665a; }
+.docx-actions { margin-top: 1rem; }
+
+.docx-columns {
+  display: grid;
+  grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.docx-toc, .docx-article, .docx-archive li {
+  background: #fff;
+  border: 1px solid #dbe5dc;
+  border-radius: .75rem;
+}
+
+.docx-toc {
+  position: sticky;
+  top: 1rem;
+  display: grid;
+  gap: .6rem;
+  padding: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+}
+
+.docx-toc a[aria-current] { font-weight: 700; text-decoration: underline; }
+.docx-article { padding: clamp(1rem, 4vw, 2.25rem); overflow-wrap: anywhere; }
+.docx-article section { scroll-margin-top: 1rem; }
+.docx-article h2 { margin: 2rem 0 .75rem; padding-bottom: .4rem; border-bottom: 1px solid #dbe5dc; }
+.docx-article h3 { margin-top: 1.5rem; }
+.docx-entry { padding: .75rem 1rem; margin: .75rem 0; border-left: 3px solid #bfd6c9; background: #f6f8f6; }
+.docx-entry h4 { margin: 0 0 .5rem; font-size: 1.05rem; }
+.docx-paragraph { margin: .5rem 0; line-height: 1.8; white-space: pre-wrap; }
+.docx-paragraph a { text-decoration: underline; }
+.docx-figure { display: block; margin: 1rem 0; }
+.docx-figure img { display: block; width: 100%; height: auto; }
+.docx-original-figure summary { cursor: pointer; color: #17604b; }
+.docx-article .inference-flow { margin: 1rem 0; }
+.docx-article .inference-flow h2, .docx-article .inference-flow h3 { margin: 0; padding: 0; border: 0; }
+.docx-archive { list-style: none; margin: 1rem 0; padding: 0; display: grid; gap: .5rem; }
+.docx-archive li { padding: .75rem 1rem; }
+.docx-archive .docx-counts { margin: .25rem 0 0; }
+
+@media (max-width: 900px) {
+  .docx-nav { position: static; flex-direction: row; flex-wrap: wrap; align-items: center; width: auto; padding: .75rem 1rem; border-right: 0; border-bottom: 1px solid #e5eae7; }
+  .docx-nav a.docx-brand { margin: 0 12px 0 0; }
+  .docx-nav .docx-nav-caption, .docx-communities, .docx-topbar { display: none; }
+  .docx-workspace { margin-left: 0; }
+  .docx-main:has(.docx-overview) { padding: 24px 16px; }
+}
+
+@media (max-width: 720px) {
+  .docx-columns { grid-template-columns: minmax(0, 1fr); }
+  .docx-toc { position: static; max-height: none; }
+  .docx-overview-heading { align-items: flex-start; flex-direction: column; }
+}
