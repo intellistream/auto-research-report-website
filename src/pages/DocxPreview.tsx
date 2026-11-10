@@ -324,7 +324,6 @@ export default function DocxPreview() {
         </div>
       </nav>
       <div className="docx-workspace">
-        <header className="docx-topbar"><span>社区研报 › {reading ? "研报阅读" : location.pathname === "/reports" ? "日报档案" : "优化总览"}</span><span>已接入真实材料</span></header>
         <main className="docx-main">
         {result?.error ? <p role="alert">{localReports ? "请先运行 Word 日报导入命令。" : "日报目录加载失败。"}{result.error}</p>
           : !catalog ? <p role="status">正在加载日报索引…</p>
