@@ -238,6 +238,20 @@
           }
         }
       ]
+    },
+    "2026-11-09": {
+      "current": "9de45ccb271e6f43aada611152a196fc9edb7c4c86d50c7b7471263c322bf0f1",
+      "versions": [
+        {
+          "sha256": "9de45ccb271e6f43aada611152a196fc9edb7c4c86d50c7b7471263c322bf0f1",
+          "path": "2026-11-09/9de45ccb271e6f43aada611152a196fc9edb7c4c86d50c7b7471263c322bf0f1/report.json",
+          "counts": {
+            "upstream": 30,
+            "ascend": 7,
+            "papers": 3
+          }
+        }
+      ]
     }
   }
 }

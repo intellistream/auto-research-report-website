@@ -10,7 +10,8 @@ describe("homepage cumulative distribution", () => {
   it("uses the same primary PR population as the homepage, including community/date filters", () => {
     const entries = uniquePRs(index.entries);
     const stats = directionDistribution(entries);
-    expect(stats.total).toBe(384);
+    const workIds = new Set(index.entries.map((e) => e.workId));
+    expect(stats.total).toBe(workIds.size);
     expect(stats.directions.reduce((sum, d) => sum + d.count, 0)).toBe(
       stats.total,
     );
@@ -24,7 +25,11 @@ describe("homepage cumulative distribution", () => {
             entries.filter((e) => e.workId.split("#")[0] === source.key),
           ).total,
       ),
-    ).toEqual([237, 147]);
+    ).toEqual(
+      communitySources.map(
+        (source) => [...workIds].filter((workId) => workId.split("#")[0] === source.key).length,
+      ),
+    );
     const recent = uniquePRs(
       index.entries.filter(
         (e) => e.day >= "2026-11-07" && e.day <= "2026-11-08",
