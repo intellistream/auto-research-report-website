@@ -234,7 +234,7 @@ def write_flow_index(root, catalog):
     write_json(root / "flow-index.json", {"schemaVersion": 1, "entries": rows}, compact=True)
 
 
-def run(source, root):
+def run(source, root, *, web_only=False):
     index_path = root / "catalog.json"
     index = (json.loads(index_path.read_text(encoding="utf-8")) if index_path.exists()
              else {"schemaVersion": 1, "days": {}})
@@ -262,8 +262,9 @@ def run(source, root):
         prefix = f"{day}/{digest}"
         output = root / prefix
         output.mkdir(parents=True, exist_ok=True)
-        report["original"] = f"{prefix}/original.docx"
-        (output / "original.docx").write_bytes(raw)
+        if not web_only:
+            report["original"] = f"{prefix}/original.docx"
+            (output / "original.docx").write_bytes(raw)
         (output / "flow.png").write_bytes(figure)
         write_json(output / "report.json", report)
         record["versions"].append({"sha256": digest, "path": f"{prefix}/report.json",
@@ -279,10 +280,14 @@ def run(source, root):
 if __name__ == "__main__":
     cli = argparse.ArgumentParser(description=__doc__)
     cli.add_argument("source", type=Path)
-    cli.add_argument("--output", type=Path, default=Path(__file__).resolve().parents[2] / "work" / "docx-preview")
+    cli.add_argument("--output", type=Path)
+    cli.add_argument("--web-only", action="store_true", help="Export site data without copying Word originals")
     args = cli.parse_args()
+    if args.web_only and not args.output:
+        cli.error("--web-only requires a separate --output directory")
+    output = args.output or Path(__file__).resolve().parents[2] / "work" / "docx-preview"
     try:
-        run(args.source, args.output)
+        run(args.source, output, web_only=args.web_only)
     except (OSError, ValueError, BadZipFile) as err:
         print(err, file=sys.stderr)
         sys.exit(1)

@@ -1,19 +1,16 @@
 import React, { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { HashRouter } from "react-router-dom";
-import App from "./App";
 import "./style.css";
-const DocxPreview = import.meta.env.DEV && import.meta.env.MODE === "docx"
-  ? lazy(() => import("./pages/DocxPreview"))
-  : null;
+const Site = import.meta.env.MODE === "legacy"
+  ? lazy(() => import("./App"))
+  : lazy(() => import("./pages/DocxPreview"));
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <HashRouter>
-      {DocxPreview ? (
-        <Suspense fallback={<p role="status">正在打开本地预览…</p>}>
-          <DocxPreview />
-        </Suspense>
-      ) : <App />}
+      <Suspense fallback={<p role="status">正在打开社区研报…</p>}>
+        <Site />
+      </Suspense>
     </HashRouter>
   </React.StrictMode>,
 );

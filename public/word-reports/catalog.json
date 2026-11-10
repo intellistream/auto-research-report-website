@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 1,
+  "days": {
+    "2026-10-23": {
+      "current": "9250ef7b7a8db0bde3ca85388a2e3de2ace9c07661ea5cb176bbd0e4acc080d0",
+      "versions": [
+        {
+          "sha256": "9250ef7b7a8db0bde3ca85388a2e3de2ace9c07661ea5cb176bbd0e4acc080d0",
+          "path": "2026-10-23/9250ef7b7a8db0bde3ca85388a2e3de2ace9c07661ea5cb176bbd0e4acc080d0/report.json",
+          "counts": {
+            "upstream": 17,
+            "ascend": 12,
+            "papers": 6
+          }
+        }
+      ]
+    },
+    "2026-10-24": {
+      "current": "73d0302412d8b535dcc4acbf829bfa298830d4509d3a357b69fb7cc87c57b778",
+      "versions": [
+        {
+          "sha256": "73d0302412d8b535dcc4acbf829bfa298830d4509d3a357b69fb7cc87c57b778",
+          "path": "2026-10-24/73d0302412d8b535dcc4acbf829bfa298830d4509d3a357b69fb7cc87c57b778/report.json",
+          "counts": {
+            "upstream": 12,
+            "ascend": 12,
+            "papers": 0
+          }
+        }
+      ]
+    },
+    "2026-10-25": {
+      "current": "3739e53f68de43a8d953e0cd52eaf2f16f3802e97f860a85699f8976f13cfc5d",
+      "versions": [
+        {
+          "sha256": "3739e53f68de43a8d953e0cd52eaf2f16f3802e97f860a85699f8976f13cfc5d",
+          "path": "2026-10-25/3739e53f68de43a8d953e0cd52eaf2f16f3802e97f860a85699f8976f13cfc5d/report.json",
+          "counts": {
+            "upstream": 18,
+            "ascend": 5,
+            "papers": 0
+          }
+        }
+      ]
+    },
+    "2026-10-26": {
+      "current": "424fe883df6a9e2644172ac227f39ed36d105343925065004b2ee8e45cdde8ca",
+      "versions": [
+        {
+          "sha256": "424fe883df6a9e2644172ac227f39ed36d105343925065004b2ee8e45cdde8ca",
+          "path": "2026-10-26/424fe883df6a9e2644172ac227f39ed36d105343925065004b2ee8e45cdde8ca/report.json",
+          "counts": {
+            "upstream": 13,
+            "ascend": 12,
+            "papers": 2
+          }
+        }
+      ]
+    },
+    "2026-10-27": {
+      "current": "dff5d350da31c9699c00b4471feb9ebec2297215412279a3138fb368c97ddefd",
+      "versions": [
+        {
+          "sha256": "dff5d350da31c9699c00b4471feb9ebec2297215412279a3138fb368c97ddefd",
+          "path": "2026-10-27/dff5d350da31c9699c00b4471feb9ebec2297215412279a3138fb368c97ddefd/report.json",
+          "counts": {
+            "upstream": 15,
+            "ascend": 10,
+            "papers": 2
+          }
+        }
+      ]
+    },
+    "2026-10-28": {
+      "current": "0ab70e4c3e4528253592eaa47fab3a05726bd8d099072ede20c60113497e1785",
+      "versions": [
+        {
+          "sha256": "0ab70e4c3e4528253592eaa47fab3a05726bd8d099072ede20c60113497e1785",
+          "path": "2026-10-28/0ab70e4c3e4528253592eaa47fab3a05726bd8d099072ede20c60113497e1785/report.json",
+          "counts": {
+            "upstream": 11,
+            "ascend": 12,
+            "papers": 2
+          }
+        }
+      ]
+    },
+    "2026-10-29": {
+      "current": "565a8ea2166d849b6bfa1178e8612e9747c3d51206f21b5f0156cb6b83d07b85",
+      "versions": [
+        {
+          "sha256": "565a8ea2166d849b6bfa1178e8612e9747c3d51206f21b5f0156cb6b83d07b85",
+          "path": "2026-10-29/565a8ea2166d849b6bfa1178e8612e9747c3d51206f21b5f0156cb6b83d07b85/report.json",
+          "counts": {
+            "upstream": 12,
+            "ascend": 9,
+            "papers": 0
+          }
+        }
+      ]
+    },
+    "2026-10-30": {
+      "current": "c86f9eaed5573862f4741fc2b7e37f1a307f33e3252b2133a5b6c7e1277738ab",
+      "versions": [
+        {
+          "sha256": "c86f9eaed5573862f4741fc2b7e37f1a307f33e3252b2133a5b6c7e1277738ab",
+          "path": "2026-10-30/c86f9eaed5573862f4741fc2b7e37f1a307f33e3252b2133a5b6c7e1277738ab/report.json",
+          "counts": {
+            "upstream": 12,
+            "ascend": 11,
+            "papers": 2
+          }
+        }
+      ]
+    },
+    "2026-10-31": {
+      "current": "3577813b3ff83b548b215853ae8ed3fa21495ee4c8c7a10ae7b006281029456f",
+      "versions": [
+        {
+          "sha256": "3577813b3ff83b548b215853ae8ed3fa21495ee4c8c7a10ae7b006281029456f",
+          "path": "2026-10-31/3577813b3ff83b548b215853ae8ed3fa21495ee4c8c7a10ae7b006281029456f/report.json",
+          "counts": {
+            "upstream": 14,
+            "ascend": 11,
+            "papers": 0
+          }
+        }
+      ]
+    },
+    "2026-11-01": {
+      "current": "3bbe73eb44443fec8f8c612d5b876cf1067d107fbd6cd84ef9b533068f08095b",
+      "versions": [
+        {
+          "sha256": "3bbe73eb44443fec8f8c612d5b876cf1067d107fbd6cd84ef9b533068f08095b",
+          "path": "2026-11-01/3bbe73eb44443fec8f8c612d5b876cf1067d107fbd6cd84ef9b533068f08095b/report.json",
+          "counts": {
+            "upstream": 19,
+            "ascend": 7,
+            "papers": 0
+          }
+        }
+      ]
+    },
+    "2026-11-02": {
+      "current": "488b7b1ce6f6779fd82f3588e122e14d34799177b0a6460d47d289729f982677",
+      "versions": [
+        {
+          "sha256": "488b7b1ce6f6779fd82f3588e122e14d34799177b0a6460d47d289729f982677",
+          "path": "2026-11-02/488b7b1ce6f6779fd82f3588e122e14d34799177b0a6460d47d289729f982677/report.json",
+          "counts": {
+            "upstream": 20,
+            "ascend": 12,
+            "papers": 3
+          }
+        }
+      ]
+    },
+    "2026-11-03": {
+      "current": "c54f3d816234fdbd6c2eee33d5429efa93239dd93adfdcad56557dcb0e0fa59c",
+      "versions": [
+        {
+          "sha256": "c54f3d816234fdbd6c2eee33d5429efa93239dd93adfdcad56557dcb0e0fa59c",
+          "path": "2026-11-03/c54f3d816234fdbd6c2eee33d5429efa93239dd93adfdcad56557dcb0e0fa59c/report.json",
+          "counts": {
+            "upstream": 21,
+            "ascend": 14,
+            "papers": 4
+          }
+        }
+      ]
+    },
+    "2026-11-04": {
+      "current": "45b190ef6af4f6544931d1d763441fb8a925c82cfa17a9818dbbfbf34feb959a",
+      "versions": [
+        {
+          "sha256": "45b190ef6af4f6544931d1d763441fb8a925c82cfa17a9818dbbfbf34feb959a",
+          "path": "2026-11-04/45b190ef6af4f6544931d1d763441fb8a925c82cfa17a9818dbbfbf34feb959a/report.json",
+          "counts": {
+            "upstream": 13,
+            "ascend": 4,
+            "papers": 1
+          }
+        }
+      ]
+    },
+    "2026-11-05": {
+      "current": "880f2531c1438a6b63f45726ce69485dfb316b41472b716a8405aee2ef13a917",
+      "versions": [
+        {
+          "sha256": "880f2531c1438a6b63f45726ce69485dfb316b41472b716a8405aee2ef13a917",
+          "path": "2026-11-05/880f2531c1438a6b63f45726ce69485dfb316b41472b716a8405aee2ef13a917/report.json",
+          "counts": {
+            "upstream": 12,
+            "ascend": 5,
+            "papers": 2
+          }
+        }
+      ]
+    },
+    "2026-11-06": {
+      "current": "7e54975a9bde0080b268ce5c6aadb113ad981d9f5b793cf2740e8a26908a781f",
+      "versions": [
+        {
+          "sha256": "7e54975a9bde0080b268ce5c6aadb113ad981d9f5b793cf2740e8a26908a781f",
+          "path": "2026-11-06/7e54975a9bde0080b268ce5c6aadb113ad981d9f5b793cf2740e8a26908a781f/report.json",
+          "counts": {
+            "upstream": 9,
+            "ascend": 5,
+            "papers": 2
+          }
+        }
+      ]
+    },
+    "2026-11-07": {
+      "current": "597ad9bbe3e0811b794d8b7bc71357dfc39ed4831b0cb065973dde97a185d55d",
+      "versions": [
+        {
+          "sha256": "597ad9bbe3e0811b794d8b7bc71357dfc39ed4831b0cb065973dde97a185d55d",
+          "path": "2026-11-07/597ad9bbe3e0811b794d8b7bc71357dfc39ed4831b0cb065973dde97a185d55d/report.json",
+          "counts": {
+            "upstream": 10,
+            "ascend": 2,
+            "papers": 0
+          }
+        }
+      ]
+    },
+    "2026-11-08": {
+      "current": "2616cb83148e62c716f44d2856b3edec4fafe0b364e75af11e877888b38b98c6",
+      "versions": [
+        {
+          "sha256": "2616cb83148e62c716f44d2856b3edec4fafe0b364e75af11e877888b38b98c6",
+          "path": "2026-11-08/2616cb83148e62c716f44d2856b3edec4fafe0b364e75af11e877888b38b98c6/report.json",
+          "counts": {
+            "upstream": 9,
+            "ascend": 4,
+            "papers": 0
+          }
+        }
+      ]
+    }
+  }
+}

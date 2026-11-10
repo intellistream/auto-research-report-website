@@ -6,14 +6,14 @@
 
 ## 启动
 
-需要 Node.js 22。本仓库自带合成阅读样例，不需要模型密钥或 Python 环境：
+需要 Node.js 22。仓库已包含发布版日报的网页数据，本地启动不需要模型密钥或 Python 环境：
 
 ```bash
 npm ci
 npm run dev
 ```
 
-访问终端打印的地址（默认 http://127.0.0.1:5173/）。首页仅统计真实报告，因此**全新检出时首页显示“尚未接入真实报告”**；点击“日报档案”可查看完整、待核查及其他状态样例。真实历史材料不随代码提交，导入方法见下文。
+访问终端打印的地址（默认 http://127.0.0.1:5173/）。首页按推理环节展示真实日报中的 PR，点击「日报档案」可阅读已发布的日报。历史 Word 原件在 [GitHub Release](https://github.com/intellistream/auto-research-report-website/releases/tag/word-report-preview-20261023-20261108) 提供下载。
 
 `npm test` 验证版本、日期、正文、身份、图覆盖、安全链接、产物哈希和运行身份；`npm run build` 执行 TypeScript 检查及静态构建。静态结果在 `dist/`，用 `npm run preview` 预览，不能双击 `index.html` 代替 HTTP 服务。使用 HashRouter，刷新与深链接无需额外的服务器回退配置。
 
@@ -33,7 +33,9 @@ npm run dev:docx
 
 文件名须以 `YYYYMMDD.docx` 结尾，并与正文日期一致。解析沿用日报的十一章模板、原有分组、正文段落和链接。同一份文件再次导入会跳过，同日新内容会追加为修订版。无法识别主来源的条目会保留正文和链接，并在导入时标为待核对。
 
-### 已有站点入口
+### 旧版样例入口
+
+用 `npm run dev -- --mode legacy` 查看原先基于上游 JSON 契约的站点和样例。以下是旧版路由。
 
 - /#/：优化方向首页；按一级标题显示累计 PR 占比、各方向数量/占比趋势、方向一览及对应真实 PR。审核和运行信息折叠在数据说明中。
 - /#/reports：日期档案；保留真实与合成记录，搜索标题/日期/PR，按来源、状态、章节和日期筛选。
@@ -44,6 +46,14 @@ npm run dev:docx
 - /#/reports/empty、not-generated、failed：明确标记为合成的其他状态演示。
 
 ## 数据与安全
+
+默认网站读取 `public/word-reports/`。其中包含日报目录、轻量 PR 索引，以及各版本的网页正文和流程图。Word 原件单独通过 Release 分发。更新发布数据时运行：
+
+```bash
+python scripts/import-docx.py "/path/to/daily-reports.zip" --web-only --output public/word-reports
+```
+
+提交生成的 `public/word-reports/` 改动并合并至 `main` 后，现有 Pages 工作流会将其随网站部署。以下数据契约说明适用于旧版样例。
 
 `public/data/catalog.json` 是站点索引，`public/data/<report-id>/` 是单个报告版本的产物（报告 JSON、Markdown、Word、PNG、运行信息）。索引中的每个产物都带 SHA-256，前端下载前会校验；校验失败拒绝使用该版本。
 
