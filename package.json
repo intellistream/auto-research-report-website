@@ -6,6 +6,7 @@
   "description": "Read-only website for community daily research reports",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "dev:docx": "vite --mode docx --host 127.0.0.1",
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "preview": "vite preview --host 0.0.0.0",
