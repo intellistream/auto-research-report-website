@@ -3,6 +3,7 @@ import { Activity, ArrowUpRight, BookOpen, CalendarDays, Layers } from "lucide-r
 import { Link, NavLink, Route, Routes, useLocation, useParams, useSearchParams } from "react-router-dom";
 import InferenceFlow, { type FlowEntry } from "./InferenceFlow";
 import InferenceMap, { type IndexedPR } from "./InferenceMap";
+import CompleteInferenceFlow from "./CompleteInferenceFlow";
 import ReportTrends, { uniquePRs } from "./ReportTrends";
 import DirectionDistribution from "./DirectionDistribution";
 import "./docx-preview.css";
@@ -153,6 +154,7 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
         : <>
           <ReportTrends days={scopedDays} observations={observations} />
           <DirectionDistribution entries={entries} />
+          <CompleteInferenceFlow entries={entries} selection={query.get("stage")} onSelect={(stage) => filter("stage", stage)} />
           <InferenceMap entries={entries} selection={query.get("stage")} select={(stage) => filter("stage", stage)}
             scope={JSON.stringify([source, from, to])} />
           <dl className="docx-flow-summary">
