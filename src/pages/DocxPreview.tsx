@@ -15,7 +15,7 @@ type Report = {
   title: string;
   day: string;
   intro: Part[][];
-  original: string;
+  original?: string;
   originalName: string;
   counts: Counts;
   warnings: string[];
@@ -27,8 +27,15 @@ type Catalog = {
   days: Record<string, { current: string; versions: Version[] }>;
 };
 
+const localReports = import.meta.env.DEV && import.meta.env.MODE === "docx";
+const historyArchive = "https://github.com/intellistream/auto-research-report-website/releases/download/word-report-preview-20261023-20261108/20261023-20261108.zip";
+
+function reportAsset(path: string) {
+  return import.meta.env.BASE_URL + (localReports ? "" : "word-reports/") + path;
+}
+
 async function readJson<T>(path: string, signal: AbortSignal): Promise<T> {
-  const response = await fetch("/" + path, { signal, cache: "no-cache" });
+  const response = await fetch(reportAsset(path), { signal, cache: "no-cache" });
   if (!response.ok) throw new Error(`无法读取 ${path}（HTTP ${response.status}）`);
   return response.json();
 }
@@ -144,7 +151,7 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
           </select>
         </div>
       </div>
-      {result?.error ? <p role="alert">无法读取 PR 索引。请重新运行 Word 日报导入命令。</p>
+      {result?.error ? <p role="alert">无法读取 PR 索引。{localReports && "请重新运行 Word 日报导入命令。"}</p>
         : !data ? <p role="status">正在读取日报与 PR 分类…</p>
         : data.schemaVersion !== 1 || !Array.isArray(data.entries) ? <p role="alert">PR 索引版本或格式不受支持。</p>
         : <>
@@ -171,6 +178,7 @@ function Archive({ catalog, days }: { catalog: Catalog; days: string[] }) {
     <>
       <h1>历史日报</h1>
       <p>共收录 {days.length} 天，按日期从新到旧排列。</p>
+      <p><a href={historyArchive}>下载历史 Word 原件 ZIP（2026-10-23 至 2026-11-08）</a></p>
       <ul className="docx-archive">
         {days.map((day) => {
           const record = catalog.days[day];
@@ -224,7 +232,10 @@ function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
         <nav className="docx-actions" aria-label="日报操作">
           {days[position + 1] && <Link to={`/reports/${days[position + 1]}`}>← 上一期</Link>}
           {days[position - 1] && <Link to={`/reports/${days[position - 1]}`}>下一期 →</Link>}
-          <a href={`/${report.original}`} download={report.originalName}>下载 Word 原件</a>
+          {report.original && <a href={reportAsset(report.original)} download={report.originalName}>下载 Word 原件</a>}
+          {!report.original && day >= "2026-10-23" && day <= "2026-11-08" && (
+            <a href={historyArchive}>下载历史 Word 原件 ZIP</a>
+          )}
         </nav>
         {record.versions.length > 1 && (
           <details>
@@ -256,13 +267,13 @@ function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
             <section key={item.key} id={item.key}>
               <h2>{item.title}</h2>
               {item.key === "flow" && (
-                <InferenceFlow key={report.original} entries={reportFlow(report, query.get("version") ?? undefined)} />
+                <InferenceFlow key={version.sha256} entries={reportFlow(report, version.sha256)} />
               )}
               {item.figure && (
                 <details className="docx-original-figure">
                   <summary>查看 Word 流程原图</summary>
-                  <a className="docx-figure" href={`/${item.figure}`} target="_blank" rel="noreferrer">
-                    <img src={`/${item.figure}`} alt="单个请求的推理主线与优化位置" loading="lazy" />
+                  <a className="docx-figure" href={reportAsset(item.figure)} target="_blank" rel="noreferrer">
+                    <img src={reportAsset(item.figure)} alt="单个请求的推理主线与优化位置" loading="lazy" />
                   </a>
                 </details>
               )}
@@ -315,7 +326,7 @@ export default function DocxPreview() {
       <div className="docx-workspace">
         <header className="docx-topbar"><span>社区研报 › {reading ? "研报阅读" : location.pathname === "/reports" ? "日报档案" : "优化总览"}</span><span>已接入真实材料</span></header>
         <main className="docx-main">
-        {result?.error ? <p role="alert">请先运行 Word 日报导入命令。{result.error}</p>
+        {result?.error ? <p role="alert">{localReports ? "请先运行 Word 日报导入命令。" : "日报目录加载失败。"}{result.error}</p>
           : !catalog ? <p role="status">正在加载日报索引…</p>
           : !days.length ? <p role="alert">索引为空或版本不支持。</p>
           : (

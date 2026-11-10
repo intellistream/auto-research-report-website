@@ -1,0 +1,642 @@
+{
+  "schemaVersion": 1,
+  "day": "2026-11-08",
+  "sha256": "2616cb83148e62c716f44d2856b3edec4fafe0b364e75af11e877888b38b98c6",
+  "originalName": "性能优化日报_20261108.docx",
+  "title": "vLLM 与 vLLM Ascend 性能优化日报",
+  "intro": [
+    [
+      {
+        "text": "本报告按推理流程整理 vLLM 与 vLLM Ascend 的性能更新。工程条目选自北京时间当日创建或合入的 PR，论文按 arXiv 公告日期收录。"
+      }
+    ]
+  ],
+  "sections": [
+    {
+      "key": "summary",
+      "title": "一 本日归纳",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "缓存链路的两种改动有不同目的。逐层加载把跨组的元数据请求合并，减少主机调用。暂停和睡眠时保留外部 KV，则让恢复后的相同输入可以回读。前缀命中优先的准入策略增加等待时间保护，避免冷请求持续被绕过。"
+            }
+          ]
+        },
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本日也有针对生成与流式返回的提案。短历史可以省略索引评分，MiniMax 的低并发批次可以走专用执行器，流式解析则通过记住上次位置避免反复扫描长输出。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "flow",
+      "title": "二 推理流程与优化位置",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "图 1 单个请求的推理主线与优化位置"
+            }
+          ]
+        },
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "流程参考 "
+            },
+            {
+              "text": "vLLM 官方推理流程解析",
+              "url": "https://vllm-project.github.io/2025/09/05/anatomy-of-vllm.html"
+            },
+            {
+              "text": "。"
+            }
+          ]
+        }
+      ],
+      "figure": "2026-11-08/2616cb83148e62c716f44d2856b3edec4fafe0b364e75af11e877888b38b98c6/flow.png"
+    },
+    {
+      "key": "startup",
+      "title": "三 服务启动与模型准备",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 2 项更新，涉及减少配置导入依赖、控制稀疏更新暂存量。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）减少配置导入依赖"
+        },
+        {
+          "kind": "entry",
+          "number": "V1",
+          "title": "结构化输出初始化不再引入整个解析器包",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：工作进程只为两处类型判断导入完整解析器，间接加载 OpenAI 协议和 Web 框架。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：以 ReasoningParser 的默认结束 token 属性替代类型判断，让解析器依赖在真正需要时加载。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：当日已合入。B300 的导入测试中，中位数从 6.14 降至 5.40 秒，macOS CPU 从 6.17 降至 5.48 秒。测试范围是初始化导入，未量化到健康检查的时长。（"
+              },
+              {
+                "text": "vLLM #65589",
+                "url": "https://github.com/vllm-project/vllm/pull/65589"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#65589"
+        },
+        {
+          "kind": "group",
+          "title": "（二）控制稀疏更新暂存量"
+        },
+        {
+          "kind": "entry",
+          "number": "V2",
+          "title": "分批广播和应用稀疏 NCCL 补丁",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：逐张量广播产生大量分配，且在 GPU 上长期保留每个补丁，默认 KV 容量下可能在更新途中 OOM。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：将更新分批传输和校验，约束暂存工作集，并摊薄广播提交。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：截至当日尚未合入。Qwen3-30B-A3B、TP4、默认容量下，主线在变更 1.25% 时失败，提案测试到 50% 成功。单引擎变更 0.1%/1%/3% 的更新耗时下降 21%/33%/50%。暂停时间仍随部署拓扑变化。（"
+              },
+              {
+                "text": "vLLM #66375",
+                "url": "https://github.com/vllm-project/vllm/pull/66375"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#66375"
+        }
+      ]
+    },
+    {
+      "key": "scheduling",
+      "title": "四 请求接入与调度",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 2 项更新，涉及限制外部缓存查询等待、平衡缓存复用与等待。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）限制外部缓存查询等待"
+        },
+        {
+          "kind": "entry",
+          "number": "V3",
+          "title": "为 Mooncake 前缀查找设置截止时间",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：外部存储慢或不可达时，前缀查找可长时间占住调度线程。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：查询含排队时间设默认 1 秒上限，三次连续 RPC 失败后短时熔断，到期只放一个探测。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：当日已合入。30 个 CPU 回归含真实本地 ZMQ 套接字测试。超时按未命中处理，会增加重算。来源未测真实 Mooncake master 与 GPU 服务。（"
+              },
+              {
+                "text": "vLLM #65939",
+                "url": "https://github.com/vllm-project/vllm/pull/65939"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#65939"
+        },
+        {
+          "kind": "group",
+          "title": "（二）平衡缓存复用与等待"
+        },
+        {
+          "kind": "entry",
+          "number": "V4",
+          "title": "等待超过阈值的冷请求恢复到达顺序",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：前缀命中请求不断抵达时，有限窗口优先策略仍可能一再绕过未命中请求。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：提供可选老化阈值，达到阈值后把请求按到达顺序安排在尚未到期的缓存优先请求之前。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：截至当日尚未合入。窗口 4、一个运行槽的回归中，冷请求在 1000 毫秒阈值时被接纳，旧路径在合成流量下持续绕过。CPU MRV2 虚拟权重验证通过，真实 GPU 等待与命中取舍待测。（"
+              },
+              {
+                "text": "vLLM #66361",
+                "url": "https://github.com/vllm-project/vllm/pull/66361"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#66361"
+        }
+      ]
+    },
+    {
+      "key": "prefill",
+      "title": "五 Prefill 输入上下文处理",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 1 项更新，涉及减少索引排序读写。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）减少索引排序读写"
+        },
+        {
+          "kind": "entry",
+          "number": "V5",
+          "title": "在 SM100 的输入索引中直接排序 BF16 分数",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：默认路径将 BF16 MQA 分数转 FP32 后再排序，长缓存命中后的短输入尤其容易受这步影响。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：SM100/SM103 的 auto 模式改用已有 DeepSelect 排序，显式选择和批次不变模式照旧。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：截至当日尚未合入。2×B300、DeepSeek-V4.1-Flash、TP2、512K 命中后新增 8064 token 时，随机输入的 TTFT 约 1637.9→1551.9 毫秒，自然文本降 3.7%。无命中时基本不变。（"
+              },
+              {
+                "text": "vLLM #66352",
+                "url": "https://github.com/vllm-project/vllm/pull/66352"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#66352"
+        }
+      ]
+    },
+    {
+      "key": "pd_transfer",
+      "title": "六 P/D 分离部署的缓存交接",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 1 项更新，涉及合并缓存传输准备。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）合并缓存传输准备"
+        },
+        {
+          "kind": "entry",
+          "number": "A1",
+          "title": "按请求批量查询逐层回载元数据",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：逐层回载为各缓存组分别查询键、申请读租约和刷新地址，兼容组多时主机调用成倍增长。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：先收齐该请求各组键，再批量执行这几步，把结果写回对应的完整页和部分页位置。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：截至当日尚未合入。A5、GLM-5.3-Flash W8A8/FP8 KV、P TP8 和 8 个 D TP1、MRV2/MTP5 的回放剖析中，P rank 0 的 GVA 准备由 56.39 降至 43.98 毫秒，SFA 设备均值约 126 毫秒。对照含关联补丁、请求长度略有差异，未声明持续吞吐提升。（"
+              },
+              {
+                "text": "Ascend #21262",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/21262"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#21262"
+        }
+      ]
+    },
+    {
+      "key": "decode",
+      "title": "七 Decode 常规生成",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 2 项更新，涉及跳过可直接确定的索引、融合投影与集合通信。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）跳过可直接确定的索引"
+        },
+        {
+          "kind": "entry",
+          "number": "A2",
+          "title": "短历史全部可见时直接填稀疏索引",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：压缩历史不超过 top-k 预算时，每个有效位置都会入选，仍执行投影、打分和排序。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：对无需生成或过滤候选块的索引源层，按位置填索引和长度，尾部填 -1，沿用已有输出缓冲。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：截至当日尚未合入。仅适用于该历史长度及路径，来源给出编译和差异检查，单测、真实 NPU 和整机基准尚待完成。（"
+              },
+              {
+                "text": "Ascend #21271",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/21271"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#21271"
+        },
+        {
+          "kind": "group",
+          "title": "（二）融合投影与集合通信"
+        },
+        {
+          "kind": "entry",
+          "number": "A3",
+          "title": "将稠密序列并行通信融入 Qwen3.5 的 GEMM",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：稠密序列并行的列和行投影分别依赖独立 AllGather、ReduceScatter，增加执行切换。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在支持的未量化 TP2/4/8 路径调用 NPU 通信计算组合算子。由自定义算子在运行时根据形状分派，图捕获使用相同路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：截至当日尚未合入。改动覆盖启用 FlashComm 的稠密模型。完整图还取决于设备 MC2 接口能否捕获，来源未给可引用的服务性能对照。（"
+              },
+              {
+                "text": "Ascend #21272",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/21272"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#21272"
+        }
+      ]
+    },
+    {
+      "key": "speculative",
+      "title": "八 推测解码",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 2 项更新，涉及减少草稿图元数据准备、缩短专用验证路径。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）减少草稿图元数据准备"
+        },
+        {
+          "kind": "entry",
+          "number": "A4",
+          "title": "在 GLM DFlash2 草稿图中使用设备长度 FlashAttn",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：草稿开启 ACL 图后原先改用 FIA，序列长度物化为主机列表，注意力任务还需主机更新。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：为满足条件的草稿图选择接受设备长度的 CANN FlashAttn，让长度和注意力数据继续留在设备侧。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：截至当日尚未合入。来源说明新增分派逻辑与验证用例。当前环境未跑完整单测和 NPU 图回放，尚无草稿时延结果。（"
+              },
+              {
+                "text": "Ascend #21281",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/21281"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#21281"
+        },
+        {
+          "kind": "group",
+          "title": "（二）缩短专用验证路径"
+        },
+        {
+          "kind": "entry",
+          "number": "V6",
+          "title": "为 MiniMax-M3.1 小批量验证接入 CuTe DSL 专用路径",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：交互式批次较窄，模型层的通信、投影与注意力分开提交，主模型验证步长受固定开销影响。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：使用可选专用执行器组织 MiniMax-M3.1-Flash 的小批量层计算与通信，随设备预热编译。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：截至当日尚未合入。GB300 tray、TP4、DSpark K=7 下，来源报告 8K 并发 1 的步长由 6.99 降至 4.76 毫秒。AgentX 的最高 1.45 倍来自较早执行器版本，部分设备测试尚待在当前分支复跑。（"
+              },
+              {
+                "text": "vLLM #66324",
+                "url": "https://github.com/vllm-project/vllm/pull/66324"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#66324"
+        }
+      ]
+    },
+    {
+      "key": "output_return",
+      "title": "九 输出返回与状态更新",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 2 项更新，涉及减少流式帧构造、增量解析流式结果。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）减少流式帧构造"
+        },
+        {
+          "kind": "entry",
+          "number": "V7",
+          "title": "复用流式 JSON 编码器并推迟读取 prompt",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：普通补全每片段重新创建 JSON 编码器，即使请求未开启 echo 也会读取 prompt 文本。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在模块级复用编码器，并仅在 echo 路径提取 prompt。默认采样配置改为类变量以避免每请求深复制。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：截至当日尚未合入。CPU 微基准中，文本 prompt 每片段由 1.60 降至 1.06 微秒，token ID prompt 由 2.20 降至 1.07 微秒。变更覆盖常见普通补全路径。（"
+              },
+              {
+                "text": "vLLM #66325",
+                "url": "https://github.com/vllm-project/vllm/pull/66325"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#66325"
+        },
+        {
+          "kind": "group",
+          "title": "（二）增量解析流式结果"
+        },
+        {
+          "kind": "entry",
+          "number": "V8",
+          "title": "让 Kimi K3 推理和工具解析只处理增量",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：每次流式增量都会从头扫描已积累的推理和工具文本，输出越长每次处理越慢。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：保留两个解析器的扫描进度和状态，新字符到达后继续处理。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：截至当日尚未合入。4 核虚机、4 字符一片、关闭 GC 的解析器微基准中，10K 字符推理流从约 30 降至 5.1 微秒/次。数据不含反分词、网络或模型执行。（"
+              },
+              {
+                "text": "vLLM #66354",
+                "url": "https://github.com/vllm-project/vllm/pull/66354"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#66354"
+        }
+      ]
+    },
+    {
+      "key": "resource_reclaim",
+      "title": "十 资源回收与缓存保留",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 1 项更新，涉及在睡眠期间保留外部缓存。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）在睡眠期间保留外部缓存"
+        },
+        {
+          "kind": "entry",
+          "number": "V9",
+          "title": "允许暂停和睡眠时保留主机 KV 层",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：睡眠释放 GPU 资源时也清理外部 KV，唤醒后相同提示仍需重新 Prefill。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：新增可关闭的连接器缓存清理开关，允许 GPU 释放而外部 CPU/SSD KV 保留。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：当日已合入。GB200 上 DeepSeek-V4.1-Flash 的 16 路约 19.5K 提示唤醒重放，保留时外部命中 311296/311744 token，默认清理时为 0。延迟对照先后运行且共享提示，命中计数更能说明复用行为。（"
+              },
+              {
+                "text": "vLLM #57810",
+                "url": "https://github.com/vllm-project/vllm/pull/57810"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#57810"
+        }
+      ]
+    },
+    {
+      "key": "papers",
+      "title": "十一 论文",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "arXiv 当日无常规新论文公告，本日未收录新的相关论文。"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "upstream": 9,
+    "ascend": 4,
+    "papers": 0
+  },
+  "warnings": []
+}

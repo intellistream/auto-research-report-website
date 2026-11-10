@@ -1,0 +1,988 @@
+{
+  "schemaVersion": 1,
+  "day": "2026-10-24",
+  "sha256": "73d0302412d8b535dcc4acbf829bfa298830d4509d3a357b69fb7cc87c57b778",
+  "originalName": "性能优化日报_20261024.docx",
+  "title": "vLLM 与 vLLM Ascend 性能优化日报",
+  "intro": [
+    [
+      {
+        "text": "本报告按推理流程整理 vLLM 与 vLLM Ascend 的性能更新。工程条目选自北京时间当日创建或合入的 PR，论文按 arXiv 公告日期收录。"
+      }
+    ]
+  ],
+  "sections": [
+    {
+      "key": "summary",
+      "title": "一 本日归纳",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本日优化集中在长请求的前缀复用和生成时的多卡执行。输入侧把 token 和块编号整理成紧凑数组，缓存侧尽量保住已生成的 KV，生成侧重叠 Engram 投影和专家通信。"
+            }
+          ]
+        },
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "多模态缓存的预留与释放有不同目标。预留按单请求需要同时驻留的结果定容，释放则用引用计数减少重复遍历。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "flow",
+      "title": "二 推理流程与优化位置",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "图 1 单个请求的推理主线与优化位置"
+            }
+          ]
+        },
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "流程参考 "
+            },
+            {
+              "text": "vLLM 官方推理流程解析",
+              "url": "https://vllm-project.github.io/2025/09/05/anatomy-of-vllm.html"
+            },
+            {
+              "text": "。"
+            }
+          ]
+        }
+      ],
+      "figure": "2026-10-24/73d0302412d8b535dcc4acbf829bfa298830d4509d3a357b69fb7cc87c57b778/flow.png"
+    },
+    {
+      "key": "startup",
+      "title": "三 服务启动与模型准备",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 2 项更新，涉及修复缓冲区映射、加快专家权重更新。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）修复缓冲区映射"
+        },
+        {
+          "kind": "entry",
+          "number": "A1",
+          "title": "对齐私有 Host-UVA 缓冲区，修复设备读取错误",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：Host-UVA 允许 NPU 通过映射地址直接读取主机内存。A3/CANN 9.2.0 中，某些小型私有缓冲区虽然在 CPU 侧内容正确，NPU 却可能从映射地址读到不同字节，导致 Engram 查表使用错误数据并影响输出正确性。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：每个缓冲区最多多保留 65535 字节，把实际载荷对齐到 64 KiB 后再注册和查询设备地址。释放时仍保留原始分配指针，不在热路径增加复制。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：16384 行 INT8/FP32 表中，旧尺度缓冲区出现 122850 个字节不匹配、32 个索引中 25 个错误。对齐后原始字节、索引尺度和聚合反量化均精确一致。两条 CPU CI 线分别有 12348/12342 项通过。该 PR 是正确性修复，没有性能结论，也未覆盖 A5、其他 CANN 或共享缓冲区。（"
+              },
+              {
+                "text": "Ascend #19695",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19695"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#19695"
+        },
+        {
+          "kind": "group",
+          "title": "（二）加快专家权重更新"
+        },
+        {
+          "kind": "entry",
+          "number": "V1",
+          "title": "把强化学习中的大专家权重重载缩短到十秒级",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：强化学习会不断产生新模型权重，推理服务需要频繁重新加载 MegaMoE 专家参数。旧流程每轮都重新构建元数据、查找专家位置并逐块复制大规模权重，单次更新可能持续上百秒，在此期间训练和推理都要等待。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：复用已有元数据，提前建立索引映射，把连续专家复制合并处理，推迟大页内存整理，并让部分运行时资源跨更新复用。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：DeepSeek-V4.1、共置 verl/Megatron、16×GB200 环境中，update_weights 约 106 s→8.8–9.5 s，权重指纹一致，rollout 概率最大差为 0。结果同时包含另一仓库的训练端改动和五个提交叠加，不能视为本 PR 单独贡献。精确 rebase 后的完整单元测试也未重跑。（"
+              },
+              {
+                "text": "vLLM #63429",
+                "url": "https://github.com/vllm-project/vllm/pull/63429"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#63429"
+        }
+      ]
+    },
+    {
+      "key": "scheduling",
+      "title": "四 请求接入与调度",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 7 项更新，涉及复用缓存命中结果、按请求需要预留视觉缓存、减少前端重复处理等方面。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）复用缓存命中结果"
+        },
+        {
+          "kind": "entry",
+          "number": "A2",
+          "title": "跳过已被更大范围覆盖的 Memcache 传输",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：同一份缓存数据有时会同时以局部切片和包含它的完整内存块加入传输列表。旧实现会把两项都发送，使被包含的字节重复读取或写入。条目越多，重复传输和主机端整理描述符的开销越大。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：按对象比较内存区间，只删除完全包含在另一范围内的条目。部分重叠或中间有空洞的范围保持不变，避免错误扩大传输范围。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：回放 6832 次调用、148736 个键，减少 3,735,840 个描述符和约 7.89 GB 重复字节。代价是最大批次的 CPU 辅助处理从 9.13 增至 16.23 ms。目前没有 NPU 吞吐、缓存命中或集群级数据。它证明“少搬了什么”。（"
+              },
+              {
+                "text": "Ascend #19676",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19676"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#19676"
+        },
+        {
+          "kind": "entry",
+          "number": "A3",
+          "title": "让多轮请求优先回到同一个预填充节点",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在预填充与解码分离部署中，同一会话的多轮请求可能被分配到不同的预填充节点。即使新一轮仍包含完全相同的历史前缀，换到另一节点后也看不到原节点的本地前缀缓存，只能重新计算。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：增加可选的会话亲和路由：从 X-Session-Id、user 字段或首轮对话提取稳定身份，用一致性哈希选择预填充端点。移除节点时只重映射受影响会话。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：两 worker、现有 P/D 部署的三轮对话都返回 HTTP 200，并稳定落到同一个预填充端点。35 项代理测试通过。作者明确没有声称吞吐或缓存命中率提升。繁忙端点仍可能被粘住，缓存被淘汰、重启或前缀变化后也不保证命中。（"
+              },
+              {
+                "text": "Ascend #19708",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19708"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#19708"
+        },
+        {
+          "kind": "entry",
+          "number": "A4",
+          "title": "把稀疏混合缓存的前缀复用细化到物理页内部",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：前缀缓存按较小的哈希块判断哪些 token 已经命中，但 KV 数据实际存放在更大的物理页中。旧实现只能复用到完整页边界，即使页内还有已经命中的有效块，也会放弃这些结果并重新计算。例如可复用 1216 个 token 时，实际只能用到 1088 或 1152 个。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在物理页内部保存恢复点。命中后复用到细粒度位置，只重算该页剩余尾段，同时把稀疏索引器的私有尾部留给当前请求。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：910B TP8、GLM-5.3-Flash 的 16 请求测试输出一致，示例命中可从 1088 或 1152 提高到 1216 token。没有真实命中分布、长上下文查找开销或服务吞吐数据。（"
+              },
+              {
+                "text": "Ascend #19714",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19714"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#19714"
+        },
+        {
+          "kind": "entry",
+          "number": "V2",
+          "title": "直接在 int32 token 缓冲区上计算前缀哈希",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：前缀缓存需要为每个 token 块生成哈希。旧路径先把 Python 整数形式的 token 逐个序列化，再计算 SHA-256。面对十几万 token 的长提示，这些逐项操作会长时间占用输入线程，并使共享该线程的解码循环延迟。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：新增可选的 sha256_int32 算法，直接读取连续的 32 位整数缓冲区，省掉逐整数序列化。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：135K token 请求、256-token 哈希块从 4.50 降至 1.02 ms。16×B200 的 2P1D 测试中，输入线程 18.3→10.6 ms，ITL P50 9.2→8.4 ms，输出吞吐 4900→5008 tok/s/GPU。两组运行不是交错 A/B。新算法哈希值不同，共享缓存实例必须统一配置。（"
+              },
+              {
+                "text": "vLLM #63454",
+                "url": "https://github.com/vllm-project/vllm/pull/63454"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#63454"
+        },
+        {
+          "kind": "group",
+          "title": "（二）按请求需要预留视觉缓存"
+        },
+        {
+          "kind": "entry",
+          "number": "A5",
+          "title": "按单请求最坏驻留量扩大多模态编码缓存",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：一个多图请求可能需要同时保留多张图片的编码结果。旧逻辑只按单张图片的最大大小设置缓存下限，没有考虑多项结果同时驻留。当前一张图片尚未释放、后一张又写不进去时，调度器会不断重试却无法推进，请求最终卡住。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：按各模态“单项最大 token×每请求允许项数”的总和计算最坏驻留量，只扩大缓存容量，不增加每步编码计算预算。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：Kimi-K3、A3、8 节点、PP4×TP16 上，两张 2560×2644 图片合计约 17480 个嵌入。旧逻辑在 20 分钟内空转约 80 万步并最终 2 小时超时，修复后请求 81.5 s 完成。该结果解决的是死锁和可用性，不应写成一般吞吐提升。多图场景可能增加瞬时缓存占用。（"
+              },
+              {
+                "text": "Ascend #19692",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19692"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#19692"
+        },
+        {
+          "kind": "group",
+          "title": "（三）减少前端重复处理"
+        },
+        {
+          "kind": "entry",
+          "number": "V3",
+          "title": "离线向量化不再等待全部提示预处理完成",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：embed、encode、classify 和 score 等离线任务需要先在 CPU 上解析和整理提示，再交给 GPU 计算。旧代码要等全部提示预处理完成后才启动引擎，数据量大时 GPU 会在开始阶段空等，CPU 与 GPU 无法并行工作。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：把请求工厂改为按需生成，并用有限大小的预取队列提前准备下一批。第一批完成后立刻送入引擎，使 CPU 预处理与 GPU 计算重叠。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：H100、Qwen3-Embedding-0.6B、2 万条 200–400 token 合成提示中，中位调用时间 16.55→15.67 s，吞吐约 +5.6%，首秒 GPU 利用率 0–3%→14–60%。这是单卡离线向量化结果，不代表在线文本生成路径。（"
+              },
+              {
+                "text": "vLLM #63443",
+                "url": "https://github.com/vllm-project/vllm/pull/63443"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#63443"
+        },
+        {
+          "kind": "group",
+          "title": "（四）合并批次元数据准备"
+        },
+        {
+          "kind": "entry",
+          "number": "V4",
+          "title": "用 int32 数组传递新请求的 KV 块编号",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：长请求可能包含数万个 KV 缓存块编号。旧路径把每个编号作为 Python 整数逐项序列化，再在工作进程中逐项拼成张量。当某张卡对应的进程处理较慢时，其他卡会在下一次同步处等待，形成整轮停顿。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：把新请求的缓存块编号直接打包为 int32 数组，在 worker 侧以数组块合并并异步传到 GPU，避免 Python 列表逐项扩展和大量小整数的序列化开销。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：DeepSeek-V4.1-Flash、B200、预填充与解码分离、解码侧 DEP8 的测试中，接收长请求时块表写入超过 5 ms 的步骤占比从 2.6% 降至 0，P99 从 5.7 降至 0.4 ms，最大值从 35.8 降至 4.0 ms。解码 GPU 忙碌率从 90.9% 升至 94.6%。每卡输出吞吐仅从 4511 升至 4527 tok/s，说明该改动主要减少尾部停顿，没有显著提高闭环吞吐。（"
+              },
+              {
+                "text": "vLLM #63438",
+                "url": "https://github.com/vllm-project/vllm/pull/63438"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#63438"
+        }
+      ]
+    },
+    {
+      "key": "prefill",
+      "title": "五 Prefill 输入上下文处理",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 2 项更新，涉及减少多模态输入计算、裁剪无须继续计算的输入。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）减少多模态输入计算"
+        },
+        {
+          "kind": "entry",
+          "number": "A6",
+          "title": "用 EVS 视频裁剪减少多模态输入",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：视频会先被切分并编码为大量视觉 token，再送入多模态模型。不同画面包含的信息量并不相同，但旧版 Qwen3.5 Ascend 路径会保留全部视觉 token，无法通过 EVS 按内容重要性删除低价值部分，因此后续编码和生成仍要处理完整视频输入。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在 Ascend 模型执行器中接入上游 EVS 视频裁剪流程，传递裁剪配置，并在使用前把位置编号和嵌入索引从 CPU 移到 NPU。用户可通过裁剪比例控制保留多少视频 token。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：A3 双卡的一组合成视频测试中，裁剪比例设为 0.75 后，提示 token 数从 58 降至 46，减少 20.7%。单请求耗时从 41.53 降至 30.51 秒，下降约 26.5%。25 个单元测试和 2 个端到端测试通过，裁剪前后生成文本相同。结果只覆盖一个合成视频和单请求，不能据此推断不同视频内容下的精度与吞吐收益。（"
+              },
+              {
+                "text": "Ascend #19698",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19698"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#19698"
+        },
+        {
+          "kind": "group",
+          "title": "（二）裁剪无须继续计算的输入"
+        },
+        {
+          "kind": "entry",
+          "number": "V5",
+          "title": "裁剪多卡长输入的后续计算范围",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：DeepSeek-V4.1-Flash 在处理长输入时，只需让模型前半部分处理全部 token，以生成完整历史的压缩缓存和检索索引。模型后半部分采用窗口注意力，只需继续处理输入末尾的一小段 token。旧实现未在多卡并行场景中完成这种 token 裁剪，导致后半部分仍对本轮全部输入进行计算，产生了大量无效开销。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：先确定整个请求需要保留的尾部范围，再计算该范围与各卡所负责输入部分的交集，仅让交集内的 token 参与后续计算，同时保持历史缓存及各卡结果的对应关系。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在 H20、DeepSeek-V4.1-Flash、TP2/PCP4、8K 输入/1 输出条件下，作者报告并发 1/8/32 的输入吞吐分别提升约 58.50%/59.97%/60.35%。并发 8 的 TTFT 由 4397.48 降至 2748.51 ms。测试未使用图捕获，且前缀缓存未命中，不能据此推断输出阶段也提速 60%。数据来自 23 日晚复测，本项于北京时间 24 日合入。（"
+              },
+              {
+                "text": "vLLM #62384",
+                "url": "https://github.com/vllm-project/vllm/pull/62384"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#62384"
+        }
+      ]
+    },
+    {
+      "key": "pd_transfer",
+      "title": "六 P/D 分离部署的缓存交接",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 1 项更新，涉及减少交接传输与准备。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）减少交接传输与准备"
+        },
+        {
+          "kind": "entry",
+          "number": "V6",
+          "title": "在多轮 P D 服务中直接复用解码端 KV",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在预填充与解码分离的多轮服务中，新一轮请求通常包含上一轮提示和刚生成的内容。这些 token 的 KV 已保存在解码节点，但预填充节点无法直接复用，只能再次处理相同 token 并重建 KV，造成重复计算和传输。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：让 Mooncake 连接器暂时保留已完成请求的解码端 KV。下一轮到来时，预填充端按传输编号和前缀哈希拉取已有部分，只计算本轮新增 token。哈希不匹配时仍回到本地重算，避免复用错误前缀。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：Qwen3.8-27B-FP8、1P1D、预填充和解码各 TP2、8 个会话各 4 轮、首轮 8K token 的测试中，后续轮次平均首 token 时延从 6.15 降至 1.63 秒，约缩短 3.8 倍。解码相邻 token 时延约为 96.5 和 96.7 ms，基本不变。24/24 个后续轮次成功拉取缓存且无错误，但实验使用 Intel XPU 和混合 GDN 模型，重新预填充与继续解码本身存在数值差异，不能视为逐 token 完全一致。（"
+              },
+              {
+                "text": "vLLM #63425",
+                "url": "https://github.com/vllm-project/vllm/pull/63425"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#63425"
+        }
+      ]
+    },
+    {
+      "key": "decode",
+      "title": "七 Decode 常规生成",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 7 项更新，涉及重叠查表投影与专家分发、减少专家计算与通信开销、减少注意力数据搬运等方面。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）重叠查表投影与专家分发"
+        },
+        {
+          "kind": "entry",
+          "number": "A7",
+          "title": "把 Engram WKV 投影与专家分发重叠执行",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：DeepSeek-V4.1 每轮解码都会先从 Engram 表中查出记忆向量，再通过较大的 WKV 矩阵投影，把查表结果转换为模型可用的 Key 和 Value。旧实现虽然能提前完成查表，却要等主计算运行到 Engram 层后才开始投影，后续步骤又必须等待投影结束，因此这段计算仍会直接增加每轮生成时间。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在更早的路由结果可用后，用独立 NPU 执行流提前启动 WKV 投影，让它与混合专家（MoE）的 token 分发和专家计算同时推进，在真正使用结果前再汇合。功能默认关闭，只在完整图、序列并行和 TP 大于 1 等条件下启用。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：A3 单服务器、16 个逻辑设备、DS-V4.1-Flash W8A8、并发 32、96 请求的一组测试中，吞吐 967.42→1013.02 tok/s（+4.71%），TPOT P50 30.111→29.014 ms（-3.64%）。TPOT 是除首 token 外每生成一个 token 的平均耗时。后续同源码基线只有 865–934 tok/s，作者没有声称当前版本稳定提速。WKV 内核本身还因资源竞争从 328 增至 443 微秒。（"
+              },
+              {
+                "text": "Ascend #19716",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19716"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#19716"
+        },
+        {
+          "kind": "group",
+          "title": "（二）减少专家计算与通信开销"
+        },
+        {
+          "kind": "entry",
+          "number": "A8",
+          "title": "把小专家的 BF16 量化统计分散到更多计算核心",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：MoE 路由后，不同专家收到的 token 数可能很少，甚至每个专家只有一行数据。旧内核处理每个专家时都从第一个计算核心重新编号，导致多个单行任务集中到同一核心串行执行，而其他核心空闲。整轮计算必须等待这个最忙的核心完成，量化统计因此被明显拖慢。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：按全局行号连续分配任务，不在专家边界重新从 0 开始。这样不同专家的小任务会轮转到不同核心，而且不增加额外归并、内核启动或临时空间。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：A3 单设备、BF16 [7168, 6144]、14 个专家的局部测试中，14 个单行组从 43.665 降至 14.627 微秒。完整合成 W4A8 链路从 254.729 降至 231.463 微秒（-9.1%）。零工作量路径反而从 7.54 增至 9.48 微秒。没有真实模型、EP64 或服务级 TPOT 数据。（"
+              },
+              {
+                "text": "Ascend #19691",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19691"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#19691"
+        },
+        {
+          "kind": "entry",
+          "number": "A9",
+          "title": "跨层复用 DeepSeek V4.1 路由输入编号",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：DeepSeek V4.1 使用序列并行时，每个张量并行进程已经持有完整的输入编号。旧实现仍在每一层 MoE 路由前重复做类型转换、跨卡收集、拼接和归一化。单层开销不大，但会随层数反复累积。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：每次模型前向只准备一份完整输入编号，并让后续路由层共同复用。当前只在模型级序列并行、DP1、PCP1、无微批处理且使用固定 AllGather 通信路径时启用，其他配置仍走原有流程。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：8 张 Ascend 910B、TP8/EP8、DeepSeek-V4.1-Flash W4A8、并发 6、100 个请求，固定前缀 46500 token 加随机输入 3500 token、输出 350 token 的测试中，平均首 token 时延从 1604.50 降至 1518.22 ms，下降 5.38%。平均相邻 token 时延从 61.51 降至 59.94 ms，下降 2.55%。完整模型输出一致性验证仍未完成，当前结果不能外推到其他并行组合。（"
+              },
+              {
+                "text": "Ascend #19679",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19679"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#19679"
+        },
+        {
+          "kind": "entry",
+          "number": "V7",
+          "title": "裁掉 MoRI 分发输出中永远装不下 token 的行",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：ROCm 的 MoRI 专家并行路径会按照理论最大容量准备 token 分发行。实际负载较低时，尾部许多行不可能装入任何 token，却仍被纳入跨卡通信和后续计算，造成大量空数据处理。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：根据本轮实际 token 上限裁掉无效尾行，只保留可能承载 token 的分发区域。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：MI300X、预填充/解码分离、DeepSeek-V4-Flash、EP16 的单次测试中，并发 1–32 的 TPOT 从未裁剪的 854.8–866.8 ms 降至 29.6–42.4 ms。正确性 20/20。未裁剪组输出长度 256、裁剪组 1024，虽然 TPOT 按 token 计，仍不是完全相同的配对。每个格子只有一次运行，而且只适用于 MoRI 后端。（"
+              },
+              {
+                "text": "vLLM #63412",
+                "url": "https://github.com/vllm-project/vllm/pull/63412"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#63412"
+        },
+        {
+          "kind": "group",
+          "title": "（三）减少注意力数据搬运"
+        },
+        {
+          "kind": "entry",
+          "number": "A10",
+          "title": "直接输出 MLAPO KV，并融合写回 CPU",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：稀疏 KV 卸载既要把当前键和值提供给 NPU 注意力计算，又要保存到 CPU 内存供后续使用。旧实现先将数据写入 NPU KV 缓存，再从该缓存复制到 CPU 池，同一份 KV 因而被搬运两次。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：MLAPO 直接生成供注意力消费的 KV，并在同一融合内核向 CPU 缓存池写回，省去从常规 NPU KV 缓存发起的单独复制。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：4 台 A3、GLM-5.2 W8A8C8 的历史集成测试中，平均 ITL 133.200→126.275 ms，TPOT 30.625→29.100 ms。240/240 NPU 正确性用例通过。ITL 是相邻 token 的时间间隔。性能数据来自含其他 MemFabric 修复的历史部署版本，不是当前 PR 的单变量对照。（"
+              },
+              {
+                "text": "Ascend #19719",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19719"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#19719"
+        },
+        {
+          "kind": "entry",
+          "number": "A11",
+          "title": "融合 DCP FlashMLA 的 Query 与当前 KV 准备",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：解码上下文并行（DCP）会把同一条长上下文分给多张卡共同处理。旧路径为了准备 FlashMLA 输入，需要分别切片、复制 Query，并把当前 KV 散写到多个位置，产生多次小内核启动和重复数据搬运。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：用两个按固定间隔读写的 Triton 内核，分别完成历史 Query、当前 Query 与临时 KV 的准备。同时保留张量并行本地 Query，避免再生成一份。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：已有 CPU 地址和逻辑测试，但没有 NPU 时延、吞吐或服务结果。它说明了可以合并哪些搬运步骤，尚不能证明在真实长上下文服务中一定提速。（"
+              },
+              {
+                "text": "Ascend #19685",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19685"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#19685"
+        },
+        {
+          "kind": "group",
+          "title": "（四）融合或调整生成算子"
+        },
+        {
+          "kind": "entry",
+          "number": "V8",
+          "title": "为 GLM 5.3 单请求解码增加专用融合路径",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：通用解码路径会依次启动注意力、MoE、前馈网络和输出层等大量内核。单请求时每步只有少量 token，实际计算很小，GPU 经常还没充分工作就要切换到下一个内核，启动和衔接开销因此占据较大比例。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：为 GLM-5.3 增加可选的专用解码路径，用 CuTe DSL 编写的融合内核替换 78 个目标层的通用解码流程。CuTe DSL 是面向 NVIDIA GPU 的内核描述工具。本方案只覆盖 B200/B300、TP8、单请求和固定四行解码形状，其他情况回退到原路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：8 张 B200、TP8、单请求、输出 1536 token 的测试中，8K 上下文的单 token 解码时间从 3.556 降至 1.920 ms，约提速 1.85 倍。524K 上下文从 3.798 降至 1.881 ms，约提速 2.02 倍。代价是热启动增加约 4 秒，每个 rank 的 KV 容量减少约 3.4 GiB，CUDA 图内存由 0.54 增至 1.96 GiB。数据只覆盖单请求，未报告服务吞吐。（"
+              },
+              {
+                "text": "vLLM #63386",
+                "url": "https://github.com/vllm-project/vllm/pull/63386"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#63386"
+        }
+      ]
+    },
+    {
+      "key": "speculative",
+      "title": "八 推测解码",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 3 项更新，涉及适配草稿模型、缩短草稿准备、缩短验证与衔接。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）适配草稿模型"
+        },
+        {
+          "kind": "entry",
+          "number": "A12",
+          "title": "为 DSpine 推测解码增加 Ascend 支持",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：推测解码由较小的草稿模型一次提出多个 token，再交给主模型集中验证。DSpine 在 DFlash 基础上改进了中间写入和最后一次状态写回，目标是让主模型每轮接受更多草稿。但 Ascend 此前没有对应实现，无法使用这条解码路径。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：新增 DSpine 模型、提议器和分派逻辑。预先分配暂存缓冲区以保持完整解码图可捕获，并在 MRV2 尚未支持时明确回退到已验证的 MRV1。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：Ascend 910C×2、DP2、15 个草稿 token、155 请求回放中，QPM/卡 37.68→45.08（+19.6%），每轮接受 token 2.84→3.79，输出吞吐 1286→1522 tok/s。155 个请求均成功，但 DSpine 有 1 个输出被截断。结果只覆盖单一模型栈、贪心草稿和 MRV1。（"
+              },
+              {
+                "text": "Ascend #19682",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19682"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm-ascend#19682"
+        },
+        {
+          "kind": "group",
+          "title": "（二）缩短草稿准备"
+        },
+        {
+          "kind": "entry",
+          "number": "V9",
+          "title": "批量清零新请求的草稿 token",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：推测解码接纳新请求时，需要清空这些请求槽位中遗留的草稿 token。旧实现为每个请求分别启动一次很小的 GPU 清零操作。一轮加入的请求越多，小内核启动次数越多，固定调度开销也越明显。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：先在主机端记录槽位，一轮内用一次 index_fill_ 统一清零，并通过一次异步上传把槽位索引送到设备。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：4000 请求测试中，主分支为 1703/1698 req/s，改动后为 1688/1710 req/s，明确没有测得吞吐改善。它减少启动次数并简化后续优化空间，但当前证据只支持结构清理。（"
+              },
+              {
+                "text": "vLLM #63444",
+                "url": "https://github.com/vllm-project/vllm/pull/63444"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#63444"
+        },
+        {
+          "kind": "group",
+          "title": "（三）缩短验证与衔接"
+        },
+        {
+          "kind": "entry",
+          "number": "V10",
+          "title": "在 MI355X 上把 DSpark 验证步骤合成单内核",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：DSpark 验证由多次小型张量操作组成，每一步都要单独启动 GPU 内核并在显存中读写中间结果。低并发时实际计算量很小，内核启动和数据往返的固定成本反而成为主要开销。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：用 FlyDSL 实现可选 monokernel，把多步验证融合成一个解码内核，并保留原实现作为默认与回退。monokernel 即“把原本多个小内核合成一个大内核”。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：8×MI355X、TP8+EP、7-token DSpark 的 PR 头部给出并发 1/2/4/8 的每卡总吞吐 2974/3009/4410/7375 tok/s，但没有同配置主分支对照，不能计算提速。GSM8K 为 0.9689–0.9757。DFlash2 平均接受长度 4.83→3.52，当前主线 DSpark monokernel 也低于 stock 4.69，仍属实验开关。（"
+              },
+              {
+                "text": "vLLM #63440",
+                "url": "https://github.com/vllm-project/vllm/pull/63440"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#63440"
+        }
+      ]
+    },
+    {
+      "key": "output_return",
+      "title": "九 输出返回与状态更新",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本日未收录该环节的新优化。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "resource_reclaim",
+      "title": "十 资源回收与缓存保留",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章收录 2 项更新，涉及减少缓存释放开销。"
+            }
+          ]
+        },
+        {
+          "kind": "group",
+          "title": "（一）减少缓存释放开销"
+        },
+        {
+          "kind": "entry",
+          "number": "V11",
+          "title": "让多模态编码缓存释放从平方级扫描变为线性处理",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：释放图片或视频等多模态缓存时，旧实现每删除一项都重新扫描同一请求的其余项目，以确认是否还能释放相关数据。一个请求有 N 项时，累计比较次数接近 N²。项目达到数千个后，调度器主线程会被长时间占用。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：按请求和内容哈希维护引用计数，把每次全列表扫描改为一次字典查询。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：CPU 中位数：1024 项从 15.87 降至 0.29 ms，4096 项从 234.64 降至 1.21 ms。22 项测试通过并已合并。典型请求的差异低于 0.1 ms，且没有 GPU 端到端测试，主要受益者是含数百至数千多模态项的极端请求。（"
+              },
+              {
+                "text": "vLLM #62850",
+                "url": "https://github.com/vllm-project/vllm/pull/62850"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#62850"
+        },
+        {
+          "kind": "entry",
+          "number": "V12",
+          "title": "按一次分配合并 KV 删除事件",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：外部 KV 存储大量命中时，系统会为新数据分配缓存块并连续淘汰旧块。旧实现每淘汰一个块就单独创建一条删除事件，批量淘汰会生成大量小事件，占用预填充主线程并增加下游处理开销。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：一次分配内按 KV 缓存组收集哈希，每组发送一条包含多个哈希的事件。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：每个淘汰块的 CPU 成本从 1613 降至 717 ns。10240 次淘汰的事件数从 10240 降至 160。234 项测试通过。真实 P/D 部署的端到端 A/B 仍待完成，所有事件消费者也必须正确遍历批量哈希。（"
+              },
+              {
+                "text": "vLLM #63441",
+                "url": "https://github.com/vllm-project/vllm/pull/63441"
+              },
+              {
+                "text": "）"
+              }
+            ]
+          ],
+          "workId": "github:vllm-project/vllm#63441"
+        }
+      ]
+    },
+    {
+      "key": "papers",
+      "title": "十一 论文",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本日未收录新的相关论文。"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "upstream": 12,
+    "ascend": 12,
+    "papers": 0
+  },
+  "warnings": []
+}
