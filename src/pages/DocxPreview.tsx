@@ -3,6 +3,7 @@ import { Activity, ArrowUpRight, BookOpen, CalendarDays, Layers } from "lucide-r
 import { Link, NavLink, Route, Routes, useLocation, useParams, useSearchParams } from "react-router-dom";
 import InferenceFlow, { type FlowEntry } from "./InferenceFlow";
 import InferenceMap, { type IndexedPR } from "./InferenceMap";
+import ReportTrends, { uniquePRs } from "./ReportTrends";
 import "./docx-preview.css";
 
 type Part = { text: string; url?: string };
@@ -109,17 +110,11 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
     setQuery(next, { replace: true });
   }
   const scopedDays = days.filter((day) => (!from || day >= from) && (!to || day <= to));
-  const located = new Map<string, IndexedPR>();
-  for (const entry of Array.isArray(data?.entries) ? data.entries : []) {
-    if ((from && entry.day < from) || (to && entry.day > to)) continue;
-    if (source && entry.workId.split("#")[0] !== source) continue;
-    const existing = located.get(entry.workId);
-    if (!existing) located.set(entry.workId, entry);
-    else if (existing.stage !== entry.stage) {
-      located.set(entry.workId, { ...existing, stage: "classification_conflict" });
-    }
-  }
-  const entries = Array.from(located.values());
+  const activeDays = new Set(scopedDays);
+  const observations = Array.isArray(data?.entries) ? data.entries.filter((entry) =>
+    activeDays.has(entry.day) && (!source || entry.workId.split("#")[0] === source)
+  ) : [];
+  const entries = uniquePRs(observations);
   const chronological = [...days].reverse();
   const papers = scopedDays.reduce((sum, day) => {
     const record = catalog.days[day];
@@ -127,9 +122,9 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
   }, 0);
   return (
     <div className="docx-overview">
-      <div className="docx-eyebrow">INFERENCE FLOW <span>推理流程 / 社区优化</span></div>
+      <div className="docx-eyebrow">COMMUNITY TRENDS <span>vLLM / vLLM Ascend</span></div>
       <div className="docx-overview-heading">
-        <div><h1>推理流程与社区优化<span>。</span></h1><p>沿着一次推理，看每个环节有哪些社区 PR。</p></div>
+        <div><h1>社区优化趋势<span>。</span></h1><p>看哪些环节变化最大，以及这些变化来自哪些 PR。</p></div>
         <Link className="docx-secondary" to="/reports">日报档案 <ArrowUpRight size={15} /></Link>
       </div>
       <div className="docx-flow-toolbar">
@@ -155,6 +150,7 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
         : !data ? <p role="status">正在读取日报与 PR 分类…</p>
         : data.schemaVersion !== 1 || !Array.isArray(data.entries) ? <p role="alert">PR 索引版本或格式不受支持。</p>
         : <>
+          <ReportTrends days={scopedDays} observations={observations} />
           <InferenceMap entries={entries} selection={query.get("stage")} select={(stage) => filter("stage", stage)}
             scope={JSON.stringify([source, from, to])} />
           <dl className="docx-flow-summary">
