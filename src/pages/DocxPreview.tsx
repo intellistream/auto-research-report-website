@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Activity, ArrowUpRight, BookOpen, CalendarDays, Layers } from "lucide-react";
 import { Link, NavLink, Route, Routes, useLocation, useParams, useSearchParams } from "react-router-dom";
 import InferenceFlow, { type FlowEntry } from "./InferenceFlow";
+import InferenceMap, { type IndexedPR } from "./InferenceMap";
 import "./docx-preview.css";
 
 type Part = { text: string; url?: string };
@@ -90,20 +91,8 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
   const source = query.get("source") ?? "";
   const from = query.get("from") ?? "";
   const to = query.get("to") ?? "";
-  const [data, setData] = useState<{ reports: Report[]; failed: number }>();
-  useEffect(() => {
-    const controller = new AbortController();
-    const paths = days.map((day) => {
-      const record = catalog.days[day];
-      return record.versions.find((version) => version.sha256 === record.current)!.path;
-    });
-    Promise.allSettled(paths.map((path) => readJson<Report>(path, controller.signal))).then((results) => {
-      if (controller.signal.aborted) return;
-      const reports = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
-      setData({ reports, failed: results.length - reports.length });
-    });
-    return () => controller.abort();
-  }, [catalog, days]);
+  const result = useJson<{ schemaVersion: 1; entries: IndexedPR[] }>("flow-index.json");
+  const data = result?.data;
   function filter(key: string, value: string) {
     const next = new URLSearchParams(query);
     if (value) next.set(key, value);
@@ -112,19 +101,23 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
     if (key === "to" && value && from && value < from) next.set("from", value);
     setQuery(next, { replace: true });
   }
-  const reports = data?.reports.filter(({ day }) => (!from || day >= from) && (!to || day <= to)) ?? [];
-  const located = new Map<string, FlowEntry>();
-  const conflicts = new Set<string>();
-  for (const report of reports) {
-    for (const entry of reportFlow(report)) {
-      if (source && entry.id.split("#")[0] !== source) continue;
-      const existing = located.get(entry.id);
-      if (!existing) located.set(entry.id, entry);
-      else if (existing.stage !== entry.stage) conflicts.add(entry.id);
+  const scopedDays = days.filter((day) => (!from || day >= from) && (!to || day <= to));
+  const located = new Map<string, IndexedPR>();
+  for (const entry of Array.isArray(data?.entries) ? data.entries : []) {
+    if ((from && entry.day < from) || (to && entry.day > to)) continue;
+    if (source && entry.workId.split("#")[0] !== source) continue;
+    const existing = located.get(entry.workId);
+    if (!existing) located.set(entry.workId, entry);
+    else if (existing.stage !== entry.stage) {
+      located.set(entry.workId, { ...existing, stage: "classification_conflict" });
     }
   }
-  const entries = Array.from(located.values()).filter((entry) => !conflicts.has(entry.id));
+  const entries = Array.from(located.values());
   const chronological = [...days].reverse();
+  const papers = scopedDays.reduce((sum, day) => {
+    const record = catalog.days[day];
+    return sum + (record.versions.find(({ sha256 }) => sha256 === record.current)?.counts.papers ?? 0);
+  }, 0);
   return (
     <div className="docx-overview">
       <div className="docx-eyebrow">INFERENCE FLOW <span>推理流程 / 社区优化</span></div>
@@ -133,7 +126,7 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
         <Link className="docx-secondary" to="/reports">日报档案 <ArrowUpRight size={15} /></Link>
       </div>
       <div className="docx-flow-toolbar">
-        <div><i /> <strong>真实材料</strong> <span>{reports.length} 份日报</span></div>
+        <div><i /> <strong>手工定稿</strong> <span>{scopedDays.length} 份日报</span></div>
         <div className="docx-flow-filters">
           <select aria-label="首页统计来源" value={source} onChange={(event) => filter("source", event.target.value)}>
             <option value="">全部来源</option>
@@ -151,13 +144,24 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
           </select>
         </div>
       </div>
-      {!data ? <p role="status">正在读取日报条目…</p> : <>
-        {!!data.failed && <p role="alert">{data.failed} 份日报读取失败，图中仅显示已读取的 PR。</p>}
-        <InferenceFlow entries={entries} />
-        <p className="docx-scope">当前范围：{from || chronological[0]} 至 {to || days[0]}。统计限于已收录日报。
-          {!!conflicts.size && ` 另有 ${conflicts.size} 个 PR 的跨日分类不一致。`}
-        </p>
-      </>}
+      {result?.error ? <p role="alert">无法读取 PR 索引。请重新运行 Word 日报导入命令。</p>
+        : !data ? <p role="status">正在读取日报与 PR 分类…</p>
+        : data.schemaVersion !== 1 || !Array.isArray(data.entries) ? <p role="alert">PR 索引版本或格式不受支持。</p>
+        : <>
+          <InferenceMap entries={entries} selection={query.get("stage")} select={(stage) => filter("stage", stage)}
+            scope={JSON.stringify([source, from, to])} />
+          <dl className="docx-flow-summary">
+            <div><dt>累计工程 PR</dt><dd>{entries.length}</dd></div>
+            <div><dt>已覆盖推理环节</dt><dd>{new Set(entries.map(({ stage }) => stage).filter((stage) => stage !== "classification_conflict")).size}</dd></div>
+            <div><dt>已读取日报</dt><dd>{scopedDays.length} <small>份</small></dd></div>
+            <div><dt>同期研究论文 · 不限 PR 来源</dt><dd>{papers} <small>篇</small></dd></div>
+          </dl>
+          <section className="docx-recent">
+            <header><div><h2>阅读日报</h2><p>当前日期范围内的最新日报</p></div><Link to="/reports">全部日报 <ArrowUpRight size={15} /></Link></header>
+            {scopedDays.length ? <ul>{scopedDays.slice(0, 3).map((day) => <li key={day}><Link to={`/reports/${day}`}>{day}</Link></li>)}</ul>
+              : <p>所选日期范围内没有日报。</p>}
+          </section>
+        </>}
     </div>
   );
 }

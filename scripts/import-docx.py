@@ -205,10 +205,33 @@ def inputs(path):
         raise ValueError("请输入 DOCX、包含 DOCX 的目录或 ZIP")
 
 
-def write_json(path, data):
+def write_json(path, data, *, compact=False):
     temp = path.with_suffix(".tmp")
-    temp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    options = {"separators": (",", ":")} if compact else {"indent": 2}
+    content = json.dumps(data, ensure_ascii=False, **options) + "\n"
+    if path.exists() and path.read_text(encoding="utf-8") == content:
+        return
+    temp.write_text(content, encoding="utf-8")
     temp.replace(path)
+
+
+def write_flow_index(root, catalog):
+    rows = []
+    for day, record in sorted(catalog["days"].items(), reverse=True):
+        version = record["current"]
+        report_path = root / day / version / "report.json"
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        for section in report["sections"]:
+            if section["key"] in ("summary", "flow", "papers"):
+                continue
+            for entry in section["blocks"]:
+                if entry["kind"] == "entry" and entry.get("workId"):
+                    rows.append({
+                        "day": day, "version": version, "stage": section["key"],
+                        "number": entry["number"], "workId": entry["workId"],
+                        "title": entry["title"],
+                    })
+    write_json(root / "flow-index.json", {"schemaVersion": 1, "entries": rows}, compact=True)
 
 
 def run(source, root):
@@ -249,6 +272,7 @@ def run(source, root):
         print(f"{day} 导入完成 {report['counts']}")
         for warning in report["warnings"]:
             print(f"  待核对：{warning}")
+    write_flow_index(root, index)
     write_json(index_path, index)
 
 

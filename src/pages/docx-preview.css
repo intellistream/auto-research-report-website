@@ -48,7 +48,16 @@
 .docx-flow-toolbar i { display: inline-block; background: #58a28a; width: 7px; height: 7px; border-radius: 50%; }
 .docx-flow-toolbar strong { color: #20302d; margin: 0 4px; }
 .docx-flow-toolbar select { font: inherit; color: #385247; border: 1px solid #dbe6df; border-radius: 8px; padding: 7px 9px; background: #fff; }
-.docx-scope { font-size: 12px; color: #61746a; }
+.docx-flow-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: 12px; margin: 20px 0; }
+.docx-flow-summary > div, .docx-recent { border: 1px solid #dce6e0; border-radius: 12px; background: #fff; padding: 18px; }
+.docx-flow-summary dt, .docx-recent p { font-size: 12px; color: #61746a; }
+.docx-flow-summary dd { font-size: 26px; color: #2d634e; margin: 5px 0 0; font-weight: 650; }
+.docx-flow-summary dd small { font-size: 12px; font-weight: 400; }
+.docx-recent header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.docx-recent h2, .docx-recent p { margin-bottom: 4px; }
+.docx-recent a { display: inline-flex; align-items: center; gap: 6px; }
+.docx-recent ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; }
+.docx-recent li a { padding: 7px 12px; background: #f4f8f5; border-radius: 7px; }
 .docx-heading { margin-bottom: 2rem; }
 .docx-heading h1 { margin: .45rem 0; font-size: clamp(1.65rem, 4vw, 2.6rem); }
 .docx-heading time { color: #52665a; }

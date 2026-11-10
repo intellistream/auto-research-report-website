@@ -56,7 +56,7 @@ function Connections() {
   );
 }
 
-function StageArt({ stage }: { stage: typeof main[number] }) {
+export function StageArt({ stage }: { stage: typeof main[number] }) {
   return (
     <svg className="flow-art" viewBox="0 0 128 64" aria-hidden="true">
       {stage === "scheduling" && <>
