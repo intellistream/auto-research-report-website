@@ -3,22 +3,9 @@ import {
   connectedSegments,
   utcDay,
   type DirectionKey,
-  type TrendDay,
+  type optimizationStatistics,
 } from "./optimization";
-type DirectionSlice = {
-  key: DirectionKey;
-  label: string;
-  color: string;
-  count: number;
-  share: number | null;
-  tentative: number;
-};
-type Stats = {
-  total: number;
-  directions: DirectionSlice[];
-  activeDirections: DirectionSlice[];
-  series: TrendDay[];
-};
+type Stats = ReturnType<typeof optimizationStatistics>;
 export type TrendMode = "count" | "share";
 const percent = (v: number | null) => (v === null ? "—" : v.toFixed(1) + "%");
 export function DirectionPie({
@@ -128,36 +115,16 @@ export function DirectionPie({
     </section>
   );
 }
-function percentageAxis(visibleMaximum: number) {
-  if (visibleMaximum <= 0) return { maximum: 100, ticks: [0, 25, 50, 75, 100] };
-  const padded = Math.min(100, Math.max(0.5, visibleMaximum * 1.1));
-  const step =
-    [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 25].find(
-      (value) => Math.ceil(padded / value) <= 5,
-    ) ?? 25;
-  const maximum = Math.min(
-    100,
-    Number((Math.ceil(padded / step) * step).toFixed(4)),
-  );
-  const ticks = Array.from(
-    { length: Math.round(maximum / step) + 1 },
-    (_, index) => Number((index * step).toFixed(4)),
-  );
-  return { maximum, ticks };
-}
-
 export function DirectionTrend({
   stats,
   mode,
   onMode,
   focus,
-  adaptiveShareAxis = false,
 }: {
   stats: Stats;
   mode: TrendMode;
   onMode: (mode: TrendMode) => void;
   focus: DirectionKey | null;
-  adaptiveShareAxis?: boolean;
 }) {
   const [hidden, setHidden] = useState<DirectionKey[]>([]),
     [hovered, setHovered] = useState("");
@@ -183,18 +150,14 @@ export function DirectionTrend({
       ),
     ),
   );
-  const shareAxis = adaptiveShareAxis
-    ? percentageAxis(max)
-    : { maximum: 100, ticks: [0, 50, 100] };
-  const maximum =
-    mode === "share" ? shareAxis.maximum : Math.max(2, Math.ceil(max * 1.2));
+  const maximum = mode === "share" ? 100 : Math.max(2, Math.ceil(max * 1.2));
   const y = (value: number) => bottom - (value / maximum) * (bottom - top);
   const ticks =
-    mode === "share"
-      ? shareAxis.ticks
-      : maximum <= 5
-        ? Array.from({ length: maximum + 1 }, (_, i) => i)
-        : [0, maximum / 2, maximum].filter(Number.isInteger);
+    maximum <= 5
+      ? Array.from({ length: maximum + 1 }, (_, i) => i)
+      : [0, maximum / 2, maximum].filter(
+          (v) => mode === "share" || Number.isInteger(v),
+        );
   const xTicks = series.filter(
     (_, i) =>
       series.length <= 5 ||
@@ -220,8 +183,7 @@ export function DirectionTrend({
           <h2>优化方向变化趋势</h2>
           <p>
             {mode === "share"
-              ? "各方向 PR 占当天全部 PR 的比例" +
-                (adaptiveShareAxis ? " · 纵轴自适应" : "")
+              ? "各方向 PR 占当天全部 PR 的比例"
               : "各方向在每个报告日期的 PR 数量"}
           </p>
         </div>

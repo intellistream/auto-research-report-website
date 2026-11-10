@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, ArrowUpRight, BookOpen, CalendarDays, ChartNoAxesCombined, Layers } from "lucide-react";
+import { Activity, ArrowUpRight, BookOpen, CalendarDays, Layers } from "lucide-react";
 import { Link, NavLink, Route, Routes, useLocation, useParams, useSearchParams } from "react-router-dom";
 import InferenceFlow, { type FlowEntry } from "./InferenceFlow";
 import InferenceMap, { type IndexedPR } from "./InferenceMap";
 import ReportTrends, { uniquePRs } from "./ReportTrends";
-import StatisticsOverview from "./StatisticsOverview";
+import DirectionDistribution from "./DirectionDistribution";
 import "./docx-preview.css";
 
 type Part = { text: string; url?: string };
@@ -152,6 +152,7 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
         : data.schemaVersion !== 1 || !Array.isArray(data.entries) ? <p role="alert">PR 索引版本或格式不受支持。</p>
         : <>
           <ReportTrends days={scopedDays} observations={observations} />
+          <DirectionDistribution entries={entries} />
           <InferenceMap entries={entries} selection={query.get("stage")} select={(stage) => filter("stage", stage)}
             scope={JSON.stringify([source, from, to])} />
           <dl className="docx-flow-summary">
@@ -315,14 +316,13 @@ export default function DocxPreview() {
         <NavLink to="/" end><Activity size={18} /> 优化总览</NavLink>
         <NavLink to="/reports" end><CalendarDays size={18} /> 日报档案</NavLink>
         {days[0] && <Link to={`/reports/${days[0]}`} aria-current={reading ? "page" : undefined}><BookOpen size={18} /> 研报阅读</Link>}
-        <NavLink to="/statistics"><ChartNoAxesCombined size={18} /> 统计总览</NavLink>
         <div className="docx-communities">
           <span className="docx-nav-caption">关注社区</span>
           <span>vLLM</span><span>vLLM Ascend</span><span>研究论文</span>
         </div>
       </nav>
       <div className="docx-workspace">
-        <header className="docx-topbar"><span>社区研报 › {location.pathname === "/statistics" ? "统计总览" : reading ? "研报阅读" : location.pathname === "/reports" ? "日报档案" : "优化总览"}</span><span>已接入真实材料</span></header>
+        <header className="docx-topbar"><span>社区研报 › {reading ? "研报阅读" : location.pathname === "/reports" ? "日报档案" : "优化总览"}</span><span>已接入真实材料</span></header>
         <main className="docx-main">
         {result?.error ? <p role="alert">{localReports ? "请先运行 Word 日报导入命令。" : "日报目录加载失败。"}{result.error}</p>
           : !catalog ? <p role="status">正在加载日报索引…</p>
@@ -330,7 +330,6 @@ export default function DocxPreview() {
           : (
             <Routes>
               <Route path="/" element={<FlowOverview catalog={catalog} days={days} />} />
-              <Route path="/statistics" element={<StatisticsOverview catalog={catalog} />} />
               <Route path="/reports" element={<Archive catalog={catalog} days={days} />} />
               <Route path="/reports/:day" element={<Reader catalog={catalog} days={days} />} />
               <Route path="*" element={<p>页面不存在。<Link to="/reports">查看历史日报</Link></p>} />
