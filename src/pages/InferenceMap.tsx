@@ -1,7 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUp, ArrowUpRight, Box, Cable, ChevronLeft, ChevronRight, Recycle, RotateCcw, Search, Sparkles } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Box, Cable, ChevronDown, ChevronLeft, ChevronRight, List, Recycle, Search, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import { StageArt } from "./InferenceFlow";
+import InferenceStageDemo from "./InferenceStageDemo";
 import "./inference-map.css";
 
 const labels = {
@@ -14,17 +14,17 @@ type Stage = keyof typeof labels;
 export type IndexedPR = { day: string; version: string; stage: string; number: string; workId: string; title: string };
 
 const stages = ["startup", "scheduling", "prefill", "pd_transfer", "decode", "speculative", "output_return", "resource_reclaim"] as const;
-const mainArt = {
-  scheduling: "多条请求汇成一批",
-  prefill: "输入块生成 KV 缓存",
-  decode: "逐个生成 token",
-  output_return: "结果流式返回",
-} as const;
+const main = [
+  { key: "scheduling", action: "排队 → 成批" },
+  { key: "prefill", action: "输入 → KV 缓存" },
+  { key: "decode", action: "生成 → 再生成" },
+  { key: "output_return", action: "边生成 → 边返回" },
+] as const;
 const supportArt = {
   startup: { icon: Box, note: "服务启动时" },
-  pd_transfer: { icon: Cable, note: "可选 · Prefill → Decode" },
-  speculative: { icon: Sparkles, note: "可选 · 草稿验证" },
-  resource_reclaim: { icon: Recycle, note: "请求结束后" },
+  pd_transfer: { icon: Cable, note: "可选 · 从输入到生成" },
+  speculative: { icon: Sparkles, note: "可选 · 草稿 → 验证" },
+  resource_reclaim: { icon: Recycle, note: "请求结束后 · 缓存可复用" },
 } as const;
 
 function isAscend({ workId }: IndexedPR) {
@@ -45,7 +45,7 @@ function StageVolume({ total, ascend, max }: { total: number; ascend: number; ma
   );
 }
 
-function PRList({ stage, items, panel, returnToStage }: { stage: Stage; items: IndexedPR[]; panel: string; returnToStage: () => void }) {
+function PRList({ items }: { items: IndexedPR[] }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const size = 8;
@@ -54,12 +54,8 @@ function PRList({ stage, items, panel, returnToStage }: { stage: Stage; items: I
   const pages = Math.ceil(matching.length / size);
   const current = Math.min(page, Math.max(0, pages - 1));
   return (
-    <section id={panel} className="map-v2-details" aria-labelledby={panel + "-title"}>
+    <div className="map-v2-details">
       <div className="map-v2-detail-heading">
-        <div>
-          <h3 id={panel + "-title"} tabIndex={-1}>{labels[stage]} <span>{items.length} 个 PR</span></h3>
-          <button type="button" className="map-v2-return" onClick={returnToStage}><ArrowUp size={14} aria-hidden />返回所选环节</button>
-        </div>
         <label className="map-v2-search">
           <Search size={16} aria-hidden />
           <input type="search" aria-label="搜索所选环节 PR" placeholder="搜索标题或 PR 编号" value={query}
@@ -88,7 +84,7 @@ function PRList({ stage, items, panel, returnToStage }: { stage: Stage; items: I
           <button type="button" aria-label="下一页 PR" disabled={current + 1 >= pages} onClick={() => setPage(current + 1)}><ChevronRight size={17} /></button>
         </div>
       </div>}
-    </section>
+    </div>
   );
 }
 
@@ -116,14 +112,14 @@ export default function InferenceMap({ entries, selection, select, scope }: {
   useLayoutEffect(() => {
     if (!jumpTo || selected !== jumpTo.stage) return;
     const heading = document.getElementById(panel + "-title");
-    heading?.focus({ preventScroll: true });
-    heading?.scrollIntoView({ block: "start" });
+    const compact = layout.current && getComputedStyle(layout.current).getPropertyValue("--map-compact").trim() === "1";
+    if (compact) heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView({ block: compact ? "start" : "nearest" });
     setJumpTo(undefined);
   }, [jumpTo, panel, selected]);
 
   function choose(stage: Stage) {
     select(stage);
-    if (layout.current && getComputedStyle(layout.current).getPropertyValue("--map-panel-inline").trim() === "1") return;
     setJumpTo({ stage });
   }
 
@@ -142,7 +138,7 @@ export default function InferenceMap({ entries, selection, select, scope }: {
       <header className="map-v2-heading">
         <div>
           <h2 id={panel + "-map-title"}>沿着推理流程，查看社区改动</h2>
-          <p>选择环节查看 PR。条越长，收录的 PR 越多。</p>
+          <p>点选环节，看它如何处理请求，再查看该环节的实际 PR。</p>
         </div>
         <div className="map-v2-communities" aria-label="社区图例">
           <span><i className="map-v2-upstream" />vLLM</span>
@@ -159,35 +155,31 @@ export default function InferenceMap({ entries, selection, select, scope }: {
           <div className="map-v2-flow">
             {stages.map((stage) => {
               const volume = <StageVolume total={count(stage)} ascend={grouped.get(stage)?.ascend ?? 0} max={max} />;
-              if (stage in mainArt) {
-                const main = stage as keyof typeof mainArt;
+              const step = main.findIndex(({ key }) => key === stage);
+              if (step >= 0) {
                 return (
-                  <div key={main} className={`map-v2-stage map-v2-main-step map-v2-${main}`}>
-                    {stageButton(main, <>
-                      <strong className="map-v2-node-name">{labels[main]}</strong>
-                      <span className="map-v2-art"><StageArt stage={main} /></span>
-                      <span className="map-v2-sr-only">{mainArt[main]}</span>
+                  <div key={stage} className={`map-v2-stage map-v2-main-step map-v2-${stage}`}>
+                    {stageButton(stage, <>
+                      <span className="map-v2-main-label">
+                        <span className="map-v2-order" aria-hidden="true">0{step + 1}</span>
+                        <span><strong className="map-v2-node-name">{labels[stage]}</strong><small>{main[step].action}</small></span>
+                      </span>
                       {volume}
                     </>, true)}
                   </div>
                 );
               }
 
-              const support = stage as keyof typeof supportArt;
-              const { icon: Icon, note } = supportArt[support];
+              const { icon: Icon, note } = supportArt[stage as keyof typeof supportArt];
               return (
-                <div key={support} className={`map-v2-stage map-v2-support-step map-v2-${support}`}>
-                  {stageButton(support, <>
+                <div key={stage} className={`map-v2-stage map-v2-support-step map-v2-${stage}`}>
+                  {stageButton(stage, <>
                     <span className="map-v2-support-label">
-                      <Icon size={18} aria-hidden />
-                      <span><strong className="map-v2-node-name">{labels[support]}</strong><small>{note}</small></span>
+                      <Icon size={17} aria-hidden />
+                      <span><strong className="map-v2-node-name">{labels[stage]}</strong><small>{note}</small></span>
                     </span>
                     {volume}
                   </>)}
-                  {support === "pd_transfer" && <svg className="map-v2-detour" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true">
-                    <path d="M24 24V12Q24 10 26 10H34Q36 10 36 8V0 M64 0V8Q64 10 66 10H74Q76 10 76 12V24" />
-                  </svg>}
-                  {support === "resource_reclaim" && <span className="map-v2-reuse"><RotateCcw size={13} aria-hidden />缓存复用</span>}
                 </div>
               );
             })}
@@ -198,16 +190,26 @@ export default function InferenceMap({ entries, selection, select, scope }: {
             </div>
           )}
         </div>
-        <span className="map-v2-sr-only map-v2-inline-status" role="status">
+        <span className="map-v2-sr-only" role="status">
           {selected ? labels[selected] + "，" + count(selected) + " 个 PR" : "当前范围内暂无已定位的 PR"}
         </span>
-        {selected ? (
-          <PRList key={selected + scope} stage={selected} items={grouped.get(selected)?.items ?? []} panel={panel}
-            returnToStage={() => document.getElementById(panel + "-" + selected)?.focus()} />
-        ) : <div id={panel} className="map-v2-empty-panel">
-          <h3>当前范围内暂无已定位的 PR</h3>
-          <p>{conflicts ? "选择「分类不一致」查看未定位的条目。" : "可调整首页的来源或日期筛选。"}</p>
-        </div>}
+        <section id={panel} className="map-v2-workbench" aria-labelledby={panel + "-title"}>
+          <header className="map-v2-workbench-heading">
+            <div>
+              {selected && selected !== "classification_conflict" && <span className="map-v2-example">流程示意</span>}
+              <h3 id={panel + "-title"} tabIndex={-1}>{selected ? labels[selected] : "当前范围内暂无已定位的 PR"}</h3>
+            </div>
+            {selected && <button type="button" className="map-v2-return"
+              onClick={() => document.getElementById(panel + "-" + selected)?.focus()}><ArrowUp size={14} aria-hidden />返回所选环节</button>}
+          </header>
+          {selected && selected !== "classification_conflict" && <InferenceStageDemo key={selected} stage={selected} />}
+          {selected ? (
+            <details key={selected + scope} className="map-v2-evidence">
+              <summary><List size={16} aria-hidden />查看 {count(selected)} 条实际 PR <ChevronDown size={17} aria-hidden /></summary>
+              <PRList items={grouped.get(selected)?.items ?? []} />
+            </details>
+          ) : <p className="map-v2-empty">可选择任一环节播放演示，或调整来源与日期查看实际 PR。</p>}
+        </section>
       </div>
       <p className="map-v2-footnote">数量按所选日期与来源内的不同 PR 统计，分类沿用日报一级标题。</p>
     </section>
