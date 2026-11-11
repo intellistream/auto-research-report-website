@@ -33,7 +33,6 @@
 .docx-communities > span:nth-child(3)::before { background: #9281b7; }
 .docx-communities > span:nth-child(4)::before { background: #9ba6a1; }
 .docx-workspace { margin-left: 223px; min-width: 0; }
-.docx-topbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; height: 72px; padding: 0 41px; border-bottom: 1px solid #e5eae7; background: #ffffffbc; color: #61746a; font-size: 11px; }
 .docx-main { max-width: 72rem; margin: auto; padding: 2rem 1rem 4rem; }
 .docx-main:has(.docx-overview) { max-width: 1460px; padding: 34px 41px 30px; }
 .docx-eyebrow { display: flex; flex-wrap: wrap; gap: 12px; font-size: 10px; letter-spacing: 2px; font-weight: 650; color: #5e8576; }
@@ -109,7 +108,7 @@
 @media (max-width: 900px) {
   .docx-nav { position: static; flex-direction: row; flex-wrap: wrap; align-items: center; width: auto; padding: .75rem 1rem; border-right: 0; border-bottom: 1px solid #e5eae7; }
   .docx-nav a.docx-brand { margin: 0 12px 0 0; }
-  .docx-nav .docx-nav-caption, .docx-communities, .docx-topbar { display: none; }
+  .docx-nav .docx-nav-caption, .docx-communities { display: none; }
   .docx-workspace { margin-left: 0; }
   .docx-main:has(.docx-overview) { padding: 24px 16px; }
 }
