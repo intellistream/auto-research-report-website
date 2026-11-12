@@ -153,7 +153,6 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
         : data.schemaVersion !== 1 || !Array.isArray(data.entries) ? <p role="alert">PR 索引版本或格式不受支持。</p>
         : <>
           <ReportTrends days={scopedDays} observations={observations} />
-          <DirectionDistribution entries={entries} />
           <CompleteInferenceFlow entries={entries} selection={query.get("stage")} onSelect={(stage) => filter("stage", stage)} />
           <InferenceMap entries={entries} selection={query.get("stage")} select={(stage) => filter("stage", stage)}
             scope={JSON.stringify([source, from, to])} />
@@ -168,6 +167,7 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
             {scopedDays.length ? <ul>{scopedDays.slice(0, 3).map((day) => <li key={day}><Link to={`/reports/${day}`}>{day}</Link></li>)}</ul>
               : <p>所选日期范围内没有日报。</p>}
           </section>
+          <DirectionDistribution entries={entries} />
         </>}
     </div>
   );
