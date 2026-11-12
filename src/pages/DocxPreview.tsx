@@ -162,12 +162,12 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
             <div><dt>已读取日报</dt><dd>{scopedDays.length} <small>份</small></dd></div>
             <div><dt>同期研究论文 · 不限 PR 来源</dt><dd>{papers} <small>篇</small></dd></div>
           </dl>
+          <DirectionDistribution entries={entries} />
           <section className="docx-recent">
             <header><div><h2>阅读日报</h2><p>当前日期范围内的最新日报</p></div><Link to="/reports">全部日报 <ArrowUpRight size={15} /></Link></header>
             {scopedDays.length ? <ul>{scopedDays.slice(0, 3).map((day) => <li key={day}><Link to={`/reports/${day}`}>{day}</Link></li>)}</ul>
               : <p>所选日期范围内没有日报。</p>}
           </section>
-          <DirectionDistribution entries={entries} />
         </>}
     </div>
   );
