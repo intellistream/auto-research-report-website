@@ -266,6 +266,20 @@
           }
         }
       ]
+    },
+    "2026-11-11": {
+      "current": "52ea07cd92494d40097ea0308f73407ac1a6998ab6b574700001cb50d68276ad",
+      "versions": [
+        {
+          "sha256": "52ea07cd92494d40097ea0308f73407ac1a6998ab6b574700001cb50d68276ad",
+          "path": "2026-11-11/52ea07cd92494d40097ea0308f73407ac1a6998ab6b574700001cb50d68276ad/report.json",
+          "counts": {
+            "upstream": 25,
+            "ascend": 11,
+            "papers": 5
+          }
+        }
+      ]
     }
   }
 }
