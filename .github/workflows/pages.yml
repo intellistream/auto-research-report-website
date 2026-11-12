@@ -5,13 +5,26 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "上游日报工作流的运行 ID"
+        required: false
+        type: string
+      report_day:
+        description: "复核的日报日期，格式为 YYYY-MM-DD"
+        required: false
+        type: string
+      reviewed_sha256:
+        description: "发前复核确认的 bundle_sha256"
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
   group: pages-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # Project sites are served from /<repo>/; set to "/" for a custom domain.
@@ -20,26 +33,184 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    outputs:
+      publish_report: ${{ steps.request.outputs.publish_report }}
+      has_report_changes: ${{ steps.snapshot.outputs.has_changes }}
+      version_sha256: ${{ steps.import.outputs.version_sha256 }}
+      flow_sha256: ${{ steps.import.outputs.flow_sha256 }}
     steps:
+      - name: Check publication request
+        id: request
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          REPORT_DAY: ${{ inputs.report_day }}
+          REVIEWED_SHA256: ${{ inputs.reviewed_sha256 }}
+        run: |
+          if [[ -z "$SOURCE_RUN_ID" && -z "$REPORT_DAY" && -z "$REVIEWED_SHA256" ]]; then
+            exit 0
+          fi
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "::error::日报发布需从网站 main 分支发起"
+            exit 1
+          fi
+          if [[ ! "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ || ! "$REPORT_DAY" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ || ! "$REVIEWED_SHA256" =~ ^[a-f0-9]{64}$ ]]; then
+            echo "::error::请同时填写上游运行 ID、日报日期及复核时记录的 SHA-256"
+            exit 1
+          fi
+          python3 - <<'PY'
+          import os
+          from datetime import date, datetime
+          from zoneinfo import ZoneInfo
+
+          day = date.fromisoformat(os.environ["REPORT_DAY"])
+          if day >= datetime.now(ZoneInfo("Asia/Shanghai")).date():
+              raise SystemExit("请选择已结束的北京时间自然日")
+          PY
+          echo "publish_report=true" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Verify the upstream generation run
+        if: steps.request.outputs.publish_report == 'true'
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          ARTIFACT_TOKEN: ${{ secrets.DAILY_REPORT_ARTIFACT_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from urllib.request import Request, urlopen
+
+          repo = "intellistream/auto-research-report"
+          token = os.environ["ARTIFACT_TOKEN"]
+          if not token:
+              raise SystemExit("请配置上游仓库的 Actions 读取权限")
+          request = Request(
+              f"{os.environ['GITHUB_API_URL']}/repos/{repo}/actions/runs/{os.environ['SOURCE_RUN_ID']}",
+              headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {token}",
+              },
+          )
+          with urlopen(request, timeout=20) as response:
+              run = json.load(response)
+          if (
+              run.get("path") != ".github/workflows/generate-daily-web.yml"
+              or run.get("head_branch") != "main"
+              or (run.get("head_repository") or {}).get("full_name") != repo
+              or run.get("conclusion") != "success"
+          ):
+              raise SystemExit("请选择上游 main 分支中已成功运行的日报生成任务")
+          PY
+      - name: Download the reviewed run bundle
+        if: steps.request.outputs.publish_report == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: daily-report-web-bundle
+          repository: intellistream/auto-research-report
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.DAILY_REPORT_ARTIFACT_TOKEN }}
+          path: ${{ runner.temp }}/daily-report-web-bundle
+      - name: Import the reviewed report
+        id: import
+        if: steps.request.outputs.publish_report == 'true'
+        env:
+          REPORT_DAY: ${{ inputs.report_day }}
+          REVIEWED_SHA256: ${{ inputs.reviewed_sha256 }}
+        run: |
+          bundle="$RUNNER_TEMP/daily-report-web-bundle"
+          python3 scripts/import-pipeline-report.py "$bundle" \
+            --publish --expected-day "$REPORT_DAY" --reviewed-sha256 "$REVIEWED_SHA256"
+          python3 scripts/import-pipeline-report.py "$bundle" --inspect > "$RUNNER_TEMP/site-report-inspect.json"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          receipt = json.loads((Path(os.environ["RUNNER_TEMP"]) / "site-report-inspect.json").read_text())
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              print(f"version_sha256={receipt['version_sha256']}", file=output)
+              print(f"flow_sha256={receipt['artifacts']['flow.png']}", file=output)
+          PY
+
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           cache: npm
+      - run: python3 -m unittest discover -s scripts
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Capture the verified report update
+        id: snapshot
+        if: steps.request.outputs.publish_report == 'true'
+        run: |
+          git add -- public/word-reports
+          if git diff --cached --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            git diff --cached --binary -- public/word-reports > "$RUNNER_TEMP/site-report.patch"
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload the verified report update
+        if: steps.snapshot.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: site-report-patch
+          path: ${{ runner.temp }}/site-report.patch
+          if-no-files-found: error
+          retention-days: 1
       - name: Upload site artifact
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
-  deploy:
+  sync:
     needs: build
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: needs.build.outputs.publish_report == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Download the verified report update
+        if: needs.build.outputs.has_report_changes == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: site-report-patch
+          path: ${{ runner.temp }}
+      - name: Sync the report archive to main
+        env:
+          HAS_REPORT_CHANGES: ${{ needs.build.outputs.has_report_changes }}
+          REPORT_DAY: ${{ inputs.report_day }}
+        run: |
+          git fetch --no-tags origin refs/heads/main
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse FETCH_HEAD)" ]]; then
+            echo "::error::网站 main 已更新，请重新运行发布"
+            exit 1
+          fi
+          if [[ "$HAS_REPORT_CHANGES" == "true" ]]; then
+            git apply --index --whitespace=nowarn "$RUNNER_TEMP/site-report.patch"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Publish daily report $REPORT_DAY"
+            git push origin HEAD:refs/heads/main
+          fi
+
+  deploy:
+    needs: [build, sync]
+    if: >-
+      !cancelled() && github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/main' && needs.build.result == 'success' &&
+      ((needs.build.outputs.publish_report == 'true' && needs.sync.result == 'success') ||
+       (needs.build.outputs.publish_report != 'true' && needs.sync.result == 'skipped'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       pages: write
       id-token: write
@@ -49,3 +220,60 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify the published report and figure
+        if: needs.build.outputs.publish_report == 'true'
+        env:
+          PAGES_URL: ${{ steps.deployment.outputs.page_url }}
+          REPORT_DAY: ${{ inputs.report_day }}
+          REPORT_VERSION: ${{ needs.build.outputs.version_sha256 }}
+          FLOW_SHA256: ${{ needs.build.outputs.flow_sha256 }}
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import time
+          from urllib.request import urlopen
+
+          root = os.environ["PAGES_URL"].rstrip("/") + "/word-reports"
+          day = os.environ["REPORT_DAY"]
+          version = os.environ["REPORT_VERSION"]
+          path = f"{day}/{version}"
+
+          def fetch(name):
+              with urlopen(f"{root}/{name}?v={time.time_ns()}", timeout=10) as response:
+                  return response.read()
+
+          for attempt in range(8):
+              try:
+                  catalog = json.loads(fetch("catalog.json"))
+                  day_record = catalog["days"][day]
+                  versions = day_record["versions"]
+                  if not any(row["sha256"] == version and row["path"] == f"{path}/report.json" for row in versions):
+                      raise ValueError("线上目录尚未包含预期版本")
+                  report = json.loads(fetch(f"{path}/report.json"))
+                  if report["day"] != day or report["sha256"] != version:
+                      raise ValueError("线上日报版本不匹配")
+                  if day_record["current"] == version:
+                      index = json.loads(fetch("flow-index.json"))
+                      entries = {
+                          (entry["stage"], entry["number"], entry["workId"], entry["version"])
+                          for entry in index["entries"] if entry["day"] == day
+                      }
+                      expected = {
+                          (section["key"], item["number"], item["workId"], version)
+                          for section in report["sections"] if section["key"] != "papers"
+                          for item in section["blocks"] if item.get("workId")
+                      }
+                      if entries != expected:
+                          raise ValueError("线上 PR 索引与日报版本不一致")
+                  figure = fetch(f"{path}/flow.png")
+                  if hashlib.sha256(figure).hexdigest() != os.environ["FLOW_SHA256"]:
+                      raise ValueError("线上流程图与复核版本不一致")
+                  print(f"已核对线上日报 {day}，版本 {version}")
+                  break
+              except (OSError, ValueError, KeyError) as error:
+                  if attempt == 7:
+                      raise SystemExit(f"线上验收失败，部署详情请查看 Pages：{error}") from error
+                  time.sleep(5)
+          PY

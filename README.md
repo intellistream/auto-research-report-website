@@ -79,9 +79,54 @@ python scripts/import-docx.py "/path/to/daily-reports.zip" --web-only --output p
 
 首次部署前需在仓库 Settings → Pages → Source 选择 “GitHub Actions”。项目站点地址为 `https://intellistream.github.io/auto-research-report-website/`，因此构建时把 `VITE_BASE_PATH` 设为 `/<repo>/`；改用自定义域名时改为 `/`。
 
-## 接入真实报告
+## v2.0 系统日报
 
-真实数据由上游仓库的导入脚本产出，需要该仓库的 Python 环境（校验复用 `sage_vllm_daily` 的 DailyReport 模型与组装完整性检查）：
+系统日报覆盖北京时间已结束的自然日，来源为 vLLM 和 vLLM Ascend 的当日合入 PR。网站接收运行目录中的 `manifest.json`、`report.json`、`flow.png`。这三个文件须来自同一次生成。
+
+### 预览与复核
+
+在网站工作目录执行以下命令，将路径和日期替换为本次运行的值。预览写到仓库外。
+
+```bash
+python scripts/import-pipeline-report.py /path/to/daily-report --expected-day YYYY-MM-DD --output ../work/pipeline-preview/word-reports
+npm ci
+VITE_DAILY_REPORTS_DIR=../work/pipeline-preview/word-reports npm run dev:pipeline
+```
+
+在 PowerShell 中，先运行 `$env:VITE_DAILY_REPORTS_DIR = (Resolve-Path ../work/pipeline-preview/word-reports).Path`，再运行 `npm run dev:pipeline`。
+
+在预览页核对日期、章节、PR 编号、原文链接和流程图，沿用 v2.0 的发前复核。复核时记录检查命令给出的 `bundle_sha256`。内容修订后，对新产物重新检查并记录新摘要。
+
+```bash
+python scripts/import-pipeline-report.py /path/to/daily-report --inspect
+```
+
+### 首期发布
+
+网站维护者可从最新的 `main` 建立发布分支，导入已复核的同一份产物。
+
+```bash
+python scripts/import-pipeline-report.py /path/to/daily-report --publish --expected-day YYYY-MM-DD --reviewed-sha256 REVIEWED_BUNDLE_SHA256
+python -m unittest discover -s scripts
+npm test
+npm run build
+```
+
+提交 `public/word-reports/` 的变更，合并后由现有 Pages 流程部署。新日期成为该日期的当前版。同日新版本追加为修订版，原有当前版继续生效。需要将修订版设为当前版时，显式传入 `--promote`。
+
+首期上线后，核对公开目录、日期页、一个 PR 深链接和流程图。重跑同一份产物，确认版本数和当前指针相同。再抽查既有日期的链接。
+
+### 工作流发布
+
+上游私有仓库 `main` 分支的生成任务成功后，提供名为 `daily-report-web-bundle` 的 Actions 产物。网站维护者在网站仓库配置 `DAILY_REPORT_ARTIFACT_TOKEN`，授权范围为上游仓库的 Actions 读取。网站工作流的写入和 Pages 部署分别使用网站仓库自身的运行身份。
+
+复核完成后，在网站仓库的 **Website** 工作流中选择 `main` 并手动运行，填入上游 `source_run_id`、`report_day` 和已核对的 `reviewed_sha256`。三项均留空时执行网站常规重建。工作流只在导入、测试和构建通过后同步档案。同步和 Pages 部署在同一次运行中完成。部署后工作流核对线上版本、当前版 PR 索引和流程图哈希。
+
+失败可在修复原因后用相同参数重新运行。首次公开发布验收通过后，再启用上游每日生成调度。
+
+## 旧版 JSON 数据导入
+
+旧版页面的数据由上游仓库的导入脚本产出，需要该仓库的 Python 环境（校验复用 `sage_vllm_daily` 的 DailyReport 模型与组装完整性检查）：
 
 ```bash
 # 在上游 auto-research-report 仓库根目录

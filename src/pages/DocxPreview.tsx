@@ -13,13 +13,22 @@ type Counts = { upstream: number; ascend: number; papers: number };
 type Block =
   | { kind: "paragraph"; parts: Part[] }
   | { kind: "group"; title: string }
-  | { kind: "entry"; number: string; title: string; workId?: string; paragraphs: Part[][] };
+  | { kind: "entry"; number: string; title: string; workId?: string; paragraphs: Part[][];
+      needsReview?: boolean; provisionalLocation?: boolean; titlePending?: boolean; brief?: boolean };
+const pipelineStatuses = {
+  completed_program_checks: "程序检查通过",
+  complete_with_pending: "含待核对条目",
+  partial_draft: "部分完成",
+  no_cards: "无入稿条目",
+} as const;
 type Report = {
   title: string;
   day: string;
   intro: Part[][];
   original?: string;
-  originalName: string;
+  originalName?: string;
+  pipelineStatus?: keyof typeof pipelineStatuses;
+  publicationStatus?: "preview" | "reviewed";
   counts: Counts;
   warnings: string[];
   sections: { key: string; title: string; figure?: string; blocks: Block[] }[];
@@ -30,7 +39,7 @@ type Catalog = {
   days: Record<string, { current: string; versions: Version[] }>;
 };
 
-const localReports = import.meta.env.DEV && import.meta.env.MODE === "docx";
+const localReports = import.meta.env.DEV && ["docx", "pipeline"].includes(import.meta.env.MODE);
 const historyArchive = "https://github.com/intellistream/auto-research-report-website/releases/download/word-report-preview-20261023-20261108/20261023-20261108.zip";
 
 function reportAsset(path: string) {
@@ -130,7 +139,7 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
         <Link className="docx-secondary" to="/reports">日报档案 <ArrowUpRight size={15} /></Link>
       </div>
       <div className="docx-flow-toolbar">
-        <div><i /> <strong>手工定稿</strong> <span>{scopedDays.length} 份日报</span></div>
+        <div><i /> <strong>{localReports ? "本地预览" : "公开日报"}</strong> <span>{scopedDays.length} 份日报</span></div>
         <div className="docx-flow-filters">
           <select aria-label="首页统计来源" value={source} onChange={(event) => filter("source", event.target.value)}>
             <option value="">全部来源</option>
@@ -148,7 +157,7 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
           </select>
         </div>
       </div>
-      {result?.error ? <p role="alert">无法读取 PR 索引。{localReports && "请重新运行 Word 日报导入命令。"}</p>
+      {result?.error ? <p role="alert">无法读取 PR 索引。{localReports && "请检查本地日报导入结果。"}</p>
         : !data ? <p role="status">正在读取日报与 PR 分类…</p>
         : data.schemaVersion !== 1 || !Array.isArray(data.entries) ? <p role="alert">PR 索引版本或格式不受支持。</p>
         : <>
@@ -229,11 +238,17 @@ function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
         <time dateTime={day}>{day}</time>
         <h1>{report.title}</h1>
         <CountsLine counts={report.counts} />
+        {report.pipelineStatus && (
+          <p className="docx-paragraph">
+            系统日报 · {report.publicationStatus === "reviewed" ? "已复核发布" : "预览"}
+            {" · "}{pipelineStatuses[report.pipelineStatus]}
+          </p>
+        )}
         <nav className="docx-actions" aria-label="日报操作">
           {days[position + 1] && <Link to={`/reports/${days[position + 1]}`}>← 上一期</Link>}
           {days[position - 1] && <Link to={`/reports/${days[position - 1]}`}>下一期 →</Link>}
           {report.original && <a href={reportAsset(report.original)} download={report.originalName}>下载 Word 原件</a>}
-          {!report.original && day >= "2026-10-23" && day <= "2026-11-08" && (
+          {!report.pipelineStatus && !report.original && day >= "2026-10-23" && day <= "2026-11-08" && (
             <a href={historyArchive}>下载历史 Word 原件 ZIP</a>
           )}
         </nav>
@@ -271,7 +286,7 @@ function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
               )}
               {item.figure && (
                 <details className="docx-original-figure">
-                  <summary>查看 Word 流程原图</summary>
+                  <summary>{report.pipelineStatus ? "查看系统生成的流程图" : "查看 Word 流程原图"}</summary>
                   <a className="docx-figure" href={reportAsset(item.figure)} target="_blank" rel="noreferrer">
                     <img src={reportAsset(item.figure)} alt="单个请求的推理主线与优化位置" loading="lazy" />
                   </a>
@@ -282,7 +297,16 @@ function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
                 if (block.kind === "group") return <h3 key={index}>{block.title}</h3>;
                 return (
                   <section className="docx-entry" key={block.number} id={block.number}>
-                    <h4><Link to={reportLink(block.number)}>{block.number} {block.title}</Link></h4>
+                    <h4><Link to={reportLink(block.number)}>{block.number} {block.brief ? "短讯 " : ""}{block.title}</Link></h4>
+                    {(block.needsReview || block.provisionalLocation || block.titlePending) && (
+                      <p className="docx-paragraph">
+                        {[
+                          block.needsReview && "系统标记待核对",
+                          block.provisionalLocation && "暂列此环节",
+                          block.titlePending && "中文标题待补",
+                        ].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
                     {block.paragraphs.map((parts, i) => <Paragraph key={i} parts={parts} />)}
                   </section>
                 );
@@ -325,7 +349,7 @@ export default function DocxPreview() {
       </nav>
       <div className="docx-workspace">
         <main className="docx-main">
-        {result?.error ? <p role="alert">{localReports ? "请先运行 Word 日报导入命令。" : "日报目录加载失败。"}{result.error}</p>
+        {result?.error ? <p role="alert">{localReports ? "请先导入本地日报。" : "日报目录加载失败。"}{result.error}</p>
           : !catalog ? <p role="status">正在加载日报索引…</p>
           : !days.length ? <p role="alert">索引为空或版本不支持。</p>
           : (
