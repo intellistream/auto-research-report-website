@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, ArrowUpRight, BookOpen, CalendarDays, Layers } from "lucide-react";
+import { Activity, ArrowUpRight, BookOpen, CalendarDays, Layers, Tags } from "lucide-react";
 import { Link, NavLink, Route, Routes, useLocation, useParams, useSearchParams } from "react-router-dom";
 import InferenceFlow, { type FlowEntry } from "./InferenceFlow";
 import InferenceMap, { type IndexedPR } from "./InferenceMap";
 import CompleteInferenceFlow from "./CompleteInferenceFlow";
 import ReportTrends, { uniquePRs } from "./ReportTrends";
 import DirectionDistribution from "./DirectionDistribution";
+import TopicPages, { type TopicIndex } from "./TopicPages";
 import "./docx-preview.css";
 
 type Part = { text: string; url?: string };
@@ -334,6 +335,7 @@ export default function DocxPreview() {
   );
   const location = useLocation();
   const reading = location.pathname.startsWith("/reports/");
+  const topics = useJson<TopicIndex>(location.pathname.startsWith("/topics") ? "topics.json" : undefined);
   return (
     <div className="docx-preview">
       <nav className="docx-nav" aria-label="主导航">
@@ -341,6 +343,7 @@ export default function DocxPreview() {
         <span className="docx-nav-caption">工作空间</span>
         <NavLink to="/" end><Activity size={18} /> 优化总览</NavLink>
         <NavLink to="/reports" end><CalendarDays size={18} /> 日报档案</NavLink>
+        <NavLink to="/topics"><Tags size={18} /> 技术专题</NavLink>
         {days[0] && <Link to={`/reports/${days[0]}`} aria-current={reading ? "page" : undefined}><BookOpen size={18} /> 研报阅读</Link>}
         <div className="docx-communities">
           <span className="docx-nav-caption">关注社区</span>
@@ -357,6 +360,7 @@ export default function DocxPreview() {
               <Route path="/" element={<FlowOverview catalog={catalog} days={days} />} />
               <Route path="/reports" element={<Archive catalog={catalog} days={days} />} />
               <Route path="/reports/:day" element={<Reader catalog={catalog} days={days} />} />
+              <Route path="/topics/:topicId?" element={<TopicPages index={topics?.data} error={topics?.error} />} />
               <Route path="*" element={<p>页面不存在。<Link to="/reports">查看历史日报</Link></p>} />
             </Routes>
           )}
