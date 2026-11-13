@@ -12,10 +12,10 @@ from urllib.parse import urlsplit
 from xml.etree import ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
+from report_archive import CHAPTERS, write_flow_index, write_json
+
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
-CHAPTERS = ("summary", "flow", "startup", "scheduling", "prefill", "pd_transfer",
-            "decode", "speculative", "output_return", "resource_reclaim", "papers")
 NUMERALS = ("一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一")
 ENTRY = re.compile(r"^([AVP]\d+)\s+(.+)$")
 PR = re.compile(r"^/(vllm-project/(?:vllm|vllm-ascend))/pull/(\d+)/?$", re.I)
@@ -203,35 +203,6 @@ def inputs(path):
         yield path.name, path.read_bytes()
     else:
         raise ValueError("请输入 DOCX、包含 DOCX 的目录或 ZIP")
-
-
-def write_json(path, data, *, compact=False):
-    temp = path.with_suffix(".tmp")
-    options = {"separators": (",", ":")} if compact else {"indent": 2}
-    content = json.dumps(data, ensure_ascii=False, **options) + "\n"
-    if path.exists() and path.read_text(encoding="utf-8") == content:
-        return
-    temp.write_text(content, encoding="utf-8")
-    temp.replace(path)
-
-
-def write_flow_index(root, catalog):
-    rows = []
-    for day, record in sorted(catalog["days"].items(), reverse=True):
-        version = record["current"]
-        report_path = root / day / version / "report.json"
-        report = json.loads(report_path.read_text(encoding="utf-8"))
-        for section in report["sections"]:
-            if section["key"] in ("summary", "flow", "papers"):
-                continue
-            for entry in section["blocks"]:
-                if entry["kind"] == "entry" and entry.get("workId"):
-                    rows.append({
-                        "day": day, "version": version, "stage": section["key"],
-                        "number": entry["number"], "workId": entry["workId"],
-                        "title": entry["title"],
-                    })
-    write_json(root / "flow-index.json", {"schemaVersion": 1, "entries": rows}, compact=True)
 
 
 def run(source, root, *, web_only=False):
