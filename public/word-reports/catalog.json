@@ -280,6 +280,20 @@
           }
         }
       ]
+    },
+    "2026-10-22": {
+      "current": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
+      "versions": [
+        {
+          "sha256": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
+          "path": "2026-10-22/369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b/report.json",
+          "counts": {
+            "upstream": 20,
+            "ascend": 7,
+            "papers": 0
+          }
+        }
+      ]
     }
   }
 }
