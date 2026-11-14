@@ -31,6 +31,12 @@ describe("current report contract and identity", () => {
     );
     expect(Object.values(report.diagram_numbers).flat()).toHaveLength(3);
   });
+  it("preserves the existing chapter intro verbatim", () => {
+    const raw = structuredClone(normal);
+    const intro = "  权重准备中的重复复制增加启动等待。  ";
+    Reflect.set(raw.chapters[0], "intro", intro);
+    expect(parseReport(raw, normalItem).chapters[0].intro).toBe(intro);
+  });
   it("rejects a different report date or old schema", () => {
     expect(() =>
       parseReport({ ...normal, day: "2026-11-04" }, normalItem),

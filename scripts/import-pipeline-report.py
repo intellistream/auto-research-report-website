@@ -9,7 +9,7 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from report_archive import CHAPTERS, flow_index, write_bytes, write_json
+from report_archive import CHAPTERS, flow_index, reusable_intro, write_bytes, write_json
 
 PUBLIC = Path(__file__).resolve().parents[1] / "public"
 STAGES = CHAPTERS[2:-1]
@@ -144,7 +144,7 @@ def load_run(directory, *, expected_day=None):
     ).hexdigest()
     # Include the view format so an earlier preview keeps its original version and URL.
     digest = hashlib.sha256(
-        b"pipeline-report-view/1\x00"
+        b"pipeline-report-view/3\x00"
         + raw
         + bytes.fromhex(digests["flow.png"])
         + status.encode("ascii")
@@ -176,7 +176,12 @@ def load_run(directory, *, expected_day=None):
                 project_entry(entry, key, counts, numbers, diagram, work_ids)
                 for entry in group["entries"]
             )
-        sections.append({"key": key, "title": text(chapter["title"], "章节"), "blocks": blocks})
+        section = {"key": key, "title": text(chapter["title"], "章节"), "blocks": blocks}
+        intro = reusable_intro(chapter["intro"]) if chapter["groups"] else None
+        if intro is not None:
+            section["intro"] = intro
+            blocks[0]["chapterIntro"] = True
+        sections.append(section)
     require(report["numbers"] == numbers and report["diagram_numbers"] == diagram,
             "编号索引或流程图索引与正文不一致")
     notice = report["coverage_notice"]

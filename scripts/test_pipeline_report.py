@@ -91,6 +91,60 @@ class PipelineReportTest(unittest.TestCase):
         self.assertEqual(metadata["version_sha256"], report["sha256"])
         self.assertEqual(figure, PNG)
 
+    def test_intro_projection_and_revision_identity(self):
+        intro = "  权重加载的重复开销增加了启动等待。  "
+        self.report["chapters"][0]["intro"] = intro
+        self.write_run()
+        report, figure, _ = self.load()
+        self.assertNotIn("intro", report["sections"][0])
+        self.assertNotIn("intro", report["sections"][1])
+        self.assertEqual(report["sections"][2]["intro"], intro)
+        self.assertTrue(report["sections"][2]["blocks"][0]["chapterIntro"])
+        IMPORTER["save_report"](self.output, report, figure)
+        chapters = json.loads((self.output / "flow-index.json").read_bytes())["chapters"]
+        self.assertEqual(chapters, [{
+            "day": DAY, "version": report["sha256"], "stage": "startup", "title": "startup",
+            "intro": intro, "sources": ["github:vllm-project/vllm"],
+            "workIds": ["github:vllm-project/vllm#123"],
+        }])
+        self.report["chapters"][0]["intro"] = "修订后的导语。"
+        self.write_run()
+        revision, figure, _ = self.load()
+        self.assertNotEqual(revision["sha256"], report["sha256"])
+        IMPORTER["save_report"](self.output, revision, figure)
+        self.assertEqual(json.loads((self.output / "flow-index.json").read_bytes())["chapters"][0]["intro"], intro)
+        IMPORTER["save_report"](self.output, revision, figure, promote=True)
+        self.assertEqual(json.loads((self.output / "flow-index.json").read_bytes())["chapters"][0]["intro"], "修订后的导语。")
+
+    def test_intro_only_input_and_unavailable_placeholders(self):
+        self.report["chapters"][0]["intro"] = "短请求因队列中的长请求而增加等待。"
+        self.write_run()
+        report, _, _ = self.load()
+        section = report["sections"][2]
+        self.assertEqual(section["intro"], self.report["chapters"][0]["intro"])
+        self.assertTrue(section["blocks"][0]["chapterIntro"])
+        for unavailable in (
+            "本章条目按下列主题展开，具体事实见各条正文。",
+            "本章组稿生成待核查，以下按原卡片保留本次已收录条目。",
+            "本日未收录新的相关论文。",
+        ):
+            self.report["chapters"][0]["intro"] = unavailable
+            self.write_run()
+            section = self.load()[0]["sections"][2]
+            self.assertNotIn("intro", section)
+            self.assertEqual(section["blocks"][0]["parts"][0]["text"], unavailable)
+
+    def test_intro_type_and_absence(self):
+        for value in (None, 12, True, [], {}):
+            with self.subTest(value=value):
+                self.report["chapters"][0]["intro"] = value
+                self.write_run()
+                with self.assertRaisesRegex(ValueError, "导语"):
+                    self.load()
+        self.report["chapters"][0]["intro"] = ""
+        self.write_run()
+        self.assertNotIn("intro", self.load()[0]["sections"][2])
+
     def test_same_day_stays_current_until_promotion_and_reimport_is_idempotent(self):
         save = IMPORTER["save_report"]
         self.write_run()
