@@ -12,16 +12,6 @@ export type IndexedChapter = {
 export type ChapterSummaries = Partial<Record<string, IndexedChapter>>;
 export type FlowIndex = { schemaVersion: 1; entries: IndexedPR[]; chapters?: IndexedChapter[] };
 
-const names: Record<string, string> = {
-  "github:vllm-project/vllm": "vLLM",
-  "github:vllm-project/vllm-ascend": "vLLM Ascend",
-  unknown: "来源待核对",
-};
-
-export function summarySources(sources: string[]): string {
-  return [...new Set(sources.map((source) => names[source] ?? (source.startsWith("paper:") || source.startsWith("arxiv:") ? "研究论文" : source)))].join(" / ") || "未附条目来源";
-}
-
 export function hasChapterSummary(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0 && value.length <= 180;
 }

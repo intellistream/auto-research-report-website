@@ -63,14 +63,15 @@ describe("read-only chapter summary presentation", () => {
   function render(element: Parameters<typeof renderToStaticMarkup>[0]) {
     return renderToStaticMarkup(createElement(MemoryRouter, {}, element));
   }
-  it("shows unchanged text, date, version, source scope and an exact chapter link", () => {
+  it("uses the unchanged summary as the exact chapter link without metadata rows", () => {
     const summary = { ...second, chapter_summary: "  原句：a < b & 不改写。  " };
     const html = render(createElement(ChapterSummary, { summary }));
     expect(html).toContain("  原句：a &lt; b &amp; 不改写。  ");
-    expect(html).toContain(second.day);
-    expect(html).toContain(version.slice(0, 8));
-    expect(html).toContain("本章来源：vLLM / vLLM Ascend");
-    expect(html).toContain("仅对应此日报整章");
+    expect(html.replace(/<[^>]*>/g, "")).toBe("  原句：a &lt; b &amp; 不改写。  ");
+    expect(html).toContain('class="chapter-summary-text"');
+    expect(html).not.toContain("chapter-summary-meta");
+    expect(html).not.toContain("本章来源");
+    expect(html).not.toContain("查看章原文");
     expect(html).toContain(`/reports/${second.day}?version=${version}&amp;section=decode`);
     expect(render(createElement(ChapterSummary))).toContain("未提供适用的问题总结");
   });
@@ -82,7 +83,6 @@ describe("read-only chapter summary presentation", () => {
     const map = render(createElement(InferenceMap, { entries: entries([first]), summaries, selection: "decode", select: () => {}, scope: "test" }));
     expect(map.match(/class="chapter-summary"/g)).toHaveLength(1);
     expect(map).not.toContain("chapter-summary-compact");
-    expect(map).toContain("问题总结");
     expect(map).toContain("流程示意");
     expect(map).toContain("查看 1 条实际 PR");
     expect(map).toContain(first.chapter_summary);

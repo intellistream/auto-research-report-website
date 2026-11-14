@@ -1,28 +1,19 @@
 .chapter-summary {
   margin: 0 0 16px;
-  padding: 14px 16px;
-  border: 1px solid #d8e5de;
-  border-radius: 9px;
-  background: #f4f8f5;
   color: #244e3e;
-  overflow-wrap: anywhere;
-}
-.chapter-summary > strong { font-size: 12px; }
-.chapter-summary .chapter-summary-text {
-  margin: 7px 0;
   font-size: 14px;
   line-height: 1.8;
-  white-space: pre-wrap;
-}
-.chapter-summary-meta {
-  display: block;
-  margin: 3px 0 0;
-  font-size: 10px;
-  line-height: 1.6;
-  font-weight: 400;
   overflow-wrap: anywhere;
 }
-.chapter-summary a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.chapter-summary-text { white-space: pre-wrap; }
+.chapter-summary a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+.chapter-summary a:hover { text-decoration-thickness: 2px; }
+.chapter-summary a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 2px; }
 .chapter-summary-missing { margin: 0 0 14px; font-size: 12px; line-height: 1.8; }
-.map-v2-workbench .chapter-summary { background: #204b40; border-color: #588374; color: #e3f3e9; }
-.map-v2-workbench .chapter-summary a { color: #c7eadc; }
+.map-v2-workbench .chapter-summary { color: #c7eadc; }
+.map-v2-workbench .chapter-summary a { color: inherit; }
