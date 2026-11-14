@@ -74,13 +74,15 @@ describe("read-only chapter summary presentation", () => {
     expect(html).toContain(`/reports/${second.day}?version=${version}&amp;section=decode`);
     expect(render(createElement(ChapterSummary))).toContain("未提供适用的问题总结");
   });
-  it("renders the dated quotation in both flow cards and the selected stage without replacing PRs or demos", () => {
+  it("keeps navigation compact and shows the quotation once in the selected stage", () => {
     const summaries = { decode: first };
-    const complete = render(createElement(CompleteInferenceFlow, { entries: entries([first]), summaries, selection: "decode", onSelect: () => {} }));
-    expect(complete).toContain("问题总结：" + first.chapter_summary);
-    expect(complete).toContain(first.day);
+    const complete = render(createElement(CompleteInferenceFlow, { entries: entries([first]), selection: "decode", onSelect: () => {} }));
+    expect(complete).not.toContain(first.chapter_summary);
+    expect(complete).not.toContain("chapter-summary");
     const map = render(createElement(InferenceMap, { entries: entries([first]), summaries, selection: "decode", select: () => {}, scope: "test" }));
-    expect(map).toContain("日报问题总结（原文）");
+    expect(map.match(/class="chapter-summary"/g)).toHaveLength(1);
+    expect(map).not.toContain("chapter-summary-compact");
+    expect(map).toContain("问题总结");
     expect(map).toContain("流程示意");
     expect(map).toContain("查看 1 条实际 PR");
     expect(map).toContain(first.chapter_summary);

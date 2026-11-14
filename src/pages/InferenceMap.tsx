@@ -128,10 +128,9 @@ export default function InferenceMap({ entries, summaries = {}, selection, selec
   function stageButton(stage: Stage, content: ReactNode, main = false) {
     return (
       <button type="button" id={panel + "-" + stage}
-        className={(main ? "map-v2-node map-v2-primary" : "map-v2-node") + (summaries[stage] ? " map-v2-node-with-summary" : "")}
+        className={main ? "map-v2-node map-v2-primary" : "map-v2-node"}
         aria-pressed={selected === stage} aria-controls={panel} onClick={() => choose(stage)}>
         {content}
-        <ChapterSummary summary={summaries[stage]} compact />
       </button>
     );
   }

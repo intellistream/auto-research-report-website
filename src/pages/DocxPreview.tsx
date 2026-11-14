@@ -168,7 +168,7 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
         : data.schemaVersion !== 1 || !Array.isArray(data.entries) ? <p role="alert">PR 索引版本或格式不受支持。</p>
         : <>
           <ReportTrends days={scopedDays} observations={observations} />
-          <CompleteInferenceFlow entries={entries} summaries={summaries} selection={query.get("stage")} onSelect={(stage) => filter("stage", stage)} />
+          <CompleteInferenceFlow entries={entries} selection={query.get("stage")} onSelect={(stage) => filter("stage", stage)} />
           <InferenceMap entries={entries} summaries={summaries} selection={query.get("stage")} select={(stage) => filter("stage", stage)}
             scope={JSON.stringify([source, from, to])} />
           <dl className="docx-flow-summary">
