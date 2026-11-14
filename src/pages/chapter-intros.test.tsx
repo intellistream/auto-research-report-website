@@ -2,17 +2,17 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import ChapterSummary from "./ChapterSummary";
+import ChapterIntro from "./ChapterIntro";
 import CompleteInferenceFlow from "./CompleteInferenceFlow";
 import InferenceMap, { type IndexedPR } from "./InferenceMap";
-import { selectChapterSummaries, type IndexedChapter } from "./chapter-summaries";
+import { selectChapterIntros, type IndexedChapter } from "./chapter-intros";
 
 const vllm = "github:vllm-project/vllm";
 const ascend = "github:vllm-project/vllm-ascend";
 const version = "a".repeat(64);
 const oldVersion = "b".repeat(64);
 function chapter(day: string, sources = [vllm]): IndexedChapter {
-  return { day, version, stage: "decode", title: "七 Decode 常规生成", chapter_summary: "  本章关注 KV cache 重复读取的开销，结论仅限原文配置。  ",
+  return { day, version, stage: "decode", title: "七 Decode 常规生成", intro: "  本章关注 KV cache 重复读取的开销，结论仅限原文配置。  ",
     sources, workIds: sources.filter((s) => s !== "unknown").map((s, i) => `${s}#${i + 1}`) };
 }
 function entries(chapters: IndexedChapter[]): IndexedPR[] {
@@ -25,14 +25,14 @@ const rows = [first, second];
 const current = Object.fromEntries(rows.map((c) => [c.day, c.version]));
 const days = Object.keys(current);
 const pick = (source = "", data: unknown = rows, observations = entries(rows), scopedDays = days, versions = current) =>
-  selectChapterSummaries(data, observations, versions, scopedDays, source);
+  selectChapterIntros(data, observations, versions, scopedDays, source);
 
 describe("dated chapter quotations", () => {
   it("uses the most recent applicable original in range, without merging days", () => {
     expect(pick().decode).toEqual(second);
     expect(pick("", rows, entries(rows), [first.day]).decode).toEqual(first);
     expect(pick("", rows, entries(rows), []).decode).toBeUndefined();
-    expect(pick().decode?.chapter_summary).toBe(second.chapter_summary);
+    expect(pick().decode?.intro).toBe(second.intro);
   });
   it("never treats a whole mixed-source chapter as a single-community summary", () => {
     expect(pick(vllm).decode).toEqual(first);
@@ -48,14 +48,14 @@ describe("dated chapter quotations", () => {
     expect(pick("", [{ ...first, workIds: [`${vllm}#999`] }]).decode).toBeUndefined();
     expect(pick("", [first], entries([first]), days, { [first.day]: oldVersion }).decode).toBeUndefined();
   });
-  it("keeps legacy, empty, missing and invalid summaries absent", () => {
-    for (const data of [undefined, null, {}, [], [{ ...first, chapter_summary: "" }], [{ ...first, chapter_summary: " \n" }],
-      [{ ...first, chapter_summary: "字".repeat(181) }], [{ ...first, chapter_summary: 42 }], [{ ...first, chapter_summary: null }], [{ ...first, workIds: [] }]]) {
-      expect(selectChapterSummaries(data, entries(rows), current, days, "")).toEqual({});
+  it("keeps empty, missing and invalid intros absent", () => {
+    for (const data of [undefined, null, {}, [], [{ ...first, intro: "" }], [{ ...first, intro: " \n" }],
+      [{ ...first, intro: 42 }], [{ ...first, intro: null }], [{ ...first, workIds: [] }]]) {
+      expect(selectChapterIntros(data, entries(rows), current, days, "")).toEqual({});
     }
     expect(pick("", rows, [])).toEqual({});
-    const { chapter_summary: _, ...legacy } = first;
-    expect(pick("", [{ ...legacy, intro: "不能使用导语冒充总结。" }])).toEqual({});
+    const { intro: _, ...withoutIntro } = first;
+    expect(pick("", [{ ...withoutIntro, summary: "其他正文不能替代导语。" }])).toEqual({});
   });
 });
 
@@ -64,30 +64,30 @@ describe("read-only chapter summary presentation", () => {
     return renderToStaticMarkup(createElement(MemoryRouter, {}, element));
   }
   it("uses the unchanged summary as the exact chapter link without metadata rows", () => {
-    const summary = { ...second, chapter_summary: "  原句：a < b & 不改写。  " };
-    const html = render(createElement(ChapterSummary, { summary }));
+    const summary = { ...second, intro: "  原句：a < b & 不改写。  " };
+    const html = render(createElement(ChapterIntro, { chapter: summary }));
     expect(html).toContain("  原句：a &lt; b &amp; 不改写。  ");
     expect(html.replace(/<[^>]*>/g, "")).toBe("当日聚焦：  原句：a &lt; b &amp; 不改写。  ");
-    expect(html).toContain('class="chapter-summary-text"');
-    expect(html).not.toContain("chapter-summary-meta");
+    expect(html).toContain('class="chapter-intro-text"');
+    expect(html).not.toContain("chapter-intro-meta");
     expect(html).not.toContain("本章来源");
     expect(html).not.toContain("查看章原文");
     expect(html).toContain(`/reports/${second.day}?version=${version}&amp;section=decode`);
-    expect(render(createElement(ChapterSummary))).toContain("未提供适用的问题总结");
+    expect(render(createElement(ChapterIntro))).toContain("未提供适用的问题总结");
   });
   it("keeps navigation compact and shows the quotation once in the selected stage", () => {
-    const summaries = { decode: first };
+    const intros = { decode: first };
     const complete = render(createElement(CompleteInferenceFlow, { entries: entries([first]), selection: "decode", onSelect: () => {} }));
-    expect(complete).not.toContain(first.chapter_summary);
-    expect(complete).not.toContain("chapter-summary");
-    const map = render(createElement(InferenceMap, { entries: entries([first]), summaries, selection: "decode", select: () => {}, scope: "test" }));
-    expect(map.match(/class="chapter-summary"/g)).toHaveLength(1);
-    expect(map).not.toContain("chapter-summary-compact");
+    expect(complete).not.toContain(first.intro);
+    expect(complete).not.toContain("chapter-intro");
+    const map = render(createElement(InferenceMap, { entries: entries([first]), intros, selection: "decode", select: () => {}, scope: "test" }));
+    expect(map.match(/class="chapter-intro"/g)).toHaveLength(1);
+    expect(map).not.toContain("chapter-intro-compact");
     expect(map).toContain("流程示意");
     expect(map).toContain("查看 1 条实际 PR");
-    expect(map).toContain(first.chapter_summary);
+    expect(map).toContain(first.intro);
     const empty = render(createElement(InferenceMap, { entries: [], selection: "decode", select: () => {}, scope: "empty" }));
     expect(empty).toContain("未提供适用的问题总结");
-    expect(empty).not.toContain(first.chapter_summary);
+    expect(empty).not.toContain(first.intro);
   });
 });

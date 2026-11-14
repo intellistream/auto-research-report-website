@@ -2,8 +2,8 @@ import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { ArrowUp, ArrowUpRight, Box, Cable, ChevronDown, ChevronLeft, ChevronRight, List, Recycle, Search, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import InferenceStageDemo from "./InferenceStageDemo";
-import ChapterSummary from "./ChapterSummary";
-import type { ChapterSummaries } from "./chapter-summaries";
+import ChapterIntro from "./ChapterIntro";
+import type { ChapterIntros } from "./chapter-intros";
 import "./inference-map.css";
 
 const labels = {
@@ -90,8 +90,8 @@ function PRList({ items }: { items: IndexedPR[] }) {
   );
 }
 
-export default function InferenceMap({ entries, summaries = {}, selection, select, scope }: {
-  entries: IndexedPR[]; summaries?: ChapterSummaries; selection: string | null; select: (stage: Stage) => void; scope: string;
+export default function InferenceMap({ entries, intros = {}, selection, select, scope }: {
+  entries: IndexedPR[]; intros?: ChapterIntros; selection: string | null; select: (stage: Stage) => void; scope: string;
 }) {
   const layout = useRef<HTMLDivElement>(null);
   const [jumpTo, setJumpTo] = useState<{ stage: Stage }>();
@@ -204,7 +204,7 @@ export default function InferenceMap({ entries, summaries = {}, selection, selec
             {selected && <button type="button" className="map-v2-return"
               onClick={() => document.getElementById(panel + "-" + selected)?.focus()}><ArrowUp size={14} aria-hidden />返回所选环节</button>}
           </header>
-          {selected && selected !== "classification_conflict" && <ChapterSummary summary={summaries[selected]} />}
+          {selected && selected !== "classification_conflict" && <ChapterIntro chapter={intros[selected]} />}
           {selected && selected !== "classification_conflict" && <InferenceStageDemo key={selected} stage={selected} />}
           {selected ? (
             <details key={selected + scope} className="map-v2-evidence">

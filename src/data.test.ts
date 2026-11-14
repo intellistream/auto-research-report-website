@@ -31,21 +31,11 @@ describe("current report contract and identity", () => {
     );
     expect(Object.values(report.diagram_numbers).flat()).toHaveLength(3);
   });
-  it("accepts optional upstream summaries verbatim and rejects invalid delivered values", () => {
+  it("preserves the existing chapter intro verbatim", () => {
     const raw = structuredClone(normal);
-    Reflect.set(raw.chapters[0], "chapter_summary", "  本章关注缓存重复分配的开销。  ");
-    Reflect.set(raw, "overview_chapter_summary", "归纳章的原句。");
-    Reflect.set(raw, "flow_chapter_summary", "流程章的原句。");
-    const parsed = parseReport(raw, normalItem);
-    expect(parsed.chapters[0].chapter_summary).toBe("  本章关注缓存重复分配的开销。  ");
-    expect(parsed.overview_chapter_summary).toBe("归纳章的原句。");
-    expect(parsed.flow_chapter_summary).toBe("流程章的原句。");
-    for (const value of ["", "  ", "字".repeat(181), 42, true]) {
-      Reflect.set(raw.chapters[0], "chapter_summary", value);
-      expect(() => parseReport(raw, normalItem)).toThrow(/格式|版本/);
-    }
-    Reflect.set(raw.chapters[0], "chapter_summary", null);
-    expect(parseReport(raw, normalItem).chapters[0].chapter_summary).toBeNull();
+    const intro = "  权重准备中的重复复制增加启动等待。  ";
+    Reflect.set(raw.chapters[0], "intro", intro);
+    expect(parseReport(raw, normalItem).chapters[0].intro).toBe(intro);
   });
   it("rejects a different report date or old schema", () => {
     expect(() =>

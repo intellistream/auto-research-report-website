@@ -7,14 +7,14 @@ import CompleteInferenceFlow from "./CompleteInferenceFlow";
 import ReportTrends, { uniquePRs } from "./ReportTrends";
 import DirectionDistribution from "./DirectionDistribution";
 import TopicPages, { type TopicIndex } from "./TopicPages";
-import ChapterSummary from "./ChapterSummary";
-import { hasChapterSummary, selectChapterSummaries, type FlowIndex } from "./chapter-summaries";
+import ChapterIntro from "./ChapterIntro";
+import { hasChapterIntro, selectChapterIntros, type FlowIndex } from "./chapter-intros";
 import "./docx-preview.css";
 
 type Part = { text: string; url?: string };
 type Counts = { upstream: number; ascend: number; papers: number };
 type Block =
-  | { kind: "paragraph"; parts: Part[]; chapterSummary?: boolean }
+  | { kind: "paragraph"; parts: Part[]; chapterIntro?: boolean }
   | { kind: "group"; title: string }
   | { kind: "entry"; number: string; title: string; workId?: string; paragraphs: Part[][];
       needsReview?: boolean; provisionalLocation?: boolean; titlePending?: boolean; brief?: boolean };
@@ -35,7 +35,7 @@ type Report = {
   publicationStatus?: "preview" | "reviewed";
   counts: Counts;
   warnings: string[];
-  sections: { key: string; title: string; figure?: string; chapter_summary?: string; blocks: Block[] }[];
+  sections: { key: string; title: string; figure?: string; intro?: string; blocks: Block[] }[];
 };
 type Version = { sha256: string; path: string; counts: Counts };
 type Catalog = {
@@ -130,7 +130,7 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
     activeDays.has(entry.day) && (!source || entry.workId.split("#")[0] === source)
   ) : [];
   const entries = uniquePRs(observations);
-  const summaries = selectChapterSummaries(data?.chapters, data?.entries ?? [],
+  const intros = selectChapterIntros(data?.chapters, data?.entries ?? [],
     Object.fromEntries(days.map((day) => [day, catalog.days[day].current])), scopedDays, source);
   const chronological = [...days].reverse();
   const papers = scopedDays.reduce((sum, day) => {
@@ -169,7 +169,7 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
         : <>
           <ReportTrends days={scopedDays} observations={observations} />
           <CompleteInferenceFlow entries={entries} selection={query.get("stage")} onSelect={(stage) => filter("stage", stage)} />
-          <InferenceMap entries={entries} summaries={summaries} selection={query.get("stage")} select={(stage) => filter("stage", stage)}
+          <InferenceMap entries={entries} intros={intros} selection={query.get("stage")} select={(stage) => filter("stage", stage)}
             scope={JSON.stringify([source, from, to])} />
           <dl className="docx-flow-summary">
             <div><dt>累计工程 PR</dt><dd>{entries.length}</dd></div>
@@ -288,8 +288,8 @@ function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
           {report.sections.map((item) => (
             <section key={item.key} id={item.key}>
               <h2>{item.title}</h2>
-              {hasChapterSummary(item.chapter_summary) && <ChapterSummary summary={{
-                day, version: version.sha256, stage: item.key, title: item.title, chapter_summary: item.chapter_summary,
+              {hasChapterIntro(item.intro) && <ChapterIntro chapter={{
+                day, version: version.sha256, stage: item.key, title: item.title, intro: item.intro,
                 sources: [...new Set(item.blocks.flatMap((block) => block.kind === "entry" ? [block.workId?.split("#")[0] ?? "unknown"] : []))],
                 workIds: item.blocks.flatMap((block) => block.kind === "entry" && block.workId ? [block.workId] : []),
               }} />}
@@ -305,7 +305,7 @@ function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
                 </details>
               )}
               {item.blocks.map((block, index) => {
-                if (block.kind === "paragraph") return block.chapterSummary && hasChapterSummary(item.chapter_summary) ? null : <Paragraph key={index} parts={block.parts} />;
+                if (block.kind === "paragraph") return block.chapterIntro && hasChapterIntro(item.intro) ? null : <Paragraph key={index} parts={block.parts} />;
                 if (block.kind === "group") return <h3 key={index}>{block.title}</h3>;
                 return (
                   <section className="docx-entry" key={block.number} id={block.number}>

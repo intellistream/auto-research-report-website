@@ -5,31 +5,31 @@ export type IndexedChapter = {
   version: string;
   stage: string;
   title: string;
-  chapter_summary: string;
+  intro: string;
   sources: string[];
   workIds: string[];
 };
-export type ChapterSummaries = Partial<Record<string, IndexedChapter>>;
+export type ChapterIntros = Partial<Record<string, IndexedChapter>>;
 export type FlowIndex = { schemaVersion: 1; entries: IndexedPR[]; chapters?: IndexedChapter[] };
 
-export function hasChapterSummary(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0 && value.length <= 180;
+export function hasChapterIntro(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 /** Pick one dated quotation, never a synthesis of the current PR population. */
-export function selectChapterSummaries(
+export function selectChapterIntros(
   rows: unknown,
   entries: IndexedPR[],
   currentVersions: Record<string, string>,
   days: string[],
   source: string,
-): ChapterSummaries {
-  const selected: ChapterSummaries = {};
+): ChapterIntros {
+  const selected: ChapterIntros = {};
   if (!Array.isArray(rows) || !Array.isArray(entries)) return selected;
   const activeDays = new Set(days);
   for (const row of rows) {
     if (!row || typeof row !== "object" || !activeDays.has(row.day) || currentVersions[row.day] !== row.version ||
-        typeof row.stage !== "string" || typeof row.title !== "string" || !hasChapterSummary(row.chapter_summary) ||
+        typeof row.stage !== "string" || typeof row.title !== "string" || !hasChapterIntro(row.intro) ||
         !Array.isArray(row.sources) || !row.sources.every((item: unknown) => typeof item === "string") ||
         !Array.isArray(row.workIds) || !row.workIds.length || !row.workIds.every((item: unknown) => typeof item === "string")) continue;
     const evidence = entries.filter((entry) => entry.day === row.day && entry.version === row.version && entry.stage === row.stage);

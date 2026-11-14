@@ -34,21 +34,6 @@
         "intro": {
           "title": "Intro",
           "type": "string"
-        },
-        "chapter_summary": {
-          "anyOf": [
-            {
-              "maxLength": 180,
-              "minLength": 1,
-              "pattern": "\\S",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Chapter Summary"
         }
       },
       "required": [
@@ -541,36 +526,6 @@
       },
       "title": "Pending Prs",
       "type": "array"
-    },
-    "overview_chapter_summary": {
-      "anyOf": [
-        {
-          "maxLength": 180,
-          "minLength": 1,
-          "pattern": "\\S",
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Overview Chapter Summary"
-    },
-    "flow_chapter_summary": {
-      "anyOf": [
-        {
-          "maxLength": 180,
-          "minLength": 1,
-          "pattern": "\\S",
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Flow Chapter Summary"
     }
   },
   "required": [

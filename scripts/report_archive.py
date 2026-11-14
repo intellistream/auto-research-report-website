@@ -29,14 +29,6 @@ def write_json(path, data, *, compact=False):
     write_bytes(path, content.encode("utf-8"))
 
 
-def chapter_summary(section, field="chapter_summary"):
-    """Keep upstream text byte-for-byte; None/absence means not delivered."""
-    value = section.get(field)
-    if value is not None and (not isinstance(value, str) or not value.strip() or len(value) > 180):
-        raise ValueError(f"{field} 须为至多180字符的非空字符串或未提供")
-    return value
-
-
 def reusable_intro(value):
     """Quote an existing intro only, without shortening or inferring from entry text."""
     unavailable = (
@@ -45,7 +37,7 @@ def reusable_intro(value):
         "本章条目已收录，导语生成未通过自动核对。",
         "本日未收录", "本期未收录", "本次交付范围内未收录",
     )
-    if (not isinstance(value, str) or not value.strip() or len(value) > 180
+    if (not isinstance(value, str) or not value.strip()
             or "\n" in value or "\r" in value
             or value.strip().startswith(unavailable)):
         return None
@@ -62,15 +54,14 @@ def project_opening_intro(section):
     for block in section["blocks"]:
         if block["kind"] != "paragraph":
             break
-        if not block.get("chapterSummary"):
-            opening.append(block)
+        opening.append(block)
     if len(opening) != 1 or any("url" in part for part in opening[0]["parts"]):
         return
     value = reusable_intro("".join(part["text"] for part in opening[0]["parts"]))
     if value is not None:
-        section["chapter_summary"] = value
+        section["intro"] = value
         # Reader presents this same paragraph as one link, not twice.
-        opening[0]["chapterSummary"] = True
+        opening[0]["chapterIntro"] = True
 
 
 def flow_index(root, catalog, incoming=None):
@@ -86,8 +77,8 @@ def flow_index(root, catalog, incoming=None):
         if (report["day"], report["sha256"]) != (day, version):
             raise ValueError("日报日期或版本与目录不一致")
         for section in report["sections"]:
-            summary = chapter_summary(section)
-            if summary is not None:
+            intro = reusable_intro(section.get("intro"))
+            if intro is not None:
                 entries = [block for block in section["blocks"] if block["kind"] == "entry"]
                 work_ids = sorted({entry["workId"] for entry in entries if entry.get("workId")})
                 sources = sorted({work_id.split("#")[0] for work_id in work_ids})
@@ -95,7 +86,7 @@ def flow_index(root, catalog, incoming=None):
                     sources.append("unknown")
                 chapters.append({
                     "day": day, "version": version, "stage": section["key"],
-                    "title": section["title"], "chapter_summary": summary,
+                    "title": section["title"], "intro": intro,
                     "sources": sources, "workIds": work_ids,
                 })
             if section["key"] in ("summary", "flow", "papers"):
