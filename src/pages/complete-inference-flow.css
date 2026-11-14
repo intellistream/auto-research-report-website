@@ -109,6 +109,7 @@
   width: 880px;
   min-width: 880px;
   height: 626px;
+  margin-inline: auto;
   position: relative;
   isolation: isolate;
   background-image: radial-gradient(#dde8e0 0.7px, transparent 0.7px);
