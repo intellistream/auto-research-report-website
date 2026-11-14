@@ -8,7 +8,7 @@ export default function ChapterSummary({ summary }: { summary?: IndexedChapter }
   return (
     <p className="chapter-summary">
       <Link className="chapter-summary-text" to={{ pathname: `/reports/${summary.day}`, search: search.toString() }}>
-        今日聚焦：{summary.chapter_summary}
+        当日聚焦：{summary.chapter_summary}
       </Link>
     </p>
   );

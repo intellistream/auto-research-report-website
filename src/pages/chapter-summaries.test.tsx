@@ -67,7 +67,7 @@ describe("read-only chapter summary presentation", () => {
     const summary = { ...second, chapter_summary: "  原句：a < b & 不改写。  " };
     const html = render(createElement(ChapterSummary, { summary }));
     expect(html).toContain("  原句：a &lt; b &amp; 不改写。  ");
-    expect(html.replace(/<[^>]*>/g, "")).toBe("今日聚焦：  原句：a &lt; b &amp; 不改写。  ");
+    expect(html.replace(/<[^>]*>/g, "")).toBe("当日聚焦：  原句：a &lt; b &amp; 不改写。  ");
     expect(html).toContain('class="chapter-summary-text"');
     expect(html).not.toContain("chapter-summary-meta");
     expect(html).not.toContain("本章来源");
