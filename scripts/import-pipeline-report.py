@@ -9,7 +9,7 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from report_archive import CHAPTERS, flow_index, write_bytes, write_json
+from report_archive import CHAPTERS, chapter_summary, flow_index, write_bytes, write_json
 
 PUBLIC = Path(__file__).resolve().parents[1] / "public"
 STAGES = CHAPTERS[2:-1]
@@ -157,6 +157,10 @@ def load_run(directory, *, expected_day=None):
         ]},
         {"key": "flow", "title": "二 推理流程与优化位置", "figure": f"{day}/{digest}/flow.png", "blocks": []},
     ]
+    for section, field in zip(sections, ("overview_chapter_summary", "flow_chapter_summary")):
+        value = chapter_summary(report, field)
+        if value is not None:
+            section["chapter_summary"] = value
     numbers = {}
     work_ids = set()
     diagram = {stage: [] for stage in STAGES}
@@ -176,7 +180,11 @@ def load_run(directory, *, expected_day=None):
                 project_entry(entry, key, counts, numbers, diagram, work_ids)
                 for entry in group["entries"]
             )
-        sections.append({"key": key, "title": text(chapter["title"], "章节"), "blocks": blocks})
+        section = {"key": key, "title": text(chapter["title"], "章节"), "blocks": blocks}
+        value = chapter_summary(chapter)
+        if value is not None:
+            section["chapter_summary"] = value
+        sections.append(section)
     require(report["numbers"] == numbers and report["diagram_numbers"] == diagram,
             "编号索引或流程图索引与正文不一致")
     notice = report["coverage_notice"]

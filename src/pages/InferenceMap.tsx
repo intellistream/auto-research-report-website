@@ -2,6 +2,8 @@ import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { ArrowUp, ArrowUpRight, Box, Cable, ChevronDown, ChevronLeft, ChevronRight, List, Recycle, Search, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import InferenceStageDemo from "./InferenceStageDemo";
+import ChapterSummary from "./ChapterSummary";
+import type { ChapterSummaries } from "./chapter-summaries";
 import "./inference-map.css";
 
 const labels = {
@@ -88,8 +90,8 @@ function PRList({ items }: { items: IndexedPR[] }) {
   );
 }
 
-export default function InferenceMap({ entries, selection, select, scope }: {
-  entries: IndexedPR[]; selection: string | null; select: (stage: Stage) => void; scope: string;
+export default function InferenceMap({ entries, summaries = {}, selection, select, scope }: {
+  entries: IndexedPR[]; summaries?: ChapterSummaries; selection: string | null; select: (stage: Stage) => void; scope: string;
 }) {
   const layout = useRef<HTMLDivElement>(null);
   const [jumpTo, setJumpTo] = useState<{ stage: Stage }>();
@@ -126,9 +128,10 @@ export default function InferenceMap({ entries, selection, select, scope }: {
   function stageButton(stage: Stage, content: ReactNode, main = false) {
     return (
       <button type="button" id={panel + "-" + stage}
-        className={main ? "map-v2-node map-v2-primary" : "map-v2-node"}
+        className={(main ? "map-v2-node map-v2-primary" : "map-v2-node") + (summaries[stage] ? " map-v2-node-with-summary" : "")}
         aria-pressed={selected === stage} aria-controls={panel} onClick={() => choose(stage)}>
         {content}
+        <ChapterSummary summary={summaries[stage]} compact />
       </button>
     );
   }
@@ -202,6 +205,7 @@ export default function InferenceMap({ entries, selection, select, scope }: {
             {selected && <button type="button" className="map-v2-return"
               onClick={() => document.getElementById(panel + "-" + selected)?.focus()}><ArrowUp size={14} aria-hidden />返回所选环节</button>}
           </header>
+          {selected && selected !== "classification_conflict" && <ChapterSummary summary={summaries[selected]} />}
           {selected && selected !== "classification_conflict" && <InferenceStageDemo key={selected} stage={selected} />}
           {selected ? (
             <details key={selected + scope} className="map-v2-evidence">
@@ -211,7 +215,7 @@ export default function InferenceMap({ entries, selection, select, scope }: {
           ) : <p className="map-v2-empty">可选择任一环节播放演示，或调整来源与日期查看实际 PR。</p>}
         </section>
       </div>
-      <p className="map-v2-footnote">数量按所选日期与来源内的不同 PR 统计，分类沿用日报一级标题。</p>
+      <p className="map-v2-footnote">数量按所选日期与来源内的不同 PR 统计，分类沿用日报一级标题。问题总结为范围内最近一日的适用原文，点击板块可阅读全文及依据；不代表多日汇总结论。</p>
     </section>
   );
 }

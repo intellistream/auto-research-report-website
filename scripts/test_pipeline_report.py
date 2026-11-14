@@ -91,6 +91,66 @@ class PipelineReportTest(unittest.TestCase):
         self.assertEqual(metadata["version_sha256"], report["sha256"])
         self.assertEqual(figure, PNG)
 
+    def test_chapter_summary_survives_projection_and_index_without_intro_fallback(self):
+        summary = "  本章关注权重加载的重复开销，边界为原文所列配置。  "
+        self.report["overview_chapter_summary"] = "开篇归纳的原句。"
+        self.report["flow_chapter_summary"] = "流程说明的原句。"
+        self.report["chapters"][0]["chapter_summary"] = summary
+        self.report["chapters"][0]["intro"] = "这是原有导语，不是问题总结。"
+        self.report["chapters"][1]["intro"] = "另一章的导语。"
+        self.report["chapters"][-1]["chapter_summary"] = "论文讨论的原句。"
+        self.write_run()
+        report, figure, _ = self.load()
+        self.assertEqual(report["sections"][0]["chapter_summary"], "开篇归纳的原句。")
+        self.assertEqual(report["sections"][1]["chapter_summary"], "流程说明的原句。")
+        self.assertEqual(report["sections"][2]["chapter_summary"], summary)
+        self.assertNotIn("chapter_summary", report["sections"][3])
+        self.assertEqual(report["sections"][2]["blocks"][0]["parts"][0]["text"], self.report["chapters"][0]["intro"])
+        IMPORTER["save_report"](self.output, report, figure)
+        chapters = json.loads((self.output / "flow-index.json").read_bytes())["chapters"]
+        self.assertEqual(next(c for c in chapters if c["stage"] == "startup"), {
+            "day": DAY, "version": report["sha256"], "stage": "startup", "title": "startup",
+            "chapter_summary": summary, "sources": ["github:vllm-project/vllm"],
+            "workIds": ["github:vllm-project/vllm#123"],
+        })
+        # Empty chapters keep their delivered statement in the reader, with no invented PR evidence.
+        self.assertEqual(next(c for c in chapters if c["stage"] == "papers")["workIds"], [])
+        self.report["chapters"][0]["chapter_summary"] = "修订后的原句。"
+        self.write_run()
+        revision, figure, _ = self.load()
+        self.assertNotEqual(revision["sha256"], report["sha256"])
+        IMPORTER["save_report"](self.output, revision, figure)
+        self.assertEqual(next(c for c in json.loads((self.output / "flow-index.json").read_bytes())["chapters"] if c["stage"] == "startup")["chapter_summary"], summary)
+        IMPORTER["save_report"](self.output, revision, figure, promote=True)
+        self.assertEqual(next(c for c in json.loads((self.output / "flow-index.json").read_bytes())["chapters"] if c["stage"] == "startup")["chapter_summary"], "修订后的原句。")
+
+    def test_rejects_invalid_summaries_and_accepts_legacy_absence(self):
+        for value in ("", " \n\t", "字" * 181, 12, True, [], {}):
+            with self.subTest(value=value):
+                self.report["chapters"][0]["chapter_summary"] = value
+                self.write_run()
+                with self.assertRaisesRegex(ValueError, "chapter_summary"):
+                    self.load()
+        self.report["chapters"][0]["chapter_summary"] = None
+        self.write_run()
+        self.assertNotIn("chapter_summary", self.load()[0]["sections"][2])
+        self.report["chapters"][0].pop("chapter_summary")
+        self.write_run()
+        report, _, _ = self.load()
+        self.assertTrue(all("chapter_summary" not in section for section in report["sections"]))
+
+    def test_front_matter_summary_fields_are_optional_and_validated(self):
+        for field in ("overview_chapter_summary", "flow_chapter_summary"):
+            for value in ("", "  ", "字" * 181, 1, True, []):
+                with self.subTest(field=field, value=value):
+                    self.report[field] = value
+                    self.write_run()
+                    with self.assertRaisesRegex(ValueError, field):
+                        self.load()
+            self.report[field] = None
+        self.write_run()
+        self.assertTrue(all("chapter_summary" not in section for section in self.load()[0]["sections"]))
+
     def test_same_day_stays_current_until_promotion_and_reimport_is_idempotent(self):
         save = IMPORTER["save_report"]
         self.write_run()

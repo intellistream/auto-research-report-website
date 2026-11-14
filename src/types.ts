@@ -39,6 +39,7 @@ export type Chapter = {
   key: ChapterKey;
   title: string;
   intro: string;
+  chapter_summary?: string | null;
   groups: { title: string; entries: Entry[] }[];
 };
 export type Report = {
@@ -47,6 +48,8 @@ export type Report = {
   synthetic: boolean;
   coverage_notice: string | null;
   summary: string;
+  overview_chapter_summary?: string | null;
+  flow_chapter_summary?: string | null;
   chapters: Chapter[];
   numbers: Record<string, string>;
   diagram_numbers: Record<string, string[]>;

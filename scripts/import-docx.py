@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 from xml.etree import ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
-from report_archive import CHAPTERS, write_flow_index, write_json
+from report_archive import CHAPTERS, chapter_summary, write_flow_index, write_json
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
@@ -166,7 +166,19 @@ def parse(name, raw):
             elif entry is not None:
                 entry["paragraphs"].append(parts)
             else:
-                section["blocks"].append({"kind": "paragraph", "parts": parts})
+                block = {"kind": "paragraph", "parts": parts}
+                # Only an explicit chapter-opening marker is metadata. Entry text,
+                # group text and ordinary intro paragraphs never become summaries.
+                original = "".join(part["text"] for part in parts).lstrip()
+                if original.startswith("问题总结：") and all(
+                    item["kind"] == "paragraph" for item in section["blocks"]
+                ):
+                    if "chapter_summary" in section:
+                        raise ValueError("章首重复的问题总结标记")
+                    section["chapter_summary"] = original.removeprefix("问题总结：")
+                    chapter_summary(section)
+                    block["chapterSummary"] = True
+                section["blocks"].append(block)
     if not subtitle or date(*map(int, subtitle.groups())).isoformat() != day:
         raise ValueError("正文日期和文件名日期不一致")
     if not report["title"] or len(report["sections"]) != len(CHAPTERS) or not figure_data:

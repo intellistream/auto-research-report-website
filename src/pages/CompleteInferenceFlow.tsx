@@ -8,6 +8,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { IndexedPR } from "./InferenceMap";
+import ChapterSummary from "./ChapterSummary";
+import type { ChapterSummaries } from "./chapter-summaries";
 import "./complete-inference-flow.css";
 
 const stages = [
@@ -108,14 +110,17 @@ type FlowStage = (typeof stages)[number]["key"];
 
 export default function CompleteInferenceFlow({
   entries,
+  summaries = {},
   selection,
   onSelect,
 }: {
   entries: IndexedPR[];
+  summaries?: ChapterSummaries;
   selection: string | null;
   onSelect: (stage: FlowStage) => void;
 }) {
   const id = useId();
+  const extra = stages.some((stage) => summaries[stage.key]) ? 80 : 0;
   const counts = new Map<string, number>();
   for (const entry of entries)
     counts.set(entry.stage, (counts.get(entry.stage) ?? 0) + 1);
@@ -193,10 +198,11 @@ export default function CompleteInferenceFlow({
         aria-describedby={id + "-description"}
         tabIndex={0}
       >
-        <div className="complete-flow-canvas">
+        <div className="complete-flow-canvas" style={{ height: 626 + 3 * extra }}>
           <svg
             className="complete-flow-wires"
-            viewBox="0 0 880 626"
+            viewBox={`0 0 880 ${626 + 3 * extra}`}
+            style={{ height: 626 + 3 * extra }}
             aria-hidden="true"
           >
             <defs>
@@ -223,41 +229,41 @@ export default function CompleteInferenceFlow({
               className="complete-flow-main-wire"
               markerEnd={`url(#${id}-main)`}
             >
-              <path d="M125 179 V276" />
-              <path d="M214 356 H236" />
-              <path d="M414 356 H436" />
-              <path d="M614 356 H636" />
+              <path d={`M125 ${179 + extra} V${276 + extra}`} />
+              <path d={`M214 ${356 + 1.5 * extra} H236`} />
+              <path d={`M414 ${356 + 1.5 * extra} H436`} />
+              <path d={`M614 ${356 + 1.5 * extra} H636`} />
             </g>
             <g
               className="complete-flow-option-wire"
               markerEnd={`url(#${id}-option)`}
             >
-              <path d="M285 276 V179" />
-              <path d="M360 179 V204 Q360 218 374 218 H446 Q460 218 460 232 V276" />
-              <path d="M489 276 V179" />
-              <path d="M561 179 V276" />
+              <path d={`M285 ${276 + extra} V${179 + extra}`} />
+              <path d={`M360 ${179 + extra} V${204 + extra} Q360 ${218 + extra} 374 ${218 + extra} H446 Q460 ${218 + extra} 460 ${232 + extra} V${276 + extra}`} />
+              <path d={`M489 ${276 + extra} V${179 + extra}`} />
+              <path d={`M561 ${179 + extra} V${276 + extra}`} />
             </g>
             <g
               className="complete-flow-reuse-wire"
               markerEnd={`url(#${id}-reuse)`}
             >
-              <path d="M814 356 H836 Q850 356 850 370 V528 Q850 542 836 542 H614" />
-              <path d="M236 542 H26 Q12 542 12 528 V370 Q12 356 26 356 H36" />
+              <path d={`M814 ${356 + 1.5 * extra} H836 Q850 ${356 + 1.5 * extra} 850 ${370 + 1.5 * extra} V${528 + 2.5 * extra} Q850 ${542 + 2.5 * extra} 836 ${542 + 2.5 * extra} H614`} />
+              <path d={`M236 ${542 + 2.5 * extra} H26 Q12 ${542 + 2.5 * extra} 12 ${528 + 2.5 * extra} V${370 + 1.5 * extra} Q12 ${356 + 1.5 * extra} 26 ${356 + 1.5 * extra} H36`} />
             </g>
           </svg>
-          <span className="complete-flow-wire-note complete-flow-ready">
+          <span className="complete-flow-wire-note complete-flow-ready" style={{ top: 211 + extra }}>
             服务就绪
           </span>
-          <span className="complete-flow-wire-note complete-flow-draft">
+          <span className="complete-flow-wire-note complete-flow-draft" style={{ top: 211 + extra }}>
             提出草稿
           </span>
-          <span className="complete-flow-wire-note complete-flow-verify">
+          <span className="complete-flow-wire-note complete-flow-verify" style={{ top: 211 + extra }}>
             返回结果
           </span>
-          <span className="complete-flow-wire-note complete-flow-end">
+          <span className="complete-flow-wire-note complete-flow-end" style={{ top: 505 + 2.5 * extra }}>
             请求结束
           </span>
-          <span className="complete-flow-wire-note complete-flow-reuse">
+          <span className="complete-flow-wire-note complete-flow-reuse" style={{ top: 505 + 2.5 * extra }}>
             供后续请求使用
           </span>
           {stages.map((stage) => {
@@ -269,12 +275,13 @@ export default function CompleteInferenceFlow({
                 className={`complete-flow-card complete-flow-${stage.kind}`}
                 style={{
                   left: stage.x,
-                  top: stage.y,
+                  top: stage.y + (stage.kind === "resource" ? 2 * extra : stage.kind === "main" ? extra : 0),
                   width: stage.width,
-                  height: stage.height,
+                  height: stage.height + extra,
                 }}
                 data-stage={stage.key}
                 aria-pressed={selected === stage.key}
+                aria-describedby={summaries[stage.key] ? `${id}-${stage.key}-summary` : undefined}
                 aria-label={`${stage.label}，${count(stage.key)} 个 PR，查看交互演示与实际 PR`}
                 onClick={() => choose(stage.key)}
               >
@@ -290,6 +297,7 @@ export default function CompleteInferenceFlow({
                     <span className="complete-flow-resource-copy">
                       <strong>{stage.label}</strong>
                       <small>{stage.detail}</small>
+                      <ChapterSummary summary={summaries[stage.key]} compact id={`${id}-${stage.key}-summary`} />
                     </span>
                     <span className="complete-flow-pr-count">
                       <b>{count(stage.key)}</b>
@@ -322,9 +330,10 @@ export default function CompleteInferenceFlow({
                     <strong className="complete-flow-card-title">
                       {stage.label}
                     </strong>
-                    <span className="complete-flow-card-detail">
+                    {!summaries[stage.key] && <span className="complete-flow-card-detail">
                       {stage.detail}
-                    </span>
+                    </span>}
+                    <ChapterSummary summary={summaries[stage.key]} compact id={`${id}-${stage.key}-summary`} />
                     {stage.kind === "main" && (
                       <span className="complete-flow-card-bottom">
                         <span className="complete-flow-pr-count">
@@ -342,7 +351,8 @@ export default function CompleteInferenceFlow({
         </div>
       </div>
       <p className="complete-flow-footnote">
-        点击环节，查看交互演示与实际 PR；数量随首页来源和日期筛选变化。
+        点击环节，查看完整问题总结、章原文与实际 PR；数量随首页来源和日期筛选变化。
+        问题总结为范围内最近一日的适用原文，按句旁日期、版本及本章来源阅读。
         {unplaced > 0 &&
           `另有 ${unplaced} 个 PR 分类待核对，保留在页面总数中。`}
       </p>

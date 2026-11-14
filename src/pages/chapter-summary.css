@@ -1,0 +1,45 @@
+.chapter-summary {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid #d8e5de;
+  border-radius: 9px;
+  background: #f4f8f5;
+  color: #244e3e;
+  overflow-wrap: anywhere;
+}
+.chapter-summary > strong { font-size: 12px; }
+.chapter-summary .chapter-summary-text {
+  margin: 7px 0;
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+.chapter-summary-meta {
+  display: block;
+  margin: 3px 0 0;
+  font-size: 10px;
+  line-height: 1.6;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.chapter-summary a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.chapter-summary-compact { display: block; min-width: 0; color: inherit; }
+.chapter-summary-compact .chapter-summary-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chapter-summary-compact .chapter-summary-meta { font-size: 9px; opacity: 0.8; }
+.chapter-summary-missing { margin: 0 0 14px; font-size: 12px; line-height: 1.8; }
+.map-v2-workbench .chapter-summary { background: #204b40; border-color: #588374; color: #e3f3e9; }
+.map-v2-node-with-summary { flex-wrap: wrap; }
+.map-v2-node-with-summary > .chapter-summary-compact { flex-basis: 100%; padding-top: 5px; border-top: 1px solid #d8e5de; }
+
+.map-v2-node .chapter-summary-text { -webkit-line-clamp: unset; }
+
+.map-v2-workbench .chapter-summary a { color: #c7eadc; }
