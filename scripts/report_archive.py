@@ -37,6 +37,42 @@ def chapter_summary(section, field="chapter_summary"):
     return value
 
 
+def reusable_intro(value):
+    """Quote an existing intro only, without shortening or inferring from entry text."""
+    unavailable = (
+        "本章条目按下列主题展开，具体事实见各条正文。",
+        "本章组稿生成待核查，以下按原卡片保留本次已收录条目。",
+        "本章条目已收录，导语生成未通过自动核对。",
+        "本日未收录", "本期未收录", "本次交付范围内未收录",
+    )
+    if (not isinstance(value, str) or not value.strip() or len(value) > 180
+            or "\n" in value or "\r" in value
+            or value.strip().startswith(unavailable)):
+        return None
+    return value
+
+
+def project_opening_intro(section):
+    """Only one plain opening paragraph, before any group or entry, is an intro."""
+    if section["key"] not in CHAPTERS[2:] or not any(
+        block["kind"] == "entry" for block in section["blocks"]
+    ):
+        return
+    opening = []
+    for block in section["blocks"]:
+        if block["kind"] != "paragraph":
+            break
+        if not block.get("chapterSummary"):
+            opening.append(block)
+    if len(opening) != 1 or any("url" in part for part in opening[0]["parts"]):
+        return
+    value = reusable_intro("".join(part["text"] for part in opening[0]["parts"]))
+    if value is not None:
+        section["chapter_summary"] = value
+        # Reader presents this same paragraph as one link, not twice.
+        opening[0]["chapterSummary"] = True
+
+
 def flow_index(root, catalog, incoming=None):
     rows = []
     chapters = []

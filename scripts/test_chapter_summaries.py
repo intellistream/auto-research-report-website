@@ -17,7 +17,7 @@ NAME = "fixture-20261109.docx"
 NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 
-def fixture(summaries=None, extra=None):
+def fixture(summaries=None, extra=None, intro="原章导语，说明本章关注的问题。"):
     def p(text, style=""):
         properties = f'<w:pPr><w:pStyle w:val="{style}"/></w:pPr>' if style else ""
         return f'<w:p>{properties}<w:r><w:t xml:space="preserve">{escape(text)}</w:t></w:r></w:p>'
@@ -26,7 +26,8 @@ def fixture(summaries=None, extra=None):
         parts.append(p(IMPORTER["NUMERALS"][i] + " " + key, "Heading1"))
         if summaries and key in summaries:
             parts.append(p("问题总结：" + summaries[key]))
-        parts.append(p("原章导语，不能当成新总结。"))
+        if intro is not None:
+            parts.append(p(intro))
         if key == "flow":
             parts.append('<w:p><w:r><w:drawing r:embed="image"/></w:r></w:p>')
         if extra and key in extra:
@@ -49,7 +50,7 @@ def fixture(summaries=None, extra=None):
 class WordChapterSummaryTest(unittest.TestCase):
     def test_explicit_markers_preserve_every_chapter_original_text_and_download(self):
         summaries = {key: "  关注 KV cache 重复读取的开销；仅限本章配置。  " for key in CHAPTERS}
-        raw = fixture(summaries)
+        raw = fixture(summaries, intro=None)
         report, _ = IMPORTER["parse"](NAME, raw)
         self.assertEqual([s["chapter_summary"] for s in report["sections"]], list(summaries.values()))
         self.assertTrue(report["sections"][2]["blocks"][0]["chapterSummary"])
@@ -74,15 +75,16 @@ class WordChapterSummaryTest(unittest.TestCase):
             IMPORTER["run"](source, output)
             self.assertEqual((output / "flow-index.json").read_bytes(), before)
 
-    def test_legacy_intro_and_group_or_entry_text_are_not_summaries(self):
+    def test_existing_intro_is_reused_but_group_and_entry_text_are_not(self):
         report, _ = IMPORTER["parse"](NAME, fixture(extra={
             "scheduling": [("分组", "Heading2"), ("问题总结：组内文本", "")],
         }))
-        self.assertTrue(all("chapter_summary" not in s for s in report["sections"]))
+        self.assertEqual(report["sections"][2]["chapter_summary"], "原章导语，说明本章关注的问题。")
+        self.assertTrue(all("chapter_summary" not in s for s in report["sections"] if s["key"] != "startup"))
         # The same marker inside an entry remains ordinary body text.
         raw = fixture(extra={"startup": [("V2 第二条", "Heading3"), ("问题总结：条目正文", "")]})
         report, _ = IMPORTER["parse"](NAME, raw)
-        self.assertNotIn("chapter_summary", report["sections"][2])
+        self.assertEqual(report["sections"][2]["chapter_summary"], "原章导语，说明本章关注的问题。")
         self.assertTrue(any("问题总结：条目正文" in str(b) for b in report["sections"][2]["blocks"]))
 
     def test_blank_and_duplicate_chapter_markers_are_rejected(self):
@@ -107,6 +109,35 @@ class WordChapterSummaryTest(unittest.TestCase):
             path.write_text(json.dumps(report))
             with self.assertRaisesRegex(ValueError, "日期或版本"):
                 flow_index(root, catalog)
+
+
+
+
+class OpeningIntroBoundaryTest(unittest.TestCase):
+    def test_ordinary_intro_is_projected_once_and_explicit_legacy_text_is_secondary(self):
+        raw = fixture({"startup": "旧独立总结。"}, intro="  服务启动时重复准备权重增加等待。  ")
+        report, _ = IMPORTER["parse"](NAME, raw)
+        section = report["sections"][2]
+        self.assertEqual(section["chapter_summary"], "  服务启动时重复准备权重增加等待。  ")
+        opening = [b for b in section["blocks"] if b["kind"] == "paragraph"]
+        self.assertEqual(len(opening), 2)
+        self.assertTrue(all(b.get("chapterSummary") for b in opening))
+        self.assertEqual(len([b for b in section["blocks"] if b["kind"] == "entry"]), 1)
+
+    def test_missing_or_ambiguous_opening_does_not_promote_entry_or_later_text(self):
+        for raw in (
+            fixture(intro=None),
+            fixture(extra={"startup": [("另一段普通说明。", "")]}),
+            fixture(intro="本章条目按下列主题展开，具体事实见各条正文。"),
+            fixture(intro="本章组稿生成待核查，以下按原卡片保留本次已收录条目。"),
+            fixture(intro="字" * 181),
+        ):
+            report, _ = IMPORTER["parse"](NAME, raw)
+            section = report["sections"][2]
+            self.assertNotIn("chapter_summary", section)
+            self.assertEqual(len([b for b in section["blocks"] if b["kind"] == "entry"]), 1)
+        report, _ = IMPORTER["parse"](NAME, fixture(intro="说明性章节也有普通段落。"))
+        self.assertTrue(all("chapter_summary" not in s for s in report["sections"][:2]))
 
 
 if __name__ == "__main__":

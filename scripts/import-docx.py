@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 from xml.etree import ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
-from report_archive import CHAPTERS, chapter_summary, write_flow_index, write_json
+from report_archive import CHAPTERS, chapter_summary, project_opening_intro, write_flow_index, write_json
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
@@ -167,8 +167,8 @@ def parse(name, raw):
                 entry["paragraphs"].append(parts)
             else:
                 block = {"kind": "paragraph", "parts": parts}
-                # Only an explicit chapter-opening marker is metadata. Entry text,
-                # group text and ordinary intro paragraphs never become summaries.
+                # Preserve legacy explicit metadata. Ordinary opening intros are
+                # projected after chapter boundaries have been parsed.
                 original = "".join(part["text"] for part in parts).lstrip()
                 if original.startswith("问题总结：") and all(
                     item["kind"] == "paragraph" for item in section["blocks"]
@@ -186,6 +186,7 @@ def parse(name, raw):
     seen = set()
     counts = {"upstream": 0, "ascend": 0, "papers": 0}
     for section in report["sections"]:
+        project_opening_intro(section)
         for entry in section["blocks"]:
             if entry["kind"] != "entry":
                 continue

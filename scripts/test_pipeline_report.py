@@ -91,12 +91,12 @@ class PipelineReportTest(unittest.TestCase):
         self.assertEqual(metadata["version_sha256"], report["sha256"])
         self.assertEqual(figure, PNG)
 
-    def test_chapter_summary_survives_projection_and_index_without_intro_fallback(self):
-        summary = "  本章关注权重加载的重复开销，边界为原文所列配置。  "
+    def test_intro_is_reused_and_legacy_fields_still_read_with_revision_identity(self):
+        summary = "  权重加载的重复开销增加了启动等待。  "
         self.report["overview_chapter_summary"] = "开篇归纳的原句。"
         self.report["flow_chapter_summary"] = "流程说明的原句。"
-        self.report["chapters"][0]["chapter_summary"] = summary
-        self.report["chapters"][0]["intro"] = "这是原有导语，不是问题总结。"
+        self.report["chapters"][0]["chapter_summary"] = "旧的独立总结。"
+        self.report["chapters"][0]["intro"] = summary
         self.report["chapters"][1]["intro"] = "另一章的导语。"
         self.report["chapters"][-1]["chapter_summary"] = "论文讨论的原句。"
         self.write_run()
@@ -115,7 +115,7 @@ class PipelineReportTest(unittest.TestCase):
         })
         # Empty chapters keep their delivered statement in the reader, with no invented PR evidence.
         self.assertEqual(next(c for c in chapters if c["stage"] == "papers")["workIds"], [])
-        self.report["chapters"][0]["chapter_summary"] = "修订后的原句。"
+        self.report["chapters"][0]["intro"] = "修订后的原句。"
         self.write_run()
         revision, figure, _ = self.load()
         self.assertNotEqual(revision["sha256"], report["sha256"])
@@ -123,6 +123,24 @@ class PipelineReportTest(unittest.TestCase):
         self.assertEqual(next(c for c in json.loads((self.output / "flow-index.json").read_bytes())["chapters"] if c["stage"] == "startup")["chapter_summary"], summary)
         IMPORTER["save_report"](self.output, revision, figure, promote=True)
         self.assertEqual(next(c for c in json.loads((self.output / "flow-index.json").read_bytes())["chapters"] if c["stage"] == "startup")["chapter_summary"], "修订后的原句。")
+
+    def test_intro_only_input_and_unavailable_placeholders(self):
+        self.report["chapters"][0]["intro"] = "短请求因队列中的长请求而增加等待。"
+        self.write_run()
+        report, _, _ = self.load()
+        section = report["sections"][2]
+        self.assertEqual(section["chapter_summary"], self.report["chapters"][0]["intro"])
+        self.assertTrue(section["blocks"][0]["chapterSummary"])
+        for unavailable in (
+            "本章条目按下列主题展开，具体事实见各条正文。",
+            "本章组稿生成待核查，以下按原卡片保留本次已收录条目。",
+            "本日未收录新的相关论文。",
+        ):
+            self.report["chapters"][0]["intro"] = unavailable
+            self.write_run()
+            section = self.load()[0]["sections"][2]
+            self.assertNotIn("chapter_summary", section)
+            self.assertEqual(section["blocks"][0]["parts"][0]["text"], unavailable)
 
     def test_rejects_invalid_summaries_and_accepts_legacy_absence(self):
         for value in ("", " \n\t", "字" * 181, 12, True, [], {}):
