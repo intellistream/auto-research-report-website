@@ -204,7 +204,7 @@ export default function InferenceMap({ entries, intros = {}, selection, select, 
             {selected && <button type="button" className="map-v2-return"
               onClick={() => document.getElementById(panel + "-" + selected)?.focus()}><ArrowUp size={14} aria-hidden />返回所选环节</button>}
           </header>
-          {selected && selected !== "classification_conflict" && <ChapterIntro chapter={intros[selected]} />}
+          {selected && selected !== "classification_conflict" && <ChapterIntro chapter={intros[selected]} omitCountPrefix />}
           {selected && selected !== "classification_conflict" && <InferenceStageDemo key={selected} stage={selected} />}
           {selected ? (
             <details key={selected + scope} className="map-v2-evidence">
