@@ -1,0 +1,1227 @@
+{
+  "schemaVersion": 1,
+  "day": "2026-10-22",
+  "sha256": "e0280821e00620e7bf7d6430b59c3590959adad07810ad028e63aa9a5c455150",
+  "title": "vLLM 与 vLLM Ascend 性能优化日报",
+  "intro": [
+    [
+      {
+        "text": "工程 PR 从 vLLM 与 vLLM Ascend 两仓北京时间当日合入的条目中筛选。"
+      }
+    ],
+    [
+      {
+        "text": "来源复核修订版（2026-11-15）：逐条对照原始 PR，修订表述及实测边界。性能读数来自原始材料，未重新运行实验；当期原版仍可从版本列表查看。"
+      }
+    ]
+  ],
+  "sections": [
+    {
+      "key": "summary",
+      "title": "一 本日归纳",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "启动与缓存方面，CPU 卸载按各工作进程的实际 KV 存储估算块数，再采用可用的最小值（V1）；GLM-Next 的共享池适用物理预算豁免（A3）。\n\n解码方面，带 UVA 卸载标记的专家权重改走排序路径，减少同一步对主机权重的重复读取（V14）；SM90 之前的 GPU 在满足等长验证查询条件时走 FA2 解码路径，以支持完整图回放（V17）。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "flow",
+      "title": "二 推理流程与优化位置",
+      "figure": "2026-10-22/e0280821e00620e7bf7d6430b59c3590959adad07810ad028e63aa9a5c455150/flow.png",
+      "blocks": []
+    },
+    {
+      "key": "startup",
+      "title": "三 服务启动与模型准备",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注服务启动阶段的资源与配置准备：从块数估算、权重加载到内核预热，多项改动都在避免启动失败或首请求前的额外开销。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "统一工作进程与调度器的块数估算"
+        },
+        {
+          "kind": "entry",
+          "number": "V1",
+          "title": "对齐 CPU 卸载块数以避免越界拷贝",
+          "workId": "github:vllm-project/vllm#52921",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在流水线并行不均衡或推测解码时，较重的工作进程在相同字节预算下能存放的块更少，而调度器此前按较轻的进程估算池大小。由此产生的块编号可能超出工作进程的分配范围，导致卸载拷贝越界崩溃。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：工作进程按实际 KV 存储估算块数，在分配卸载存储前同步取最小值。启动时引擎查询对齐后的块数，调度器直接采用。仅启用简单 CPU 卸载连接器时查询，支持多连接器组合。缺少有效值视为初始化错误，仍可显式指定块数。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：较早的 Kimi-K3 ROCm 夜间镜像使用虚拟权重。四路张量并行、两路流水线下，工作进程 50/46 块和调度器 50 块统一到 46，两轮生成一致。双节点八路张量并行、两路流水线下，工作进程 809/746 块和调度器 809 块统一到 746，健康及请求完成检查通过。当前修订未重跑 GPU 流水线，CPU 测试 144 项通过、18 项跳过，含 3 项依赖 GPU 的同步用例。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #52921",
+                "url": "https://github.com/vllm-project/vllm/pull/52921"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "图捕获期间调整可扩展段以复用免拷贝路径"
+        },
+        {
+          "kind": "entry",
+          "number": "V2",
+          "title": "在图捕获期间关闭可扩展段以消除 AITER 暂存拷贝",
+          "workId": "github:vllm-project/vllm#57481",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：开启可扩展段后，缓存分配器返回的指针无法被跨进程导出，AITER 自定义全归约只能把图捕获中的每次全归约经设备到设备拷贝中转，增加额外内核与延迟。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在图捕获期间临时关闭可扩展段，使捕获分配的激活可导出，AITER 改走注册后的免拷贝路径，退出时恢复原配置。仅当张量并行组的 AITER 全归约支持捕获注册、且数据并行组未运行 AITER 集合通信时自动生效。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：据 PR，MI355X 上 Qwen3-0.6B TP2 的解码图，每次重放、每卡在全归约前的暂存拷贝由 57 次降至 0，图输出仍有一次拷贝。未开启性能分析时，批 1／4 解码步由 1.29／1.46 ms 降到 1.20／1.35 ms。DeepSeek-V4.1-Flash TP8 服务对照中，测得解码步缩短约 1.5%–2.9%，每卡图池增加约 0.4–0.5 GiB，KV 缓存减少约 0.2%；这些是指定 ROCm/AITER 配置的读数。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #57481",
+                "url": "https://github.com/vllm-project/vllm/pull/57481"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "后续流水线阶段跳过编码塔构建与加载"
+        },
+        {
+          "kind": "entry",
+          "number": "V3",
+          "title": "在后续流水线阶段跳过多模态编码塔加载",
+          "workId": "github:vllm-project/vllm#60238",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：模型运行器 V2 只在首个流水线阶段运行多模态编码器，但后续阶段仍会构建并加载编码塔，白白占用显存。以 LLaVA-1.5-7B 为例，第二阶段的模型加载因此多出约 0.58 GiB。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：复用已有的塔模型标记路径，在 V2 运行器且非首阶段时把编码塔替换为缺失层占位，权重加载器随之跳过其权重。首阶段、单阶段部署和 V1 运行器保持原有构建与加载方式。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：作者在两张 SM80 GPU 上测得，后续阶段的模型加载量在 InternVL3-1B 由 1.17 GiB 降至 0.59 GiB，在 Ultravox v0.5 由 2.68 GiB 降至 1.41 GiB。另测的 Qwen3.5-4B 和 Qwen3.6-35B-A3B 中，KV 缓存容量仍由保留编码塔的首阶段决定；Qwen3.6 两次基线自身也有输出分歧，不能单独归因于本改动。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #60238",
+                "url": "https://github.com/vllm-project/vllm/pull/60238"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "扩大音频解码导入保护并保留回退路径"
+        },
+        {
+          "kind": "entry",
+          "number": "V4",
+          "title": "扩大音频解码导入保护以捕获原生库加载错误",
+          "workId": "github:vllm-project/vllm#61090",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：当 torchcodec 自带的原生库因 CUDA 运行时不匹配而加载失败时，导入会抛出操作系统错误。原有保护只捕获导入错误和运行时错误，该错误会直接中断服务启动，即使只做文本推理也无法启动。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：把音频解码模块的导入保护扩大到同时捕获原生库加载失败，使解码器不可用时置空并记录原始异常。音频加载在自动后端下改走 soundfile 或 PyAV 回退路径，原始错误仍保留并链入延迟抛出的导入错误。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在模拟原生库加载失败的验证中，修复后的模块可正常导入，解码器为空，自动后端回退到备用音频库，原始错误被保留并链入延迟异常；健康环境下行为不变，修复前同一场景在导入时崩溃。该验证使用桩替换重依赖，未运行完整测试套件，真实 CUDA 环境下的启动路径仍需实测确认。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #61090",
+                "url": "https://github.com/vllm-project/vllm/pull/61090"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "让分类头可被 LoRA 包装加载"
+        },
+        {
+          "kind": "entry",
+          "number": "V5",
+          "title": "为 BERT 交叉编码器分类头接入 LoRA 适配器",
+          "workId": "github:vllm-project/vllm#61279",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在 BERT 序列分类交叉编码器上启用 LoRA 时，服务启动会直接报错，提示该模型尚不支持 LoRA。带已保存分类头的适配器即使绕过启动检查，也会因分类头不是可包装的线性层而被拒绝加载。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：把分类头改为可被 LoRA 管理器包装的复制线性层，并关闭其偏置输出，使带已保存分类头的适配器能走现有加载路径；同时登记查询、键、值三路合并映射，并暴露模型配置供管理器读取。若暂不扩大已保存分类头支持，可只保留主干适配器路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在 T4 上以随机适配器对照参考实现合并结果：带已保存分类头的适配器最大绝对误差为 0.0027，仅主干适配器为 0.0110，不启用 LoRA 时输出不变。池化层中的全连接仍是普通线性层，针对它的适配器会被静默丢弃，与参考实现的最大绝对误差达 0.42。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #61279",
+                "url": "https://github.com/vllm-project/vllm/pull/61279"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "以无符号字节视图注册单字节专家张量"
+        },
+        {
+          "kind": "entry",
+          "number": "V6",
+          "title": "将单字节专家张量注册为无符号字节视图以修复专家并行负载均衡启动失败",
+          "workId": "github:vllm-project/vllm#61786",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：启用专家并行负载均衡后，若专家张量经后端后处理变为通信库不支持的单字节类型（如 MXFP4、MXFP8 的块缩放），首次重排会在内存分析阶段因类型映射失败而中止，引擎无法启动。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在注册专家权重时，把单字节张量以无符号字节视图登记，形状、步长与存储不变，重排直接写回原参数。该处理覆盖融合专家层、自带权重接口的模型及弹性专家并行重注册；通信库已支持的单字节类型行为不变。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：作者在 8 张 H20 上以 DeepSeek-V4.1-Flash MXFP4 专家、Humming 后端、TP8 加 EP 和 EPLB（pynccl）验证启动成功，三次真实重排中，均衡度从首次前约 0.70 到重排后 0.82–0.87。GSM8K 1,319 题五示例的灵活抽取准确率为 89.92%；未开启 EPLB 的生产部署为 90.1%，是参考值而非同条件 A/B。未验证此结果可扩展到其他后端或量化格式。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #61786",
+                "url": "https://github.com/vllm-project/vllm/pull/61786"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "预热 CPU 调度内核并缩小掩码分块"
+        },
+        {
+          "kind": "entry",
+          "number": "V7",
+          "title": "在 CPU 上预热调度内核并缩小惩罚与语法掩码分块",
+          "workId": "github:vllm-project/vllm#62888",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：x86 CPU 上的 V2 模型运行器在首次用到调度驱动的 Triton 内核时才编译；作者报告冷缓存普通请求的首词元延迟约 11–20 秒，惩罚或结构化输出请求约 70–80 秒。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在 CPU 工作者的编译或预热阶段调用内核预热（V2 且启用 JIT 预热时）。CPU 的惩罚和语法位掩码内核采用 1024 而非 8192 的分块，缩小生成的中间表示。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在 32 核 AMD EPYC Turin、Qwen3.5-9B BF16、FP8 E4M3 KV 和冷 Triton 缓存下，作者测得普通／惩罚／结构化输出请求的首词元延迟由 20.2／81.0／73.7 秒降到 3.9／1.7／2.5 秒，请求内编译数 32→2，初始化 84→100 秒（只加预热为 317 秒）。64 词元的内核测试中，两内核分别为 764→403 和 151→102 微秒；常态普通请求首词元延迟仍为 1.7 秒。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #62888",
+                "url": "https://github.com/vllm-project/vllm/pull/62888"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "接入新模型并匹配轨迹分词"
+        },
+        {
+          "kind": "entry",
+          "number": "V8",
+          "title": "接入 Alpamayo2-Super 推理模型并自动匹配轨迹分词",
+          "workId": "github:vllm-project/vllm#62957",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：Alpamayo2-Super 的检查点同时存放 Qwen3-VL 和轨迹专家。参考实现给基础分词器追加 4,000 个轨迹词元和 29 个特殊词元；未经扩展的基础分词器会把提示里的轨迹词元当一般文字切分，无法得到对应的模型词元编号。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：新增专用分词模式，在基础分词器上按参考编号追加轨迹与特殊词元，并对照轨迹编号校验；该模式按架构自动选用，无需额外参数。同时只加载视觉语言部分，权重映射丢弃轨迹专家，并屏蔽轨迹词元的采样。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：作者按 LingoQA 的 500 题协议测得 80.8%，参考实现为 81.0%，其中 476 题文本答案相同。与相同权重的原生 Qwen3-VL 对比，所测时延和解码指标相近。vLLM 的这个接入路径只服务图像输入和文本输出，不生成轨迹；完整的推理与轨迹策略属于单独的 vLLM-Omni 路径。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #62957",
+                "url": "https://github.com/vllm-project/vllm/pull/62957"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "修正在线量化下的加载量与融合路径"
+        },
+        {
+          "kind": "entry",
+          "number": "V9",
+          "title": "修正Kimi K3在线量化加载与融合路径",
+          "workId": "github:vllm-project/vllm#62980",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：Kimi K3开启在线量化后，KDA输入投影的填充行被计入层加载量，层迟迟无法完成加载，所有KDA层被推迟到收尾阶段，缓冲的检查点张量一直占用到加载结束。路由输出变换和潜在专家尾部核仍按未量化权重做融合加法，绕过了量化线性方法及其缩放。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：投影声明加载量时排除填充行，并在每次分片加载后把填充区重新清零；路由输出变换只在未量化上投影时走融合加法，否则调用该层再原地累加残差；潜在专家运行器同样只在未量化上投影时启用融合尾部路径和延迟收尾。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在线量化下，填充行不再计入层加载量，层可及时完成加载，缓冲张量不必占用到加载结束。该结果仅在启用在线量化的模型上成立。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #62980",
+                "url": "https://github.com/vllm-project/vllm/pull/62980"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "修复流水末段嵌入加载并跳过空缓存组件"
+        },
+        {
+          "kind": "entry",
+          "number": "A1",
+          "title": "修复流水并行末段嵌入加载并跳过空缓存组件",
+          "workId": "github:vllm-project/vllm-ascend#18931",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：用 V2 模型运行器在流水并行下服务 GLM-5.3-Flash 的 MTP 推测解码时，末段不能共享首段的目标模型嵌入，草稿嵌入因而未加载。另一个故障是空 NoPE/RoPE KV 分量创建清零器时，首个请求会以零核心维度失败。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在过滤多令牌预测层权重前先加载检查点中的公共嵌入，复用参数自带的权重加载器，并保留专用多令牌预测嵌入的优先顺序，同时标记该段拥有独立嵌入。构造缓存块清零器时跳过元素数为零的缓存分量，只对非空视图建立清零路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：据作者，在 Atlas 800I A3 的 16 张昇腾 910 NPU 上，GLM-5.3-Flash BF16 采用 TP8／PP2、EP 和 MTP5；两组均含空分量保护且显存利用率为 0.86。仅切换嵌入修复，GSM8K 前 160 道零示例题的对题数由 157 增至 158，输出吞吐由 217.87 增至 508.70 词元/秒，草稿接受率由 7.16% 增至 61.60%。这些数字不度量空分量保护的单独收益。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #18931",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/18931"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "共享全注意力与滑动窗口的 KV 缓存池"
+        },
+        {
+          "kind": "entry",
+          "number": "A2",
+          "title": "恢复 Gemma 4 全注意力与滑动窗口共享 KV 缓存池",
+          "workId": "github:vllm-project/vllm-ascend#19264",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在 Gemma 4 31B 中，全注意力和滑动窗口原本应按共享物理池预算；Ascend 旧路径改为私人分配并按分组页大小缩放预算，六个等大小组使公布的缓存容量降到约六分之一。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：仅对模型运行器 V2 中符合条件的 Gemma 4 文本模型，在等页大小的稠密全注意力和滑动窗口组之间建立共享 KV 块池。每层的 K/V 视图仍分别连续；每个活跃块号同一时刻只由一个组使用。仅限 FP16/BF16 对称稠密 KV、无页填充、紧凑布局、无 KV 传输和上下文并行，其他情况走现有路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在 A5 双卡、BF16、8k 上下文的 Gemma 4 31B 上，可用 KV 缓存由 6.93 GiB 回升至 41.58 GiB，令牌容量由 21,353 升至 128,210，约恢复六倍；两轮各 16 个客户端并发请求共 32/32 成功并返回各自标识，但采样日志中调度器 Running 峰值仅为 5，不能视为 16 路同时驻留。并发倍数为启动估算，未覆盖多模态、滑动窗口外标识检索、长时间高压与正式吞吐基准。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #19264",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19264"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "扩展共享池豁免以保留物理预算"
+        },
+        {
+          "kind": "entry",
+          "number": "A3",
+          "title": "豁免 GLM-Next 共享池的逐层 KV 预算折扣以修复启动容量不足",
+          "workId": "github:vllm-project/vllm-ascend#19457",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：GLM-Next 缓存规格被归为稀疏注意力后，会绕过共享池豁免并触发逐层预算折扣，导致 1M 上下文启动时可用 KV 容量不足。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：把已有的 DeepSeek V4/V4.1 共享池豁免扩展到标记为 GLM-Next 的缓存规格，使这些分组直接保留物理预算，不再走通用逐层缩放。SFA 分类、缓存几何和部署配置均保持不变；默认 MRV2 混合路径仍由后续通用豁免维持预算。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在复现夜间镜像的 CPU 回归中，新增的 BF16 与打包 int8、稀疏开关四种组合连同既有用例共 13 项通过，未修改的主干基线在两项稀疏用例上复现了错误的预算缩减。早期 A3 实测中，仅针对 MRV1 的修复版及未修改的 MRV2 均通过八项健康检查。最终共享豁免版本尚无对应的 NPU 复测。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #19457",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19457"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注服务启动阶段的资源与配置准备：从块数估算、权重加载到内核预热，多项改动都在避免启动失败或首请求前的额外开销。"
+    },
+    {
+      "key": "scheduling",
+      "title": "四 请求接入与调度",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注缓存与调度路径中状态复用和就绪检查的时机问题，涉及适配器重复加载、视觉预处理串行以及跨请求命中结果复用带来的调度偏差。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "重置加载标志以复用已加载适配器"
+        },
+        {
+          "kind": "entry",
+          "number": "V10",
+          "title": "重置原地加载标志以避免 LoRA 适配器重复读盘",
+          "workId": "github:vllm-project/vllm#41482",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：通过接口以原地加载方式挂载 LoRA 适配器后，该标志会随请求保留下来，导致每次生成都重新从磁盘读取适配器，拖慢推理。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在适配器首次加载完成、写入缓存之前，把原地加载标志重置为关闭，使后续生成请求直接复用已加载的适配器。该改动只影响缓存记录中的标志，不改变适配器本身的加载方式。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：修复后，以原地加载方式挂载的适配器只在首次加载时读盘，后续生成不再重复拉取文件。该结论来自复现日志中的行为对比，未给出吞吐或延迟的量化读数。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #41482",
+                "url": "https://github.com/vllm-project/vllm/pull/41482"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "批处理视觉投影与位置嵌入计算"
+        },
+        {
+          "kind": "entry",
+          "number": "V11",
+          "title": "批处理 Gemma4Unified 视觉投影并向量化二维位置嵌入",
+          "workId": "github:vllm-project/vllm#60643",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：Gemma4Unified 逐图或逐帧执行视觉嵌入及多模态投影，增加 Python 分发与 GPU 核启动开销。原二维位置嵌入在 280 个补丁的组件测试中约为 0.31 毫秒。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：将跨请求的图像和视频帧补丁合为二维批次，批量执行视觉投影后按原图或帧切分。二维位置嵌入改为一维查表、累加和掩码处理，投影按可用显存动态分块。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：据作者，在 A100 上对 Gemma 4 12B 的组件测试中，8 段视频共 64 帧的视觉嵌入由 73.23 毫秒降至 10.56 毫秒。V1 引擎开启 torch.compile 和 CUDA 图的 `llm.generate()` 对照中，8 个请求各 2 图、最多 16 个输出词元，耗时 1076.41→1031.63 毫秒，贪心词元相同；这不是在线 HTTP 吞吐对照。大型图像／视频批量的组件浮点结果未达到逐位一致。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #60643",
+                "url": "https://github.com/vllm-project/vllm/pull/60643"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "按重放起点校验编码器嵌入就绪"
+        },
+        {
+          "kind": "entry",
+          "number": "V12",
+          "title": "对齐前缀重放起点以等待编码器嵌入",
+          "workId": "github:vllm-project/vllm#62834",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在 DeepSeek-V4.1 的前缀重放中，编码器就绪检查原先按 KV 命中边界进行，而重放会回退到更早的起点，导致重放尾部所需的图像嵌入未被加载，消费端因编码器缓存缺失而崩溃。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：将编码器就绪检查改为按重放起点计算所需令牌数，使重放尾部涉及的图像嵌入在请求被接纳前完成加载；KV 命中边界仍用于分配与统计，窗口已加载时保持原有检查路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：据 PR，在 DeepSeek-V4.1-Flash、1 个编码实例（TP1）加 1 个 PD 实例（TP2）、Mooncake TCP 和 8 GiB 消费端池的端到端测试中，128 次独立随机图像预热后，MUIRBench 512 题（并发 64）全部返回 HTTP 200、答对 303 题，未出现编码器缓存缺失。其他负载尚未验证。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #62834",
+                "url": "https://github.com/vllm-project/vllm/pull/62834"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "逐请求重新探测缓存命中与可读性"
+        },
+        {
+          "kind": "entry",
+          "number": "A4",
+          "title": "移除分层缓存池的跨请求命中缓存以消除过期状态",
+          "workId": "github:vllm-project/vllm-ascend#19251",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在 DRAM 与 SSD 分层缓存池中，跨请求复用的命中结果可能比一次淘汰存活更久，导致调度器虚报外部命中并抬高已计算词元数，单组模型会多跑一次无效前向，多组模型则直接失败；而缓存的未命中结果又会把短暂不可读状态固定半分钟，使顺序前缀扫描在此处截断。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：改为每次查找都重新探测后端可读性，不再复用同一步内其他请求采样的块命中结论；工作端也直接发起键信息、租约和存在性查询，让每个请求自行校验键、租约结果与地址元数据。可选的末层延迟保存排空路径保持不变。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在 Qwen3.8 上以 Ascend 内存缓存池加逐层传输实测，外部前缀命中率保持 93.68%，失败请求为 0，首词元等待约 6685 毫秒对 6688 毫秒，预填充吞吐约 4909 对 4908 词元/秒，请求吞吐均为 4.33 请求/s，移除缓存未带来可测回退。代价是放弃此前高前缀共享负载下主要的首词元收益，预期回到更早的逐层水平。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #19251",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19251"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注缓存与调度路径中状态复用和就绪检查的时机问题，涉及适配器重复加载、视觉预处理串行以及跨请求命中结果复用带来的调度偏差。"
+    },
+    {
+      "key": "prefill",
+      "title": "五 Prefill 输入上下文处理",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "pd_transfer",
+      "title": "六 P/D 分离部署的缓存交接",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注流水并行下分层 KV 池化时，传输层数上限与物理缓存注册层数不一致导致的 KV 传输不完整问题。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "对齐分层传输与物理层数"
+        },
+        {
+          "kind": "entry",
+          "number": "A5",
+          "title": "同步分层 KV 传输层数，修复流水并行下尾层漏传",
+          "workId": "github:vllm-project/vllm-ascend#19480",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：流水并行下启用分层 KV 池化时，传输循环上限取自逻辑层数，而物理缓存注册可能扩大本地层数；多组流水并行配置下同步条件未覆盖，已注册 32 个物理层的工作进程仍只保存和加载 29 层，KV 传输不完整，生成输出开头可能被破坏，SSD 池化同样受影响。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在原有层数同步条件中补入分层传输且流水并行大于 1 的分支，使传输循环上限与注册后的物理层数一致，并保持单次赋值；新增回归测试走真实分组构建、请求任务和传输地址构造路径，覆盖两路流水并行的两个进程及保存、加载方向，保留流水并行等于 1 和非分层传输的原有分支。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在历史版本加等价修复的四机实测中，开启 SSD 池化后两轮各 32 个冷请求均未出现开头崩坏，撤回修复即可复现，扩展到 128 个请求仍为 0 例。该硬件结果不来自当前主分支的端到端运行，本改动也未做配对性能实验，材料未提供当前分支的 NPU 集成复测。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #19480",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/19480"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注流水并行下分层 KV 池化时，传输层数上限与物理缓存注册层数不一致导致的 KV 传输不完整问题。"
+    },
+    {
+      "key": "decode",
+      "title": "七 Decode 常规生成",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注解码路径上由填充、路由与执行顺序引发的正确性偏差和重复开销，以及相应的算子与调度调整。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "修正填充与空槽下的算子索引"
+        },
+        {
+          "kind": "entry",
+          "number": "V13",
+          "title": "修正专家算子步幅标签以恢复编译精度",
+          "workId": "github:vllm-project/vllm#61749",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：隐藏维 2688 被填充到 2816 后，旧标签只约束步幅顺序，共享专家输入被当作填充缓冲的视图传入，量化核按打包行读取，首行之后偏移错位，默认编译下 GSM8K 准确率跌至约 0.01，强制即时执行则正常。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：将两个专家前向算子的标签由固定步幅顺序改为精确步幅，使编译生成的代码传入独立打包缓冲，不再复用填充缓冲的别名视图。代价是当隐藏维被填充且编译偏好布局与即时执行不一致时，每个专家层可能多一次张量拷贝；无填充时输入本就连续，行为不变，也不引入主机同步。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：据作者，单卡 GB300 上的 Nemotron-3-Nano-30B-A3B NVFP4（FlashInfer TRTLLM MoE 后端）在全部 1,319 道 GSM8K 的五示例补全测试中，编译路径准确率从 0.006 恢复到 0.299，接近即时执行的 0.303。关闭思考的独立对话设置下，修复后的编译路径为 0.890。结果限于所测后端及输入布局，其他仍使用旧标签的调用点没有纳入验证；对照使用新编译缓存。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #61749",
+                "url": "https://github.com/vllm-project/vllm/pull/61749"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "entry",
+          "number": "A6",
+          "title": "为GLM5Next卷积状态预留非负空槽以修复填充解码崩溃",
+          "workId": "github:vllm-project/vllm-ascend#18878",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：GLM5Next的因果卷积状态缓冲在解码图含填充请求时会下溢：五条活跃请求可重放八行图，非活跃行被写入负的空块标识，而所用更新算子对负值不启用空块过滤，内核遂把负值当作状态索引，触发无效地址错误并导致引擎崩溃。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：对采用打包缓冲的 DS 路径，在卷积状态末尾额外保留一行，以其非负索引作为空槽；真实请求行不变，非活跃行映射到预留槽，更新使用已清零的输出缓冲。后续合并保留了 SD 页／行步幅路径的直接原地更新；所测 TP16 BF16 形状额外占用 9 KiB。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：据 PR，在昇腾 910 的 GLM-5.3-Flash W8A8、TP16 加专家并行、int8 KV 与 FULL_AND_PIECEWISE 图的服务验证中，含并发图文测试的 573/573 个请求均返回 HTTP 200 并生成词元，未再出现原报错特征。另做的非填充 BF16 微基准每组 200 次重放，单次中位壁钟耗时变化在 −0.7% 到 +0.4%，含重放提交而非整模型吞吐。硬件数据对应原测试修订，冲突解决后未重跑 NPU 或全模型测试。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #18878",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/18878"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "按权重驻留方式调整专家读取路径"
+        },
+        {
+          "kind": "entry",
+          "number": "V14",
+          "title": "让主机驻留专家权重改走排序路径以减少重复读取",
+          "workId": "github:vllm-project/vllm#62054",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：小批量下，Triton 融合 MoE 路径会跳过专家对齐，为每个（词元，专家）对单独分块。权重驻留设备时这能省掉对齐开销，但启用 UVA 权重卸载后，同一专家被多个词元路由时，每步要经 PCIe 重复读取多次。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：当专家权重带有 UVA 卸载标记时，改走排序路径，使每个被路由的专家每步只读一次。该判断在每次前向时进行，以适配权重后处理阶段重新标记的时机；权重常驻显存的层仍保留原有朴素路径，其他 MoE 路径不受影响。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：据作者，RTX 4090 的自然文本服务测试中，Qwen3-30B-A3B 单卡卸载 16 GiB 专家权重时，并发 2／3／4 的输出吞吐约增加 7%／10%／15–19%，并发 1／8／16 未测得明显改善。Qwen3-235B-A22B-Instruct-2507-FP8 在 TP8、每卡卸载 16 GiB 时，并发 2／3／4 约增加 7%／10%／18%。设备驻留路径不变，收益取决于同一步多词元复用专家的程度。作者只测了 CUDA，随机词元结果不能代表自然文本。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #62054",
+                "url": "https://github.com/vllm-project/vllm/pull/62054"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "重叠注意力与专家分支执行"
+        },
+        {
+          "kind": "entry",
+          "number": "V15",
+          "title": "让 Cohere2 MoE 注意力与专家分支双流并行以缩短解码等待",
+          "workId": "github:vllm-project/vllm#62101",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：Cohere2 MoE 的并行块中，注意力与 MLP/MoE 读取同一份归一化输入后相加，解码时两者串行执行，单步等待被拉长。在 H100 双卡张量并行下，BF16 检查点单并发每输出词等待约 4.07 毫秒。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：条件允许时把 MLP/MoE 放到侧 CUDA 流，与注意力重叠；两支都输出未归约的 TP 部分和时，在相加后只做一次全归约。采用 vLLM RMSNorm 和残差流程，使满足条件的编译路径可把全归约与下一层归一化融合。MoE 内部必须归约（例如 EP all-to-all 或某些共享专家配置）时不强行合并，超过阈值、预填充／混合批或可断图也回退单流。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：作者在 H100 TP2、随机请求 1024 输入／512 输出的对照中测得，North-Mini-Code-1.0 的 BF16、FP8 和 W4A16 检查点在并发 1／8／32／64 下，基线 TPOT 是优化后的 1.14–1.36 倍；该表每配置测一次，GSM8K 差异在所述波动内。W4A16 未使用全归约与 RMSNorm 融合。双流适用于满足限制的完整图解码或小规模即时批；推测解码更容易先碰到词元数阈值。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #62101",
+                "url": "https://github.com/vllm-project/vllm/pull/62101"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "跳过非有限行的归一化迭代"
+        },
+        {
+          "kind": "entry",
+          "number": "V16",
+          "title": "跳过非有限行的归一化迭代并调整小批量融合配置",
+          "workId": "github:vllm-project/vllm#62745",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：CUDA 图的填充行可能以 NaN 进入 mHC 前置融合归一化，原实现仍在串行链上执行约四十次慢路径除法。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在融合前置归一化中，检测到某行均方根非有限就跳过剩余归一化迭代，该行结果本就为 NaN，输出逐位不变。另对隐藏维 4096、不超过 4 个令牌的批次改用单遍配置，计算能力 10.0 及以上才启用，其他架构保留原配置。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：据作者，在 GB300 上服务 GLM-5.3-Flash NVFP4（TP4）的对照中，单并发每用户吞吐 216.5→228.9 词元/秒，并发 6 为 151.3→156.4，首词元延迟未见明显变化。单遍配置针对小批量，跳过非有限行针对填充开销；端到端对照同时启用两项，不能把各并发的增益完全归给其中之一。完整无填充批不会受益于跳过非有限填充行。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #62745",
+                "url": "https://github.com/vllm-project/vllm/pull/62745"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注解码路径上由填充、路由与执行顺序引发的正确性偏差和重复开销，以及相应的算子与调度调整。"
+    },
+    {
+      "key": "speculative",
+      "title": "八 推测解码",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注推测解码在不同硬件与模型配置下的执行路径选择，以及验证步骤和草稿层如何接入更合适的注意力与融合计算路径。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "为推测解码验证步骤接入融合或张量核路径"
+        },
+        {
+          "kind": "entry",
+          "number": "V17",
+          "title": "让 SM90 前 GPU 的推测解码验证走 fa2 完整图",
+          "workId": "github:vllm-project/vllm#60532",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在 SM90 之前的 GPU 上，FlashInfer 没有可用的解码内核，推测解码的验证步骤被拆成预填充执行，CUDA 图支持降为分段模式，解码吞吐因此受限。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：把每请求等长的验证查询交给 fa2 张量核解码，并将该路径的图支持提升为统一批处理，使验证步骤能进入完整 CUDA 图。非因果草稿注意力和 DCP 仍保留单词元解码路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在 SM80 上用 Qwen3.8-27B NVFP4 与 3 词元的 MTP 实测，单卡解码由 73.6 升至 108.1 词元/秒，双卡由 61.0 升至 83.1 词元/秒，贪心输出一致。不启用推测解码时吞吐不变；SM90 及以后仍沿用原有解码选择。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #60532",
+                "url": "https://github.com/vllm-project/vllm/pull/60532"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "entry",
+          "number": "V18",
+          "title": "放开单核融合前向对 EAGLE3 推测解码的支持",
+          "workId": "github:vllm-project/vllm#62994",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：单核融合前向此前拒绝推测解码，EAGLE3 验证步只能走常规路径，小批量解码无法利用逐行融合启动带来的延迟收益。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：配置校验改为仅接受 EAGLE3，其余投机方法仍拒绝；路由去掉每请求单词元限制，解码步不超过十六行且无预填充时走融合路径，更大或混合步回退常规路径，并在层循环中捕获辅助隐藏状态。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在 MI355X TP4、MiniMax-M3 MXFP4、FULL_DECODE_ONLY 图、EAGLE3 每请求 3 个草稿词元和 MT-Bench 的交错对照中，并发 1 的中位词元间隔 6.98→6.11 毫秒，输出吞吐 383→435 词元/秒；并发 2 的词元间隔 8.03→7.25 毫秒，并发 4 的收益约 1%。该配置中超过 16 个验证行回退普通路径。GSM8K 五示例 500 题配对对照为 0.892 对 0.900，差异未达显著（95% 区间 −3.7 至 +2.1 个百分点）；没有证明两者等效。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #62994",
+                "url": "https://github.com/vllm-project/vllm/pull/62994"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "为特定模型启用专用解码与草稿层注意力路径"
+        },
+        {
+          "kind": "entry",
+          "number": "V19",
+          "title": "为 DeepSeek V4.1 解码引入专用路径",
+          "workId": "github:vllm-project/vllm#61868",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：DeepSeek-V4.1-Flash 在 GB300 的低批解码中，通用前向路径的独立内核、启动间隙和部分主机侧准备使解码步变长。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：新增模型持有的专用解码执行器，将小批量内核、部分侧流并行和重放相关的元数据准备接入 FULL 图解码；在 GB300 单托盘 TP4、DSpark 5 草稿配置下显式启用，最多 384 行，预填充、混合批及超限解码回到原前向。默认 auto 不改变原行为。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：PR 记录同构建开关对照在 GB300 TP4、MRV2、FULL 解码图、DSpark 5 草稿时，批 1 的整步（含草稿）由 5,355 降至 4,375 微秒，批 8／32 分别缩短 13.7%／11.3%。数据来自把路径移入执行器及移植 CuTe DSL 前的版本，作者记录后续版本的针对性读数校验，不能把历史全量测量直接视为最终提交重跑。AgentX 中 P90 交互速率约增 16%–24%，每卡总吞吐约增 1%–6%；两托盘 TTFT 不宜直接归因，作者在同托盘 c4 对照中未见该效应。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #61868",
+                "url": "https://github.com/vllm-project/vllm/pull/61868"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "entry",
+          "number": "A7",
+          "title": "为 GLM-5.3 草稿层启用设备侧 FlashAttn 并复用注意力元数据",
+          "workId": "github:vllm-project/vllm-ascend#18717",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：GLM-5.3 搭配 DFlash2 在昇腾 A5 上做推测解码时，草稿层沿用原有注意力路径，每步都要把设备侧序列长度同步回主机，并重新准备注意力元数据，带来额外的同步与准备开销。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：只在符合条件的 Ascend A5 上为 GLM-5.3 DFlash2 的 V2 eager 草稿层选择 CANN FlashAttn，使用设备侧序列长度并跨同组草稿层复用当前草稿步的注意力计划；涉及 PCP/DCP 或不满足其他门槛时保留原路径，目标模型不切换到此草稿专用路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：据 PR，在 8 张 950DT、TP8+EP、V2、GLM-5.3 W4A4C8 MXFP4 目标与 DFlash2 K=5、草稿 eager 的 64 并发单次 A/B 中，1,319 道 GSM8K 的平均 TPOT 为 49.6→44.8 毫秒，输出吞吐 1,022.39→1,132.23 词元/秒，答对 1,283→1,281 道。两次输出长度不同，且实验同时包含 FlashAttn 与运行器同步改动，不能当作等量工作加速比或单一组件收益；精度矩阵和 V2 P/D 部署验证尚未完成。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #18717",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/18717"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注推测解码在不同硬件与模型配置下的执行路径选择，以及验证步骤和草稿层如何接入更合适的注意力与融合计算路径。"
+    },
+    {
+      "key": "output_return",
+      "title": "九 输出返回与状态更新",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注同构任务池化分发中，整批任务相同时仍按组切分并展开结果所带来的额外处理。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "同构任务池化直接处理整批"
+        },
+        {
+          "kind": "entry",
+          "number": "V20",
+          "title": "为同构任务池化增加快速路径",
+          "workId": "github:vllm-project/vllm#62940",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：池化分发器原先对整批同一种任务仍进行分组，切分隐藏状态和元数据，并把稠密池化结果拆成逐请求张量，给 V2 工作循环增加 CPU 操作和传输开销。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：若整批使用同一任务且存在对应池化器，直接传入整批隐藏状态与元数据并返回其结果。混合任务仍走按组分发路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：作者在单张 GH200、V2 运行器、Nemotron-3-Embed-1B-BF16 在线 FP8、平均 31 词元的英文短查询下，测得并发 64 的吞吐 4,082→4,236 请求/秒（+3.8%），并发 128 为 6,044→6,665（+10.3%）。两个服务器启动、每次两轮 30 秒取平均；512 条嵌入的最小余弦 0.9996，与两次基线之间一致。此结果只在作者的短查询读数上成立，混合任务仍走原路径，非稠密输出继续支持。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #62940",
+                "url": "https://github.com/vllm-project/vllm/pull/62940"
+              }
+            ]
+          ],
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注同构任务池化分发中，整批任务相同时仍按组切分并展开结果所带来的额外处理。"
+    },
+    {
+      "key": "resource_reclaim",
+      "title": "十 资源回收与缓存保留",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "papers",
+      "title": "十一 论文",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "upstream": 20,
+    "ascend": 7,
+    "papers": 0
+  },
+  "warnings": [],
+  "pipelineStatus": "completed_program_checks",
+  "publicationStatus": "reviewed"
+}
