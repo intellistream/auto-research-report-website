@@ -74,7 +74,8 @@
             {
               "text": "本章收录 2 项更新，涉及减少无用测量与重复调用。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -140,7 +141,8 @@
           ],
           "workId": "github:vllm-project/vllm#64620"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及减少无用测量与重复调用。"
     },
     {
       "key": "scheduling",
@@ -152,7 +154,8 @@
             {
               "text": "本章收录 3 项更新，涉及提高缓存复用机会、共享执行信息与限制资源占用。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -252,7 +255,8 @@
           ],
           "workId": "github:vllm-project/vllm#64628"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及提高缓存复用机会、共享执行信息与限制资源占用。"
     },
     {
       "key": "prefill",
@@ -264,7 +268,8 @@
             {
               "text": "本章收录 7 项更新，涉及就地处理与重复数据复用、按阶段和输入长度选择路径、改进数据排列与批量读取。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -488,7 +493,8 @@
           ],
           "workId": "github:vllm-project/vllm#64548"
         }
-      ]
+      ],
+      "intro": "本章收录 7 项更新，涉及就地处理与重复数据复用、按阶段和输入长度选择路径、改进数据排列与批量读取。"
     },
     {
       "key": "pd_transfer",
@@ -500,7 +506,8 @@
             {
               "text": "本章收录 1 项更新，涉及按需保留与及时回收。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -536,7 +543,8 @@
           ],
           "workId": "github:vllm-project/vllm#64193"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及按需保留与及时回收。"
     },
     {
       "key": "decode",
@@ -548,7 +556,8 @@
             {
               "text": "本章收录 7 项更新，涉及调整数据存放与复用不变内容、减少通信前后整理并融合计算、减少采样访存与重叠缓存搬运。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -772,7 +781,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#20289"
         }
-      ]
+      ],
+      "intro": "本章收录 7 项更新，涉及调整数据存放与复用不变内容、减少通信前后整理并融合计算、减少采样访存与重叠缓存搬运。"
     },
     {
       "key": "speculative",
@@ -784,7 +794,8 @@
             {
               "text": "本章收录 2 项更新，涉及压缩草稿缓存与独立容量规划。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -850,7 +861,8 @@
           ],
           "workId": "github:vllm-project/vllm#64611"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及压缩草稿缓存与独立容量规划。"
     },
     {
       "key": "output_return",
@@ -862,7 +874,8 @@
             {
               "text": "本章收录 1 项更新，涉及增量处理替代重复解析。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -898,7 +911,8 @@
           ],
           "workId": "github:vllm-project/vllm#64674"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及增量处理替代重复解析。"
     },
     {
       "key": "resource_reclaim",
@@ -924,7 +938,8 @@
             {
               "text": "两篇工作讨论如何放置缓存和专家权重，分别以存储介质和推理阶段为依据。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "entry",
@@ -1000,7 +1015,8 @@
           ],
           "workId": "arxiv:2610.39216"
         }
-      ]
+      ],
+      "intro": "两篇工作讨论如何放置缓存和专家权重，分别以存储介质和推理阶段为依据。"
     }
   ],
   "counts": {

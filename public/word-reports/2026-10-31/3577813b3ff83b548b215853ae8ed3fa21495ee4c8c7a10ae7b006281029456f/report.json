@@ -74,7 +74,8 @@
             {
               "text": "本章收录 1 项更新，涉及复用已完成的执行准备。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -110,7 +111,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#20427"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及复用已完成的执行准备。"
     },
     {
       "key": "scheduling",
@@ -122,7 +124,8 @@
             {
               "text": "本章收录 5 项更新，涉及共享与合并执行信息、减少同步与重复准备、限制任务规模并改进数据打包。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -286,7 +289,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#20258"
         }
-      ]
+      ],
+      "intro": "本章收录 5 项更新，涉及共享与合并执行信息、减少同步与重复准备、限制任务规模并改进数据打包。"
     },
     {
       "key": "prefill",
@@ -298,7 +302,8 @@
             {
               "text": "本章收录 6 项更新，涉及分摊计算与重叠通信、复用执行图与合并算子、按规模选择实现并减少结果副本。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -492,7 +497,8 @@
           ],
           "workId": "github:vllm-project/vllm#64841"
         }
-      ]
+      ],
+      "intro": "本章收录 6 项更新，涉及分摊计算与重叠通信、复用执行图与合并算子、按规模选择实现并减少结果副本。"
     },
     {
       "key": "pd_transfer",
@@ -504,7 +510,8 @@
             {
               "text": "本章收录 2 项更新，涉及控制并发读取与复用存取能力。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -570,7 +577,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#20489"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及控制并发读取与复用存取能力。"
     },
     {
       "key": "decode",
@@ -582,7 +590,8 @@
             {
               "text": "本章收录 6 项更新，涉及删除重复计算与融合相邻操作、压缩常驻数据与改进小批量并行。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -772,7 +781,8 @@
           ],
           "workId": "github:vllm-project/vllm#64653"
         }
-      ]
+      ],
+      "intro": "本章收录 6 项更新，涉及删除重复计算与融合相邻操作、压缩常驻数据与改进小批量并行。"
     },
     {
       "key": "speculative",
@@ -784,7 +794,8 @@
             {
               "text": "本章收录 3 项更新，涉及跳过无用恢复并加快候选选择、按请求分摊草稿计算。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -884,7 +895,8 @@
           ],
           "workId": "github:vllm-project/vllm#63886"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及跳过无用恢复并加快候选选择、按请求分摊草稿计算。"
     },
     {
       "key": "output_return",
@@ -896,7 +908,8 @@
             {
               "text": "本章收录 1 项更新，涉及增量解析工具参数。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -932,7 +945,8 @@
           ],
           "workId": "github:vllm-project/vllm#64675"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及增量解析工具参数。"
     },
     {
       "key": "resource_reclaim",
@@ -944,7 +958,8 @@
             {
               "text": "本章收录 1 项更新，涉及安全重置缓存。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -980,7 +995,8 @@
           ],
           "workId": "github:vllm-project/vllm#64865"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及安全重置缓存。"
     },
     {
       "key": "papers",

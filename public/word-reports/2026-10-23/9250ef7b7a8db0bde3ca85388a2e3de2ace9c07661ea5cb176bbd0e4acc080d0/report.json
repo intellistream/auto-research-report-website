@@ -74,7 +74,8 @@
             {
               "text": "本章收录 5 项更新，涉及复用模型缓存与临时空间、释放预热临时内存、跨设备复用编译结果。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -238,7 +239,8 @@
           ],
           "workId": "github:vllm-project/vllm#63247"
         }
-      ]
+      ],
+      "intro": "本章收录 5 项更新，涉及复用模型缓存与临时空间、释放预热临时内存、跨设备复用编译结果。"
     },
     {
       "key": "scheduling",
@@ -250,7 +252,8 @@
             {
               "text": "本章收录 8 项更新，涉及合并批次元数据准备、减少前端重复处理、减少调度进程停顿等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -508,7 +511,8 @@
           ],
           "workId": "github:vllm-project/vllm#63212"
         }
-      ]
+      ],
+      "intro": "本章收录 8 项更新，涉及合并批次元数据准备、减少前端重复处理、减少调度进程停顿等方面。"
     },
     {
       "key": "prefill",
@@ -534,7 +538,8 @@
             {
               "text": "本章收录 1 项更新，涉及减少交接传输与准备。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -570,7 +575,8 @@
           ],
           "workId": "github:vllm-project/vllm#63142"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及减少交接传输与准备。"
     },
     {
       "key": "decode",
@@ -582,7 +588,8 @@
             {
               "text": "本章收录 7 项更新，涉及减少专家计算与通信开销、减少注意力数据搬运、融合或调整生成算子。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -806,7 +813,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#19575"
         }
-      ]
+      ],
+      "intro": "本章收录 7 项更新，涉及减少专家计算与通信开销、减少注意力数据搬运、融合或调整生成算子。"
     },
     {
       "key": "speculative",
@@ -818,7 +826,8 @@
             {
               "text": "本章收录 8 项更新，涉及缩短草稿准备、缩短验证与衔接。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1068,7 +1077,8 @@
           ],
           "workId": "github:vllm-project/vllm#63355"
         }
-      ]
+      ],
+      "intro": "本章收录 8 项更新，涉及缩短草稿准备、缩短验证与衔接。"
     },
     {
       "key": "output_return",
@@ -1108,7 +1118,8 @@
             {
               "text": "本日论文涉及 Ascend 算子优化、分层缓存与存储访问，以及草稿缓存和候选筛选。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "entry",
@@ -1290,7 +1301,8 @@
           ],
           "workId": "arxiv:2610.31338"
         }
-      ]
+      ],
+      "intro": "本日论文涉及 Ascend 算子优化、分层缓存与存储访问，以及草稿缓存和候选筛选。"
     }
   ],
   "counts": {

@@ -74,7 +74,8 @@
             {
               "text": "本章收录 2 项更新，涉及减少重复扫描与无效写入。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -140,7 +141,8 @@
           ],
           "workId": "github:vllm-project/vllm#64345"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及减少重复扫描与无效写入。"
     },
     {
       "key": "scheduling",
@@ -152,7 +154,8 @@
             {
               "text": "本章收录 6 项更新，涉及减少重复构造与统计、按实际使用维护缓存副本、减少数据搬运并改进执行准备。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -346,7 +349,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#20194"
         }
-      ]
+      ],
+      "intro": "本章收录 6 项更新，涉及减少重复构造与统计、按实际使用维护缓存副本、减少数据搬运并改进执行准备。"
     },
     {
       "key": "prefill",
@@ -358,7 +362,8 @@
             {
               "text": "本章收录 4 项更新，涉及只处理新增缓存信息、提前取数与原位访问、按输入形态组织计算。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -492,7 +497,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#20269"
         }
-      ]
+      ],
+      "intro": "本章收录 4 项更新，涉及只处理新增缓存信息、提前取数与原位访问、按输入形态组织计算。"
     },
     {
       "key": "pd_transfer",
@@ -504,7 +510,8 @@
             {
               "text": "本章收录 1 项更新，涉及按层匹配与分段传输。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -540,7 +547,8 @@
           ],
           "workId": "github:vllm-project/vllm#64397"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及按层匹配与分段传输。"
     },
     {
       "key": "decode",
@@ -552,7 +560,8 @@
             {
               "text": "本章收录 5 项更新，涉及按实际需求缩减临时数据、简化调用与融合算子、重叠独立计算。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -716,7 +725,8 @@
           ],
           "workId": "github:vllm-project/vllm#64425"
         }
-      ]
+      ],
+      "intro": "本章收录 5 项更新，涉及按实际需求缩减临时数据、简化调用与融合算子、重叠独立计算。"
     },
     {
       "key": "speculative",
@@ -728,7 +738,8 @@
             {
               "text": "本章收录 3 项更新，涉及复用执行图与减少主机提交、适配动态候选验证。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -828,7 +839,8 @@
           ],
           "workId": "github:vllm-project/vllm#60229"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及复用执行图与减少主机提交、适配动态候选验证。"
     },
     {
       "key": "output_return",

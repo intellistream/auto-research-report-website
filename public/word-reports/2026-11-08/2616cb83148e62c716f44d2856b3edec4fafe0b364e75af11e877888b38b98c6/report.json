@@ -74,7 +74,8 @@
             {
               "text": "本章收录 2 项更新，涉及减少配置导入依赖、控制稀疏更新暂存量。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -144,7 +145,8 @@
           ],
           "workId": "github:vllm-project/vllm#66375"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及减少配置导入依赖、控制稀疏更新暂存量。"
     },
     {
       "key": "scheduling",
@@ -156,7 +158,8 @@
             {
               "text": "本章收录 2 项更新，涉及限制外部缓存查询等待、平衡缓存复用与等待。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -226,7 +229,8 @@
           ],
           "workId": "github:vllm-project/vllm#66361"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及限制外部缓存查询等待、平衡缓存复用与等待。"
     },
     {
       "key": "prefill",
@@ -238,7 +242,8 @@
             {
               "text": "本章收录 1 项更新，涉及减少索引排序读写。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -274,7 +279,8 @@
           ],
           "workId": "github:vllm-project/vllm#66352"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及减少索引排序读写。"
     },
     {
       "key": "pd_transfer",
@@ -286,7 +292,8 @@
             {
               "text": "本章收录 1 项更新，涉及合并缓存传输准备。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -322,7 +329,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#21262"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及合并缓存传输准备。"
     },
     {
       "key": "decode",
@@ -334,7 +342,8 @@
             {
               "text": "本章收录 2 项更新，涉及跳过可直接确定的索引、融合投影与集合通信。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -404,7 +413,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#21272"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及跳过可直接确定的索引、融合投影与集合通信。"
     },
     {
       "key": "speculative",
@@ -416,7 +426,8 @@
             {
               "text": "本章收录 2 项更新，涉及减少草稿图元数据准备、缩短专用验证路径。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -486,7 +497,8 @@
           ],
           "workId": "github:vllm-project/vllm#66324"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及减少草稿图元数据准备、缩短专用验证路径。"
     },
     {
       "key": "output_return",
@@ -498,7 +510,8 @@
             {
               "text": "本章收录 2 项更新，涉及减少流式帧构造、增量解析流式结果。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -568,7 +581,8 @@
           ],
           "workId": "github:vllm-project/vllm#66354"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及减少流式帧构造、增量解析流式结果。"
     },
     {
       "key": "resource_reclaim",
@@ -580,7 +594,8 @@
             {
               "text": "本章收录 1 项更新，涉及在睡眠期间保留外部缓存。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -616,7 +631,8 @@
           ],
           "workId": "github:vllm-project/vllm#57810"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及在睡眠期间保留外部缓存。"
     },
     {
       "key": "papers",

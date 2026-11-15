@@ -74,7 +74,8 @@
             {
               "text": "本章收录 1 项更新，涉及控制启动分配。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -110,7 +111,8 @@
           ],
           "workId": "github:vllm-project/vllm#65619"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及控制启动分配。"
     },
     {
       "key": "scheduling",
@@ -122,7 +124,8 @@
             {
               "text": "本章收录 1 项更新，涉及限制主机等待。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -158,7 +161,8 @@
           ],
           "workId": "github:vllm-project/vllm#65519"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及限制主机等待。"
     },
     {
       "key": "prefill",
@@ -170,7 +174,8 @@
             {
               "text": "本章收录 3 项更新，涉及合并计算与通信、调整输入内核、合并状态处理。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -274,7 +279,8 @@
           ],
           "workId": "github:vllm-project/vllm#63742"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及合并计算与通信、调整输入内核、合并状态处理。"
     },
     {
       "key": "pd_transfer",
@@ -300,7 +306,8 @@
             {
               "text": "本章收录 3 项更新，涉及改善访存与布局、重叠模型计算。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -400,7 +407,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#20852"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及改善访存与布局、重叠模型计算。"
     },
     {
       "key": "speculative",
@@ -412,7 +420,8 @@
             {
               "text": "本章收录 6 项更新，涉及合并草稿验证步骤、减少验证缓存等待、并行准备草稿等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -610,7 +619,8 @@
           ],
           "workId": "github:vllm-project/vllm#65100"
         }
-      ]
+      ],
+      "intro": "本章收录 6 项更新，涉及合并草稿验证步骤、减少验证缓存等待、并行准备草稿等方面。"
     },
     {
       "key": "output_return",
@@ -622,7 +632,8 @@
             {
               "text": "本章收录 2 项更新，涉及增量解析流式结果、减少流式文本复制。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -692,7 +703,8 @@
           ],
           "workId": "github:vllm-project/vllm#65444"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及增量解析流式结果、减少流式文本复制。"
     },
     {
       "key": "resource_reclaim",
@@ -704,7 +716,8 @@
             {
               "text": "本章收录 1 项更新，涉及减少缓存淘汰开销。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -740,7 +753,8 @@
           ],
           "workId": "github:vllm-project/vllm#65604"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及减少缓存淘汰开销。"
     },
     {
       "key": "papers",
@@ -752,7 +766,8 @@
             {
               "text": "本日论文考察用可配置光路加快 Decode 的固定集合通信。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "entry",
@@ -791,7 +806,8 @@
           ],
           "workId": "arxiv:2611.05104"
         }
-      ]
+      ],
+      "intro": "本日论文考察用可配置光路加快 Decode 的固定集合通信。"
     }
   ],
   "counts": {

@@ -207,6 +207,24 @@ def inputs(path):
         raise ValueError("请输入 DOCX、包含 DOCX 的目录或 ZIP")
 
 
+def refresh_stored_intro(root, day, digest):
+    path = root / day / digest / "report.json"
+    report = json.loads(path.read_text(encoding="utf-8"))
+    if (report["day"], report["sha256"]) != (day, digest):
+        raise ValueError("日报日期或版本与目录不一致")
+    for section in report["sections"]:
+        project_opening_intro(section)
+    write_json(path, report)
+
+
+def refresh_intros(root):
+    index = json.loads((root / "catalog.json").read_text(encoding="utf-8"))
+    for day, record in index["days"].items():
+        for version in record["versions"]:
+            refresh_stored_intro(root, day, version["sha256"])
+    write_flow_index(root, index)
+
+
 def run(source, root, *, web_only=False):
     index_path = root / "catalog.json"
     index = (json.loads(index_path.read_text(encoding="utf-8")) if index_path.exists()
@@ -230,7 +248,8 @@ def run(source, root, *, web_only=False):
         day, digest = report["day"], report["sha256"]
         record = index["days"].setdefault(day, {"current": digest, "versions": []})
         if any(version["sha256"] == digest for version in record["versions"]):
-            print(f"{day} 已导入，跳过")
+            refresh_stored_intro(root, day, digest)
+            print(f"{day} 已导入，已刷新章首导语")
             continue
         prefix = f"{day}/{digest}"
         output = root / prefix
@@ -252,15 +271,23 @@ def run(source, root, *, web_only=False):
 
 if __name__ == "__main__":
     cli = argparse.ArgumentParser(description=__doc__)
-    cli.add_argument("source", type=Path)
+    cli.add_argument("source", type=Path, nargs="?")
     cli.add_argument("--output", type=Path)
+    cli.add_argument("--refresh-intros", action="store_true", help="Refresh intros from existing archived paragraphs without importing a new report")
     cli.add_argument("--web-only", action="store_true", help="Export site data without copying Word originals")
     args = cli.parse_args()
     if args.web_only and not args.output:
         cli.error("--web-only requires a separate --output directory")
+    if args.refresh_intros and (args.source or args.web_only or not args.output):
+        cli.error("--refresh-intros requires --output and cannot be combined with a source or --web-only")
+    if not args.refresh_intros and not args.source:
+        cli.error("source is required unless --refresh-intros is used")
     output = args.output or Path(__file__).resolve().parents[2] / "work" / "docx-preview"
     try:
-        run(args.source, output, web_only=args.web_only)
+        if args.refresh_intros:
+            refresh_intros(output)
+        else:
+            run(args.source, output, web_only=args.web_only)
     except (OSError, ValueError, BadZipFile) as err:
         print(err, file=sys.stderr)
         sys.exit(1)

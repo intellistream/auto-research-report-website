@@ -74,7 +74,8 @@
             {
               "text": "本章收录 4 项更新，涉及减少重启与预热工作、按实际资源定容。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -204,7 +205,8 @@
           ],
           "workId": "github:vllm-project/vllm#66583"
         }
-      ]
+      ],
+      "intro": "本章收录 4 项更新，涉及减少重启与预热工作、按实际资源定容。"
     },
     {
       "key": "scheduling",
@@ -216,7 +218,8 @@
             {
               "text": "本章收录 5 项更新，涉及压缩前端准备开销、按缓存命中安排准入和回载。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -376,7 +379,8 @@
           ],
           "workId": "github:vllm-project/vllm#66510"
         }
-      ]
+      ],
+      "intro": "本章收录 5 项更新，涉及压缩前端准备开销、按缓存命中安排准入和回载。"
     },
     {
       "key": "prefill",
@@ -388,7 +392,8 @@
             {
               "text": "本章收录 6 项更新，涉及减少长输入的重复前向、选择更适合输入形状的算子、减少查表和读盘等待。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -582,7 +587,8 @@
           ],
           "workId": "github:vllm-project/vllm#66464"
         }
-      ]
+      ],
+      "intro": "本章收录 6 项更新，涉及减少长输入的重复前向、选择更适合输入形状的算子、减少查表和读盘等待。"
     },
     {
       "key": "pd_transfer",
@@ -594,7 +600,8 @@
             {
               "text": "本章收录 4 项更新，涉及保持同机设备直传、按拓扑组织缓存交接。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -724,7 +731,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#19826"
         }
-      ]
+      ],
+      "intro": "本章收录 4 项更新，涉及保持同机设备直传、按拓扑组织缓存交接。"
     },
     {
       "key": "decode",
@@ -736,7 +744,8 @@
             {
               "text": "本章收录 7 项更新，涉及重叠投影与注意力准备、按批次调整计算形状、为设备选择专用生成内核。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -960,7 +969,8 @@
           ],
           "workId": "github:vllm-project/vllm#66484"
         }
-      ]
+      ],
+      "intro": "本章收录 7 项更新，涉及重叠投影与注意力准备、按批次调整计算形状、为设备选择专用生成内核。"
     },
     {
       "key": "speculative",
@@ -972,7 +982,8 @@
             {
               "text": "本章收录 5 项更新，涉及减少草稿循环的主机工作、减少验证计算与数据搬运、推迟状态提交。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1136,7 +1147,8 @@
           ],
           "workId": "github:vllm-project/vllm#66595"
         }
-      ]
+      ],
+      "intro": "本章收录 5 项更新，涉及减少草稿循环的主机工作、减少验证计算与数据搬运、推迟状态提交。"
     },
     {
       "key": "output_return",
@@ -1148,7 +1160,8 @@
             {
               "text": "本章收录 3 项更新，涉及减少输出通道常驻内存、增量返回工具参数、降低结构化采样准备开销。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1252,7 +1265,8 @@
           ],
           "workId": "github:vllm-project/vllm#66492"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及减少输出通道常驻内存、增量返回工具参数、降低结构化采样准备开销。"
     },
     {
       "key": "resource_reclaim",
@@ -1264,7 +1278,8 @@
             {
               "text": "本章收录 3 项更新，涉及降低缓存搬运对生成的干扰、扩展外部缓存存储。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1364,7 +1379,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#21301"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及降低缓存搬运对生成的干扰、扩展外部缓存存储。"
     },
     {
       "key": "papers",
@@ -1376,7 +1392,8 @@
             {
               "text": "三篇论文分别考察代理服务的前缀缓存崩溃、原生 FP4 KV 和单流解码的权重压缩。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "entry",
@@ -1489,7 +1506,8 @@
           ],
           "workId": "arxiv:2611.09424"
         }
-      ]
+      ],
+      "intro": "三篇论文分别考察代理服务的前缀缓存崩溃、原生 FP4 KV 和单流解码的权重压缩。"
     }
   ],
   "counts": {
