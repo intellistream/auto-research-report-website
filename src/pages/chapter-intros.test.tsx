@@ -89,6 +89,19 @@ describe("read-only chapter summary presentation", () => {
     expect(map).toContain("当日聚焦：跳过可直接确定的索引、融合投影与集合通信。");
     expect(map).not.toContain("本章收录 2 项更新，涉及");
     expect(render(createElement(ChapterIntro, { chapter: counted }))).toContain(counted.intro);
+    for (const [intro, expected] of [
+      ["本章关注解码路径上的内核启动开销。", "解码路径上的内核启动开销。"],
+      ["本节关注引擎关闭后的资源残留。", "引擎关闭后的资源残留。"],
+      ["本章涉及缓存交接中的重复传输。", "缓存交接中的重复传输。"],
+      ["本节涉及缓存保留的处理顺序。", "缓存保留的处理顺序。"],
+      ["缓存交接仍存在重复传输。", "缓存交接仍存在重复传输。"],
+      ["原文说明本章关注的执行范围。", "原文说明本章关注的执行范围。"],
+    ]) {
+      const value = { ...first, intro };
+      const rendered = render(createElement(InferenceMap, { entries: entries([value]), intros: { decode: value }, selection: "decode", select: () => {}, scope: "prefix" }));
+      expect(rendered).toContain("当日聚焦：" + expected);
+      expect(render(createElement(ChapterIntro, { chapter: value }))).toContain(intro);
+    }
     const empty = render(createElement(InferenceMap, { entries: [], selection: "decode", select: () => {}, scope: "empty" }));
     expect(empty).toContain("未提供适用的问题总结");
     expect(empty).not.toContain(first.intro);
