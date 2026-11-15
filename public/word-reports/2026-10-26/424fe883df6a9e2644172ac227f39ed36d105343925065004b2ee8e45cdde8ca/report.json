@@ -74,7 +74,8 @@
             {
               "text": "本章收录 1 项更新，涉及减少模型准备与分配开销。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -110,7 +111,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#19841"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及减少模型准备与分配开销。"
     },
     {
       "key": "scheduling",
@@ -122,7 +124,8 @@
             {
               "text": "本章收录 5 项更新，涉及加快前缀缓存回载、复用缓存命中结果、合并批次元数据准备。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -286,7 +289,8 @@
           ],
           "workId": "github:vllm-project/vllm#63633"
         }
-      ]
+      ],
+      "intro": "本章收录 5 项更新，涉及加快前缀缓存回载、复用缓存命中结果、合并批次元数据准备。"
     },
     {
       "key": "prefill",
@@ -298,7 +302,8 @@
             {
               "text": "本章收录 4 项更新，涉及裁剪无须继续计算的输入、按输入特点组织计算、减少输入算子的缓存读写。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -432,7 +437,8 @@
           ],
           "workId": "github:vllm-project/vllm#63746"
         }
-      ]
+      ],
+      "intro": "本章收录 4 项更新，涉及裁剪无须继续计算的输入、按输入特点组织计算、减少输入算子的缓存读写。"
     },
     {
       "key": "pd_transfer",
@@ -444,7 +450,8 @@
             {
               "text": "本章收录 1 项更新，涉及减少交接传输与准备。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -480,7 +487,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#19851"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及减少交接传输与准备。"
     },
     {
       "key": "decode",
@@ -492,7 +500,8 @@
             {
               "text": "本章收录 9 项更新，涉及减少注意力数据搬运、融合或调整生成算子、按历史长度选择注意力计算等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -788,7 +797,8 @@
           ],
           "workId": "github:vllm-project/vllm#62091"
         }
-      ]
+      ],
+      "intro": "本章收录 9 项更新，涉及减少注意力数据搬运、融合或调整生成算子、按历史长度选择注意力计算等方面。"
     },
     {
       "key": "speculative",
@@ -800,7 +810,8 @@
             {
               "text": "本章收录 4 项更新，涉及缩短验证与衔接、缩短草稿准备。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -930,7 +941,8 @@
           ],
           "workId": "github:vllm-project/vllm#63600"
         }
-      ]
+      ],
+      "intro": "本章收录 4 项更新，涉及缩短验证与衔接、缩短草稿准备。"
     },
     {
       "key": "output_return",
@@ -942,7 +954,8 @@
             {
               "text": "本章收录 1 项更新，涉及减少文字转换开销。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -978,7 +991,8 @@
           ],
           "workId": "github:vllm-project/vllm#63668"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及减少文字转换开销。"
     },
     {
       "key": "resource_reclaim",
@@ -1004,7 +1018,8 @@
             {
               "text": "两篇工作分别利用多个存储层回读缓存、从历史答案提前提取草稿。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "entry",
@@ -1080,7 +1095,8 @@
           ],
           "workId": "arxiv:2610.32881"
         }
-      ]
+      ],
+      "intro": "两篇工作分别利用多个存储层回读缓存、从历史答案提前提取草稿。"
     }
   ],
   "counts": {

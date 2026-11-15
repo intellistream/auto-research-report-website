@@ -74,7 +74,8 @@
             {
               "text": "本章收录 2 项更新，涉及按需加载与权重复用。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -140,7 +141,8 @@
           ],
           "workId": "github:vllm-project/vllm#64119"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及按需加载与权重复用。"
     },
     {
       "key": "scheduling",
@@ -152,7 +154,8 @@
             {
               "text": "本章收录 5 项更新，涉及历史缓存预取、修改记录与无效提交消除、采样历史统计优化。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -316,7 +319,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#20085"
         }
-      ]
+      ],
+      "intro": "本章收录 5 项更新，涉及历史缓存预取、修改记录与无效提交消除、采样历史统计优化。"
     },
     {
       "key": "prefill",
@@ -328,7 +332,8 @@
             {
               "text": "本章收录 2 项更新，涉及通信与本卡计算重叠、按阶段拆分混合执行。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -398,7 +403,8 @@
           ],
           "workId": "github:vllm-project/vllm#64205"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及通信与本卡计算重叠、按阶段拆分混合执行。"
     },
     {
       "key": "pd_transfer",
@@ -410,7 +416,8 @@
             {
               "text": "本章收录 1 项更新，涉及按缓存组件组织逐层传输。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -446,7 +453,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#20152"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及按缓存组件组织逐层传输。"
     },
     {
       "key": "decode",
@@ -458,7 +466,8 @@
             {
               "text": "本章收录 8 项更新，涉及稀疏访问与临时内存控制、小批量并行与算子融合、跨卡传输保持数据分片等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -716,7 +725,8 @@
           ],
           "workId": "github:vllm-project/vllm#64116"
         }
-      ]
+      ],
+      "intro": "本章收录 8 项更新，涉及稀疏访问与临时内存控制、小批量并行与算子融合、跨卡传输保持数据分片等方面。"
     },
     {
       "key": "speculative",
@@ -728,7 +738,8 @@
             {
               "text": "本章收录 3 项更新，涉及固定编译配置与补齐预热、跳过窗口外计算、草稿缓存按需分配。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -832,7 +843,8 @@
           ],
           "workId": "github:vllm-project/vllm#64109"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及固定编译配置与补齐预热、跳过窗口外计算、草稿缓存按需分配。"
     },
     {
       "key": "output_return",
@@ -844,7 +856,8 @@
             {
               "text": "本章收录 1 项更新，涉及流式解析及时输出。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -880,7 +893,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#20059"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及流式解析及时输出。"
     },
     {
       "key": "resource_reclaim",
@@ -892,7 +906,8 @@
             {
               "text": "本章收录 1 项更新，涉及保留下一轮前缀。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -928,7 +943,8 @@
           ],
           "workId": "github:vllm-project/vllm#64216"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及保留下一轮前缀。"
     },
     {
       "key": "papers",
@@ -940,7 +956,8 @@
             {
               "text": "两篇工作分别研究按请求选择模型执行路径、按工具返回时机安排会话与设备。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "entry",
@@ -1016,7 +1033,8 @@
           ],
           "workId": "arxiv:2610.37230"
         }
-      ]
+      ],
+      "intro": "两篇工作分别研究按请求选择模型执行路径、按工具返回时机安排会话与设备。"
     }
   ],
   "counts": {

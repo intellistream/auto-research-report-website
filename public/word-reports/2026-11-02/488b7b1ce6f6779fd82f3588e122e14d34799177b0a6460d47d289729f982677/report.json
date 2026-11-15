@@ -74,7 +74,8 @@
             {
               "text": "本章收录 3 项更新，涉及按实际占用准备缓存、复用编译结果与减少权重传输。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -174,7 +175,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#18915"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及按实际占用准备缓存、复用编译结果与减少权重传输。"
     },
     {
       "key": "scheduling",
@@ -186,7 +188,8 @@
             {
               "text": "本章收录 9 项更新，涉及减少重复校验与查找、复用执行信息与批量整理地址、并行准备与合批处理图像等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -474,7 +477,8 @@
           ],
           "workId": "github:vllm-project/vllm#63927"
         }
-      ]
+      ],
+      "intro": "本章收录 9 项更新，涉及减少重复校验与查找、复用执行信息与批量整理地址、并行准备与合批处理图像等方面。"
     },
     {
       "key": "prefill",
@@ -486,7 +490,8 @@
             {
               "text": "本章收录 4 项更新，涉及复用分块信息与跳过无效计算、重叠通信与计算。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -616,7 +621,8 @@
           ],
           "workId": "github:vllm-project/vllm#65128"
         }
-      ]
+      ],
+      "intro": "本章收录 4 项更新，涉及复用分块信息与跳过无效计算、重叠通信与计算。"
     },
     {
       "key": "pd_transfer",
@@ -628,7 +634,8 @@
             {
               "text": "本章收录 1 项更新，涉及复用本地前缀以减少重复传输。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -664,7 +671,8 @@
           ],
           "workId": "github:vllm-project/vllm#63971"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及复用本地前缀以减少重复传输。"
     },
     {
       "key": "decode",
@@ -676,7 +684,8 @@
             {
               "text": "本章收录 9 项更新，涉及调整数据布局与减少通信、压缩缓存并分摊权重、缩小词表筛选范围。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -960,7 +969,8 @@
           ],
           "workId": "github:vllm-project/vllm#65004"
         }
-      ]
+      ],
+      "intro": "本章收录 9 项更新，涉及调整数据布局与减少通信、压缩缓存并分摊权重、缩小词表筛选范围。"
     },
     {
       "key": "speculative",
@@ -972,7 +982,8 @@
             {
               "text": "本章收录 4 项更新，涉及按活跃请求保存状态并改进草稿选择、融合验证处理与分摊词表工作。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1109,7 +1120,8 @@
           ],
           "workId": "github:vllm-project/vllm#65007"
         }
-      ]
+      ],
+      "intro": "本章收录 4 项更新，涉及按活跃请求保存状态并改进草稿选择、融合验证处理与分摊词表工作。"
     },
     {
       "key": "output_return",
@@ -1121,7 +1133,8 @@
             {
               "text": "本章收录 2 项更新，涉及减少文本复制与事件构造开销。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1187,7 +1200,8 @@
           ],
           "workId": "github:vllm-project/vllm#65028"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及减少文本复制与事件构造开销。"
     },
     {
       "key": "resource_reclaim",
@@ -1213,7 +1227,8 @@
             {
               "text": "三篇工作从混合状态缓存、共享上下文分叉和长文本索引减少重算与扫描。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "entry",
@@ -1326,7 +1341,8 @@
           ],
           "workId": "arxiv:2610.42112"
         }
-      ]
+      ],
+      "intro": "三篇工作从混合状态缓存、共享上下文分叉和长文本索引减少重算与扫描。"
     }
   ],
   "counts": {

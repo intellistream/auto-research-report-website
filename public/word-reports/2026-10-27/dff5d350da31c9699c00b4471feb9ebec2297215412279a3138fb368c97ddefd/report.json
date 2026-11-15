@@ -74,7 +74,8 @@
             {
               "text": "本章收录 2 项更新，涉及并行编译与统一预热、跳过重复测试。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -144,7 +145,8 @@
           ],
           "workId": "github:vllm-project/vllm#63431"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及并行编译与统一预热、跳过重复测试。"
     },
     {
       "key": "scheduling",
@@ -156,7 +158,8 @@
             {
               "text": "本章收录 3 项更新，涉及缓存感知路由与复用、执行信息构建融合、跳过冗余管理操作。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -260,7 +263,8 @@
           ],
           "workId": "github:vllm-project/vllm#63934"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及缓存感知路由与复用、执行信息构建融合、跳过冗余管理操作。"
     },
     {
       "key": "prefill",
@@ -272,7 +276,8 @@
             {
               "text": "本章收录 5 项更新，涉及计算分片与负载均衡、跳过无效计算、简化主机调用链。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -436,7 +441,8 @@
           ],
           "workId": "github:vllm-project/vllm#63785"
         }
-      ]
+      ],
+      "intro": "本章收录 5 项更新，涉及计算分片与负载均衡、跳过无效计算、简化主机调用链。"
     },
     {
       "key": "pd_transfer",
@@ -448,7 +454,8 @@
             {
               "text": "本章收录 1 项更新，涉及融合遍历与传输信息整理。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -484,7 +491,8 @@
           ],
           "workId": "github:vllm-project/vllm#63933"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及融合遍历与传输信息整理。"
     },
     {
       "key": "decode",
@@ -496,7 +504,8 @@
             {
               "text": "本章收录 8 项更新，涉及计算与存储分片、共享量化结果、候选裁剪与索引复用等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -762,7 +771,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#19909"
         }
-      ]
+      ],
+      "intro": "本章收录 8 项更新，涉及计算与存储分片、共享量化结果、候选裁剪与索引复用等方面。"
     },
     {
       "key": "speculative",
@@ -774,7 +784,8 @@
             {
               "text": "本章收录 3 项更新，涉及减少验证概率缓存、合并草稿采样、控制验证长度。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -878,7 +889,8 @@
           ],
           "workId": "github:vllm-project/vllm#63421"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及减少验证概率缓存、合并草稿采样、控制验证长度。"
     },
     {
       "key": "output_return",
@@ -890,7 +902,8 @@
             {
               "text": "本章收录 1 项更新，涉及按需执行文字转换。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -926,7 +939,8 @@
           ],
           "workId": "github:vllm-project/vllm#63789"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及按需执行文字转换。"
     },
     {
       "key": "resource_reclaim",
@@ -938,7 +952,8 @@
             {
               "text": "本章收录 2 项更新，涉及按复用价值淘汰。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1004,7 +1019,8 @@
           ],
           "workId": "github:vllm-project/vllm#63851"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及按复用价值淘汰。"
     },
     {
       "key": "papers",
@@ -1016,7 +1032,8 @@
             {
               "text": "两篇工作分别融合压缩缓存的还原与计算、减少 CPU 解码中的设备等待。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "entry",
@@ -1092,7 +1109,8 @@
           ],
           "workId": "arxiv:2610.33501"
         }
-      ]
+      ],
+      "intro": "两篇工作分别融合压缩缓存的还原与计算、减少 CPU 解码中的设备等待。"
     }
   ],
   "counts": {

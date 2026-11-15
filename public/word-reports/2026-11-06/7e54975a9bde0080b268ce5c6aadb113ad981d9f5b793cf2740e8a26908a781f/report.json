@@ -88,7 +88,8 @@
             {
               "text": "本章收录 5 项更新，涉及按消费方构建元数据、减少多模态主机工作、将准备与执行重叠等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -260,7 +261,8 @@
           ],
           "workId": "github:vllm-project/vllm#65831"
         }
-      ]
+      ],
+      "intro": "本章收录 5 项更新，涉及按消费方构建元数据、减少多模态主机工作、将准备与执行重叠等方面。"
     },
     {
       "key": "prefill",
@@ -272,7 +274,8 @@
             {
               "text": "本章收录 4 项更新，涉及分摊长输入打分、合并状态处理、跨层复用已搬运缓存等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -410,7 +413,8 @@
           ],
           "workId": "github:vllm-project/vllm#61821"
         }
-      ]
+      ],
+      "intro": "本章收录 4 项更新，涉及分摊长输入打分、合并状态处理、跨层复用已搬运缓存等方面。"
     },
     {
       "key": "pd_transfer",
@@ -422,7 +426,8 @@
             {
               "text": "本章收录 1 项更新，涉及兼容缓存交接布局。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -458,7 +463,8 @@
           ],
           "workId": "github:vllm-project/vllm#64958"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及兼容缓存交接布局。"
     },
     {
       "key": "decode",
@@ -470,7 +476,8 @@
             {
               "text": "本章收录 2 项更新，涉及按硬件划分执行、合并计算与量化。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -540,7 +547,8 @@
           ],
           "workId": "github:vllm-project/vllm#65478"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及按硬件划分执行、合并计算与量化。"
     },
     {
       "key": "speculative",
@@ -566,7 +574,8 @@
             {
               "text": "本章收录 2 项更新，涉及减少返回概率的访存、减少流式帧构造。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -636,7 +645,8 @@
           ],
           "workId": "github:vllm-project/vllm#52875"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及减少返回概率的访存、减少流式帧构造。"
     },
     {
       "key": "resource_reclaim",
@@ -662,7 +672,8 @@
             {
               "text": "两篇工作分别考察机架内注意力与专家分离，以及 MI355X 的低精度注意力流水线。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "entry",
@@ -738,7 +749,8 @@
           ],
           "workId": "arxiv:2611.07496"
         }
-      ]
+      ],
+      "intro": "两篇工作分别考察机架内注意力与专家分离，以及 MI355X 的低精度注意力流水线。"
     }
   ],
   "counts": {

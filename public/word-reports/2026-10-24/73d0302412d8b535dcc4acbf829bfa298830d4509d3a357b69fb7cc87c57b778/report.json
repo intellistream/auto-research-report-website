@@ -74,7 +74,8 @@
             {
               "text": "本章收录 2 项更新，涉及修复缓冲区映射、加快专家权重更新。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -144,7 +145,8 @@
           ],
           "workId": "github:vllm-project/vllm#63429"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及修复缓冲区映射、加快专家权重更新。"
     },
     {
       "key": "scheduling",
@@ -156,7 +158,8 @@
             {
               "text": "本章收录 7 项更新，涉及复用缓存命中结果、按请求需要预留视觉缓存、减少前端重复处理等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -384,7 +387,8 @@
           ],
           "workId": "github:vllm-project/vllm#63438"
         }
-      ]
+      ],
+      "intro": "本章收录 7 项更新，涉及复用缓存命中结果、按请求需要预留视觉缓存、减少前端重复处理等方面。"
     },
     {
       "key": "prefill",
@@ -396,7 +400,8 @@
             {
               "text": "本章收录 2 项更新，涉及减少多模态输入计算、裁剪无须继续计算的输入。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -466,7 +471,8 @@
           ],
           "workId": "github:vllm-project/vllm#62384"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及减少多模态输入计算、裁剪无须继续计算的输入。"
     },
     {
       "key": "pd_transfer",
@@ -478,7 +484,8 @@
             {
               "text": "本章收录 1 项更新，涉及减少交接传输与准备。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -514,7 +521,8 @@
           ],
           "workId": "github:vllm-project/vllm#63425"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及减少交接传输与准备。"
     },
     {
       "key": "decode",
@@ -526,7 +534,8 @@
             {
               "text": "本章收录 7 项更新，涉及重叠查表投影与专家分发、减少专家计算与通信开销、减少注意力数据搬运等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -754,7 +763,8 @@
           ],
           "workId": "github:vllm-project/vllm#63386"
         }
-      ]
+      ],
+      "intro": "本章收录 7 项更新，涉及重叠查表投影与专家分发、减少专家计算与通信开销、减少注意力数据搬运等方面。"
     },
     {
       "key": "speculative",
@@ -766,7 +776,8 @@
             {
               "text": "本章收录 3 项更新，涉及适配草稿模型、缩短草稿准备、缩短验证与衔接。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -870,7 +881,8 @@
           ],
           "workId": "github:vllm-project/vllm#63440"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及适配草稿模型、缩短草稿准备、缩短验证与衔接。"
     },
     {
       "key": "output_return",
@@ -896,7 +908,8 @@
             {
               "text": "本章收录 2 项更新，涉及减少缓存释放开销。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -962,7 +975,8 @@
           ],
           "workId": "github:vllm-project/vllm#63441"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及减少缓存释放开销。"
     },
     {
       "key": "papers",

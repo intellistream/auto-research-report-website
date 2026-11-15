@@ -74,7 +74,8 @@
             {
               "text": "本章收录 2 项更新，涉及减少重复搬运、调整资源初始化时机。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -144,7 +145,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#20538"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及减少重复搬运、调整资源初始化时机。"
     },
     {
       "key": "scheduling",
@@ -156,7 +158,8 @@
             {
               "text": "本章收录 6 项更新，涉及减少重复整理与同步、分担主机准备工作、调整接纳与组批时机。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -350,7 +353,8 @@
           ],
           "workId": "github:vllm-project/vllm#64927"
         }
-      ]
+      ],
+      "intro": "本章收录 6 项更新，涉及减少重复整理与同步、分担主机准备工作、调整接纳与组批时机。"
     },
     {
       "key": "prefill",
@@ -362,7 +366,8 @@
             {
               "text": "本章收录 4 项更新，涉及按输入形状选择计算路径、融合计算以减少中间读写、复用数据格式转换。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -496,7 +501,8 @@
           ],
           "workId": "github:vllm-project/vllm#64942"
         }
-      ]
+      ],
+      "intro": "本章收录 4 项更新，涉及按输入形状选择计算路径、融合计算以减少中间读写、复用数据格式转换。"
     },
     {
       "key": "pd_transfer",
@@ -522,7 +528,8 @@
             {
               "text": "本章收录 10 项更新，涉及并行分担存储与压缩数据、按小批量形状选择计算路径、融合计算并跳过无效工作等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -840,7 +847,8 @@
           ],
           "workId": "github:vllm-project/vllm#64994"
         }
-      ]
+      ],
+      "intro": "本章收录 10 项更新，涉及并行分担存储与压缩数据、按小批量形状选择计算路径、融合计算并跳过无效工作等方面。"
     },
     {
       "key": "speculative",
@@ -852,7 +860,8 @@
             {
               "text": "本章收录 3 项更新，涉及减少临时分配与执行图占用、扩大适用批次的执行图复用。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -952,7 +961,8 @@
           ],
           "workId": "github:vllm-project/vllm#64915"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及减少临时分配与执行图占用、扩大适用批次的执行图复用。"
     },
     {
       "key": "output_return",
@@ -978,7 +988,8 @@
             {
               "text": "本章收录 1 项更新，涉及按复用价值淘汰。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1014,7 +1025,8 @@
           ],
           "workId": "github:vllm-project/vllm#64975"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及按复用价值淘汰。"
     },
     {
       "key": "papers",

@@ -74,7 +74,8 @@
             {
               "text": "本章收录 4 项更新，涉及按权重布局规划内存、为图捕获预留显存、减少运行时编译等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -212,7 +213,8 @@
           ],
           "workId": "github:vllm-project/vllm#65943"
         }
-      ]
+      ],
+      "intro": "本章收录 4 项更新，涉及按权重布局规划内存、为图捕获预留显存、减少运行时编译等方面。"
     },
     {
       "key": "scheduling",
@@ -224,7 +226,8 @@
             {
               "text": "本章收录 3 项更新，涉及减少多模态输入搬运、减少每步缓存分配工作、协调 DP 间的 Prefill 准入。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -328,7 +331,8 @@
           ],
           "workId": "github:vllm-project/vllm#66927"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及减少多模态输入搬运、减少每步缓存分配工作、协调 DP 间的 Prefill 准入。"
     },
     {
       "key": "prefill",
@@ -340,7 +344,8 @@
             {
               "text": "本章收录 7 项更新，涉及减少前缀命中后的输入续算、减少查表等待、融合输入计算与通信等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -572,7 +577,8 @@
           ],
           "workId": "github:vllm-project/vllm-ascend#21519"
         }
-      ]
+      ],
+      "intro": "本章收录 7 项更新，涉及减少前缀命中后的输入续算、减少查表等待、融合输入计算与通信等方面。"
     },
     {
       "key": "pd_transfer",
@@ -584,7 +590,8 @@
             {
               "text": "本章收录 4 项更新，涉及按流水线层号交接缓存、匹配两端上下文分片、合并传输描述符等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -722,7 +729,8 @@
           ],
           "workId": "github:vllm-project/vllm#67048"
         }
-      ]
+      ],
+      "intro": "本章收录 4 项更新，涉及按流水线层号交接缓存、匹配两端上下文分片、合并传输描述符等方面。"
     },
     {
       "key": "decode",
@@ -734,7 +742,8 @@
             {
               "text": "本章收录 6 项更新，涉及为常规 Decode 选择专用内核、调整专家矩阵乘分块、融合索引缓存写入等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -936,7 +945,8 @@
           ],
           "workId": "github:vllm-project/vllm#67046"
         }
-      ]
+      ],
+      "intro": "本章收录 6 项更新，涉及为常规 Decode 选择专用内核、调整专家矩阵乘分块、融合索引缓存写入等方面。"
     },
     {
       "key": "speculative",
@@ -948,7 +958,8 @@
             {
               "text": "本章收录 6 项更新，涉及省去纯 P 端的草稿计算、适配草稿的并行和采样、缩短草稿与目标的交接等待等方面。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1146,7 +1157,8 @@
           ],
           "workId": "github:vllm-project/vllm#67034"
         }
-      ]
+      ],
+      "intro": "本章收录 6 项更新，涉及省去纯 P 端的草稿计算、适配草稿的并行和采样、缩短草稿与目标的交接等待等方面。"
     },
     {
       "key": "output_return",
@@ -1158,7 +1170,8 @@
             {
               "text": "本章收录 3 项更新，涉及限制输出候选的内存、提前返回工具调用增量。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1258,7 +1271,8 @@
           ],
           "workId": "github:vllm-project/vllm#65936"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及限制输出候选的内存、提前返回工具调用增量。"
     },
     {
       "key": "resource_reclaim",
@@ -1270,7 +1284,8 @@
             {
               "text": "本章收录 3 项更新，涉及延迟写回可复用缓存、保留可恢复的状态检查点。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1370,7 +1385,8 @@
           ],
           "workId": "github:vllm-project/vllm#66881"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及延迟写回可复用缓存、保留可恢复的状态检查点。"
     },
     {
       "key": "papers",
@@ -1382,7 +1398,8 @@
             {
               "text": "五篇论文讨论跨版本 KV、草稿和验证预算、跨节点 Decode、NVLink 专家通信以及查表预取。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "entry",
@@ -1569,7 +1586,8 @@
           ],
           "workId": "arxiv:2611.13413"
         }
-      ]
+      ],
+      "intro": "五篇论文讨论跨版本 KV、草稿和验证预算、跨节点 Decode、NVLink 专家通信以及查表预取。"
     }
   ],
   "counts": {

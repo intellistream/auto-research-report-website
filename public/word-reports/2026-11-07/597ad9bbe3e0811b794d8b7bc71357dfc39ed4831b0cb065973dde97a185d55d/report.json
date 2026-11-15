@@ -74,7 +74,8 @@
             {
               "text": "本章收录 3 项更新，涉及减少权重更新停顿、合并主机内存映射、按预热结果重算容量。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -178,7 +179,8 @@
           ],
           "workId": "github:vllm-project/vllm#65463"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及减少权重更新停顿、合并主机内存映射、按预热结果重算容量。"
     },
     {
       "key": "scheduling",
@@ -190,7 +192,8 @@
             {
               "text": "本章收录 3 项更新，涉及减少每步元数据提交、复用批次元数据、减少命中检查开销。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -294,7 +297,8 @@
           ],
           "workId": "github:vllm-project/vllm#66176"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及减少每步元数据提交、复用批次元数据、减少命中检查开销。"
     },
     {
       "key": "prefill",
@@ -306,7 +310,8 @@
             {
               "text": "本章收录 2 项更新，涉及融合索引打分与筛选、改善量化内核访存。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -376,7 +381,8 @@
           ],
           "workId": "github:vllm-project/vllm#65791"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及融合索引打分与筛选、改善量化内核访存。"
     },
     {
       "key": "pd_transfer",
@@ -402,7 +408,8 @@
             {
               "text": "本章收录 2 项更新，涉及降低集合通信开销、融合注意力输出与量化。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -472,7 +479,8 @@
           ],
           "workId": "github:vllm-project/vllm#65508"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及降低集合通信开销、融合注意力输出与量化。"
     },
     {
       "key": "speculative",
@@ -484,7 +492,8 @@
             {
               "text": "本章收录 2 项更新，涉及提高小批验证利用率、改善验证状态访问。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -554,7 +563,8 @@
           ],
           "workId": "github:vllm-project/vllm#64829"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及提高小批验证利用率、改善验证状态访问。"
     },
     {
       "key": "output_return",

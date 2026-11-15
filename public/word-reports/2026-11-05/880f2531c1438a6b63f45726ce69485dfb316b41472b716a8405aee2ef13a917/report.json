@@ -74,7 +74,8 @@
             {
               "text": "本章收录 2 项更新，涉及调整缓存池初始化、减少加载缺页开销。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -144,7 +145,8 @@
           ],
           "workId": "github:vllm-project/vllm#65692"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及调整缓存池初始化、减少加载缺页开销。"
     },
     {
       "key": "scheduling",
@@ -156,7 +158,8 @@
             {
               "text": "本章收录 3 项更新，涉及减少输入转换、复用批次元数据、按缓存命中调整准入。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -260,7 +263,8 @@
           ],
           "workId": "github:vllm-project/vllm#54625"
         }
-      ]
+      ],
+      "intro": "本章收录 3 项更新，涉及减少输入转换、复用批次元数据、按缓存命中调整准入。"
     },
     {
       "key": "prefill",
@@ -272,7 +276,8 @@
             {
               "text": "本章收录 4 项更新，涉及分摊长输入打分、合并计算与通信、按形状选择输入内核。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -406,7 +411,8 @@
           ],
           "workId": "github:vllm-project/vllm#59124"
         }
-      ]
+      ],
+      "intro": "本章收录 4 项更新，涉及分摊长输入打分、合并计算与通信、按形状选择输入内核。"
     },
     {
       "key": "pd_transfer",
@@ -418,7 +424,8 @@
             {
               "text": "本章收录 1 项更新，涉及只传输缺失缓存。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -454,7 +461,8 @@
           ],
           "workId": "github:vllm-project/vllm#65822"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及只传输缺失缓存。"
     },
     {
       "key": "decode",
@@ -466,7 +474,8 @@
             {
               "text": "本章收录 2 项更新，涉及复用专家路由信息、融合专家与通信。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -536,7 +545,8 @@
           ],
           "workId": "github:vllm-project/vllm#60895"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及复用专家路由信息、融合专家与通信。"
     },
     {
       "key": "speculative",
@@ -548,7 +558,8 @@
             {
               "text": "本章收录 2 项更新，涉及跳过未使用的草稿、减少草稿缓存占用。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -618,7 +629,8 @@
           ],
           "workId": "github:vllm-project/vllm#65553"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及跳过未使用的草稿、减少草稿缓存占用。"
     },
     {
       "key": "output_return",
@@ -630,7 +642,8 @@
             {
               "text": "本章收录 1 项更新，涉及减少结果重复解析。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -666,7 +679,8 @@
           ],
           "workId": "github:vllm-project/vllm#65867"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及减少结果重复解析。"
     },
     {
       "key": "resource_reclaim",
@@ -678,7 +692,8 @@
             {
               "text": "本章收录 2 项更新，涉及按淘汰顺序保留缓存、提前移除过时检查点。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -748,7 +763,8 @@
           ],
           "workId": "github:vllm-project/vllm#65917"
         }
-      ]
+      ],
+      "intro": "本章收录 2 项更新，涉及按淘汰顺序保留缓存、提前移除过时检查点。"
     },
     {
       "key": "papers",
@@ -760,7 +776,8 @@
             {
               "text": "两篇工作分别研究主机专家副本的负载均衡，以及通信数据块如何携带就绪状态。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "entry",
@@ -836,7 +853,8 @@
           ],
           "workId": "arxiv:2611.06634"
         }
-      ]
+      ],
+      "intro": "两篇工作分别研究主机专家副本的负载均衡，以及通信数据块如何携带就绪状态。"
     }
   ],
   "counts": {

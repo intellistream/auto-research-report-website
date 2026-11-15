@@ -74,7 +74,8 @@
             {
               "text": "本章收录 5 项更新，涉及减少权重加载与注册开销、调整权重放置与导入依赖。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -234,7 +235,8 @@
           ],
           "workId": "github:vllm-project/vllm#65423"
         }
-      ]
+      ],
+      "intro": "本章收录 5 项更新，涉及减少权重加载与注册开销、调整权重放置与导入依赖。"
     },
     {
       "key": "scheduling",
@@ -246,7 +248,8 @@
             {
               "text": "本章收录 5 项更新，涉及减少重复扫描和传输准备、复用状态与调整图像组批。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -406,7 +409,8 @@
           ],
           "workId": "github:vllm-project/vllm#65227"
         }
-      ]
+      ],
+      "intro": "本章收录 5 项更新，涉及减少重复扫描和传输准备、复用状态与调整图像组批。"
     },
     {
       "key": "prefill",
@@ -418,7 +422,8 @@
             {
               "text": "本章收录 5 项更新，涉及减少短输入和裁剪行的计算、按掩码、设备和批量选择内核。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -578,7 +583,8 @@
           ],
           "workId": "github:vllm-project/vllm#60102"
         }
-      ]
+      ],
+      "intro": "本章收录 5 项更新，涉及减少短输入和裁剪行的计算、按掩码、设备和批量选择内核。"
     },
     {
       "key": "pd_transfer",
@@ -590,7 +596,8 @@
             {
               "text": "本章收录 4 项更新，涉及提前准备接收并校验缓存对象、按层和缓存头匹配传输区域。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -720,7 +727,8 @@
           ],
           "workId": "github:vllm-project/vllm#65336"
         }
-      ]
+      ],
+      "intro": "本章收录 4 项更新，涉及提前准备接收并校验缓存对象、按层和缓存头匹配传输区域。"
     },
     {
       "key": "decode",
@@ -732,7 +740,8 @@
             {
               "text": "本章收录 9 项更新，涉及减少主机等待与分派、融合与重叠模型计算、限制缓存与索引的内存开销。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1016,7 +1025,8 @@
           ],
           "workId": "github:vllm-project/vllm#64806"
         }
-      ]
+      ],
+      "intro": "本章收录 9 项更新，涉及减少主机等待与分派、融合与重叠模型计算、限制缓存与索引的内存开销。"
     },
     {
       "key": "speculative",
@@ -1028,7 +1038,8 @@
             {
               "text": "本章收录 5 项更新，涉及加速草稿准备与采样、减少验证计算与启动开销。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1188,7 +1199,8 @@
           ],
           "workId": "github:vllm-project/vllm#65175"
         }
-      ]
+      ],
+      "intro": "本章收录 5 项更新，涉及加速草稿准备与采样、减少验证计算与启动开销。"
     },
     {
       "key": "output_return",
@@ -1200,7 +1212,8 @@
             {
               "text": "本章收录 1 项更新，涉及减少流式输出的远程调用。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1236,7 +1249,8 @@
           ],
           "workId": "github:vllm-project/vllm#63103"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及减少流式输出的远程调用。"
     },
     {
       "key": "resource_reclaim",
@@ -1248,7 +1262,8 @@
             {
               "text": "本章收录 1 项更新，涉及结束后释放会话。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "group",
@@ -1284,7 +1299,8 @@
           ],
           "workId": "github:vllm-project/vllm#64686"
         }
-      ]
+      ],
+      "intro": "本章收录 1 项更新，涉及结束后释放会话。"
     },
     {
       "key": "papers",
@@ -1296,7 +1312,8 @@
             {
               "text": "本日论文分别讨论前缀复用与等待时间、代理会话的缓存压力、低精度索引和草稿投影权重驻留。"
             }
-          ]
+          ],
+          "chapterIntro": true
         },
         {
           "kind": "entry",
@@ -1446,7 +1463,8 @@
           ],
           "workId": "arxiv:2611.00506"
         }
-      ]
+      ],
+      "intro": "本日论文分别讨论前缀复用与等待时间、代理会话的缓存压力、低精度索引和草稿投影权重驻留。"
     }
   ],
   "counts": {

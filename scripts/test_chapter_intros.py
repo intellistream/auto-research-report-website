@@ -123,5 +123,49 @@ class WordIntroArchiveTest(unittest.TestCase):
             self.assertEqual((output / "flow-index.json").read_bytes(), before)
 
 
+class ExistingWordIntroRefreshTest(unittest.TestCase):
+    def test_existing_version_refresh_preserves_archive_and_is_idempotent(self):
+        for mode in ("repeat_word", "existing_archive"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                source = root / NAME
+                raw = fixture(intro="本章收录一项更新，涉及减少权重准备。")
+                source.write_bytes(raw)
+                output = root / "site"
+                output.mkdir()
+                IMPORTER["run"](source, output)
+                digest = hashlib.sha256(raw).hexdigest()
+                snapshot = output / "2026-11-09" / digest / "report.json"
+                stored = json.loads(snapshot.read_bytes())
+                section = stored["sections"][2]
+                section.pop("intro")
+                section["blocks"][0].pop("chapterIntro")
+                stored["warnings"].append("已有来源核对说明")
+                snapshot.write_text(json.dumps(stored, ensure_ascii=False, indent=2) + "\n")
+                catalog_before = (output / "catalog.json").read_bytes()
+                figure_before = (snapshot.parent / "flow.png").read_bytes()
+                original_before = (snapshot.parent / "original.docx").read_bytes()
+
+                def refresh():
+                    if mode == "repeat_word":
+                        IMPORTER["run"](source, output)
+                    else:
+                        IMPORTER["refresh_intros"](output)
+
+                refresh()
+                updated = json.loads(snapshot.read_bytes())
+                self.assertEqual(updated["sections"][2].pop("intro"), "本章收录一项更新，涉及减少权重准备。")
+                self.assertTrue(updated["sections"][2]["blocks"][0].pop("chapterIntro"))
+                self.assertEqual(updated, stored)
+                self.assertEqual((output / "catalog.json").read_bytes(), catalog_before)
+                self.assertEqual((snapshot.parent / "flow.png").read_bytes(), figure_before)
+                self.assertEqual((snapshot.parent / "original.docx").read_bytes(), original_before)
+                index = json.loads((output / "flow-index.json").read_bytes())
+                self.assertEqual(index["chapters"][0]["intro"], "本章收录一项更新，涉及减少权重准备。")
+                before = {p: p.read_bytes() for p in output.rglob("*") if p.is_file()}
+                refresh()
+                self.assertEqual({p: p.read_bytes() for p in before}, before)
+
+
 if __name__ == "__main__":
     unittest.main()
