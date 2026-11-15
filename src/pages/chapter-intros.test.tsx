@@ -76,7 +76,8 @@ describe("read-only chapter summary presentation", () => {
     expect(render(createElement(ChapterIntro))).toContain("未提供适用的问题总结");
   });
   it("keeps navigation compact and shows the quotation once in the selected stage", () => {
-    const intros = { decode: first };
+    const counted = { ...first, intro: "本章收录 2 项更新，涉及跳过可直接确定的索引、融合投影与集合通信。" };
+    const intros = { decode: counted };
     const complete = render(createElement(CompleteInferenceFlow, { entries: entries([first]), selection: "decode", onSelect: () => {} }));
     expect(complete).not.toContain(first.intro);
     expect(complete).not.toContain("chapter-intro");
@@ -85,7 +86,9 @@ describe("read-only chapter summary presentation", () => {
     expect(map).not.toContain("chapter-intro-compact");
     expect(map).toContain("流程示意");
     expect(map).toContain("查看 1 条实际 PR");
-    expect(map).toContain(first.intro);
+    expect(map).toContain("当日聚焦：跳过可直接确定的索引、融合投影与集合通信。");
+    expect(map).not.toContain("本章收录 2 项更新，涉及");
+    expect(render(createElement(ChapterIntro, { chapter: counted }))).toContain(counted.intro);
     const empty = render(createElement(InferenceMap, { entries: [], selection: "decode", select: () => {}, scope: "empty" }));
     expect(empty).toContain("未提供适用的问题总结");
     expect(empty).not.toContain(first.intro);
