@@ -1,0 +1,19 @@
+.chapter-intro {
+  margin: 0 0 16px;
+  color: #244e3e;
+  font-size: 14px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.chapter-intro-text { white-space: pre-wrap; }
+.chapter-intro a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+.chapter-intro a:hover { text-decoration-thickness: 2px; }
+.chapter-intro a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 2px; }
+.chapter-intro-missing { margin: 0 0 14px; font-size: 12px; line-height: 1.8; }
+.map-v2-workbench .chapter-intro { color: #c7eadc; }
+.map-v2-workbench .chapter-intro a { color: inherit; }

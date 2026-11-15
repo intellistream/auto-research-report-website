@@ -2,17 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { Activity, ArrowUpRight, BookOpen, CalendarDays, Layers, Tags } from "lucide-react";
 import { Link, NavLink, Route, Routes, useLocation, useParams, useSearchParams } from "react-router-dom";
 import InferenceFlow, { type FlowEntry } from "./InferenceFlow";
-import InferenceMap, { type IndexedPR } from "./InferenceMap";
+import InferenceMap from "./InferenceMap";
 import CompleteInferenceFlow from "./CompleteInferenceFlow";
 import ReportTrends, { uniquePRs } from "./ReportTrends";
 import DirectionDistribution from "./DirectionDistribution";
 import TopicPages, { type TopicIndex } from "./TopicPages";
+import ChapterIntro from "./ChapterIntro";
+import { hasChapterIntro, selectChapterIntros, type FlowIndex } from "./chapter-intros";
 import "./docx-preview.css";
 
 type Part = { text: string; url?: string };
 type Counts = { upstream: number; ascend: number; papers: number };
 type Block =
-  | { kind: "paragraph"; parts: Part[] }
+  | { kind: "paragraph"; parts: Part[]; chapterIntro?: boolean }
   | { kind: "group"; title: string }
   | { kind: "entry"; number: string; title: string; workId?: string; paragraphs: Part[][];
       needsReview?: boolean; provisionalLocation?: boolean; titlePending?: boolean; brief?: boolean };
@@ -25,6 +27,7 @@ const pipelineStatuses = {
 type Report = {
   title: string;
   day: string;
+  sha256: string;
   intro: Part[][];
   original?: string;
   originalName?: string;
@@ -32,7 +35,7 @@ type Report = {
   publicationStatus?: "preview" | "reviewed";
   counts: Counts;
   warnings: string[];
-  sections: { key: string; title: string; figure?: string; blocks: Block[] }[];
+  sections: { key: string; title: string; figure?: string; intro?: string; blocks: Block[] }[];
 };
 type Version = { sha256: string; path: string; counts: Counts };
 type Catalog = {
@@ -111,7 +114,7 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
   const source = query.get("source") ?? "";
   const from = query.get("from") ?? "";
   const to = query.get("to") ?? "";
-  const result = useJson<{ schemaVersion: 1; entries: IndexedPR[] }>("flow-index.json");
+  const result = useJson<FlowIndex>("flow-index.json");
   const data = result?.data;
   function filter(key: string, value: string) {
     const next = new URLSearchParams(query);
@@ -127,6 +130,8 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
     activeDays.has(entry.day) && (!source || entry.workId.split("#")[0] === source)
   ) : [];
   const entries = uniquePRs(observations);
+  const intros = selectChapterIntros(data?.chapters, data?.entries ?? [],
+    Object.fromEntries(days.map((day) => [day, catalog.days[day].current])), scopedDays, source);
   const chronological = [...days].reverse();
   const papers = scopedDays.reduce((sum, day) => {
     const record = catalog.days[day];
@@ -164,7 +169,7 @@ function FlowOverview({ catalog, days }: { catalog: Catalog; days: string[] }) {
         : <>
           <ReportTrends days={scopedDays} observations={observations} />
           <CompleteInferenceFlow entries={entries} selection={query.get("stage")} onSelect={(stage) => filter("stage", stage)} />
-          <InferenceMap entries={entries} selection={query.get("stage")} select={(stage) => filter("stage", stage)}
+          <InferenceMap entries={entries} intros={intros} selection={query.get("stage")} select={(stage) => filter("stage", stage)}
             scope={JSON.stringify([source, from, to])} />
           <dl className="docx-flow-summary">
             <div><dt>累计工程 PR</dt><dd>{entries.length}</dd></div>
@@ -226,6 +231,7 @@ function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
   if (!version) return <p role="alert">没有找到该日期或版本的日报。</p>;
   if (result?.error) return <p role="alert">{result.error}</p>;
   if (!report) return <p role="status">正在加载日报…</p>;
+  if (report.day !== day || report.sha256 !== version.sha256) return <p role="alert">日报日期或版本与目录不一致。</p>;
   const position = days.indexOf(day);
   const reportLink = (anchor: string) => {
     const next = new URLSearchParams(query);
@@ -282,6 +288,11 @@ function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
           {report.sections.map((item) => (
             <section key={item.key} id={item.key}>
               <h2>{item.title}</h2>
+              {hasChapterIntro(item.intro) && <ChapterIntro chapter={{
+                day, version: version.sha256, stage: item.key, title: item.title, intro: item.intro,
+                sources: [...new Set(item.blocks.flatMap((block) => block.kind === "entry" ? [block.workId?.split("#")[0] ?? "unknown"] : []))],
+                workIds: item.blocks.flatMap((block) => block.kind === "entry" && block.workId ? [block.workId] : []),
+              }} />}
               {item.key === "flow" && (
                 <InferenceFlow key={version.sha256} entries={reportFlow(report, version.sha256)} />
               )}
@@ -294,7 +305,7 @@ function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
                 </details>
               )}
               {item.blocks.map((block, index) => {
-                if (block.kind === "paragraph") return <Paragraph key={index} parts={block.parts} />;
+                if (block.kind === "paragraph") return block.chapterIntro && hasChapterIntro(item.intro) ? null : <Paragraph key={index} parts={block.parts} />;
                 if (block.kind === "group") return <h3 key={index}>{block.title}</h3>;
                 return (
                   <section className="docx-entry" key={block.number} id={block.number}>

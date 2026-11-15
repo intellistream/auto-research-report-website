@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 from xml.etree import ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
-from report_archive import CHAPTERS, write_flow_index, write_json
+from report_archive import CHAPTERS, project_opening_intro, write_flow_index, write_json
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
@@ -166,7 +166,8 @@ def parse(name, raw):
             elif entry is not None:
                 entry["paragraphs"].append(parts)
             else:
-                section["blocks"].append({"kind": "paragraph", "parts": parts})
+                block = {"kind": "paragraph", "parts": parts}
+                section["blocks"].append(block)
     if not subtitle or date(*map(int, subtitle.groups())).isoformat() != day:
         raise ValueError("正文日期和文件名日期不一致")
     if not report["title"] or len(report["sections"]) != len(CHAPTERS) or not figure_data:
@@ -174,6 +175,7 @@ def parse(name, raw):
     seen = set()
     counts = {"upstream": 0, "ascend": 0, "papers": 0}
     for section in report["sections"]:
+        project_opening_intro(section)
         for entry in section["blocks"]:
             if entry["kind"] != "entry":
                 continue
