@@ -282,7 +282,7 @@
       ]
     },
     "2026-10-22": {
-      "current": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
+      "current": "e0280821e00620e7bf7d6430b59c3590959adad07810ad028e63aa9a5c455150",
       "versions": [
         {
           "sha256": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
@@ -292,11 +292,20 @@
             "ascend": 7,
             "papers": 0
           }
+        },
+        {
+          "sha256": "e0280821e00620e7bf7d6430b59c3590959adad07810ad028e63aa9a5c455150",
+          "path": "2026-10-22/e0280821e00620e7bf7d6430b59c3590959adad07810ad028e63aa9a5c455150/report.json",
+          "counts": {
+            "upstream": 20,
+            "ascend": 7,
+            "papers": 0
+          }
         }
       ]
     },
     "2026-11-12": {
-      "current": "bcca0e017d93d0c74b24dcd3f75a96a3c7b65b2404766fc961a395f9934490d9",
+      "current": "112a1cfa2247762027a7002aab6f6d0a6524be18d58ca7ecad10dc6a37019864",
       "versions": [
         {
           "sha256": "bcca0e017d93d0c74b24dcd3f75a96a3c7b65b2404766fc961a395f9934490d9",
@@ -306,15 +315,33 @@
             "ascend": 7,
             "papers": 0
           }
+        },
+        {
+          "sha256": "112a1cfa2247762027a7002aab6f6d0a6524be18d58ca7ecad10dc6a37019864",
+          "path": "2026-11-12/112a1cfa2247762027a7002aab6f6d0a6524be18d58ca7ecad10dc6a37019864/report.json",
+          "counts": {
+            "upstream": 37,
+            "ascend": 7,
+            "papers": 0
+          }
         }
       ]
     },
     "2026-11-13": {
-      "current": "fb11ecfeaef36746265040e78ea9b8441bdb5ad6eac21481d8b3ef98eae813c9",
+      "current": "fc56b68ce1c38726d3704a4bafe88bc77cfe8fa7533fcb6ffbdeeb625c2375bb",
       "versions": [
         {
           "sha256": "fb11ecfeaef36746265040e78ea9b8441bdb5ad6eac21481d8b3ef98eae813c9",
           "path": "2026-11-13/fb11ecfeaef36746265040e78ea9b8441bdb5ad6eac21481d8b3ef98eae813c9/report.json",
+          "counts": {
+            "upstream": 22,
+            "ascend": 3,
+            "papers": 0
+          }
+        },
+        {
+          "sha256": "fc56b68ce1c38726d3704a4bafe88bc77cfe8fa7533fcb6ffbdeeb625c2375bb",
+          "path": "2026-11-13/fc56b68ce1c38726d3704a4bafe88bc77cfe8fa7533fcb6ffbdeeb625c2375bb/report.json",
           "counts": {
             "upstream": 22,
             "ascend": 3,

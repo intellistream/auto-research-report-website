@@ -1,0 +1,1083 @@
+{
+  "reviewDate": "2026-11-15",
+  "method": "逐条对照原始 PR 正文、合入记录和必要的代码或关联证据；性能读数为来源报告值，未重跑硬件。",
+  "reports": [
+    {
+      "day": "2026-10-22",
+      "originalVersion": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
+      "originalReportSha256": "5e5a25294bba0430da58ee76fa1c3baf7aa4e9a5cc321606e6dac9bc059baddb",
+      "correctedVersion": "e0280821e00620e7bf7d6430b59c3590959adad07810ad028e63aa9a5c455150",
+      "correctedReportSha256": "09df0b6ae2863672319bfbf2630c74b094b28413698c0879ffd3d341bfb7b049",
+      "flowPngSha256": "79f4fa3f5cd350efd9379ac4a9ad42a0a9d77577dbd99bc065b7814ead42a49a",
+      "records": [
+        {
+          "number": "V2",
+          "workId": "github:vllm-project/vllm#57481",
+          "source": "https://github.com/vllm-project/vllm/pull/57481",
+          "mergedAt": "2026-10-22T01:34:56Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "PR 区分 unprofiled 与 sampling；设备到设备总拷贝仍 58→1，57→0 只限全归约前。可选补充 marker 自 AITER v0.1.26 公开。",
+          "mergeCommit": "a4aa37d1a0ed89dd6d5f37ee3071e3ddc0d85e61"
+        },
+        {
+          "number": "V3",
+          "workId": "github:vllm-project/vllm#60238",
+          "source": "https://github.com/vllm-project/vllm/pull/60238",
+          "mergedAt": "2026-10-22T13:27:49Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "内存与输出数据均成立，限定 KV 容量观察到两种 Qwen，而非所有模型普遍保证。",
+          "mergeCommit": "168a86ab8f418b0e12c21c3d582ddf5c6d2927ef"
+        },
+        {
+          "number": "V6",
+          "workId": "github:vllm-project/vllm#61786",
+          "source": "https://github.com/vllm-project/vllm/pull/61786",
+          "mergedAt": "2026-10-22T03:22:17Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "不是同条件 A/B；机制只传输字节，未做数值归约。",
+          "mergeCommit": "876d5da8316a81180b8c7f10dea5ffab5b5a849f"
+        },
+        {
+          "number": "V7",
+          "workId": "github:vllm-project/vllm#62888",
+          "source": "https://github.com/vllm-project/vllm/pull/62888",
+          "mergedAt": "2026-10-22T14:13:12Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "报告的中间表示平方关系未从本 PR 得到定量证明；headline 与原数值成立。",
+          "mergeCommit": "e6e41634242b7ccd18d57cf0df87f753a2c9d1ab"
+        },
+        {
+          "number": "V8",
+          "workId": "github:vllm-project/vllm#62957",
+          "source": "https://github.com/vllm-project/vllm/pull/62957",
+          "mergedAt": "2026-10-22T13:47:51Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            2
+          ],
+          "reason": "原“提示需附带 4,000”实际为词表新增项，不是每个 prompt 的需求。",
+          "mergeCommit": "f42421354d471d346e37c5da7af242cce13625ca"
+        },
+        {
+          "number": "V9",
+          "workId": "github:vllm-project/vllm#62980",
+          "source": "https://github.com/vllm-project/vllm/pull/62980",
+          "mergedAt": "2026-10-22T07:54:40Z",
+          "result": "retained",
+          "titleChanged": false,
+          "changedParagraphIndices": [],
+          "reason": "PR 的 KDA loader 测试覆盖有/无 padding、两种 loader 和分片顺序，验证 source tensors 释放与 padding 零值；正文未冒称在线量化整体 A/B 的吞吐增益归因于修复。",
+          "mergeCommit": "9c66703eef1726bdd582370cbeed52ebdb7c2c80"
+        },
+        {
+          "number": "A1",
+          "workId": "github:vllm-project/vllm-ascend#18931",
+          "source": "https://github.com/vllm-project/vllm-ascend/pull/18931",
+          "mergedAt": "2026-10-22T08:39:29Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            2
+          ],
+          "reason": "原正文“八卡”易误读为总计八张，实际每段 TP8、共 16 NPU；MRV2 并非多请求调度。",
+          "mergeCommit": "7b13f387e7ea49a2f487ffe5763ff5bd9b4aee03"
+        },
+        {
+          "number": "A2",
+          "workId": "github:vllm-project/vllm-ascend#19264",
+          "source": "https://github.com/vllm-project/vllm-ascend/pull/19264",
+          "mergedAt": "2026-10-22T07:38:12Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            1
+          ],
+          "reason": "新增 gate 精确限制 gemma4_text；A5 BF16 TP2 8k 读数和 32/32 指标成立。",
+          "mergeCommit": "9df8e7fcb0733e52e7a6b4d37aaf95bd00fd8964"
+        },
+        {
+          "number": "V11",
+          "workId": "github:vllm-project/vllm#60643",
+          "source": "https://github.com/vllm-project/vllm/pull/60643",
+          "mergedAt": "2026-10-22T14:52:25Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            2
+          ],
+          "reason": "组件与本地 llm.generate() 测试不能当 GPU 平台通用收益或在线吞吐。",
+          "mergeCommit": "fdc5fde9d786832ab638bc0c2eb2328b637ecd0a"
+        },
+        {
+          "number": "V12",
+          "workId": "github:vllm-project/vllm#62834",
+          "source": "https://github.com/vllm-project/vllm/pull/62834",
+          "mergedAt": "2026-10-22T04:06:16Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "明确 303/512 是 MUIRBench 准确率，不是修复前后提升。",
+          "mergeCommit": "ddc3f417d498451edcac7352bb585f459b16bb06"
+        },
+        {
+          "number": "V13",
+          "workId": "github:vllm-project/vllm#61749",
+          "source": "https://github.com/vllm-project/vllm/pull/61749",
+          "mergedAt": "2026-10-22T05:16:35Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "补齐模型/后端和准确率口径。",
+          "mergeCommit": "15a78aa88e92ef5073ad4afa08544252d4c2ca8b"
+        },
+        {
+          "number": "A6",
+          "workId": "github:vllm-project/vllm-ascend#18878",
+          "source": "https://github.com/vllm-project/vllm-ascend/pull/18878",
+          "mergedAt": "2026-10-22T01:24:51Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1,
+            2
+          ],
+          "reason": "硬件服务测试 W8A8，9 KiB 及微基准才是 BF16；原正文笼统写“含”而未标权重，补清。",
+          "mergeCommit": "353212d6b5976605ffce3286ed6f0219eafff510"
+        },
+        {
+          "number": "V14",
+          "workId": "github:vllm-project/vllm#62054",
+          "source": "https://github.com/vllm-project/vllm/pull/62054",
+          "mergedAt": "2026-10-22T14:28:17Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "明确模型/平台并去掉跨负载泛化；两个后端不都在 ROCm 做设备实测。",
+          "mergeCommit": "3b364baef5cd731b5e1f14ff16387feb69d01f10"
+        },
+        {
+          "number": "V15",
+          "workId": "github:vllm-project/vllm#62101",
+          "source": "https://github.com/vllm-project/vllm/pull/62101",
+          "mergedAt": "2026-10-21T21:46:37Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1,
+            2
+          ],
+          "reason": "遗漏条件：shared expert 等 MoE 内部归约不能合并，RMSNorm 编译融合也非所有量化有效。",
+          "mergeCommit": "0d34366b14e5eef6b1f3c7b799e71cab155ce44a"
+        },
+        {
+          "number": "V16",
+          "workId": "github:vllm-project/vllm#62745",
+          "source": "https://github.com/vllm-project/vllm/pull/62745",
+          "mergedAt": "2026-10-21T22:17:04Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            2
+          ],
+          "reason": "不要把组合 E2E 对照写作独立归因，也避免 conflating bit exact with second transform.",
+          "mergeCommit": "57d9bf768e0e3e2153acc3b01ae3fda3b7393ded"
+        },
+        {
+          "number": "V18",
+          "workId": "github:vllm-project/vllm#62994",
+          "source": "https://github.com/vllm-project/vllm/pull/62994",
+          "mergedAt": "2026-10-22T02:55:26Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "回退发生在步级行数而不是普遍的并发上限；补足实测模型与负载。",
+          "mergeCommit": "05406ba4701843437da98ac9da211c32ba472975"
+        },
+        {
+          "number": "V19",
+          "workId": "github:vllm-project/vllm#61868",
+          "source": "https://github.com/vllm-project/vllm/pull/61868",
+          "mergedAt": "2026-10-21T23:45:13Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "原条目漏掉 PR 的范围及已有版本化对照；避免把与堆叠后继 #61869 的专用草稿执行说成已合入本 PR。",
+          "mergeCommit": "d0787e48394b214f78694fce3520a8c11eca045c"
+        },
+        {
+          "number": "A7",
+          "workId": "github:vllm-project/vllm-ascend#18717",
+          "source": "https://github.com/vllm-project/vllm-ascend/pull/18717",
+          "mergedAt": "2026-10-22T12:06:14Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1,
+            2
+          ],
+          "reason": "原“启用并行计算”过宽，TP8+EP 正是正向实测，回退涉及 PCP/DCP；更正 TPOT 单位。",
+          "mergeCommit": "2bd3b7fcd044c51b78e5943ac64dd8208e56b543"
+        },
+        {
+          "number": "V20",
+          "workId": "github:vllm-project/vllm#62940",
+          "source": "https://github.com/vllm-project/vllm/pull/62940",
+          "mergedAt": "2026-10-22T14:40:37Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            2
+          ],
+          "reason": "现可见 PR Validation 有完整对照，原‘没有可归因的性能对照’不应作为现行审定结论；若保留历史截点需查 PR 正文编辑时间再标注。",
+          "mergeCommit": "271941177dba39fbb1c6f8dc2d386d5b69e63a95"
+        }
+      ]
+    },
+    {
+      "day": "2026-11-12",
+      "originalVersion": "bcca0e017d93d0c74b24dcd3f75a96a3c7b65b2404766fc961a395f9934490d9",
+      "originalReportSha256": "799892e55b77cc37bb6da4b688fb03e371bd8842878e1396747a60a1fe54a05c",
+      "correctedVersion": "112a1cfa2247762027a7002aab6f6d0a6524be18d58ca7ecad10dc6a37019864",
+      "correctedReportSha256": "3213d284b95186440d1f8fa16e37c522ffd915e2cd6fc61aa52ca4f7a291bbc3",
+      "flowPngSha256": "544b4e742fe99698fe77596efd7cba04c47e203b2e7f9a0bccb604d18b509530",
+      "records": [
+        {
+          "number": "V2",
+          "workId": "github:vllm-project/vllm#66197",
+          "source": "https://github.com/vllm-project/vllm/pull/66197",
+          "mergedAt": "2026-11-12T02:19:28Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "两条历史缓存容量分别绑定固定修订；未在当前分支重测。"
+        },
+        {
+          "number": "V3",
+          "workId": "github:vllm-project/vllm#66523",
+          "source": "https://github.com/vllm-project/vllm/pull/66523",
+          "mergedAt": "2026-11-12T00:55:52Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "保留 Gemma 4 31B 与 H100 80GB，数字和单机条件相符。"
+        },
+        {
+          "number": "V4",
+          "workId": "github:vllm-project/vllm#66561",
+          "source": "https://github.com/vllm-project/vllm/pull/66561",
+          "mergedAt": "2026-11-12T07:04:26Z",
+          "result": "retained",
+          "titleChanged": false,
+          "changedParagraphIndices": [],
+          "reason": "PR 说明、diff 及 B200 端到端数据支持原文。"
+        },
+        {
+          "number": "V5",
+          "workId": "github:vllm-project/vllm#61872",
+          "source": "https://github.com/vllm-project/vllm/pull/61872",
+          "mergedAt": "2026-11-12T11:13:32Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0
+          ],
+          "reason": "消除『损失首字延迟』的歧义；TP2 与 TP4 的性能和显存数据均获支持。"
+        },
+        {
+          "number": "V6",
+          "workId": "github:vllm-project/vllm#64767",
+          "source": "https://github.com/vllm-project/vllm/pull/64767",
+          "mergedAt": "2026-11-11T22:28:38Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0
+          ],
+          "reason": "缩窄 Q8_0 的旧限制到 ModelOpt/b12x，不泛指所有 embedding。"
+        },
+        {
+          "number": "V7",
+          "workId": "github:vllm-project/vllm#65373",
+          "source": "https://github.com/vllm-project/vllm/pull/65373",
+          "mergedAt": "2026-11-12T10:59:07Z",
+          "result": "retained",
+          "titleChanged": false,
+          "changedParagraphIndices": [],
+          "reason": "PR 正文和 diff 支持机制；数值绑定共享宿主原型而不是合入版本。"
+        },
+        {
+          "number": "V8",
+          "workId": "github:vllm-project/vllm#66391",
+          "source": "https://github.com/vllm-project/vllm/pull/66391",
+          "mergedAt": "2026-11-12T08:27:59Z",
+          "result": "retained",
+          "titleChanged": false,
+          "changedParagraphIndices": [],
+          "reason": "PR 正文和 diff 支持；512/1250 GiB 均是 CPU tier 初始化时长。"
+        },
+        {
+          "number": "V9",
+          "workId": "github:vllm-project/vllm#66674",
+          "source": "https://github.com/vllm-project/vllm/pull/66674",
+          "mergedAt": "2026-11-12T04:06:58Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1
+          ],
+          "reason": "FABRIC 优先须同时有 FABRIC 导入方且探测到 IMEX，不泛指所有 NIXL 主机。"
+        },
+        {
+          "number": "V10",
+          "workId": "github:vllm-project/vllm#66731",
+          "source": "https://github.com/vllm-project/vllm/pull/66731",
+          "mergedAt": "2026-11-11T23:24:07Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            2
+          ],
+          "reason": "原始 warmup 为单 prefill 伴随 decode；两引擎的调优冷热条件及 prompt logprobs 边界需说明。"
+        },
+        {
+          "number": "V11",
+          "workId": "github:vllm-project/vllm#66608",
+          "source": "https://github.com/vllm-project/vllm/pull/66608",
+          "mergedAt": "2026-11-12T11:32:31Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "只有部分模型旧逻辑扣除其他模态；保留整条提示长度校验并明确准入实测。"
+        },
+        {
+          "number": "V12",
+          "workId": "github:vllm-project/vllm#67152",
+          "source": "https://github.com/vllm-project/vllm/pull/67152",
+          "mergedAt": "2026-11-12T11:56:18Z",
+          "result": "retained",
+          "titleChanged": false,
+          "changedParagraphIndices": [],
+          "reason": "PR 的 3 对运行、受影响单请求中位数与适用边界支持此文；不外推到整个服务。"
+        },
+        {
+          "number": "A2",
+          "workId": "github:vllm-project/vllm-ascend#15851",
+          "source": "https://github.com/vllm-project/vllm-ascend/pull/15851",
+          "mergedAt": "2026-11-12T08:50:09Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "绑定数字到固定历史 revision，强调一次测试及单独图模式验证。"
+        },
+        {
+          "number": "A3",
+          "workId": "github:vllm-project/vllm-ascend#19129",
+          "source": "https://github.com/vllm-project/vllm-ascend/pull/19129",
+          "mergedAt": "2026-11-12T06:10:50Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1,
+            2
+          ],
+          "reason": "不推断无扩展点时具体回退机制；区分历史分数与当前联合验证。"
+        },
+        {
+          "number": "A4",
+          "workId": "github:vllm-project/vllm-ascend#21191",
+          "source": "https://github.com/vllm-project/vllm-ascend/pull/21191",
+          "mergedAt": "2026-11-12T06:04:27Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "保留 36 回放与单次在线配对，明确不构成稳定性能增益。"
+        },
+        {
+          "number": "A5",
+          "workId": "github:vllm-project/vllm-ascend#21601",
+          "source": "https://github.com/vllm-project/vllm-ascend/pull/21601",
+          "mergedAt": "2026-11-12T09:28:48Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            2
+          ],
+          "reason": "范围：CPU 预归一化仍可用，设备路径按开关启用；真实图像对比为每种硬件各 1730 个请求、2015 张图、BF16 投影输入。A2 有 CI 选测，不应笼统声称 A2 未验证。",
+          "mergeCommit": "28965215b6e6d146f0c02645c47b1e1afa8ce7af"
+        },
+        {
+          "number": "V14",
+          "workId": "github:vllm-project/vllm#63878",
+          "source": "https://github.com/vllm-project/vllm/pull/63878",
+          "mergedAt": "2026-11-11T18:39:24Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "同镜像 PR 文件覆盖的对照；补充 PD 结构、温前缀和两次重复，保留 v0.32.0 独立测量。",
+          "mergeCommit": "ace415c06892a6119c88c8c57ed6fd761b722e32"
+        },
+        {
+          "number": "A6",
+          "workId": "github:vllm-project/vllm-ascend#20374",
+          "source": "https://github.com/vllm-project/vllm-ascend/pull/20374",
+          "mergedAt": "2026-11-12T12:39:23Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "A3 对照为 6 组单轮 A/B；A5 也含 PCP4，且 PCP8 预检首词元不一致，是重要精度限制。",
+          "mergeCommit": "3f1de8b04de8feab92587439b24e2cbf67133720"
+        },
+        {
+          "number": "V15",
+          "workId": "github:vllm-project/vllm#58619",
+          "source": "https://github.com/vllm-project/vllm/pull/58619",
+          "mergedAt": "2026-11-12T12:01:30Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "实验是合入本 PR 与 #58618 组合；补上硬件、模型、TP 和仅 32 词元贪心。",
+          "mergeCommit": "8a36f080e2a28a91137d86ef503eab6e37d0a9d4"
+        },
+        {
+          "number": "V16",
+          "workId": "github:vllm-project/vllm#66465",
+          "source": "https://github.com/vllm-project/vllm/pull/66465",
+          "mergedAt": "2026-11-11T19:09:54Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "四次回归通过但不宣称与 eager 逐词元完全相同。注意无须复现故障。",
+          "mergeCommit": "3f4fbd6fc983a7f7d89b68df4f2add335332dabd"
+        },
+        {
+          "number": "V17",
+          "workId": "github:vllm-project/vllm#54899",
+          "source": "https://github.com/vllm-project/vllm/pull/54899",
+          "mergedAt": "2026-11-12T03:23:52Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1,
+            2
+          ],
+          "reason": "仅 plain persistent asm 折叠 FP8 头路径、保留精确局部时间及数值范围。",
+          "mergeCommit": "a547de8a8176c46bbfaf1c37e16de4c5180bbc43"
+        },
+        {
+          "number": "V18",
+          "workId": "github:vllm-project/vllm#60321",
+          "source": "https://github.com/vllm-project/vllm/pull/60321",
+          "mergedAt": "2026-11-12T04:46:23Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "数字映射准确；明确仅 512 宽 NoPE latent 容量，不等于全系统 HBM；补充 MI355X 和不宣称提速。",
+          "mergeCommit": "dac51063cc1295a2a8426998c4c372b19c42a0f9"
+        },
+        {
+          "number": "V19",
+          "workId": "github:vllm-project/vllm#66036",
+          "source": "https://github.com/vllm-project/vllm/pull/66036",
+          "mergedAt": "2026-11-12T03:06:00Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1,
+            2
+          ],
+          "reason": "512/584 是记录大小；指定 AITER 版本要求；不要把局部缓存字节下降误当系统显存下降。",
+          "mergeCommit": "0854d2f280ef11a404ae56b4fe708f0462bca20d"
+        },
+        {
+          "number": "V20",
+          "workId": "github:vllm-project/vllm#59384",
+          "source": "https://github.com/vllm-project/vllm/pull/59384",
+          "mergedAt": "2026-11-12T02:05:32Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "范围限定 SM10x/Nemotron；逐位比较对象及服务范围。",
+          "mergeCommit": "bfc1e381135b8cc522ce7597e8da912010243355"
+        },
+        {
+          "number": "V21",
+          "workId": "github:vllm-project/vllm#63721",
+          "source": "https://github.com/vllm-project/vllm/pull/63721",
+          "mergedAt": "2026-11-11T21:17:40Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "单卡微基准模拟并行路由；原文 TP8 1.6–1.8 倍未限定所有行，主要在较长 1024/8192；服务与 GSM8K 组合分开，95.45% 明确口径。",
+          "mergeCommit": "d46cb724ddaeb1146da9c9b882bf7679e049890b"
+        },
+        {
+          "number": "V22",
+          "workId": "github:vllm-project/vllm#64560",
+          "source": "https://github.com/vllm-project/vllm/pull/64560",
+          "mergedAt": "2026-11-12T00:30:57Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1,
+            2
+          ],
+          "reason": "关键门槛包括无 DCP、AITER MLA、FP8 KV/量化查询及 BF16 BMM；每配置单次且基准口径精确。",
+          "mergeCommit": "1d09f2bfdb44a4999831e3a2301c713ccfd878d7"
+        },
+        {
+          "number": "V23",
+          "workId": "github:vllm-project/vllm#62603",
+          "source": "https://github.com/vllm-project/vllm/pull/62603",
+          "mergedAt": "2026-11-12T09:07:35Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "原文缺的是 Hopper MegaMoE，不是所有其他 MoE 路径都未融合；工作区按最大 DP 秩；测试两组需明确。",
+          "mergeCommit": "94febce7563ae2d67a062dc0f8ab408cd817f66c"
+        },
+        {
+          "number": "V24",
+          "workId": "github:vllm-project/vllm#63627",
+          "source": "https://github.com/vllm-project/vllm/pull/63627",
+          "mergedAt": "2026-11-11T21:24:46Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            2
+          ],
+          "reason": "原数字是 r1，不是均值；加批量不变开关、两轮及负例；删除莫名泛化。",
+          "mergeCommit": "d74f39c5a60aed2c8a11c2c482cf0ec8a3a2602e"
+        },
+        {
+          "number": "V25",
+          "workId": "github:vllm-project/vllm#63727",
+          "source": "https://github.com/vllm-project/vllm/pull/63727",
+          "mergedAt": "2026-11-12T09:02:59Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1,
+            2
+          ],
+          "reason": "50.2→40.5 是 TPOT 而非相邻词元间隔 ITL；分别区分 MI300X/MI325X 最小档和各自吞吐。",
+          "mergeCommit": "0a77deacd3035b723994d15dc7a65f4ad6859a70"
+        },
+        {
+          "number": "V26",
+          "workId": "github:vllm-project/vllm#64061",
+          "source": "https://github.com/vllm-project/vllm/pull/64061",
+          "mergedAt": "2026-11-12T00:28:06Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1,
+            2
+          ],
+          "reason": "启动时与每步混淆；最终版+1%左右只适用于部分负载，低并发TPOT略增。",
+          "head": "26861ee2f594d888bc775397e3249449ecb8b206"
+        },
+        {
+          "number": "V27",
+          "workId": "github:vllm-project/vllm#64883",
+          "source": "https://github.com/vllm-project/vllm/pull/64883",
+          "mergedAt": "2026-11-12T02:30:36Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "量化结果与ABBA对照一致；补充TP4及关闭自适应验证。",
+          "head": "fa62df2f96599ba765a72038ec3d76a4540e39aa"
+        },
+        {
+          "number": "V28",
+          "workId": "github:vllm-project/vllm#67040",
+          "source": "https://github.com/vllm-project/vllm/pull/67040",
+          "mergedAt": "2026-11-12T03:11:35Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "数值正确，明确对照后端和并行范围，GSM8K格式归因为作者判断。",
+          "head": "fbd5ba3cd79ab0c2d7c2671d040c8cee3a65185c"
+        },
+        {
+          "number": "V29",
+          "workId": "github:vllm-project/vllm#64165",
+          "source": "https://github.com/vllm-project/vllm/pull/64165",
+          "mergedAt": "2026-11-11T22:59:58Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "将无条件不再退出收窄到单一已测复现场景。",
+          "head": "53d6e00ff128f9976b428591783195195a5cb8e9"
+        },
+        {
+          "number": "V30",
+          "workId": "github:vllm-project/vllm#65077",
+          "source": "https://github.com/vllm-project/vllm/pull/65077",
+          "mergedAt": "2026-11-11T21:54:03Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "B300 GEMM 与 1×GB300端到端场景有区别；GSM8K误差与困惑度模型需分开。",
+          "head": "ef2e1da72b97d386b1494f32226ed3bb9e6038ed"
+        },
+        {
+          "number": "V31",
+          "workId": "github:vllm-project/vllm#65479",
+          "source": "https://github.com/vllm-project/vllm/pull/65479",
+          "mergedAt": "2026-11-11T19:48:58Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "正确数字，但应补合成接受、NVFP4 KV、DBO及c4，区分量化尾声与独立性能对照。",
+          "head": "16137c521ce503780643f958031d1b4f7141fa4c"
+        },
+        {
+          "number": "V32",
+          "workId": "github:vllm-project/vllm#65521",
+          "source": "https://github.com/vllm-project/vllm/pull/65521",
+          "mergedAt": "2026-11-12T04:21:51Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1,
+            2
+          ],
+          "reason": "方法漏掉实验内核源码安装门槛；第一组8–46%具体仅限R200。",
+          "head": "f536380867bc71ac4278bec021011ff9a9bded94"
+        },
+        {
+          "number": "V33",
+          "workId": "github:vllm-project/vllm#66018",
+          "source": "https://github.com/vllm-project/vllm/pull/66018",
+          "mergedAt": "2026-11-12T02:16:02Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1,
+            2
+          ],
+          "reason": "补具体 FlashInfer 后端和消费级 Blackwell 仅 RTX 5080正确性验证；CPU/GPU指标不外推。",
+          "head": "8e0302237c26cf42c9fdf875243171474f4237b8"
+        },
+        {
+          "number": "V34",
+          "workId": "github:vllm-project/vllm#56451",
+          "source": "https://github.com/vllm-project/vllm/pull/56451",
+          "mergedAt": "2026-11-11T19:21:48Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "上限4/8卡结果来自不同精度；源材料 1.6GB 指 logits 而非模糊验证分数。",
+          "head": "33cf319a196be75b750ce01b980eff0f9de0c443"
+        },
+        {
+          "number": "V35",
+          "workId": "github:vllm-project/vllm#61869",
+          "source": "https://github.com/vllm-project/vllm/pull/61869",
+          "mergedAt": "2026-11-11T21:14:54Z",
+          "result": "revised",
+          "titleChanged": true,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "草稿是独立执行器实例，复用目标的实现/融合资源；8 ranks阈值为4。",
+          "head": "01786b41587d70de09c8e53cff207527c8469fe9"
+        },
+        {
+          "number": "A7",
+          "workId": "github:vllm-project/vllm-ascend#21439",
+          "source": "https://github.com/vllm-project/vllm-ascend/pull/21439",
+          "mergedAt": "2026-11-12T08:21:25Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "两个评测负载必须分开，跨方法和图模式混杂，不能推广相对性能。",
+          "head": "395bbbfea4c89bb96435745a83296a16dbc8559c"
+        },
+        {
+          "number": "V36",
+          "workId": "github:vllm-project/vllm#67081",
+          "source": "https://github.com/vllm-project/vllm/pull/67081",
+          "mergedAt": "2026-11-12T04:37:25Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "明确 GB200/Qwen3-0.6B 与运行时等价补丁；避免把实验写成未验证。",
+          "head": "d5ff371965f1bf3335f9593ddc692985a0798ecc"
+        },
+        {
+          "number": "V37",
+          "workId": "github:vllm-project/vllm#67098",
+          "source": "https://github.com/vllm-project/vllm/pull/67098",
+          "mergedAt": "2026-11-12T11:58:44Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "机制与数值均符合原始PR；补前缀缓存重置和逆序重放条件。",
+          "head": "e80d45d8ece84eae8c2c4ccde27d876d730529c1"
+        }
+      ]
+    },
+    {
+      "day": "2026-11-13",
+      "originalVersion": "fb11ecfeaef36746265040e78ea9b8441bdb5ad6eac21481d8b3ef98eae813c9",
+      "originalReportSha256": "c89411a1958dd0818547530448b0c204a1327e7efa6167fd0826ed800334285b",
+      "correctedVersion": "fc56b68ce1c38726d3704a4bafe88bc77cfe8fa7533fcb6ffbdeeb625c2375bb",
+      "correctedReportSha256": "cb4c4ed79fe8e2a9ed5bf785fd41d239254bf111087563261010d5d5412633fc",
+      "flowPngSha256": "5a7e6525ab21dd9ff48916715e75ac0108b18cac54424be0badbd7f4a42e93eb",
+      "records": [
+        {
+          "number": "V1",
+          "workId": "github:vllm-project/vllm#47547",
+          "source": "https://github.com/vllm-project/vllm/pull/47547",
+          "mergedAt": "2026-11-13T15:24:06Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "补齐测量硬件、模型/依赖，并明确新旧编译产物的比较对象"
+        },
+        {
+          "number": "V2",
+          "workId": "github:vllm-project/vllm#61243",
+          "source": "https://github.com/vllm-project/vllm/pull/61243",
+          "mergedAt": "2026-11-12T21:37:38Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "首个混合模型限定在 HiSparse，后端是未启用而非承诺回退，B200 为 HiSparse 开关总体对照"
+        },
+        {
+          "number": "V3",
+          "workId": "github:vllm-project/vllm#64331",
+          "source": "https://github.com/vllm-project/vllm/pull/64331",
+          "mergedAt": "2026-11-12T20:27:11Z",
+          "result": "retained",
+          "titleChanged": false,
+          "changedParagraphIndices": [],
+          "reason": "原述符合 PR，gfx1100 未实测"
+        },
+        {
+          "number": "V4",
+          "workId": "github:vllm-project/vllm#67181",
+          "source": "https://github.com/vllm-project/vllm/pull/67181",
+          "mergedAt": "2026-11-13T09:55:45Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "补 EP>1 和旧就绪标记、版本号、验证条件"
+        },
+        {
+          "number": "V5",
+          "workId": "github:vllm-project/vllm#67096",
+          "source": "https://github.com/vllm-project/vllm/pull/67096",
+          "mergedAt": "2026-11-13T07:31:18Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "补具体信号和真实端到端配置并收窄路径"
+        },
+        {
+          "number": "V6",
+          "workId": "github:vllm-project/vllm#65607",
+          "source": "https://github.com/vllm-project/vllm/pull/65607",
+          "mergedAt": "2026-11-12T23:11:49Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1,
+            2
+          ],
+          "reason": "去掉普适复杂度断言，恢复两组 TTFT 和对照配置"
+        },
+        {
+          "number": "V7",
+          "workId": "github:vllm-project/vllm#67194",
+          "source": "https://github.com/vllm-project/vllm/pull/67194",
+          "mergedAt": "2026-11-13T13:08:43Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "逐位一致仅在 16 幅 MMStar 上检查"
+        },
+        {
+          "number": "V8",
+          "workId": "github:vllm-project/vllm#66598",
+          "source": "https://github.com/vllm-project/vllm/pull/66598",
+          "mergedAt": "2026-11-13T03:23:03Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "补 K/M/N gate、MXFP8 及实测负载"
+        },
+        {
+          "number": "V9",
+          "workId": "github:vllm-project/vllm#67235",
+          "source": "https://github.com/vllm-project/vllm/pull/67235",
+          "mergedAt": "2026-11-13T05:16:13Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            2
+          ],
+          "reason": "纠正 13 万是 Triton program 不是内核启动，并保留联合收益与 TTFT 波动"
+        },
+        {
+          "number": "V10",
+          "workId": "github:vllm-project/vllm#52652",
+          "source": "https://github.com/vllm-project/vllm/pull/52652",
+          "mergedAt": "2026-11-13T09:59:42Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "区分两个 tile 参数、硬件开关及微基准与服务"
+        },
+        {
+          "number": "V11",
+          "workId": "github:vllm-project/vllm#64055",
+          "source": "https://github.com/vllm-project/vllm/pull/64055",
+          "mergedAt": "2026-11-12T20:26:29Z",
+          "result": "revised",
+          "titleChanged": true,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "作者数据匹配，收窄标题和架构范围。"
+        },
+        {
+          "number": "A2",
+          "workId": "github:vllm-project/vllm-ascend#20242",
+          "source": "https://github.com/vllm-project/vllm-ascend/pull/20242",
+          "mergedAt": "2026-11-13T09:44:25Z",
+          "result": "revised",
+          "titleChanged": true,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "PR 当前正文有端到端和剖析证据；作为事后回查的补录，不断言该稿当时读过。"
+        },
+        {
+          "number": "V12",
+          "workId": "github:vllm-project/vllm#65132",
+          "source": "https://github.com/vllm-project/vllm/pull/65132",
+          "mergedAt": "2026-11-13T02:59:17Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            2
+          ],
+          "reason": "修正 metadata bitwise 的占位槽例外；GPU 时间并非单内核本身耗时。"
+        },
+        {
+          "number": "V14",
+          "workId": "github:vllm-project/vllm#66047",
+          "source": "https://github.com/vllm-project/vllm/pull/66047",
+          "mergedAt": "2026-11-12T16:31:54Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            2
+          ],
+          "reason": "保留原剖析数据，剖析和端到端分开，删掉尾部直接归因。"
+        },
+        {
+          "number": "V15",
+          "workId": "github:vllm-project/vllm#66219",
+          "source": "https://github.com/vllm-project/vllm/pull/66219",
+          "mergedAt": "2026-11-13T08:45:46Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            2
+          ],
+          "reason": "原主要数字无误，补实际量化模型和准确率边界。"
+        },
+        {
+          "number": "V16",
+          "workId": "github:vllm-project/vllm#66855",
+          "source": "https://github.com/vllm-project/vllm/pull/66855",
+          "mergedAt": "2026-11-13T07:31:38Z",
+          "result": "retained",
+          "titleChanged": false,
+          "changedParagraphIndices": [],
+          "reason": "原三段和标题完全支持；− + 读数按两次运行中位值；只移除复核标记。"
+        },
+        {
+          "number": "V17",
+          "workId": "github:vllm-project/vllm#67226",
+          "source": "https://github.com/vllm-project/vllm/pull/67226",
+          "mergedAt": "2026-11-12T18:00:46Z",
+          "result": "revised",
+          "titleChanged": true,
+          "changedParagraphIndices": [
+            0,
+            2
+          ],
+          "reason": "消除≠降低到旧基线，两板的几何均值差不是单点上界。"
+        },
+        {
+          "number": "V18",
+          "workId": "github:vllm-project/vllm#62964",
+          "source": "https://github.com/vllm-project/vllm/pull/62964",
+          "mergedAt": "2026-11-12T21:39:01Z",
+          "result": "revised",
+          "titleChanged": true,
+          "changedParagraphIndices": [
+            0,
+            1,
+            2
+          ],
+          "reason": "不能写无实测：PR有虚拟权重引擎图捕获对照，删除跨模型头数校验而非新增逐层比较。"
+        },
+        {
+          "number": "V19",
+          "workId": "github:vllm-project/vllm#66063",
+          "source": "https://github.com/vllm-project/vllm/pull/66063",
+          "mergedAt": "2026-11-12T21:40:33Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            1,
+            2
+          ],
+          "reason": "限制了修复到已测配置，补 PP=1 层划分变量和 OPT 图例外。"
+        },
+        {
+          "number": "V20",
+          "workId": "github:vllm-project/vllm#67187",
+          "source": "https://github.com/vllm-project/vllm/pull/67187",
+          "mergedAt": "2026-11-13T02:57:25Z",
+          "result": "revised",
+          "titleChanged": false,
+          "changedParagraphIndices": [
+            0,
+            2
+          ],
+          "reason": "厘清本地 5.3/61.8 秒与外部 90 秒仍挂起；覆盖关闭连接，不承诺传输失联检测。"
+        }
+      ]
+    }
+  ]
+}
