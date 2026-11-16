@@ -45,11 +45,12 @@ const related = [
 ] as const;
 
 export default function AclGraphGuide({ topic }: { topic: Topic }) {
+  const colon = topic.title.indexOf("：") + 1;
   return <article className="acl-guide">
     <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden="true" /> 专题目录</Link>
     <header className="acl-guide-hero">
       <p className="acl-kicker">技术专题 · 阅读导引 <time dateTime="2026-11-16">2026-11-16</time></p>
-      <h1>{topic.title}</h1>
+      <h1 aria-label={topic.title}>{colon ? <>{topic.title.slice(0, colon)}<span>{topic.title.slice(colon)}</span></> : topic.title}</h1>
       <p className="acl-deck">把一串 NPU 任务记录下来，下次条件满足时整段提交。这样能省掉重复提交的开销，但每一轮请求的输入、缓存位置和依赖仍要准备正确。</p>
       <nav className="acl-guide-actions" aria-label="ACLGraph 专题阅读入口">
         <Link to={{ search: "view=paper" }}>阅读学术综述全文 <ArrowRight size={16} aria-hidden="true" /></Link>
