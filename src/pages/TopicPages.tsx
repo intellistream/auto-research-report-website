@@ -1,8 +1,12 @@
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import "./topics.css";
+import TopicResearchReport, { TopicReportCard } from "./TopicResearchReport";
+import type { ResearchReport } from "./topic-report";
+import TopicAcademicPaper, { AcademicPaperCard } from "./TopicAcademicPaper";
+import type { AcademicPaper } from "./academic-paper";
 
-type Entry = {
+export type Entry = {
   workId: string;
   title: string;
   repository: "vllm" | "vllm-ascend";
@@ -15,7 +19,7 @@ type Entry = {
   method: "manual" | "rule";
   summary: string;
 };
-type Topic = {
+export type Topic = {
   id: string;
   title: string;
   description: string;
@@ -23,8 +27,10 @@ type Topic = {
   coverage: { firstDay: string; lastDay: string; days: number; prs: number };
   counts: { total: number; byRepository: Record<string, number> };
   entries: Entry[];
+  report?: ResearchReport;
+  academicPaper?: AcademicPaper;
 };
-export type TopicIndex = { schemaVersion: 1; topics: Topic[] };
+export type TopicIndex = { schemaVersion: 1 | 2; topics: Topic[] };
 const community = { vllm: "vLLM", "vllm-ascend": "vLLM Ascend" };
 
 function TopicDetail({ topic }: { topic: Topic }) {
@@ -96,28 +102,45 @@ function TopicDetail({ topic }: { topic: Topic }) {
 
 export default function TopicPages({ index, error }: { index?: TopicIndex; error?: string }) {
   const { topicId } = useParams();
+  const [query] = useSearchParams();
   if (error) return <p role="alert">暂无可用的专题索引。<Link to="/reports">查看日报档案</Link></p>;
   if (!index) return <p role="status">正在加载专题…</p>;
-  if (index.schemaVersion !== 1 || !Array.isArray(index.topics)) {
+  if (![1, 2].includes(index.schemaVersion) || !Array.isArray(index.topics)) {
     return <p role="alert">专题索引格式不受支持。</p>;
   }
   const topic = index.topics.find((row) => row.id === topicId);
   if (topicId && !topic) return <p>没有找到该专题。<Link to="/topics">查看全部专题</Link></p>;
   return (
     <div className="topic-page">
-      {topic ? <TopicDetail key={topic.id} topic={topic} /> : (
+      {topic ? (
+        topic.academicPaper && (query.get("view") !== "report" || !topic.report) ? (
+          <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} />
+        ) : index.schemaVersion === 2 && topic.report ? (
+          <TopicResearchReport key={topic.report.version} topic={topic} report={topic.report} />
+        ) : topic.id !== "aclgraph" ? (
+          <TopicDetail key={topic.id} topic={topic} />
+        ) : (
+          <>
+            <Link className="topic-back" to="/topics"><ArrowLeft size={16} /> 专题目录</Link>
+            <header className="topic-heading">
+              <h1>{topic.title}</h1>
+              <p>{topic.description}</p>
+              <p>综述准备中。</p>
+            </header>
+          </>
+        )
+      ) : (
         <>
           <header className="topic-heading">
-            <div className="docx-eyebrow">跨日报追踪 · 试运行</div>
             <h1>技术专题</h1>
-            <p>按技术方向追踪 vLLM 和 vLLM Ascend 的改动，并回到对应日报阅读原文。</p>
+            <p>综合论文与工程证据，理解核心技术问题、解决路径与尚待验证的研究方向。</p>
           </header>
           <ul className="topic-directory">
-            {index.topics.map((row) => (
+            {index.topics.map((row) => row.academicPaper ? <AcademicPaperCard key={row.id} topic={row} paper={row.academicPaper} /> : row.report && index.schemaVersion === 2 ? <TopicReportCard key={row.id} topic={row} report={row.report} /> : (
               <li key={row.id} className="topic-card">
                 <h2><Link to={`/topics/${row.id}`}>{row.title} <ArrowUpRight size={17} /></Link></h2>
                 <p>{row.description}</p>
-                <div className="topic-meta"><span>{row.counts.total} 条 PR</span><span>覆盖至 {row.coverage.lastDay}</span></div>
+                <div className="topic-meta">{row.id === "aclgraph" ? "综述准备中" : <><span>{row.counts.total} 条 PR</span><span>覆盖至 {row.coverage.lastDay}</span></>}</div>
               </li>
             ))}
           </ul>
