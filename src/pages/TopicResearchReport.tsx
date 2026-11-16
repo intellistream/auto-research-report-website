@@ -1,8 +1,9 @@
 import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Download, FileText, GitPullRequest, Sparkles } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import type { Entry, Topic } from "./TopicPages";
-import { evidenceTimeline, safeTopicSource, loadFrozenVersion, revealTopicPart, reportOverview, sectionLead, type FrozenVersion, type Reference, type ResearchReport } from "./topic-report";
+import type { Topic } from "./TopicPages";
+import { safeTopicSource, loadFrozenVersion, revealTopicPart, reportOverview, sectionLead, type FrozenVersion, type Reference, type ResearchReport } from "./topic-report";
+import { EvidenceList, EvidenceTimeline } from "./TopicEvidence";
 import "./topic-research-report.css";
 
 function ReportJump({ id, children, ...props }: { id: string; children: ReactNode; className?: string; title?: string; "aria-label"?: string; "aria-current"?: "location" }) {
@@ -21,47 +22,6 @@ function Citations({ ids, references }: { ids: string[]; references: Reference[]
     const index = references.findIndex((reference) => reference.id === id);
     return index < 0 ? null : <ReportJump key={id} id={`survey-ref-${id}`} title={`${references[index].evidenceLevel}：${references[index].title}`} aria-label={`参考文献 ${index + 1}：${references[index].title}`}>[{index + 1}]</ReportJump>;
   })}</span>;
-}
-
-function EvidenceTimeline({ topic, report }: { topic: Topic; report: ResearchReport }) {
-  const rows = evidenceTimeline(topic, report);
-  if (!rows.length) return null;
-  const maximum = Math.max(1, ...rows.map((row) => row.synthesized + row.pending));
-  const cell = 640 / rows.length;
-  return <figure className="survey-trend">
-    <div className="survey-chart-heading"><h3>工程证据的持续积累</h3><div className="survey-chart-legend"><span><i className="synthesized" />已综合</span><span><i className="pending" />待研究</span></div></div>
-    <svg viewBox="0 0 680 185" role="img" aria-label="按日报收录日统计的专题 PR 证据数量，区分已综合和待研究">
-      <line x1="25" y1="145" x2="665" y2="145" stroke="#dbe5df" />
-      {rows.map((row, index) => {
-        const height = (row.synthesized + row.pending) / maximum * 130;
-        const reviewed = row.synthesized / maximum * 130;
-        const x = 25 + index * cell + cell * .18;
-        return <g key={row.day}><title>{`${row.day}：已综合 ${row.synthesized} 条，待研究 ${row.pending} 条`}</title><rect x={x} y={145 - height} width={cell * .64} height={height} rx="2" fill="#e0e9e2" /><rect x={x} y={145 - reviewed} width={cell * .64} height={reviewed} rx="2" fill="#367b61" />{(index === 0 || index === rows.length - 1 || index % Math.max(1, Math.ceil(rows.length / 6)) === 0) && <text x={x + cell * .32} y="165" textAnchor="middle" fill="#6b7d72" fontSize="10">{row.day.slice(5)}</text>}</g>;
-      })}
-      <text x="21" y="12" fill="#6b7d72" fontSize="10">{maximum} 条</text>
-    </svg>
-    <figcaption>数量来自日报取材索引，反映证据积累与研究进度；不用于比较技术性能或判断领域热度。</figcaption>
-    <details className="survey-chart-data"><summary>查看图表数据</summary><div className="survey-table-wrap"><table><thead><tr><th>日报收录日</th><th>已综合 PR</th><th>待研究 PR</th></tr></thead><tbody>{rows.map((row) => <tr key={row.day}><td>{row.day}</td><td>{row.synthesized}</td><td>{row.pending}</td></tr>)}</tbody></table></div></details>
-  </figure>;
-}
-
-function EvidenceList({ entries, labels }: { entries: Entry[]; labels: Record<string, string> }) {
-  const [query, setQuery] = useSearchParams();
-  const repo = query.get("repo") ?? "", label = query.get("label") ?? "";
-  const rows = entries.filter((entry) => (!repo || entry.repository === repo) && (!label || entry.label === label));
-  function filter(key: string, value: string) {
-    const next = new URLSearchParams(query);
-    if (value) next.set(key, value); else next.delete(key);
-    setQuery(next, { replace: true });
-  }
-  return <>
-    <div className="topic-filters"><label>社区<select value={repo} onChange={(event) => filter("repo", event.target.value)}><option value="">全部社区</option><option value="vllm">vLLM</option><option value="vllm-ascend">vLLM Ascend</option></select></label><label>子方向<select value={label} onChange={(event) => filter("label", event.target.value)}><option value="">全部方向</option>{Object.entries(labels).map(([id, title]) => <option key={id} value={id}>{title}</option>)}</select></label><span role="status">{rows.length} 条线索</span></div>
-    {!rows.length ? <p className="survey-muted">当前筛选下没有取材条目。</p> : <ul className="topic-entries">{rows.map((entry) => {
-      const search = new URLSearchParams({ version: entry.version, section: entry.number }).toString();
-      const source = safeTopicSource(entry.url);
-      return <li key={entry.workId} className="topic-evidence-row"><div className="topic-meta"><time dateTime={entry.day}>{entry.day}</time><span>{entry.repository === "vllm" ? "vLLM" : "vLLM Ascend"} #{entry.workId.split("#")[1]}</span><span className="topic-tag">{labels[entry.label] ?? entry.label}</span></div><h3><Link to={{ pathname: `/reports/${entry.day}`, search }}>{entry.title}</Link></h3>{entry.summary && <p>{entry.summary}</p>}<div className="topic-links"><Link to={{ pathname: `/reports/${entry.day}`, search }}>日报原文 <ArrowRight size={13} /></Link>{source && <a href={source} target="_blank" rel="noreferrer">GitHub PR <ArrowUpRight size={13} /></a>}</div></li>;
-    })}</ul>}
-  </>;
 }
 
 function Methodology({ report }: { report: ResearchReport }) {
@@ -123,7 +83,7 @@ export function TopicReportCard({ topic, report }: { topic: Topic; report: Resea
   return <li className="topic-card survey-directory-card"><div className="survey-card-top"><span className="survey-status">动态综述</span><time className="topic-meta" dateTime={report.asOf}>{report.asOf}</time></div><h2><Link to={`/topics/${topic.id}`}>{report.title} <ArrowUpRight size={17} /></Link></h2><p className="survey-card-abstract">{report.abstract}</p><div className="survey-card-question"><span>核心研究问题</span><p>{report.researchQuestions[0]}</p></div><div className="survey-card-bottom"><div className="topic-meta"><span>{report.references.filter((ref) => ref.kind === "paper").length} 篇论文</span><span>{report.gaps.length} 个研究方向</span><span>修订 {report.revision}</span></div><Link to={`/topics/${topic.id}`} className="survey-read-link">阅读报告<ArrowRight size={14} /></Link></div></li>;
 }
 
-export default function TopicResearchReport({ topic, report }: { topic: Topic; report: ResearchReport }) {
+export default function TopicResearchReport({ topic, report, embedded = false }: { topic: Topic; report: ResearchReport; embedded?: boolean }) {
   const [query, setQuery] = useSearchParams();
   const mode = query.get("read") === "brief" ? "brief" : "full";
   const current = useFrozenVersion(topic.id, report.version, report);
@@ -145,7 +105,8 @@ export default function TopicResearchReport({ topic, report }: { topic: Topic; r
     ...report.sections.map((section, index) => ({ id: `survey-section-${index}`, title: section.title })),
     { id: "survey-gaps", title: "Research Gaps" }, { id: "survey-limitations", title: "局限与证据边界" },
     ...(report.reviewSummary ? [{ id: "survey-review", title: "独立审查摘要" }] : []),
-    { id: "survey-references", title: "参考文献" }, { id: "survey-evolution", title: "版本与持续研究" }, { id: "survey-appendix", title: "取材证据附录" },
+    { id: "survey-references", title: "参考文献" }, { id: "survey-evolution", title: "版本与持续研究" },
+    ...(!embedded ? [{ id: "survey-appendix", title: "取材证据附录" }] : []),
   ];
   const uses = (id: string) => [
     ...report.taxonomy.flatMap((row, index) => row.sourceIds.includes(id) ? [{ id: `survey-route-${index}`, title: `路线 ${index + 1}` }] : []),
@@ -159,12 +120,13 @@ export default function TopicResearchReport({ topic, report }: { topic: Topic; r
     next.delete("part");
     setQuery(next, { replace: true });
   }
+  const Title = embedded ? "h2" : "h1";
   return <div className="survey-page">
     <ReportJump className="survey-skip" id="survey-paper">跳到报告正文</ReportJump>
-    <Link className="topic-back" to="/topics"><ArrowLeft size={15} /> 专题研究库</Link>
-    <header id="survey-top" tabIndex={-1} className="survey-heading"><div className="docx-eyebrow">LIVING TECHNICAL REVIEW <span>持续演进的技术综述</span></div><div className="survey-title-row"><h1>{report.title}</h1><span className="survey-status">研究草稿</span></div><p className="survey-deck">{topic.description}</p><div className="survey-meta"><span>研究截至 <time dateTime={report.asOf}>{report.asOf}</time></span><span>修订 {report.revision}</span><span>{report.references.length} 项来源 · {papers} 篇背景论文 · {prs} 项 PR 证据</span></div>
+    {!embedded && <Link className="topic-back" to="/topics"><ArrowLeft size={15} /> 专题研究库</Link>}
+    <header id="survey-top" tabIndex={-1} className="survey-heading"><div className="docx-eyebrow">LIVING TECHNICAL REVIEW <span>持续演进的技术综述</span></div><div className="survey-title-row"><Title>{report.title}</Title><span className="survey-status">研究草稿</span></div><p className="survey-deck">{topic.description}</p><div className="survey-meta"><span>研究截至 <time dateTime={report.asOf}>{report.asOf}</time></span><span>修订 {report.revision}</span><span>{report.references.length} 项来源 · {papers} 篇背景论文 · {prs} 项 PR 证据</span></div>
       <div className="survey-takeaways" aria-label="报告速览"><div><h2>核心问题</h2><p>{overview.problem}</p></div>{overview.conclusion && <div><h2>综合判断</h2><p>{overview.conclusion}<ReportJump id="survey-taxonomy">查看技术权衡</ReportJump></p></div>}{overview.boundary && <div><h2>证据边界</h2><p>{overview.boundary}<ReportJump id="survey-limitations">查看适用范围</ReportJump></p></div>}</div>
-      <div className="survey-toolbar"><div className="survey-read-switch" role="group" aria-label="阅读模式"><button aria-pressed={mode === "full"} onClick={() => changeMode("full")}><BookOpen size={14} />精读全文</button><button aria-pressed={mode === "brief"} onClick={() => changeMode("brief")}><Sparkles size={14} />快速阅读</button></div><div className="survey-downloads">{topic.id === "aclgraph" && topic.academicPaper && <Link to={`/topics/${topic.id}`}>专题导引</Link>}{topic.academicPaper && <Link to={`/topics/${topic.id}${topic.id === "aclgraph" ? "?view=paper" : ""}`}><BookOpen size={14} />学术综述稿</Link>}{markdown && <a href={markdown} download><FileText size={14} />报告源稿</a>}{pdf ? <a className="survey-pdf" href={pdf} download={`${topic.id}-review-r${report.revision}-${report.version.slice(0, 12)}.pdf`}><Download size={15} />下载本版 PDF</a> : <button className="survey-pdf" disabled><Download size={15} />{!report.pdfPath ? "PDF 尚未生成" : !current ? "正在核验冻结版本…" : "本版 PDF 暂不可用"}</button>}</div></div><p className="survey-reading-note" role="status">{mode === "brief" ? "速读：保留摘要、路线比较与研究问题；8节分析可逐节展开。".replace("8", String(report.sections.length)) : "精读：展开全部技术分析；可随时单独折叠。"} 引用编号可跳转来源并返回引用位置。</p><p className="survey-artifact-note" role="status">{current?.error ?? (current?.data ? `已核对网页与冻结稿一致 · 修订 ${report.revision} · ${report.version.slice(0, 12)}。下载文件与此版本绑定。` : "正在核对网页内容与冻结稿；核验完成后提供下载。")}</p></header>
+      <div className="survey-toolbar"><div className="survey-read-switch" role="group" aria-label="阅读模式"><button aria-pressed={mode === "full"} onClick={() => changeMode("full")}><BookOpen size={14} />精读全文</button><button aria-pressed={mode === "brief"} onClick={() => changeMode("brief")}><Sparkles size={14} />快速阅读</button></div><div className="survey-downloads">{!embedded && topic.academicPaper && <Link to={`/topics/${topic.id}?view=paper`}><BookOpen size={14} />学术综述稿</Link>}{markdown && <a href={markdown} download><FileText size={14} />报告源稿</a>}{pdf ? <a className="survey-pdf" href={pdf} download={`${topic.id}-review-r${report.revision}-${report.version.slice(0, 12)}.pdf`}><Download size={15} />下载本版 PDF</a> : <button className="survey-pdf" disabled><Download size={15} />{!report.pdfPath ? "PDF 尚未生成" : !current ? "正在核验冻结版本…" : "本版 PDF 暂不可用"}</button>}</div></div><p className="survey-reading-note" role="status">{mode === "brief" ? "速读：保留摘要、路线比较与研究问题；8节分析可逐节展开。".replace("8", String(report.sections.length)) : "精读：展开全部技术分析；可随时单独折叠。"} 引用编号可跳转来源并返回引用位置。</p><p className="survey-artifact-note" role="status">{current?.error ?? (current?.data ? `已核对网页与冻结稿一致 · 修订 ${report.revision} · ${report.version.slice(0, 12)}。下载文件与此版本绑定。` : "正在核对网页内容与冻结稿；核验完成后提供下载。")}</p></header>
     <div className="survey-layout"><nav className="survey-toc" aria-label="专题报告目录"><span>本报告</span>{toc.map((part, index) => <ReportJump key={part.id} id={part.id} aria-current={query.get("part") === part.id ? "location" : undefined}><small>{String(index + 1).padStart(2, "0")}</small>{part.title}</ReportJump>)}<div className="survey-toc-note">可按研究问题阅读，引用编号可定位到对应来源。</div></nav><article id="survey-paper" tabIndex={-1} className="survey-paper" aria-label="ACLGraph 技术综述正文">
       <section id="survey-abstract" tabIndex={-1} className="survey-abstract"><div className="survey-kicker">OVERVIEW</div><h2>摘要</h2><p>{report.abstract}</p><div className="survey-questions"><h3>这份报告回答什么</h3><ol>{report.researchQuestions.map((question, index) => <li key={question}><span>RQ{index + 1}</span>{question}</li>)}</ol></div></section>
       <details id="survey-methods" className="survey-details" tabIndex={-1}><summary><span>研究范围与方法</span><small>查看检索、纳排标准与证据分级</small></summary><Methodology report={report} /><div className="survey-evidence-guide"><h3>如何使用这些来源</h3><ul><li>官方接口、固定版本文档与固定提交源码：解释对应版本的机制与约束。</li><li>原始系统论文：提供分析背景，其 GPU 结果不作为 Ascend 实测。</li><li>工程 PR 是一手公开记录；日报是二级整理。原文核查范围、历史日期与测试条件见每条来源说明。</li><li>综述方法来源：说明组织与更新原则，不提供性能证明。</li></ul></div><p className="survey-evidence-note">各项工程证据的取材层级以来源标注为准，区分一手原文、固定版本资料与二手日报分析。不同设备、负载和测试口径下的结果不能直接合并为统一加速比。</p></details>
@@ -181,8 +143,8 @@ export default function TopicResearchReport({ topic, report }: { topic: Topic; r
           return archive ? <Link className="survey-archive-link" to={{ pathname: `/reports/${archive.day}`, search: new URLSearchParams({ version: archive.version, section: archive.number }).toString() }}>二级日报记录 · {archive.day} · {archive.number} <ArrowRight size={12} /></Link> : <small>补充来源：不在本页候选日报归档中。</small>;
         })()}<div className="survey-reference-uses"><span>返回引用位置</span>{uses(reference.id).map((use) => <ReportJump key={use.id} id={use.id}>{use.title}</ReportJump>)}</div></div></li>;
       })}</ol></section>
-      <section id="survey-evolution" tabIndex={-1}><div className="survey-kicker">LIVING KNOWLEDGE</div><h2>版本与持续研究</h2><EvidenceTimeline topic={topic} report={report} /><div className="survey-version-history" aria-label="冻结版本历史">{current?.data && <VersionRecord version={current.data} current />}{report.previousVersion && (previous?.data ? <VersionRecord version={previous.data} /> : <p role="status">{previous?.error ? `前序冻结稿暂不可核验：${previous.error}` : "正在读取前序冻结元数据…"}</p>)}</div><p className="survey-muted">下列为研究稿中记录的变更说明；修订号及日期以各冻结元数据为准。</p><ol className="survey-changelog">{report.changelog.map((change, index) => <li key={index}><time dateTime={change.date}>{change.date}</time><p>{change.summary}</p></li>)}</ol>{pending > 0 && <details className="survey-pending"><summary>{pending} 项新证据待综合研究 <ArrowRight size={14} /></summary><p>这些条目已进入取材索引，尚未形成新的报告结论。下一轮研究需要审查它们是否改变已有判断或补足研究缺口。</p><EvidenceList entries={report.pendingEvidence ?? []} labels={topic.labels} /></details>}{!!report.sourceDelta && <p className="survey-muted survey-delta">相对上一输入快照：新增 {report.sourceDelta.added.length} 项，变更 {report.sourceDelta.changed.length} 项，移除 {report.sourceDelta.removed.length} 项。</p>}</section>
-      <details id="survey-appendix" tabIndex={-1} className="survey-details survey-appendix"><summary><span>取材证据附录</span><small>{topic.entries.length} 项归档线索 · 可筛选并回溯日报</small></summary><p className="survey-muted">关键词归类用于发现线索，部分条目可能仅间接相关；报告采用的证据以参考文献和正文引用为准。归档覆盖 {topic.coverage.firstDay} 至 {topic.coverage.lastDay}。</p><EvidenceList entries={topic.entries} labels={topic.labels} /></details>
+      <section id="survey-evolution" tabIndex={-1}><div className="survey-kicker">LIVING KNOWLEDGE</div><h2>版本与持续研究</h2>{!embedded && <EvidenceTimeline topic={topic} report={report} />}<div className="survey-version-history" aria-label="冻结版本历史">{current?.data && <VersionRecord version={current.data} current />}{report.previousVersion && (previous?.data ? <VersionRecord version={previous.data} /> : <p role="status">{previous?.error ? `前序冻结稿暂不可核验：${previous.error}` : "正在读取前序冻结元数据…"}</p>)}</div><p className="survey-muted">下列为研究稿中记录的变更说明；修订号及日期以各冻结元数据为准。</p><ol className="survey-changelog">{report.changelog.map((change, index) => <li key={index}><time dateTime={change.date}>{change.date}</time><p>{change.summary}</p></li>)}</ol>{pending > 0 && <details className="survey-pending"><summary>{pending} 项新证据待综合研究 <ArrowRight size={14} /></summary><p>这些条目已进入取材索引，尚未形成新的报告结论。下一轮研究需要审查它们是否改变已有判断或补足研究缺口。</p>{embedded ? <Link to={{ search: "view=evidence" }}>查看 PR 与趋势</Link> : <EvidenceList entries={report.pendingEvidence ?? []} labels={topic.labels} />}</details>}{!!report.sourceDelta && <p className="survey-muted survey-delta">相对上一输入快照：新增 {report.sourceDelta.added.length} 项，变更 {report.sourceDelta.changed.length} 项，移除 {report.sourceDelta.removed.length} 项。</p>}</section>
+      {!embedded && <details id="survey-appendix" tabIndex={-1} className="survey-details survey-appendix"><summary><span>取材证据附录</span><small>{topic.entries.length} 项归档线索 · 可筛选并回溯日报</small></summary><p className="survey-muted">关键词归类用于发现线索，部分条目可能仅间接相关；报告采用的证据以参考文献和正文引用为准。归档覆盖 {topic.coverage.firstDay} 至 {topic.coverage.lastDay}。</p><EvidenceList entries={topic.entries} labels={topic.labels} /></details>}
       <ReportJump id="survey-top">返回报告开头 ↑</ReportJump><footer className="survey-footer">专题报告是研究交付物。可供下游团队引用、评估与继续研究；研究结论随新证据修订。</footer>
     </article></div>
   </div>;

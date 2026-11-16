@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import "./aclgraph-guide.css";
@@ -45,36 +45,29 @@ const related = [
 ] as const;
 
 export default function AclGraphGuide({ topic }: { topic: Topic }) {
-  const colon = topic.title.indexOf("：") + 1;
   return <article className="acl-guide">
-    <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden="true" /> 专题目录</Link>
-    <header className="acl-guide-hero">
-      <p className="acl-kicker">技术专题 · 阅读导引 <time dateTime="2026-11-16">2026-11-16</time></p>
-      <h1 aria-label={topic.title}>{colon ? <>{topic.title.slice(0, colon)}<span>{topic.title.slice(colon)}</span></> : topic.title}</h1>
+    <header className="acl-guide-intro">
+      <h2>导引</h2>
       <p className="acl-deck">把一串 NPU 任务记录下来，下次条件满足时整段提交。这样能省掉重复提交的开销，但每一轮请求的输入、缓存位置和依赖仍要准备正确。</p>
-      <nav className="acl-guide-actions" aria-label="ACLGraph 专题阅读入口">
-        <Link to={{ search: "view=paper" }}>阅读学术综述全文 <ArrowRight size={16} aria-hidden="true" /></Link>
-        {topic.report && <Link to={{ search: "view=report" }}>查看动态报告、PR 与趋势 <ArrowRight size={16} aria-hidden="true" /></Link>}
-      </nav>
     </header>
 
     <section aria-labelledby="acl-step-title">
       <p className="acl-kicker">01 · 从请求到回放</p>
-      <h2 id="acl-step-title">一次前向怎样用上 ACLGraph？</h2>
+      <h3 id="acl-step-title">一次前向怎样用上 ACLGraph？</h3>
       <p>一次前向就是模型处理当前批次的一轮计算。<strong>Prefill</strong> 处理新增输入并建立 KV 缓存；<strong>Decode</strong> 利用已缓存的历史继续生成。在线组批时，两类请求可以进入同一轮。</p>
       <p>vLLM 决定本轮怎么组批、用哪种图模式；vLLM Ascend 通过 <code>torch.npu.NPUGraph</code> 使用 CANN 的捕获与回放。编译阶段改写 FX 计算图，运行时 ACLGraph 复用已记录的设备任务，两者可组合。<Source id="design">实现设计</Source> · <Source id="mode">图模式文档</Source></p>
       <ol className="acl-steps">
         {stages.map(([title, body]) => <li key={title}><strong>{title}</strong><p>{body}</p></li>)}
       </ol>
       <div className="acl-modes">
-        {paths.map(([name, how, when]) => <div key={name}><h3><code>{name}</code></h3><p>{how}</p><p>{when}</p></div>)}
+        {paths.map(([name, how, when]) => <div key={name}><h4><code>{name}</code></h4><p>{how}</p><p>{when}</p></div>)}
       </div>
       <p className="acl-note"><code>FULL_AND_PIECEWISE</code> 是一种组合配置，可为不同批次分派不同路径。实际选择取决于版本、模型和注意力后端。FULL 通常指模型前向的覆盖范围；组批、采样和 HTTP 返回仍各有成本。</p>
     </section>
 
     <section aria-labelledby="acl-state-title">
       <p className="acl-kicker">02 · 复用边界</p>
-      <h2 id="acl-state-title">同样是 64 个 token，为什么还要检查状态？</h2>
+      <h3 id="acl-state-title">同样是 64 个 token，为什么还要检查状态？</h3>
       <p>举例：两轮都是 3 路解码加 1 个 61-token 的输入片段，都落入 64-token 桶。第二轮若读到更长的历史，KV 页表、工作区甚至算子路径可能不同。<strong>落入同一个桶只是复用的一个条件。</strong></p>
       <dl className="acl-conditions">
         <div><dt>值变了</dt><dd>输入和索引可按契约写到固定地址；支持时也可更新已捕获任务。CANN 任务组更新要求任务数量与类型对齐，并用事件保证更新先于消费。<Source id="cann">CANN 任务组更新</Source></dd></div>
@@ -85,7 +78,7 @@ export default function AclGraphGuide({ topic }: { topic: Topic }) {
 
     <section aria-labelledby="acl-payoff-title">
       <p className="acl-kicker">03 · 怎样判断收益</p>
-      <h2 id="acl-payoff-title">回放次数多，用户就一定等得更少吗？</h2>
+      <h3 id="acl-payoff-title">回放次数多，用户就一定等得更少吗？</h3>
       <p>图主要减少主机重复提交。需要把节省的时间与每轮复制、更新、补齐计算和等待相比，再计入启动捕获和常驻内存。更新与计算如果重叠，就只能按关键路径计贡献。增加图容量还可能挤占 KV 缓存。</p>
       <table className="acl-evidence-table">
         <caption>从证据到能支持的结论</caption>
@@ -100,7 +93,7 @@ export default function AclGraphGuide({ topic }: { topic: Topic }) {
 
     <section aria-labelledby="acl-research-title">
       <p className="acl-kicker">04 · 从综述到研究</p>
-      <h2 id="acl-research-title">还值得验证什么？</h2>
+      <h3 id="acl-research-title">还值得验证什么？</h3>
       <p className="acl-question"><span>待验证问题</span>工具返回后，Agent 把新增内容送回模型，可能和其他会话的解码一起组批。在合理分桶、已有参数更新和图外准备都用上的前提下，是否仍有可重复的开销落在下一次可执行工具调用或完整回答的关键路径上？</p>
       <p>先区分三个原因：请求没轮到、历史 KV 未命中、图执行本身有额外准备或同步。工具等待与静态分桶、前缀缓存压力、如何公平回放轨迹都已有研究。它们为排除混杂因素提供了现成对照。<Source id="toolWaiting">工具回返研究</Source> · <Source id="cachePressure">缓存压力研究</Source> · <Source id="agentReplay">AgentReplay</Source></p>
       <details className="acl-related" open>

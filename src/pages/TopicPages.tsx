@@ -1,12 +1,11 @@
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
-import { useEffect } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import "./topics.css";
 import TopicResearchReport, { TopicReportCard } from "./TopicResearchReport";
 import type { ResearchReport } from "./topic-report";
 import TopicAcademicPaper, { AcademicPaperCard } from "./TopicAcademicPaper";
-import { academicPaperHrefs, type AcademicPaper } from "./academic-paper";
-import AclGraphGuide from "./AclGraphGuide";
+import type { AcademicPaper } from "./academic-paper";
+import AclGraphTopic, { AclGraphTopicCard } from "./AclGraphTopic";
 
 export type Entry = {
   workId: string;
@@ -106,9 +105,6 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
   const { topicId } = useParams();
   const [query] = useSearchParams();
   const view = query.get("view");
-  useEffect(() => {
-    if (topicId === "aclgraph") window.scrollTo(0, 0);
-  }, [topicId, view]);
   if (error) return <p role="alert">暂无可用的专题索引。<Link to="/reports">查看日报档案</Link></p>;
   if (!index) return <p role="status">正在加载专题…</p>;
   if (![1, 2].includes(index.schemaVersion) || !Array.isArray(index.topics)) {
@@ -119,23 +115,14 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
   return (
     <div className="topic-page">
       {topic ? (
-        topic.id === "aclgraph" && topic.academicPaper && !["paper", "report"].includes(view ?? "") && academicPaperHrefs(topic.id, topic.academicPaper) ? (
-          <AclGraphGuide topic={topic} />
+        topic.id === "aclgraph" ? (
+          <AclGraphTopic topic={topic} />
         ) : topic.academicPaper && (view !== "report" || !topic.report) ? (
           <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} />
         ) : index.schemaVersion === 2 && topic.report ? (
           <TopicResearchReport key={topic.report.version} topic={topic} report={topic.report} />
-        ) : topic.id !== "aclgraph" ? (
-          <TopicDetail key={topic.id} topic={topic} />
         ) : (
-          <>
-            <Link className="topic-back" to="/topics"><ArrowLeft size={16} /> 专题目录</Link>
-            <header className="topic-heading">
-              <h1>{topic.title}</h1>
-              <p>{topic.description}</p>
-              <p>综述准备中。</p>
-            </header>
-          </>
+          <TopicDetail key={topic.id} topic={topic} />
         )
       ) : (
         <>
@@ -144,11 +131,11 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
             <p>综合论文与工程证据，理解核心技术问题、解决路径与尚待验证的研究方向。</p>
           </header>
           <ul className="topic-directory">
-            {index.topics.map((row) => row.academicPaper ? <AcademicPaperCard key={row.id} topic={row} paper={row.academicPaper} /> : row.report && index.schemaVersion === 2 ? <TopicReportCard key={row.id} topic={row} report={row.report} /> : (
+            {index.topics.map((row) => row.id === "aclgraph" ? <AclGraphTopicCard key={row.id} /> : row.academicPaper ? <AcademicPaperCard key={row.id} topic={row} paper={row.academicPaper} /> : row.report && index.schemaVersion === 2 ? <TopicReportCard key={row.id} topic={row} report={row.report} /> : (
               <li key={row.id} className="topic-card">
                 <h2><Link to={`/topics/${row.id}`}>{row.title} <ArrowUpRight size={17} /></Link></h2>
                 <p>{row.description}</p>
-                <div className="topic-meta">{row.id === "aclgraph" ? "综述准备中" : <><span>{row.counts.total} 条 PR</span><span>覆盖至 {row.coverage.lastDay}</span></>}</div>
+                <div className="topic-meta"><span>{row.counts.total} 条 PR</span><span>覆盖至 {row.coverage.lastDay}</span></div>
               </li>
             ))}
           </ul>

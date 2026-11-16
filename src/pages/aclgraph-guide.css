@@ -2,21 +2,12 @@
   --acl-ink: #1c352a;
   --acl-subtle: #466254;
   --acl-border: #d4e3d9;
-  max-width: 68rem;
-  margin-inline: auto;
   color: var(--acl-ink);
   line-height: 1.7;
 }
 .acl-guide :focus-visible { outline: 2px solid #276749; outline-offset: 4px; }
 .acl-guide svg { flex: none; vertical-align: middle; }
 .acl-guide a { color: #1b6247; text-underline-offset: .2em; }
-.acl-guide-hero {
-  margin: 1rem 0 2rem;
-  border: 1px solid var(--acl-border);
-  border-radius: 1rem;
-  background: linear-gradient(115deg, #e5f1e8, #f7fbf8 76%);
-  padding: clamp(1.15rem, 4vw, 2.5rem);
-}
 .acl-kicker {
   color: #275d48;
   font-size: .82rem;
@@ -27,24 +18,10 @@
   flex-wrap: wrap;
   gap: .3rem 1rem;
 }
-.acl-kicker time { color: var(--acl-subtle); font-weight: 500; }
-.acl-guide h1 { font-size: clamp(1.65rem, 4vw, 2.75rem); line-height: 1.2; text-wrap: balance; margin: .55rem 0 .8rem; }
-.acl-guide h1 span { display: inline-block; }
+.acl-guide-intro h2 { font-size: 1.4rem; margin: 0 0 .3rem; }
 .acl-deck { color: var(--acl-subtle); font-size: clamp(1rem, 2vw, 1.18rem); max-width: 44rem; margin: 0; }
-.acl-guide-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.25rem; }
-.acl-guide-actions a {
-  display: inline-flex;
-  align-items: center;
-  gap: .45rem;
-  border: 1px solid #7da691;
-  background: #fff;
-  padding: .45rem .75rem;
-  border-radius: .45rem;
-  font-weight: 650;
-}
-.acl-guide-actions a:first-child { color: #fff; background: #215f46; border-color: #215f46; }
 .acl-guide section { margin: 2rem 0; }
-.acl-guide h2 { font-size: clamp(1.28rem, 3vw, 1.7rem); margin: .12rem 0 .6rem; line-height: 1.4; }
+.acl-guide section > h3 { font-size: clamp(1.28rem, 3vw, 1.7rem); margin: .12rem 0 .6rem; line-height: 1.4; }
 .acl-guide section > p { margin-top: .4rem; }
 .acl-steps, .acl-modes { display: grid; gap: .65rem; padding: 0; }
 .acl-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); list-style: none; counter-reset: acl-step; margin: 1rem 0; }
@@ -52,7 +29,7 @@
 .acl-steps li::before { counter-increment: acl-step; content: counter(acl-step, decimal-leading-zero); display: block; font-size: .8rem; font-weight: 700; color: #29674e; }
 .acl-steps p, .acl-modes p { margin: .36rem 0 0; font-size: .94rem; }
 .acl-modes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.acl-modes h3 { font-size: 1rem; margin: 0; color: #215f46; }
+.acl-modes h4 { font-size: 1rem; margin: 0; color: #215f46; }
 .acl-note { color: var(--acl-subtle); font-size: .93rem; margin-bottom: 0; }
 .acl-conditions { margin: .8rem 0; }
 .acl-conditions > div { display: grid; grid-template-columns: minmax(8rem, .2fr) 1fr; gap: .75rem; border-top: 1px solid var(--acl-border); padding: .65rem 0; }
