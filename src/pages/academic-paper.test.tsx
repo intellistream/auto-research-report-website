@@ -24,8 +24,15 @@ function render(path: string, topic = nextTopic) {
 }
 
 describe("academic manuscript branch", () => {
-  it("prefers the real paper with its isolated HTML and same-version editable downloads", () => {
+  it("shows the ACLGraph guide by default and links to both expert views", () => {
     const html = render("/topics/aclgraph");
+    expect(html).toContain("一次前向怎样用上 ACLGraph？");
+    expect(html).toContain("view=paper");
+    expect(html).toContain("view=report");
+    expect(html).not.toContain("<iframe");
+  });
+  it("opens the real paper with its isolated HTML and same-version editable downloads", () => {
+    const html = render("/topics/aclgraph?view=paper");
     expect(html).toContain("真正论文标题");
     expect(html).toContain("Actual Academic Paper");
     expect(html).toContain(`src="${archiveBase}${prefix}paper.html"`);
@@ -63,7 +70,7 @@ describe("academic manuscript branch", () => {
     for (const path of ["https://example.com/paper.html", `topic-papers/other/${version}/paper.html`, `topic-papers/aclgraph/${"b".repeat(64)}/paper.html`, prefix + "../paper.html", prefix + "%2e%2e/paper.html", prefix + "report.html"]) {
       const bad = { ...paper, assets: { ...paper.assets, html: { ...paper.assets.html, path } } };
       expect(academicPaperHrefs("aclgraph", bad)).toBeUndefined();
-      expect(render("/topics/aclgraph", { ...nextTopic, academicPaper: bad })).not.toContain("<iframe");
+      expect(render("/topics/aclgraph?view=paper", { ...nextTopic, academicPaper: bad })).not.toContain("<iframe");
     }
     expect(academicPaperHrefs("../aclgraph", paper)).toBeUndefined();
     expect(academicPaperHrefs("aclgraph", { ...paper, version: "not-a-version" })).toBeUndefined();
@@ -90,7 +97,7 @@ describe("academic manuscript branch", () => {
     expect(actual.manuscriptRevision).toBe("R1-content-review-accepted");
     expect(actual.assets.markdown.sha256).toBe("382fe4bee7515b7487bdebda015306829939675fbece64a3672947f3f44d194b");
     const hrefs = academicPaperHrefs("aclgraph", actual)!;
-    const html = render("/topics/aclgraph", publishedTopic);
+    const html = render("/topics/aclgraph?view=paper", publishedTopic);
     expect(html).toContain(`src="${hrefs.html}"`);
     expect(html).toContain(`href="${hrefs.pdf}"`);
     expect(html).toContain(`href="${hrefs.sources}"`);
