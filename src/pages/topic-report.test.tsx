@@ -42,7 +42,7 @@ function render(path: string, data = topic, schemaVersion: 1 | 2 = 2) {
 
 describe("living topic report", () => {
   it("renders synthesis and evidence boundaries while waiting for frozen artifact verification", () => {
-    const html = render("/topics/aclgraph");
+    const html = render("/topics/aclgraph?view=report");
     expect(html).toContain("静态执行计划与动态请求状态");
     expect(html).toContain("如何验证");
     expect(html).toContain("同版本配对实验");
@@ -54,7 +54,7 @@ describe("living topic report", () => {
     expect(html).not.toContain(`href="${archiveBase}topic-reports/aclgraph/${version}/report.pdf"`);
     expect(html).toContain("正在核验冻结版本");
     expect(html).toContain('<details open="" id="survey-section-0"');
-    expect(html).not.toContain('<details open="" id="survey-appendix"');
+    expect(html).not.toContain('id="survey-appendix"');
   });
   it("uses shareable router destinations and provides a route back from each cited source", () => {
     const html = render("/topics/aclgraph?read=brief&repo=vllm-ascend");
@@ -76,7 +76,7 @@ describe("living topic report", () => {
     expect(html).not.toContain(`href="${archiveBase}topic-reports/aclgraph/${version}/report.pdf"`);
   });
   it("shows a preparation status for a legacy topic without a survey", () => {
-    const html = render("/topics/aclgraph", { ...topic, report: undefined }, 1);
+    const html = render("/topics/aclgraph?view=paper", { ...topic, report: undefined }, 1);
     expect(html).toContain("综述准备中");
     expect(html).not.toContain("专题收录 PR");
     expect(html).not.toContain("未解问题与未来方向");
@@ -100,15 +100,28 @@ describe("living topic report", () => {
     expect(html).toContain('id="survey-ref-E2"');
   });
   it("shows the supplied independent review and its limits while supporting old reports", () => {
-    const html = render("/topics/aclgraph", { ...topic, report: { ...report, reviewSummary: {
+    const html = render("/topics/aclgraph?view=report", { ...topic, report: { ...report, reviewSummary: {
       date: "2026-11-15", provider: "OpenCode", model: "review-model-fixture", type: "independent-review",
       summary: "逐项裁定并拒绝审查模型误述；未确认严重错误不等于全量验证。", limitations: ["未运行 NPU 实验", "未独立复现原始轨迹"],
     } } });
     for (const text of ["OpenCode", "review-model-fixture", "逐项裁定", "未运行 NPU 实验", "未独立复现原始轨迹", "不表示审查模型生成了全文"]) expect(html).toContain(text);
     expect(html).toContain('id="survey-review"');
-    const old = render("/topics/aclgraph");
+    const old = render("/topics/aclgraph?view=report");
     expect(old).not.toContain('id="survey-review"');
     expect(old).not.toContain('id="survey-evidence"');
+  });
+  it("serves the PR and trends section and keeps the old appendix link working", () => {
+    for (const path of ["/topics/aclgraph?view=evidence", "/topics/aclgraph?view=report&part=survey-appendix"]) {
+      const html = render(path);
+      expect(html).toContain('id="survey-appendix"');
+      expect(html).toContain("工程证据的持续积累");
+      expect(html).toContain("日报原文");
+      expect(html).toContain(entry.url);
+      expect(html).not.toContain(report.abstract);
+    }
+    const filtered = render("/topics/aclgraph?view=evidence&repo=vllm");
+    expect(filtered).toContain("当前筛选下没有取材条目");
+    expect(filtered).not.toContain(entry.url);
   });
   it("deduplicates PRs in progress counts and distinguishes cited work from pending evidence", () => {
     expect(evidenceTimeline({ ...topic, entries: [entry, entry, { ...entry, workId: "github:vllm-project/vllm-ascend#2", day: "2026-11-13" }] }, report)).toEqual([
@@ -120,7 +133,7 @@ describe("living topic report", () => {
       expect(topicArtifactHref("aclgraph", { ...report, pdfPath }, "pdf")).toBeUndefined();
     }
     for (const url of ["javascript:alert(1)", "data:text/html,test", "https://name:secret@example.com", "//example.com"]) expect(safeTopicSource(url)).toBeUndefined();
-    const html = render("/topics/aclgraph", { ...topic, report: { ...report, references: [{ ...report.references[0], url: "javascript:alert(1)", title: "<script>alert(1)</script>" }] } });
+    const html = render("/topics/aclgraph?view=report", { ...topic, report: { ...report, references: [{ ...report.references[0], url: "javascript:alert(1)", title: "<script>alert(1)</script>" }] } });
     expect(html).not.toContain('href="javascript:');
     expect(html).not.toContain("<script>");
     expect(html).toContain("&lt;script&gt;");
@@ -163,7 +176,7 @@ describe("frozen ACLGraph contract", () => {
     const review = frozen.reviewSummary!;
     expect(review.type).toBe("independent-review");
     expect(review.provider).toBe("OpenCode Go");
-    for (const path of ["/topics/aclgraph", "/topics/aclgraph?read=brief"]) {
+    for (const path of ["/topics/aclgraph?view=report", "/topics/aclgraph?read=brief"]) {
       const html = render(path, actual);
       expect(html.match(/class="survey-evidence-detail"/g)).toHaveLength(7);
       for (const evidence of frozen.evidenceDetails!) {
@@ -199,7 +212,7 @@ describe("frozen ACLGraph contract", () => {
       expect(filtered).toContain(renderToStaticMarkup(<>{selected.title}</>));
     }
     const directory = render("/topics", { ...topic, report: undefined });
-    expect(directory).toContain("综述准备中");
+    expect(directory).toContain("ACL Graph");
   });
   it("unlocks only artifact paths checked for the same frozen metadata", async () => {
     const request = mockRequest();

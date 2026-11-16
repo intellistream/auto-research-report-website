@@ -24,11 +24,13 @@ function render(path: string, topic = nextTopic) {
 }
 
 describe("academic manuscript branch", () => {
-  it("shows the ACLGraph guide by default and links to both expert views", () => {
+  it("uses one topic title and navigation for all four sections", () => {
     const html = render("/topics/aclgraph");
     expect(html).toContain("一次前向怎样用上 ACLGraph？");
     expect(html).toContain("view=paper");
     expect(html).toContain("view=report");
+    expect(html).toContain("view=evidence");
+    expect(html).toContain("<h1>ACL Graph</h1>");
     expect(html).not.toContain("<iframe");
   });
   it("opens the real paper with its isolated HTML and same-version editable downloads", () => {
@@ -48,20 +50,20 @@ describe("academic manuscript branch", () => {
     expect(html).not.toContain(oldTopic.report!.abstract);
     expect(html).toContain("view=report");
     const reportView = render("/topics/aclgraph?view=report");
-    expect(reportView).toContain("工程证据的持续积累");
-    expect(reportView).toContain("学术综述稿");
+    expect(reportView).toContain(oldTopic.report!.title);
+    expect(reportView).not.toContain("工程证据的持续积累");
+    expect(reportView).not.toContain("取材证据附录");
     expect(reportView).not.toContain("<iframe");
   });
-  it("uses the manuscript title, abstract and keywords in the directory", () => {
+  it("names the topic in the directory and keeps the manuscript inside its own section", () => {
     const html = render("/topics");
-    expect(html).toContain(paper.title);
-    expect(html).toContain(paper.abstract);
-    expect(html).toContain("ACLGraph；动态图执行");
-    expect(html).toContain("阅读论文全文");
-    expect(html).not.toContain(oldTopic.report!.abstract);
+    expect(html).toContain("ACL Graph");
+    expect(html).toContain("PR 与趋势");
+    expect(html).not.toContain(paper.title);
+    expect(html).not.toContain(paper.abstract);
   });
   it("retains current report behavior when metadata is absent", () => {
-    const html = render("/topics/aclgraph", oldTopic);
+    const html = render("/topics/aclgraph?view=report", oldTopic);
     expect(html).toContain("局部工程证据对照");
     expect(html).not.toContain("<iframe");
     expect(html).not.toContain(paper.title);
@@ -77,10 +79,10 @@ describe("academic manuscript branch", () => {
     expect(academicPaperHrefs("aclgraph", { ...paper, manifestPath: "https://example.com/manifest.json" })).toBeUndefined();
     expect(academicPaperHrefs("aclgraph", { ...paper, assets: { ...paper.assets, pdf: { ...paper.assets.pdf, sha256: "invalid" } } })).toBeUndefined();
   });
-  it("rejects malformed metadata in both directory and detail instead of navigating", () => {
+  it("keeps the topic accessible and reports malformed metadata inside the survey section", () => {
     const bad = { ...paper, keywords: undefined } as unknown as AcademicPaper;
-    expect(render("/topics", { ...nextTopic, academicPaper: bad })).toContain("论文版本元数据无效");
-    expect(render("/topics/aclgraph", { ...nextTopic, academicPaper: bad })).toContain("论文版本元数据无效");
+    expect(render("/topics", { ...nextTopic, academicPaper: bad })).toContain("ACL Graph");
+    expect(render("/topics/aclgraph?view=paper", { ...nextTopic, academicPaper: bad })).toContain("论文版本元数据无效");
   });
   it("extracts existing paper headings and focuses only heading targets without injecting HTML", () => {
     const heading = { id: "section-1", tagName: "H2", textContent: "  论文第一节  ", tabIndex: 0, scrollIntoView: vi.fn(), focus: vi.fn() };
@@ -105,7 +107,7 @@ describe("academic manuscript branch", () => {
     expect(html).not.toContain("survey-page");
     expect(html).not.toContain("独立审查摘要");
     const directory = render("/topics", publishedTopic);
-    expect(directory).toContain(renderToStaticMarkup(<>{actual.abstract}</>));
+    expect(directory).not.toContain(renderToStaticMarkup(<>{actual.abstract}</>));
     expect(directory).not.toContain(renderToStaticMarkup(<>{oldTopic.report!.abstract}</>));
   });
 });
