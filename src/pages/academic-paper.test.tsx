@@ -5,6 +5,7 @@ import TopicPages, { type Topic, type TopicIndex } from "./TopicPages";
 import actualIndex from "../../public/word-reports/topics.json";
 import { academicPaperHeadings, academicPaperHrefs, PAPER_FILES, revealPaperHeading, type AcademicPaper } from "./academic-paper";
 
+const archiveBase = import.meta.env.BASE_URL + "word-reports/";
 const version = "c".repeat(64);
 const prefix = `topic-papers/aclgraph/${version}/`;
 const paper: AcademicPaper = {
@@ -27,13 +28,13 @@ describe("academic manuscript branch", () => {
     const html = render("/topics/aclgraph");
     expect(html).toContain("真正论文标题");
     expect(html).toContain("Actual Academic Paper");
-    expect(html).toContain(`src="/word-reports/${prefix}paper.html"`);
+    expect(html).toContain(`src="${archiveBase}${prefix}paper.html"`);
     expect(html).toContain('sandbox="allow-same-origin"');
     expect(html).toContain('referrerPolicy="no-referrer"');
     expect(html).toContain('title="真正论文标题 — 论文全文"');
     expect(html).not.toContain("allow-scripts");
     expect(html).not.toContain("srcDoc=");
-    for (const name of [...Object.values(PAPER_FILES), "manifest.json"]) expect(html).toContain(`/word-reports/${prefix}${name}`);
+    for (const name of [...Object.values(PAPER_FILES), "manifest.json"]) expect(html).toContain(`${archiveBase}${prefix}${name}`);
     expect(html).not.toContain("局部工程证据对照");
     expect(html).not.toContain("独立审查摘要");
     expect(html).not.toContain("工程证据的持续积累");

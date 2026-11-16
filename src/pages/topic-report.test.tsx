@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import TopicPages, { type Entry, type Topic } from "./TopicPages";
 import { evidenceTimeline, loadFrozenVersion, reportOverview, revealTopicPart, safeTopicSource, sectionLead, topicArtifactHref, type ResearchReport } from "./topic-report";
 
+const archiveBase = import.meta.env.BASE_URL + "word-reports/";
 const version = "a".repeat(64);
 const entry: Entry = {
   workId: "github:vllm-project/vllm-ascend#1", title: "设备边界复用", repository: "vllm-ascend",
@@ -50,7 +51,7 @@ describe("living topic report", () => {
     expect(html).toContain("综述方法");
     expect(html).toContain("日报历史证据＋一手PR抽查");
     expect(html).not.toContain("日报工程分析");
-    expect(html).not.toContain(`href="/word-reports/topic-reports/aclgraph/${version}/report.pdf"`);
+    expect(html).not.toContain(`href="${archiveBase}topic-reports/aclgraph/${version}/report.pdf"`);
     expect(html).toContain("正在核验冻结版本");
     expect(html).toContain('<details open="" id="survey-section-0"');
     expect(html).not.toContain('<details open="" id="survey-appendix"');
@@ -72,7 +73,7 @@ describe("living topic report", () => {
     expect(html).toContain('id="survey-section-0"');
     expect(html).not.toContain('<details open="" id="survey-section-0"');
     expect(html).toContain("PDF 尚未生成");
-    expect(html).not.toContain(`href="/word-reports/topic-reports/aclgraph/${version}/report.pdf"`);
+    expect(html).not.toContain(`href="${archiveBase}topic-reports/aclgraph/${version}/report.pdf"`);
   });
   it("shows a preparation status for a legacy topic without a survey", () => {
     const html = render("/topics/aclgraph", { ...topic, report: undefined }, 1);
@@ -203,8 +204,8 @@ describe("frozen ACLGraph contract", () => {
   it("unlocks only artifact paths checked for the same frozen metadata", async () => {
     const request = mockRequest();
     const result = await loadFrozenVersion("aclgraph", frozen.version, new AbortController().signal, actual.report, request);
-    expect(result.hrefs.pdf).toBe(`/word-reports/${frozen.pdfPath}`);
-    expect(result.hrefs.html).toBe(`/word-reports/${frozen.htmlPath}`);
+    expect(result.hrefs.pdf).toBe(`${archiveBase}${frozen.pdfPath}`);
+    expect(result.hrefs.html).toBe(`${archiveBase}${frozen.htmlPath}`);
     expect(request).toHaveBeenCalledTimes(4);
   });
   it("rejects a stale index even when its version hash is unchanged", async () => {
