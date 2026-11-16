@@ -147,11 +147,13 @@ npm run build
 
 失败可在修复原因后用相同参数重新运行。首次公开发布验收通过后，再启用上游每日生成调度。
 
-## 技术专题试运行
+## 技术专题
 
-默认站点从 `public/word-reports/topics.json` 读取专题；导航「技术专题」可查看列表。
-索引由上游仓库的 `sage-daily build-topics` 生成，输入是本站日报归档。导入或切换日报当前版后，
-可在上游重新执行命令刷新索引。专题页可按社区和子方向筛选，并跳转至对应版本的日报正文。
+导航「技术专题」读取 `public/word-reports/topics.json`。ACLGraph 默认展示学术综述全文，提供同版本 PDF、HTML、LaTeX、BibTeX、Markdown 和源码 ZIP；可切换至保留的动态研究报告，查看证据、趋势与版本记录。KV Cache 和推测解码沿用原有 PR 索引、筛选与日报回溯入口。
+
+技术专题从后端独立构建。取材复用此仓库的日报归档，论文及原始 PR 核验进入专题研究稿。后端 `build-topic-reports` 写入冻结的 `topic-reports/<id>/<version>/`，然后更新 `topics.json`。上游使用 `topics/README.md` 中的命令构建；站点提交索引及新增版本目录后，现有 Pages 构建即可发布。发布前执行 `python -X utf8 -m unittest discover -s scripts`、`npm test` 和 `npm run build`，覆盖索引、历史链、资产 SHA-256 及页面路由。
+
+独立的学术稿使用 `scripts/import-academic-paper.py` 产出冻结资产和候选索引。当前正文以其稿件标识和资料截止日期引用；动态报告更新时继续提供此学术快照。
 
 ## 旧版 JSON 数据导入
 

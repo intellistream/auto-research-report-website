@@ -1,0 +1,5 @@
+# Frozen topic artifacts are covered by byte hashes.
+public/word-reports/topic-reports/** -text
+public/word-reports/topic-papers/** -text
+public/word-reports/topic-reports/**/*.pdf binary
+public/word-reports/topic-papers/**/*.pdf binary
