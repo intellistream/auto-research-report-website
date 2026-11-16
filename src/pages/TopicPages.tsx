@@ -1,10 +1,12 @@
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { useEffect } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import "./topics.css";
 import TopicResearchReport, { TopicReportCard } from "./TopicResearchReport";
 import type { ResearchReport } from "./topic-report";
 import TopicAcademicPaper, { AcademicPaperCard } from "./TopicAcademicPaper";
-import type { AcademicPaper } from "./academic-paper";
+import { academicPaperHrefs, type AcademicPaper } from "./academic-paper";
+import AclGraphGuide from "./AclGraphGuide";
 
 export type Entry = {
   workId: string;
@@ -103,6 +105,10 @@ function TopicDetail({ topic }: { topic: Topic }) {
 export default function TopicPages({ index, error }: { index?: TopicIndex; error?: string }) {
   const { topicId } = useParams();
   const [query] = useSearchParams();
+  const view = query.get("view");
+  useEffect(() => {
+    if (topicId === "aclgraph") window.scrollTo(0, 0);
+  }, [topicId, view]);
   if (error) return <p role="alert">暂无可用的专题索引。<Link to="/reports">查看日报档案</Link></p>;
   if (!index) return <p role="status">正在加载专题…</p>;
   if (![1, 2].includes(index.schemaVersion) || !Array.isArray(index.topics)) {
@@ -113,7 +119,9 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
   return (
     <div className="topic-page">
       {topic ? (
-        topic.academicPaper && (query.get("view") !== "report" || !topic.report) ? (
+        topic.id === "aclgraph" && topic.academicPaper && !["paper", "report"].includes(view ?? "") && academicPaperHrefs(topic.id, topic.academicPaper) ? (
+          <AclGraphGuide topic={topic} />
+        ) : topic.academicPaper && (view !== "report" || !topic.report) ? (
           <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} />
         ) : index.schemaVersion === 2 && topic.report ? (
           <TopicResearchReport key={topic.report.version} topic={topic} report={topic.report} />

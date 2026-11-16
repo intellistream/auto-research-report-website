@@ -8,15 +8,16 @@ import "./topic-academic-paper.css";
 export function AcademicPaperCard({ topic, paper }: { topic: Topic; paper: AcademicPaper }) {
   if (!academicPaperHrefs(topic.id, paper)) return <li className="topic-card"><h2>{topic.title}</h2><p>论文版本元数据无效，等待修正。</p></li>;
   const route = `/topics/${topic.id}`;
+  const paperRoute = topic.id === "aclgraph" ? `${route}?view=paper` : route;
   return <li className="topic-card survey-directory-card">
     <div className="survey-card-top">
       <span className="survey-status">学术综述稿</span>
       <time className="topic-meta" dateTime={paper.literatureCutoff}>{paper.literatureCutoff}</time>
     </div>
-    <h2><Link to={route}>{paper.title} <ArrowUpRight size={16} /></Link></h2>
+    <h2><Link to={paperRoute}>{paper.title} <ArrowUpRight size={16} /></Link></h2>
     <p className="survey-card-abstract">{paper.abstract}</p>
     <div className="survey-card-question"><span>关键词</span><p>{paper.keywords.join("；")}</p></div>
-    <div className="survey-card-bottom"><Link to={route} className="survey-read-link">阅读论文全文 <ArrowUpRight size={14} /></Link></div>
+    <div className="survey-card-bottom">{topic.id === "aclgraph" && <Link to={route} className="survey-read-link">先读专题导引 <ArrowUpRight size={14} /></Link>}<Link to={paperRoute} className="survey-read-link">阅读论文全文 <ArrowUpRight size={14} /></Link></div>
   </li>;
 }
 
@@ -49,7 +50,7 @@ export default function TopicAcademicPaper({ topic, paper }: { topic: Topic; pap
   }
   if (!hrefs) return <p role="alert">论文版本元数据无效，无法读取此稿。<Link to="/topics">返回专题目录</Link></p>;
   return <div className="academic-paper-page">
-    <Link className="topic-back" to="/topics"><ArrowLeft size={16} /> 专题目录</Link>
+    <Link className="topic-back" to={topic.id === "aclgraph" ? `/topics/${topic.id}` : "/topics"}><ArrowLeft size={16} /> {topic.id === "aclgraph" ? "返回专题导引" : "专题目录"}</Link>
     <header className="topic-heading"><p className="topic-meta">学术综述稿 · 资料截止 <time dateTime={paper.literatureCutoff}>{paper.literatureCutoff}</time> · 稿件修订 {paper.manuscriptRevision}</p><h1>{paper.title}</h1><p lang="en">{paper.titleEn}</p>
       <div className="academic-paper-downloads"><a href={hrefs.pdf} download={`${topic.id}-${paper.version.slice(0, 12)}.pdf`}><Download size={16} /> 下载同版 PDF</a>{topic.report && <Link to={{ search: "view=report" }}>查看动态研究报告与趋势</Link>}<a href={hrefs.html} target="_blank" rel="noreferrer">独立打开 HTML 全文 <ArrowUpRight size={14} /></a></div>
       <details className="academic-paper-sources"><summary>可编辑源码与冻结清单</summary><div className="topic-links"><a href={hrefs.latex} download>LaTeX</a><a href={hrefs.bibtex} download>BibTeX</a><a href={hrefs.markdown} download>Markdown</a><a href={hrefs.sources} download>源码 ZIP（含重建说明）</a><a href={hrefs.manifest} target="_blank" rel="noreferrer">版本与校验清单</a></div><code>{paper.version}</code></details>

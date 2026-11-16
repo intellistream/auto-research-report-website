@@ -149,7 +149,7 @@ npm run build
 
 ## 技术专题
 
-导航「技术专题」读取 `public/word-reports/topics.json`。ACLGraph 默认展示学术综述全文，提供同版本 PDF、HTML、LaTeX、BibTeX、Markdown 和源码 ZIP；可切换至保留的动态研究报告，查看证据、趋势与版本记录。KV Cache 和推测解码沿用原有 PR 索引、筛选与日报回溯入口。
+导航「技术专题」读取 `public/word-reports/topics.json`。ACLGraph 默认展示机制导引，其中的 `?view=paper` 入口打开学术综述全文，提供同版本 PDF、HTML、LaTeX、BibTeX、Markdown 和源码 ZIP；`?view=report` 打开动态研究报告，查看证据、趋势与版本记录。导引只链接公开原始资料，保留学术稿和报告的冻结资产。KV Cache 和推测解码沿用原有 PR 索引、筛选与日报回溯入口。
 
 技术专题从后端独立构建。取材复用此仓库的日报归档，论文及原始 PR 核验进入专题研究稿。后端 `build-topic-reports` 写入冻结的 `topic-reports/<id>/<version>/`，然后更新 `topics.json`。上游使用 `topics/README.md` 中的命令构建；站点提交索引及新增版本目录后，现有 Pages 构建即可发布。发布前执行 `python -X utf8 -m unittest discover -s scripts`、`npm test` 和 `npm run build`，覆盖索引、历史链、资产 SHA-256 及页面路由。
 
