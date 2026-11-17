@@ -151,8 +151,6 @@ npm run build
 
 导航「技术专题」读取 `public/word-reports/topics.json`。ACL Graph 技术专题提供四个并列分区：导引（默认入口）、综述（`?view=paper`，含同版 PDF、HTML、LaTeX、BibTeX、Markdown 与源码 ZIP）、动态报告（`?view=report`，含版本记录）、PR 与趋势（`?view=evidence`，含趋势图和可筛选 PR 索引）。旧动态报告的取材附录深链接仍可打开 PR 索引。KV Cache 和推测解码沿用原有 PR 索引、筛选与日报回溯入口。
 
-推测解码专题的 2026-11-17 人工范围审查将 105 条规则匹配候选中的 24 条移出专题主索引，剩余 81 条**仍为待综合线索，不表示人工准入或正式综述完成**。可复核的排除 workId、原始 PR 链接和原因见 [审查记录](docs/topic-reviews/speculative-decoding-exclusions-20261117.json)，分阶段建设与验收门槛见 [执行计划](docs/topic-reviews/speculative-decoding-execution-plan-20261117.md)。历史日报、历史 PR 深链接及 ACLGraph 冻结资产保持不变。
-
 技术专题从后端独立构建。取材复用此仓库的日报归档，论文及原始 PR 核验进入专题研究稿。后端 `build-topic-reports` 写入冻结的 `topic-reports/<id>/<version>/`，然后更新 `topics.json`。上游使用 `topics/README.md` 中的命令构建；站点提交索引及新增版本目录后，现有 Pages 构建即可发布。发布前执行 `python -X utf8 -m unittest discover -s scripts`、`npm test` 和 `npm run build`，覆盖索引、历史链、资产 SHA-256 及页面路由。
 
 独立的学术稿使用 `scripts/import-academic-paper.py` 产出冻结资产和候选索引。当前正文以其稿件标识和资料截止日期引用；动态报告更新时继续提供此学术快照。
