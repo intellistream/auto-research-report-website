@@ -13,6 +13,7 @@ import "./docx-preview.css";
 
 const DailyReportReader = lazy(() => import("./DailyReportReader"));
 const TopicPages = lazy(() => import("./TopicPages"));
+const Contributors = lazy(() => import("./Contributors"));
 
 function FlowOverview({ catalog, days, result }: {
   catalog: Catalog;
@@ -213,12 +214,14 @@ export default function DocxPreview() {
             <NavLink to="/reports" end>日报档案</NavLink>
             <NavLink to="/topics">技术专题</NavLink>
             {days[0] && <Link to={`/reports/${days[0]}`} aria-current={reading ? "page" : undefined}>研报阅读</Link>}
+            <NavLink to="/contributors">贡献者</NavLink>
           </nav>
         </div>
       </header>
       <div className="docx-workspace">
         <main className={overview ? "docx-main docx-main-wide" : "docx-main"} id="main-content" ref={main} tabIndex={-1}>
-          {result?.error ? <p role="alert">{localReports ? "请先导入本地日报。" : "日报目录加载失败。"}{result.error}</p>
+          {pathname === "/contributors" ? <Suspense fallback={<p role="status">正在打开贡献者页面…</p>}><Contributors /></Suspense>
+            : result?.error ? <p role="alert">{localReports ? "请先导入本地日报。" : "日报目录加载失败。"}{result.error}</p>
             : !catalog ? <p role="status">正在加载日报索引…</p>
             : !days.length ? <p role="alert">索引为空或版本不支持。</p>
             : (
