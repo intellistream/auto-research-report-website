@@ -197,14 +197,14 @@ describe("frozen ACLGraph contract", () => {
     for (const id of ["kv-cache", "speculative-decoding"]) {
       const topic = actualIndex.topics.find((item) => item.id === id) as unknown as Topic;
       expect(topic.report).toBeUndefined();
-      const html = render(`/topics/${id}`, topic);
+      const html = render(`/topics/${id}${id === "speculative-decoding" ? "?view=evidence" : ""}`, topic);
       expect(html).toContain("专题收录 PR");
       expect(html).toContain("查看日报正文");
       expect(html).not.toContain("综述准备中");
       expect(html).not.toContain("<iframe");
       expect(html.match(/class="topic-card"/g)).toHaveLength(topic.entries.length);
       const selected = topic.entries[0];
-      const filtered = render(`/topics/${id}?repo=${selected.repository}&label=${selected.label}`, topic);
+      const filtered = render(`/topics/${id}?${id === "speculative-decoding" ? "view=evidence&" : ""}repo=${selected.repository}&label=${selected.label}`, topic);
       const expected = topic.entries.filter((entry) => entry.repository === selected.repository && entry.label === selected.label);
       expect(filtered.match(/class="topic-card"/g)).toHaveLength(expected.length);
       expect(filtered).toContain(`section=${selected.number}`);
@@ -213,6 +213,22 @@ describe("frozen ACLGraph contract", () => {
     }
     const directory = render("/topics", { ...topic, report: undefined });
     expect(directory).toContain("ACL Graph");
+  });
+  it("keeps the SpecDec guide separate from the original evidence index", () => {
+    const spec = actualIndex.topics.find((item) => item.id === "speculative-decoding") as unknown as Topic;
+    const guide = render("/topics/speculative-decoding", spec);
+    expect(guide).toContain("从候选生成到有效提交");
+    expect(guide).toContain("一次 Speculative Round");
+    expect(guide).toContain("https://github.com/vllm-project/vllm/pull/66595");
+    expect(guide).toContain("https://proceedings.mlr.press/v202/leviathan23a.html");
+    expect(guide).toContain("view=evidence");
+    expect(guide).not.toContain("下载本版 PDF");
+    const evidence = render("/topics/speculative-decoding?view=evidence", spec);
+    expect(evidence).toContain("专题收录 PR");
+    expect(evidence).toContain("查看日报正文");
+    expect(evidence).toContain("返回机制导引");
+    expect(evidence.match(/class="topic-card"/g)).toHaveLength(spec.entries.length);
+    expect(evidence).not.toContain("从候选生成到有效提交");
   });
   it("unlocks only artifact paths checked for the same frozen metadata", async () => {
     const request = mockRequest();
