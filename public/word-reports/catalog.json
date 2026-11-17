@@ -349,6 +349,48 @@
           }
         }
       ]
+    },
+    "2026-11-14": {
+      "current": "8e53c3d0adb286d03c7a885c62b4d991a8f648724504f76f2108ff9c421c4d9a",
+      "versions": [
+        {
+          "sha256": "8e53c3d0adb286d03c7a885c62b4d991a8f648724504f76f2108ff9c421c4d9a",
+          "path": "2026-11-14/8e53c3d0adb286d03c7a885c62b4d991a8f648724504f76f2108ff9c421c4d9a/report.json",
+          "counts": {
+            "upstream": 26,
+            "ascend": 1,
+            "papers": 0
+          }
+        }
+      ]
+    },
+    "2026-11-15": {
+      "current": "0bd3d3b130152e6f3d4ff068cb2acca5214c5ebb3b68f1ac19a36d5dee03e789",
+      "versions": [
+        {
+          "sha256": "0bd3d3b130152e6f3d4ff068cb2acca5214c5ebb3b68f1ac19a36d5dee03e789",
+          "path": "2026-11-15/0bd3d3b130152e6f3d4ff068cb2acca5214c5ebb3b68f1ac19a36d5dee03e789/report.json",
+          "counts": {
+            "upstream": 8,
+            "ascend": 0,
+            "papers": 0
+          }
+        }
+      ]
+    },
+    "2026-11-16": {
+      "current": "d2678efe2393164ed290c70b8fb6a89d113cdb3703a607db1a6e64354fae6d54",
+      "versions": [
+        {
+          "sha256": "d2678efe2393164ed290c70b8fb6a89d113cdb3703a607db1a6e64354fae6d54",
+          "path": "2026-11-16/d2678efe2393164ed290c70b8fb6a89d113cdb3703a607db1a6e64354fae6d54/report.json",
+          "counts": {
+            "upstream": 23,
+            "ascend": 5,
+            "papers": 0
+          }
+        }
+      ]
     }
   }
 }
