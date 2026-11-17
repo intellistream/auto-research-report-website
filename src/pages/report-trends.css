@@ -1,7 +1,9 @@
 .report-trends {
   margin-bottom: 24px;
-  padding: 22px 0 26px;
-  border-block: 1px solid var(--site-line);
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--site-line);
+  border-radius: 16px;
   background: #fff;
 }
 
@@ -83,6 +85,7 @@
 .trend-sr-only { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
 
 @media (max-width: 650px) {
+  .report-trends { padding: 16px; }
   .report-trends-heading { align-items: start; flex-wrap: nowrap; gap: 7px; }
   .report-trends-heading p { line-height: 1.5; }
   .report-trends-toggle button { padding-inline: 8px; white-space: nowrap; }
