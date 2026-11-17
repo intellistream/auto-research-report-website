@@ -60,7 +60,7 @@ function PRList({ items }: { items: IndexedPR[] }) {
       <div className="map-v2-detail-heading">
         <label className="map-v2-search">
           <Search size={16} aria-hidden />
-          <input type="search" aria-label="搜索所选环节 PR" placeholder="搜索标题或 PR 编号" value={query}
+          <input type="search" name="pr" autoComplete="off" aria-label="搜索所选环节 PR" placeholder="搜索标题或 PR 编号…" value={query}
             onChange={(event) => { setQuery(event.target.value); setPage(0); }} />
         </label>
       </div>
