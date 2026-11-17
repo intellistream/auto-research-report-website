@@ -265,10 +265,13 @@
 .archive-row time { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .docx-archive .docx-counts { margin: 0; font-size: 14px; }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   .docx-nav-inner { flex-wrap: wrap; gap: 4px; padding-top: 5px; padding-bottom: 5px; }
   .docx-nav { width: 100%; gap: 4px; }
   .docx-nav a { flex: 1; padding-inline: 4px; font-size: 13px; }
+}
+@media (max-width: 380px) { .docx-nav a { font-size: 12px; } }
+@media (max-width: 720px) {
   .docx-main { padding-top: 20px; }
   .docx-columns { grid-template-columns: minmax(0, 1fr); }
   .docx-toc { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; }
