@@ -53,7 +53,9 @@ describe("living topic report", () => {
     expect(html).not.toContain("日报工程分析");
     expect(html).not.toContain(`href="${archiveBase}topic-reports/aclgraph/${version}/report.pdf"`);
     expect(html).toContain("正在核验冻结版本");
-    expect(html).toContain('<details open="" id="survey-section-0"');
+    expect(html).toContain('id="survey-analysis" tabindex="-1"');
+    expect(html).not.toContain('id="survey-analysis" tabindex="-1" open=""');
+    expect(html).not.toContain('<details open="" id="survey-section-0"');
     expect(html).not.toContain('id="survey-appendix"');
   });
   it("uses shareable router destinations and provides a route back from each cited source", () => {
@@ -168,6 +170,11 @@ describe("frozen ACLGraph contract", () => {
     expect(html).toContain("二级日报记录");
     expect(html).toContain("待验证假设");
     expect(html).toContain("验证路径是后续研究方案");
+    expect(html.indexOf("证据怎样改变判断")).toBeLessThan(html.indexOf('id="survey-paper"'));
+    expect(html).toContain("复核 4 条已有来源");
+    expect(html).toContain("7 项证据详情");
+    expect(html).toContain("计划共享的服务差值区间含零");
+    expect(html).toContain('id="survey-evolution" tabindex="-1"');
   });
   it("renders all seven published evidence records and the full independent review in both reading modes", () => {
     expect(frozen.revision).toBeGreaterThanOrEqual(3);
@@ -176,7 +183,7 @@ describe("frozen ACLGraph contract", () => {
     const review = frozen.reviewSummary!;
     expect(review.type).toBe("independent-review");
     expect(review.provider).toBe("OpenCode Go");
-    for (const path of ["/topics/aclgraph?view=report", "/topics/aclgraph?read=brief"]) {
+    for (const path of ["/topics/aclgraph?view=report&read=full", "/topics/aclgraph?read=brief"]) {
       const html = render(path, actual);
       expect(html.match(/class="survey-evidence-detail"/g)).toHaveLength(7);
       for (const evidence of frozen.evidenceDetails!) {
