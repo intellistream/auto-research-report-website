@@ -7,7 +7,7 @@
 }
 .acl-guide :focus-visible { outline: 2px solid #276749; outline-offset: 4px; }
 .acl-guide svg { flex: none; vertical-align: middle; }
-.acl-guide a { color: #1b6247; text-underline-offset: .2em; }
+.acl-guide a { color: #1b6247; text-decoration: underline; text-underline-offset: .2em; }
 .acl-kicker {
   color: #275d48;
   font-size: .82rem;

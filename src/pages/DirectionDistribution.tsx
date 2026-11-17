@@ -34,7 +34,7 @@ function Ring({ stats, label }: { stats: Distribution; label: string }) {
             cy="80"
             r="58"
             fill="none"
-            stroke="#eef2ee"
+            stroke="var(--site-panel)"
             strokeWidth="19"
           />
           {slices.map((d) => (
