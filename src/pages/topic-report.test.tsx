@@ -193,20 +193,22 @@ describe("frozen ACLGraph contract", () => {
       expect(html).toContain("审查限制与未复现范围");
     }
   });
-  it("preserves published PR lists, filters and daily links for the two other topics", () => {
+  it("preserves the original community PR evidence and daily links across both topics", () => {
     for (const id of ["kv-cache", "speculative-decoding"]) {
-      const topic = actualIndex.topics.find((item) => item.id === id) as unknown as Topic;
-      expect(topic.report).toBeUndefined();
-      const html = render(`/topics/${id}${id === "speculative-decoding" ? "?view=evidence" : ""}`, topic);
-      expect(html).toContain("专题收录 PR");
-      expect(html).toContain("查看日报正文");
-      expect(html).not.toContain("综述准备中");
+      const current = actualIndex.topics.find((item) => item.id === id) as unknown as Topic;
+      const isSpec = id === "speculative-decoding";
+      const route = isSpec ? "?view=evidence" : "";
+      const html = render(`/topics/${id}${route}`, current);
+      expect(html).toContain(isSpec ? "PR 与趋势" : "专题收录 PR");
+      expect(html).toContain(isSpec ? "日报原文" : "查看日报正文");
       expect(html).not.toContain("<iframe");
-      expect(html.match(/class="topic-card"/g)).toHaveLength(topic.entries.length);
-      const selected = topic.entries[0];
-      const filtered = render(`/topics/${id}?${id === "speculative-decoding" ? "view=evidence&" : ""}repo=${selected.repository}&label=${selected.label}`, topic);
-      const expected = topic.entries.filter((entry) => entry.repository === selected.repository && entry.label === selected.label);
-      expect(filtered.match(/class="topic-card"/g)).toHaveLength(expected.length);
+      const cls = isSpec ? /class="topic-evidence-row"/g : /class="topic-card"/g;
+      expect(html.match(cls)).toHaveLength(current.entries.length);
+      const selected = current.entries[0];
+      const filtered = render(`/topics/${id}?${isSpec ? "view=evidence&" : ""}repo=${selected.repository}&label=${selected.label}`, current);
+      const expected = current.entries.filter((entry) =>
+        entry.repository === selected.repository && entry.label === selected.label);
+      expect(filtered.match(cls)).toHaveLength(expected.length);
       expect(filtered).toContain(`section=${selected.number}`);
       expect(filtered).toContain(`version=${selected.version}`);
       expect(filtered).toContain(renderToStaticMarkup(<>{selected.title}</>));
@@ -214,8 +216,11 @@ describe("frozen ACLGraph contract", () => {
     const directory = render("/topics", { ...topic, report: undefined });
     expect(directory).toContain("ACL Graph");
   });
-  it("keeps the SpecDec guide separate from the original evidence index", () => {
+  it("renders SpecDec guide, living report and 105 source leads as distinct views", () => {
     const spec = actualIndex.topics.find((item) => item.id === "speculative-decoding") as unknown as Topic;
+    expect(spec.entries).toHaveLength(105);
+    expect(spec.counts.total).toBe(105);
+    expect(spec.report?.synthesizedWorkIds).toHaveLength(18);
     const guide = render("/topics/speculative-decoding", spec);
     expect(guide).toContain("从候选生成到有效提交");
     expect(guide).toContain("一次 Speculative Round");
@@ -224,11 +229,21 @@ describe("frozen ACLGraph contract", () => {
     expect(guide).toContain("view=evidence");
     expect(guide).not.toContain("下载本版 PDF");
     const evidence = render("/topics/speculative-decoding?view=evidence", spec);
-    expect(evidence).toContain("专题收录 PR");
-    expect(evidence).toContain("查看日报正文");
-    expect(evidence).toContain("返回机制导引");
-    expect(evidence.match(/class="topic-card"/g)).toHaveLength(spec.entries.length);
+    expect(evidence).toContain("完整保留社区原先分类的 105 条 PR");
+    expect(evidence).toContain("日报原文");
+    expect(evidence).toContain("工程证据的持续积累");
+    expect(evidence.match(/class="topic-evidence-row"/g)).toHaveLength(105);
     expect(evidence).not.toContain("从候选生成到有效提交");
+    const living = render("/topics/speculative-decoding?view=report", spec);
+    expect(living).toContain("从候选生成到可验证的系统加速");
+    expect(living).toContain("技术路线与关键权衡");
+    expect(living).toContain("Research Gaps");
+    expect(living).toContain("局部工程证据对照");
+    expect(living).toContain("PDF 尚未生成");
+    expect(living).not.toContain("href=\"javascript:");
+    expect(living).toContain("vLLM #64915");
+    const reportVersion = spec.report!.version;
+    expect(reportVersion).toMatch(/^[a-f0-9]{64}$/);
   });
   it("unlocks only artifact paths checked for the same frozen metadata", async () => {
     const request = mockRequest();
