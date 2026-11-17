@@ -270,6 +270,9 @@
   .docx-nav { width: 100%; gap: 4px; }
   .docx-nav a { flex: 1; padding-inline: 4px; font-size: 13px; }
 }
+@media (max-width: 440px) {
+  .docx-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media (max-width: 380px) { .docx-nav a { font-size: 12px; } }
 @media (max-width: 720px) {
   .docx-main { padding-top: 20px; }

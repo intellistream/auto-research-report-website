@@ -1,8 +1,8 @@
 # 社区研报网站
 
-只读展示社区每日研究报告（`auto-research-report` 的产物）。本仓库只包含前端与已发布的数据快照，不包含采集、分析、组稿或模型调用代码。
+展示社区每日研究报告（`auto-research-report` 的产物）。本仓库包含网站前端和已发布的数据快照，实时研究查询由上游调研服务执行。
 
-负责人：Changwu Li / @Li-changwu。对应 issue #45、#51—#53。当前是只读网站与显式报告导入，不代表三组设计评审、生产接入或发布验收已完成。
+负责人：Changwu Li / @Li-changwu。日报归档对应 issue #45、#51—#53，支持只读展示和显式导入。三组设计评审、生产接入和发布验收状态以对应 issue 为准。
 
 ## 启动
 
@@ -18,6 +18,21 @@ npm run dev
 `npm test` 验证版本、日期、正文、身份、图覆盖、安全链接、产物哈希和运行身份；`npm run build` 执行 TypeScript 检查及静态构建。静态结果在 `dist/`，用 `npm run preview` 预览，不能双击 `index.html` 代替 HTTP 服务。使用 HashRouter，刷新与深链接无需额外的服务器回退配置。
 
 ## 页面
+
+### 研究查询
+
+在「研究查询」输入研究方向，选择最近 7、30、90、180 或 365 天，生成包含论文进展、近期 PR 时间线及 Research Gap 的调研报告。完成后可在页内预览、单独打开或下载 HTML。服务提供 PDF 时页面也提供下载，HTML 同样可通过浏览器的打印功能另存为 PDF。
+
+本地联调时，先启动上游调研服务，再在网站仓库根目录运行：
+
+```powershell
+$env:RESEARCH_API_PROXY = "http://127.0.0.1:8765"
+npm run dev -- --host 127.0.0.1
+```
+
+打开 `http://127.0.0.1:5173/#/research`。Vite 将 `/api/research` 转发给调研服务。同源部署可通过网关转发此路径。
+
+GitHub Pages 使用独立的 HTTPS 调研服务。将服务地址设为网站仓库的 Actions 变量 `VITE_RESEARCH_API_BASE`，在后端通过 `RESEARCH_ALLOWED_ORIGINS` 放行站点的 Origin（如 `https://lab.sage.org.ai`），再从 `main` 运行 Website 工作流重建页面。GitHub 和模型凭据由后端配置。
 
 ### 贡献者
 
@@ -186,4 +201,4 @@ npm run build
 
 ## 已知范围
 
-本版已经实现统计首页、四类阅读/档案页面、下载和显式真实报告导入。没有后端、账号、任务触发、在线编辑或审批。浏览器 UI 检查与上游交接说明见上游仓库的 `docs/website-preview.md`。
+本版支持统计首页、阅读与归档、下载、显式导入日报和研究查询。浏览器 UI 检查与上游交接说明见上游仓库的 `docs/website-preview.md`。
