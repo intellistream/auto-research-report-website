@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import "./aclgraph-guide.css";
@@ -52,10 +52,9 @@ const approaches = [
 
 export default function SpecDecGuide({ topic }: { topic: Topic }) {
   return <article className="acl-guide" aria-label="推测解码机制导引">
-    <Link className="topic-back" to="/topics"><ArrowLeft size={16} /> 技术专题</Link>
     <header className="topic-heading acl-guide-intro">
       <div className="docx-eyebrow">技术专题 · 机制导引</div>
-      <h1>推测解码：从候选生成到有效提交</h1>
+      <h2>从候选生成到有效提交</h2>
       <p className="acl-deck">先理解一次推测轮次的正确性与成本，再沿着论文、官方实现和原始 PR 追踪工程机制。这里是研究导引，不是已完成的学术综述或性能复现。</p>
       <p className="topic-coverage">当前社区索引 {topic.entries.length} 条候选；来源归档覆盖 {topic.coverage.firstDay} 至 {topic.coverage.lastDay}。候选不等于已审定的研究结论。</p>
       <p><Link to={{ search: "view=evidence" }}>查看 PR 与日报原文 <ArrowRight size={14} aria-hidden="true" /></Link></p>
