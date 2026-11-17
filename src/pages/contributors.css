@@ -1,18 +1,36 @@
+.contributors-page { max-width: 960px; margin-inline: auto; }
 .contributors-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: 13px; }
-.contributors-heading { margin: 16px 0 28px; }
-.contributors-heading h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 36px); line-height: 1.25; }
-.contributors-heading p { margin: 0; color: var(--site-muted); font-size: 15px; }
-.contributors-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 0; padding: 0; list-style: none; }
+.contributors-heading { margin: 12px 0 24px; }
+.contributors-heading h1 { margin: 0 0 8px; font-size: clamp(28px, 3vw, 32px); line-height: 1.25; }
+.contributors-heading p { margin: 0; color: var(--site-muted); font-size: 14px; }
+.contributors-grid { margin: 0; padding: 0; list-style: none; border: 1px solid var(--site-line); border-radius: 12px; background: var(--site-surface); }
 .contributors-grid > li { min-width: 0; }
-.contributor-card { display: flex; flex-direction: column; height: 100%; padding: 24px; border: 1px solid var(--site-line); border-radius: 12px; background: var(--site-surface); }
-.contributor-card header { display: flex; align-items: center; gap: 14px; }
-.contributor-card header > div { min-width: 0; }
-.contributor-card img { flex: none; border-radius: 50%; background: var(--site-tint); object-fit: cover; }
-.contributor-card h2 { margin: 0 0 4px; color: var(--site-ink); font-size: 19px; line-height: 1.4; overflow-wrap: anywhere; }
-.contributor-card header span { color: var(--site-muted); font-size: 12px; overflow-wrap: anywhere; }
-.contributor-introduction { margin: 20px 0 12px; color: var(--site-ink); font-size: 14px; line-height: 1.85; }
-.contributor-bio { margin: 0 0 16px; color: var(--site-muted); font-size: 13px; line-height: 1.7; }
-.contributor-homepage { display: flex; align-items: center; gap: 7px; min-height: 44px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--site-line); font-size: 13px; font-weight: 600; }
-.contributor-homepage > svg:last-child { margin-left: auto; }
-@media (max-width: 960px) { .contributors-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 600px) { .contributors-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; } .contributor-card { padding: 20px; } .contributors-heading { margin: 10px 0 20px; } }
+.contributors-grid > li + li { border-top: 1px solid var(--site-line); }
+.contributor-card {
+  display: grid; grid-template-columns: 80px minmax(0, 1fr) auto;
+  grid-template-areas: "avatar identity homepage" "avatar details homepage";
+  align-items: start; column-gap: 24px; row-gap: 10px; padding: 28px;
+}
+.contributor-avatar { grid-area: avatar; width: 80px; height: 80px; border: 1px solid var(--site-line); border-radius: 50%; background: var(--site-tint); object-fit: cover; }
+.contributor-identity { grid-area: identity; min-width: 0; }
+.contributor-identity h2 { margin: 0 0 3px; color: var(--site-ink); font-size: 20px; line-height: 1.4; overflow-wrap: anywhere; }
+.contributor-identity > span { color: var(--site-muted); font-size: 12px; overflow-wrap: anywhere; }
+.contributor-details { grid-area: details; max-width: 60ch; }
+.contributor-introduction { margin: 0; color: var(--site-ink); font-size: 14px; line-height: 1.8; }
+.contributor-bio { margin: 6px 0 0; color: var(--site-muted); font-size: 12px; line-height: 1.7; }
+.contributor-homepage {
+  grid-area: homepage; align-self: center; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 10px 14px; border: 1px solid #bdd7c9; border-radius: 6px;
+  background: var(--site-panel); font-size: 13px; font-weight: 600; white-space: nowrap;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+.docx-preview .contributor-homepage:hover { background: var(--site-tint); border-color: #82b69c; text-decoration: none; }
+@media (max-width: 720px) {
+  .contributor-card { grid-template-columns: 64px minmax(0, 1fr); grid-template-areas: "avatar identity" "details details" "homepage homepage"; padding: 20px; gap: 14px 16px; }
+  .contributor-avatar { width: 64px; height: 64px; }
+  .contributor-identity { align-self: center; }
+  .contributor-identity h2 { font-size: 19px; }
+  .contributor-homepage { justify-self: start; }
+  .contributors-heading { margin: 8px 0 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .contributor-homepage { transition: none; } }

@@ -30,12 +30,12 @@ export default function Contributors() {
     <ul className="contributors-grid">
       {contributors.map(person => <li key={person.username}>
         <article className="contributor-card" aria-labelledby={`contributor-${person.username}`}>
-          <header>
-            <img src={`https://avatars.githubusercontent.com/u/${person.avatarId}?s=160&v=4`} alt="" width={64} height={64} decoding="async" />
-            <div><h2 id={`contributor-${person.username}`}>{person.name}</h2><span>@{person.username}</span></div>
-          </header>
-          <p className="contributor-introduction">{person.introduction}</p>
-          {"bio" in person && <p className="contributor-bio" lang="en">{person.bio}</p>}
+          <img className="contributor-avatar" src={`https://avatars.githubusercontent.com/u/${person.avatarId}?s=160&v=4`} alt="" width={80} height={80} decoding="async" />
+          <header className="contributor-identity"><h2 id={`contributor-${person.username}`}>{person.name}</h2><span>@{person.username}</span></header>
+          <div className="contributor-details">
+            <p className="contributor-introduction">{person.introduction}</p>
+            {"bio" in person && <p className="contributor-bio" lang="en">{person.bio}</p>}
+          </div>
           <a className="contributor-homepage" href={`https://github.com/${person.username}`} target="_blank" rel="noopener noreferrer"
             aria-label={`访问 ${person.name} 的 GitHub 主页（新窗口）`}>
             <Github size={17} aria-hidden />GitHub 主页<ArrowUpRight size={16} aria-hidden />
