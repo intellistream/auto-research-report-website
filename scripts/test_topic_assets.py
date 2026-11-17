@@ -39,7 +39,14 @@ class TopicAssetsTest(unittest.TestCase):
                         self.assertEqual(manifest["previousVersion"], report["previousVersion"])
                         frozen = json.loads((ARCHIVE / folder / "report.json").read_bytes())
                         self.assertEqual(frozen, report)
-                        for name in ("report.pdf", "report.html", "report.md", "report.json"):
+                        expected_assets = {"report.html", "report.md", "report.json"}
+                        if report.get("pdfPath"):
+                            self.assertEqual(report["pdfPath"], f"{folder}/report.pdf")
+                            expected_assets.add("report.pdf")
+                        # A research-draft report may have a validated HTML/MD snapshot
+                        # before its reviewed PDF is available; do not invent a PDF.
+                        self.assertEqual(set(manifest["assets"]), expected_assets)
+                        for name in sorted(expected_assets):
                             self.check_asset(ARCHIVE / folder / name, manifest["assets"][name])
                         previous = report["previousVersion"]
                         if not previous:
