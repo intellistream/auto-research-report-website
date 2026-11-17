@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
-import { ArrowLeft, ArrowRight, Check, Pause, Play, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Database, Layers, Pause, Play, RotateCcw, X } from "lucide-react";
 import { inferenceDemos, type DemoStage, type DemoCell } from "./inference-demo-data";
 import "./inference-demo.css";
 
@@ -10,6 +10,7 @@ export default function InferenceStageDemo({ stage, onSelect }: { stage: DemoSta
   const [step, setStep] = useState(0);
   const [playback, setPlayback] = useState<"idle" | "playing" | "paused" | "complete">("idle");
   const [run, setRun] = useState(0);
+  const [expanded, setExpanded] = useState(false);
   const timeline = useRef({ key: "", remaining: 0 });
   const root = useRef<HTMLDivElement>(null);
   const id = useId();
@@ -71,7 +72,7 @@ export default function InferenceStageDemo({ stage, onSelect }: { stage: DemoSta
       <span key={`${run}:${cell?.id}:${cell?.state}`} className="flow-demo-cell"
         role={cell ? "img" : undefined}
         data-state={cell?.state ?? "empty"} data-enter={changed && cell?.state !== "pending" ? "true" : undefined}
-        style={{ "--cell-delay": `${parallel ? lane * 100 : (stage === "output_return" ? lane * 320 : 0) + index * 90}ms` } as CSSProperties}
+        style={{ "--cell-delay": `${parallel ? lane * 60 : (stage === "output_return" ? lane * 160 : 0) + index * 50}ms` } as CSSProperties}
         aria-label={cell ? `${cell.state === "pending" ? "" : cell.text + "，"}${stateLabels[cell.state]}` : undefined}
         aria-hidden={!cell ? true : undefined}>
         {cell?.state === "accepted" && <Check size={13} aria-hidden />}
@@ -83,7 +84,7 @@ export default function InferenceStageDemo({ stage, onSelect }: { stage: DemoSta
 
   return <div className="flow-demo" ref={root} data-stage={stage} data-playback={playback}
     style={{ "--step-duration": `${frame.duration}ms` } as CSSProperties}>
-    <div className="flow-demo-intro"><span>{scenario.context}</span><p>{scenario.purpose}</p></div>
+    <p className="flow-demo-context">{scenario.context}</p>
     <div className="flow-demo-steps" role="group" aria-label="演示步骤">
       {scenario.steps.map((item, index) => <button key={item.title} type="button" aria-current={index === step ? "step" : undefined}
         aria-controls={id + "-scene"} onClick={() => chooseStep(index)} data-state={index === step ? "active" : index < step ? "done" : "pending"}>
@@ -93,39 +94,40 @@ export default function InferenceStageDemo({ stage, onSelect }: { stage: DemoSta
       </button>)}
     </div>
     <div id={id + "-scene"} className="flow-demo-scene" role="group" aria-label={frame.title}>
-      <div className="flow-demo-narration">
-        {scenario.steps.map((item, index) => <p key={item.title} aria-hidden={index !== step ? true : undefined} data-visible={index === step}>
-          <span>第 {index + 1} 步</span>{item.explanation}
-        </p>)}
-      </div>
       <div className="flow-demo-board">
         {scenario.lanes.map((label, lane) => {
           const slots = Math.max(...scenario.steps.map(item => item.rows[lane].cells.length));
+          const Icon = label.includes("KV") || label.includes("缓存") ? Database : Layers;
           return <div className="flow-demo-lane" key={label}>
-            <div className="flow-demo-lane-heading"><strong>{label}</strong><span>{frame.rows[lane].status}</span></div>
+            <div className="flow-demo-lane-heading"><Icon size={16} aria-hidden /><strong>{label}</strong></div>
             <div className="flow-demo-cells" style={{ "--slots": slots } as CSSProperties}>
               {Array.from({ length: slots }, (_, index) => renderCell(frame.rows[lane].cells[index], index, lane))}
             </div>
+            <span className="flow-demo-lane-status">{frame.rows[lane].status}</span>
+            {lane < 2 && <ArrowRight className="flow-demo-connector" size={18} aria-hidden />}
           </div>;
         })}
       </div>
-      <div className="flow-demo-legend" role="group" aria-label="图示说明"><span><i data-kind="existing" />已有内容</span><span><i data-kind="changing" />本步变化</span><span>虚线格：尚未就绪</span></div>
     </div>
     <div className="flow-demo-controls">
       <button type="button" className="flow-demo-play" onClick={togglePlayback}>
         {playing ? <Pause size={15} aria-hidden /> : step === last && playback !== "paused" ? <RotateCcw size={15} aria-hidden /> : <Play size={15} aria-hidden />}
-        {playing ? "暂停" : playback === "paused" ? "继续播放" : step === last ? "重播讲解" : "播放讲解"}
+        {playing ? "暂停" : playback === "paused" ? "继续" : step === last ? "重播" : "播放"}
       </button>
       <div className="flow-demo-seek">
-        <button type="button" disabled={step === 0} onClick={() => chooseStep(step - 1)}><ArrowLeft size={15} aria-hidden />上一步</button>
-        <button type="button" disabled={step === last} onClick={() => chooseStep(step + 1)}>下一步<ArrowRight size={15} aria-hidden /></button>
+        <button type="button" aria-label="上一步" title="上一步" disabled={step === 0} onClick={() => chooseStep(step - 1)}><ArrowLeft size={15} aria-hidden /></button>
+        <button type="button" aria-label="下一步" title="下一步" disabled={step === last} onClick={() => chooseStep(step + 1)}><ArrowRight size={15} aria-hidden /></button>
       </div>
-      <button type="button" className="flow-demo-restart" onClick={replay} aria-label="从头播放讲解" title="从头播放"><RotateCcw size={16} aria-hidden /></button>
-      <span className="flow-demo-position" role="status">{step + 1} / {scenario.steps.length} · {playing ? "播放中" : playback === "paused" ? "已暂停" : playback === "complete" ? "播放完毕" : "逐步阅读"}<span className="map-v2-sr-only">，{frame.title}</span></span>
+      <span className="flow-demo-position" role="status">{step + 1} / {scenario.steps.length}<span className="map-v2-sr-only">，{frame.title}，{playing ? "播放中" : playback === "paused" ? "已暂停" : playback === "complete" ? "播放完毕" : "逐步阅读"}</span></span>
+      <button type="button" className="flow-demo-explain" aria-expanded={expanded} aria-controls={id + "-details"} onClick={() => {
+        setExpanded(current => !current);
+        if (!expanded) setPlayback(current => current === "playing" ? "paused" : current);
+      }}>{expanded ? "收起说明" : "原理说明"}</button>
     </div>
-    <div className="flow-demo-takeaway"><div><span>结果与去向</span><p>{scenario.result}</p></div>
+    <section className="flow-demo-note" id={id + "-details"} hidden={!expanded} aria-label="原理说明"><p>{scenario.purpose}</p>
+      <ol>{scenario.steps.map(item => <li key={item.title}><strong>{item.title}</strong><p>{item.explanation}</p></li>)}</ol>
+      <p>{scenario.result}</p><p>{scenario.note}</p><p>动画仅为流程示意。<a href={scenario.reference.url} target="_blank" rel="noreferrer">{scenario.reference.label} ↗</a></p>
       {onSelect && <button type="button" onClick={() => onSelect(scenario.next.stage)}>{scenario.next.action ?? "继续看"}：{scenario.next.label}<ArrowRight size={15} aria-hidden /></button>}
-    </div>
-    <details className="flow-demo-note"><summary>示意说明与技术依据</summary><p>{scenario.note}</p><p>动画按阅读节奏播放，不表示实际耗时。<a href={scenario.reference.url} target="_blank" rel="noreferrer">{scenario.reference.label} ↗</a></p></details>
+    </section>
   </div>;
 }
