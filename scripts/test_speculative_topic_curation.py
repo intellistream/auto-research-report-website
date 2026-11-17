@@ -83,7 +83,9 @@ class SpeculativeTopicCurationTest(unittest.TestCase):
         ids = [entry["workId"] for entry in self.entries]
         self.assertEqual(len(ids), len(set(ids)))
         self.assertTrue(set(ids).isdisjoint(item["workId"] for item in self.audit["exclusions"]))
-        self.assertTrue(all(entry["method"] == "rule" for entry in self.entries))
+        self.assertTrue(all(entry["method"] in {"rule", "manual"} for entry in self.entries))
+        if self.topic["counts"]["manualIncluded"] == 0:
+            self.assertTrue(all(entry["method"] == "rule" for entry in self.entries))
         counts = self.topic["counts"]
         self.assertEqual(counts["total"], len(self.entries))
         self.assertGreaterEqual(counts["manualExcluded"], 24)
