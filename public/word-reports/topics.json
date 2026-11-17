@@ -2041,17 +2041,17 @@
     {
       "counts": {
         "byLabel": {
-          "methods": 48,
-          "runtime": 6,
-          "verification": 27
+          "methods": 57,
+          "runtime": 17,
+          "verification": 31
         },
         "byRepository": {
-          "vllm": 55,
-          "vllm-ascend": 26
+          "vllm": 68,
+          "vllm-ascend": 37
         },
-        "manualExcluded": 24,
+        "manualExcluded": 0,
         "manualIncluded": 0,
-        "total": 81
+        "total": 105
       },
       "coverage": {
         "days": 21,
@@ -2074,6 +2074,20 @@
           "url": "https://github.com/vllm-project/vllm-ascend/pull/21512",
           "version": "52ea07cd92494d40097ea0308f73407ac1a6998ab6b574700001cb50d68276ad",
           "workId": "github:vllm-project/vllm-ascend#21512"
+        },
+        {
+          "day": "2026-11-11",
+          "label": "runtime",
+          "method": "rule",
+          "number": "V13",
+          "reason": "日报原文匹配：推测解码",
+          "repository": "vllm",
+          "stage": "decode",
+          "summary": "将纯、均匀的 1–16 行 Decode 步送入专用层。混合批、较宽批次及不支持的图模式继续走通用路径。",
+          "title": "将 Kimi-K3 的 MI355X 单内核路径用于常规生成",
+          "url": "https://github.com/vllm-project/vllm/pull/61498",
+          "version": "52ea07cd92494d40097ea0308f73407ac1a6998ab6b574700001cb50d68276ad",
+          "workId": "github:vllm-project/vllm#61498"
         },
         {
           "day": "2026-11-11",
@@ -2163,6 +2177,20 @@
           "day": "2026-11-10",
           "label": "methods",
           "method": "rule",
+          "number": "V7",
+          "reason": "日报原文匹配：MTP",
+          "repository": "vllm",
+          "stage": "prefill",
+          "summary": "识别纯短稠密输入，只保留索引键缓存写入。混合批、较长输入、MTP 层和 FULL 捕获仍走原分派。",
+          "title": "短稠密 Prefill 跳过 DSA 查询打分",
+          "url": "https://github.com/vllm-project/vllm/pull/61942",
+          "version": "8ac42e979894c56fa5bb683356e45b94f85253171975ceae6c36849de5aea5e1",
+          "workId": "github:vllm-project/vllm#61942"
+        },
+        {
+          "day": "2026-11-10",
+          "label": "methods",
+          "method": "rule",
           "number": "V13",
           "reason": "日报原文匹配：MTP",
           "repository": "vllm",
@@ -2186,6 +2214,20 @@
           "url": "https://github.com/vllm-project/vllm/pull/66652",
           "version": "8ac42e979894c56fa5bb683356e45b94f85253171975ceae6c36849de5aea5e1",
           "workId": "github:vllm-project/vllm#66652"
+        },
+        {
+          "day": "2026-11-10",
+          "label": "methods",
+          "method": "rule",
+          "number": "A6",
+          "reason": "日报原文匹配：MTP",
+          "repository": "vllm-ascend",
+          "stage": "decode",
+          "summary": "将共享专家权重按路由专家布局交给同一个 MegaMoE 算子，匹配共享与路由侧的激活及限幅条件。",
+          "title": "让 A5 的 MXFP4 共享专家进入 MegaMoE",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/18053",
+          "version": "8ac42e979894c56fa5bb683356e45b94f85253171975ceae6c36849de5aea5e1",
+          "workId": "github:vllm-project/vllm-ascend#18053"
         },
         {
           "day": "2026-11-10",
@@ -2287,6 +2329,20 @@
         },
         {
           "day": "2026-11-09",
+          "label": "runtime",
+          "method": "rule",
+          "number": "V16",
+          "reason": "日报原文匹配：草稿模型",
+          "repository": "vllm",
+          "stage": "decode",
+          "summary": "按计算单元数量和 KV 头数决定门槛，门槛内用 64 段。8 个 KV 头的 MI325X 示例中，最多 4 个请求采用新分工。",
+          "title": "为 gfx942 小批长历史增加 KV 分片",
+          "url": "https://github.com/vllm-project/vllm/pull/66485",
+          "version": "9de45ccb271e6f43aada611152a196fc9edb7c4c86d50c7b7471263c322bf0f1",
+          "workId": "github:vllm-project/vllm#66485"
+        },
+        {
+          "day": "2026-11-09",
           "label": "verification",
           "method": "rule",
           "number": "V21",
@@ -2345,6 +2401,20 @@
           "day": "2026-11-07",
           "label": "methods",
           "method": "rule",
+          "number": "V3",
+          "reason": "日报原文匹配：DFlash",
+          "repository": "vllm",
+          "stage": "startup",
+          "summary": "只对 max-model-len auto 在最后提交时再算一次，显式长度继续做原容量校验。",
+          "title": "预热后按真实缓存容量再拟合上下文",
+          "url": "https://github.com/vllm-project/vllm/pull/65463",
+          "version": "597ad9bbe3e0811b794d8b7bc71357dfc39ed4831b0cb065973dde97a185d55d",
+          "workId": "github:vllm-project/vllm#65463"
+        },
+        {
+          "day": "2026-11-07",
+          "label": "methods",
+          "method": "rule",
           "number": "V9",
           "reason": "日报原文匹配：DSpark",
           "repository": "vllm",
@@ -2368,6 +2438,20 @@
           "url": "https://github.com/vllm-project/vllm/pull/64829",
           "version": "597ad9bbe3e0811b794d8b7bc71357dfc39ed4831b0cb065973dde97a185d55d",
           "workId": "github:vllm-project/vllm#64829"
+        },
+        {
+          "day": "2026-11-05",
+          "label": "verification",
+          "method": "rule",
+          "number": "V8",
+          "reason": "日报原文匹配：接受长度",
+          "repository": "vllm",
+          "stage": "decode",
+          "summary": "在指定的 DeepGEMM MegaMoE 后端中，用官方 FP8 权重融合共享和路由专家，并在同一内核内做 EP 通信。",
+          "title": "将 GLM-5.3 的共享专家并入 FP8 MegaMoE",
+          "url": "https://github.com/vllm-project/vllm/pull/60895",
+          "version": "880f2531c1438a6b63f45726ce69485dfb316b41472b716a8405aee2ef13a917",
+          "workId": "github:vllm-project/vllm#60895"
         },
         {
           "day": "2026-11-05",
@@ -2485,6 +2569,20 @@
           "day": "2026-11-03",
           "label": "methods",
           "method": "rule",
+          "number": "A10",
+          "reason": "日报原文匹配：DFlash2",
+          "repository": "vllm-ascend",
+          "stage": "decode",
+          "summary": "只在有已登记任务的 UpdatableGraph 上跳过主机屏障。更新流先等上一轮执行，当前注意力节点再等本轮更新事件。",
+          "title": "用设备事件排序可更新图的回放",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/20820",
+          "version": "c54f3d816234fdbd6c2eee33d5429efa93239dd93adfdcad56557dcb0e0fa59c",
+          "workId": "github:vllm-project/vllm-ascend#20820"
+        },
+        {
+          "day": "2026-11-03",
+          "label": "methods",
+          "method": "rule",
           "number": "V14",
           "reason": "日报原文匹配：DSpark",
           "repository": "vllm",
@@ -2567,6 +2665,20 @@
         },
         {
           "day": "2026-11-02",
+          "label": "verification",
+          "method": "rule",
+          "number": "V13",
+          "reason": "日报原文匹配：接受率",
+          "repository": "vllm",
+          "stage": "pd_transfer",
+          "summary": "允许消费端保留不同组的本地命中，注意力仅接收未缓存后缀，同时补齐 Prefill 产生的循环状态。生产端和双角色保持原规则。",
+          "title": "解码端保留已有注意力前缀只接收缺失后缀",
+          "url": "https://github.com/vllm-project/vllm/pull/63971",
+          "version": "488b7b1ce6f6779fd82f3588e122e14d34799177b0a6460d47d289729f982677",
+          "workId": "github:vllm-project/vllm#63971"
+        },
+        {
+          "day": "2026-11-02",
           "label": "methods",
           "method": "rule",
           "number": "V15",
@@ -2606,6 +2718,20 @@
           "url": "https://github.com/vllm-project/vllm/pull/65103",
           "version": "488b7b1ce6f6779fd82f3588e122e14d34799177b0a6460d47d289729f982677",
           "workId": "github:vllm-project/vllm#65103"
+        },
+        {
+          "day": "2026-11-01",
+          "label": "methods",
+          "method": "rule",
+          "number": "V6",
+          "reason": "日报原文匹配：MTP",
+          "repository": "vllm",
+          "stage": "prefill",
+          "summary": "把展开和门控混合合为一个内核，让中间系数留在芯片内部，直接输出混合后的结果。只在已测出收益的较大输入批次启用。",
+          "title": "合并长输入中的连接投影和门控混合",
+          "url": "https://github.com/vllm-project/vllm/pull/64898",
+          "version": "3bbe73eb44443fec8f8c612d5b876cf1067d107fbd6cd84ef9b533068f08095b",
+          "workId": "github:vllm-project/vllm#64898"
         },
         {
           "day": "2026-11-01",
@@ -2651,6 +2777,48 @@
         },
         {
           "day": "2026-10-31",
+          "label": "methods",
+          "method": "rule",
+          "number": "A8",
+          "reason": "日报原文匹配：MTP",
+          "repository": "vllm-ascend",
+          "stage": "pd_transfer",
+          "summary": "新增连接器复用 AscendStore 的键、读写和空间管理：Prefill 完成一层就写入，携带来源布局。Decode 按这些描述还原完整请求后才进入运行队列。",
+          "title": "通过共享缓存池逐层交接",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/20489",
+          "version": "3577813b3ff83b548b215853ae8ed3fa21495ee4c8c7a10ae7b006281029456f",
+          "workId": "github:vllm-project/vllm-ascend#20489"
+        },
+        {
+          "day": "2026-10-31",
+          "label": "methods",
+          "method": "rule",
+          "number": "V7",
+          "reason": "日报原文匹配：DSpark",
+          "repository": "vllm",
+          "stage": "decode",
+          "summary": "一次读取输入，在同一算子内完成归一化、残差处理和分组量化。不需要量化的调用复用相应分支，多卡已有归约融合路径继续保留。",
+          "title": "把归一化与 MXFP8 转换一起完成",
+          "url": "https://github.com/vllm-project/vllm/pull/64852",
+          "version": "3577813b3ff83b548b215853ae8ed3fa21495ee4c8c7a10ae7b006281029456f",
+          "workId": "github:vllm-project/vllm#64852"
+        },
+        {
+          "day": "2026-10-31",
+          "label": "runtime",
+          "method": "rule",
+          "number": "V9",
+          "reason": "日报原文匹配：推测解码",
+          "repository": "vllm",
+          "stage": "decode",
+          "summary": "用每行基值、选择位和例外值无损保存比例。加载时准备执行计划，支持的算子直接使用压缩格式，其余路径共用展开缓冲区。",
+          "title": "压缩专家量化比例以腾出显存",
+          "url": "https://github.com/vllm-project/vllm/pull/64828",
+          "version": "3577813b3ff83b548b215853ae8ed3fa21495ee4c8c7a10ae7b006281029456f",
+          "workId": "github:vllm-project/vllm#64828"
+        },
+        {
+          "day": "2026-10-31",
           "label": "verification",
           "method": "rule",
           "number": "V11",
@@ -2693,6 +2861,20 @@
         },
         {
           "day": "2026-10-30",
+          "label": "verification",
+          "method": "rule",
+          "number": "A4",
+          "reason": "日报原文匹配：候选验证",
+          "repository": "vllm-ascend",
+          "stage": "prefill",
+          "summary": "只在 Prefill 调用通用 PyTorch NPU 实现，其他阶段继续使用原 Triton 算子。由已有阶段标记选择，保持输入映射、历史读取和状态写回规则。",
+          "title": "按推理阶段选择 PLE 计算实现",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/20344",
+          "version": "c86f9eaed5573862f4741fc2b7e37f1a307f33e3252b2133a5b6c7e1277738ab",
+          "workId": "github:vllm-project/vllm-ascend#20344"
+        },
+        {
+          "day": "2026-10-30",
           "label": "methods",
           "method": "rule",
           "number": "V10",
@@ -2704,6 +2886,20 @@
           "url": "https://github.com/vllm-project/vllm/pull/64612",
           "version": "c86f9eaed5573862f4741fc2b7e37f1a307f33e3252b2133a5b6c7e1277738ab",
           "workId": "github:vllm-project/vllm#64612"
+        },
+        {
+          "day": "2026-10-29",
+          "label": "runtime",
+          "method": "rule",
+          "number": "A3",
+          "reason": "日报原文匹配：推测解码",
+          "repository": "vllm-ascend",
+          "stage": "scheduling",
+          "summary": "Decode 使用更小的分块，Prefill 使用较大的分块，让小批量也能分给更多核。在数值范围允许时用较窄整数，在除数为 2 的幂时改用位移，并为其他情况保留通用计算。",
+          "title": "按批量大小安排缓存地址计算",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/20194",
+          "version": "565a8ea2166d849b6bfa1178e8612e9747c3d51206f21b5f0156cb6b83d07b85",
+          "workId": "github:vllm-project/vllm-ascend#20194"
         },
         {
           "day": "2026-10-29",
@@ -2835,6 +3031,62 @@
           "day": "2026-10-27",
           "label": "methods",
           "method": "rule",
+          "number": "A7",
+          "reason": "日报原文匹配：DSpark",
+          "repository": "vllm-ascend",
+          "stage": "decode",
+          "summary": "增加一条候选跳过路径，先把候选范围内的得分和位置紧凑地收集起来，再只对这一小段排序。候选数量不足、尾部不齐等情况继续保留原来的填充与可见性规则。",
+          "title": "先收紧候选，再做排序",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/19911",
+          "version": "dff5d350da31c9699c00b4471feb9ebec2297215412279a3138fb368c97ddefd",
+          "workId": "github:vllm-project/vllm-ascend#19911"
+        },
+        {
+          "day": "2026-10-27",
+          "label": "runtime",
+          "method": "rule",
+          "number": "A8",
+          "reason": "日报原文匹配：推测解码",
+          "repository": "vllm-ascend",
+          "stage": "decode",
+          "summary": "先按块直接设置候选标记，再展开到 token。对于最终只取 512 项的路径，每轮归并都只保留最好的 512 项。因为已经被局部前 512 项淘汰的内容，也不会进入全局前 512 项。",
+          "title": "只保留最终需要的 512 个候选",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/19971",
+          "version": "dff5d350da31c9699c00b4471feb9ebec2297215412279a3138fb368c97ddefd",
+          "workId": "github:vllm-project/vllm-ascend#19971"
+        },
+        {
+          "day": "2026-10-27",
+          "label": "runtime",
+          "method": "rule",
+          "number": "V8",
+          "reason": "日报原文匹配：推测解码",
+          "repository": "vllm",
+          "stage": "decode",
+          "summary": "把路由阶段已有的逐行专家编号直接传给量化内核，按编号处理该行。没有这份编号时仍使用原来的查找方式。",
+          "title": "直接复用专家编号，省去量化前的查找",
+          "url": "https://github.com/vllm-project/vllm/pull/63101",
+          "version": "dff5d350da31c9699c00b4471feb9ebec2297215412279a3138fb368c97ddefd",
+          "workId": "github:vllm-project/vllm#63101"
+        },
+        {
+          "day": "2026-10-27",
+          "label": "runtime",
+          "method": "rule",
+          "number": "A9",
+          "reason": "日报原文匹配：推测解码",
+          "repository": "vllm-ascend",
+          "stage": "decode",
+          "summary": "把这组连续操作放进同一个 Triton 内核，算出门控后直接更新状态并生成输出，减少多个小算子之间的交接。",
+          "title": "一次内核完成 GDN 门控与历史状态更新",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/19898",
+          "version": "dff5d350da31c9699c00b4471feb9ebec2297215412279a3138fb368c97ddefd",
+          "workId": "github:vllm-project/vllm-ascend#19898"
+        },
+        {
+          "day": "2026-10-27",
+          "label": "methods",
+          "method": "rule",
           "number": "V10",
           "reason": "日报原文匹配：DFlash2",
           "repository": "vllm",
@@ -2889,6 +3141,48 @@
         },
         {
           "day": "2026-10-26",
+          "label": "runtime",
+          "method": "rule",
+          "number": "A6",
+          "reason": "日报原文匹配：推测解码",
+          "repository": "vllm-ascend",
+          "stage": "prefill",
+          "summary": "先给相邻阶段预备可能接手的模型层权重，并留出交接数据的空间。每处理完一批完整输入，就根据设备实际耗时调整边界，让较轻的阶段接过相邻的一部分层，使各阶段工作量更接近。当前方案只覆盖有限的输入处理场景。",
+          "title": "根据实际耗时调整流水线各阶段负责的模型层",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/19868",
+          "version": "424fe883df6a9e2644172ac227f39ed36d105343925065004b2ee8e45cdde8ca",
+          "workId": "github:vllm-project/vllm-ascend#19868"
+        },
+        {
+          "day": "2026-10-26",
+          "label": "methods",
+          "method": "rule",
+          "number": "A7",
+          "reason": "日报原文匹配：DSpark",
+          "repository": "vllm-ascend",
+          "stage": "pd_transfer",
+          "summary": "给每块缓存标清它在最终结果中的位置，让发送端直接把主要缓存分片写到 Decode 端共享的主机内存中，在目的地完成拼接。用于查找的索引缓存和压缩数据所需的比例参数仍送到各张 NPU，供后续计算使用。",
+          "title": "将 Prefill 缓存直接送到 Decode 端的主机缓存池",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/19851",
+          "version": "424fe883df6a9e2644172ac227f39ed36d105343925065004b2ee8e45cdde8ca",
+          "workId": "github:vllm-project/vllm-ascend#19851"
+        },
+        {
+          "day": "2026-10-26",
+          "label": "runtime",
+          "method": "rule",
+          "number": "A8",
+          "reason": "日报原文匹配：推测解码",
+          "repository": "vllm-ascend",
+          "stage": "decode",
+          "summary": "保留原来的数据位置，把页间空隙标成不用的行，再提供一张新的地址索引表，让算子按表找到有效数据。写入新缓存时也使用同一套映射，相当于重画地址表，而不重新搬一遍缓存。预先记录的执行流程使用固定缓冲区保存这张表。",
+          "title": "让注意力计算直接读取有间隔的缓存",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/19869",
+          "version": "424fe883df6a9e2644172ac227f39ed36d105343925065004b2ee8e45cdde8ca",
+          "workId": "github:vllm-project/vllm-ascend#19869"
+        },
+        {
+          "day": "2026-10-26",
           "label": "methods",
           "method": "rule",
           "number": "V5",
@@ -2917,6 +3211,20 @@
         },
         {
           "day": "2026-10-26",
+          "label": "verification",
+          "method": "rule",
+          "number": "V9",
+          "reason": "日报原文匹配：接受率",
+          "repository": "vllm",
+          "stage": "decode",
+          "summary": "把表按行分给各卡，并让每张卡能够根据索引直接读取其他卡保存的对应行。查询只取需要的数据，不再每次发起一轮全体交换。该方式要求设备之间具备所需的直接访问能力，跨节点也必须处于同一 NVLink 互联域。",
+          "title": "直接读取其他 GPU 保存的 Engram 表项",
+          "url": "https://github.com/vllm-project/vllm/pull/62091",
+          "version": "424fe883df6a9e2644172ac227f39ed36d105343925065004b2ee8e45cdde8ca",
+          "workId": "github:vllm-project/vllm#62091"
+        },
+        {
+          "day": "2026-10-26",
           "label": "runtime",
           "method": "rule",
           "number": "A12",
@@ -2942,6 +3250,20 @@
           "url": "https://github.com/vllm-project/vllm/pull/63710",
           "version": "424fe883df6a9e2644172ac227f39ed36d105343925065004b2ee8e45cdde8ca",
           "workId": "github:vllm-project/vllm#63710"
+        },
+        {
+          "day": "2026-10-25",
+          "label": "runtime",
+          "method": "rule",
+          "number": "V7",
+          "reason": "日报原文匹配：推测解码",
+          "repository": "vllm",
+          "stage": "prefill",
+          "summary": "为 gfx950 接入 AITER FlashKDA，让内核直接读取和更新分页 FP32 状态，并写入层输出。显式选择 flashkda 才启用，默认 auto 仍保持原路径，含草稿验证 token 的步骤也继续回退。",
+          "title": "在 AMD 上直接用 FlashKDA 更新 GLM 状态池",
+          "url": "https://github.com/vllm-project/vllm/pull/63568",
+          "version": "3739e53f68de43a8d953e0cd52eaf2f16f3802e97f860a85699f8976f13cfc5d",
+          "workId": "github:vllm-project/vllm#63568"
         },
         {
           "day": "2026-10-25",
@@ -3152,6 +3474,20 @@
           "url": "https://github.com/vllm-project/vllm-ascend/pull/18931",
           "version": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
           "workId": "github:vllm-project/vllm-ascend#18931"
+        },
+        {
+          "day": "2026-10-22",
+          "label": "runtime",
+          "method": "rule",
+          "number": "V15",
+          "reason": "日报原文匹配：推测解码",
+          "repository": "vllm",
+          "stage": "decode",
+          "summary": "解码时把 MLP/MoE 放到侧路 CUDA 流，与注意力重叠执行，并在汇合后只做一次张量并行全归约；同时改用融合的加法加 RMSNorm，使该全归约能与下一层归一化合并。批内词数超过阈值、预填充与混合批、可断图捕获时回退为单流内联执行。",
+          "title": "让 Cohere2 MoE 注意力与专家分支双流并行以缩短解码等待",
+          "url": "https://github.com/vllm-project/vllm/pull/62101",
+          "version": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
+          "workId": "github:vllm-project/vllm#62101"
         },
         {
           "day": "2026-10-22",
