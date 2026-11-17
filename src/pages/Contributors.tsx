@@ -7,11 +7,11 @@ import "./contributors.css";
 const contributors = [
   {
     name: "曹哲", username: "xmdhb", avatarId: 276146974,
-    introduction: "社区研报网站负责人，参与日报展示、章首导语与前端功能的开发维护。",
+    introduction: "参与日报展示、章首导语与前端功能的开发维护。",
   },
   {
     name: "Changwu Li", username: "Li-changwu", avatarId: 215941469,
-    introduction: "参与网站交互与可视化优化、技术专题建设，以及日报内容的发布维护。",
+    introduction: "社区研报网站负责人，参与交互与可视化优化、技术专题建设及日报发布维护。",
   },
   {
     name: "ruicheng", username: "KimmoZAG", avatarId: 95903923,
@@ -30,7 +30,7 @@ export default function Contributors() {
     <ul className="contributors-grid">
       {contributors.map(person => <li key={person.username}>
         <article className="contributor-card" aria-labelledby={`contributor-${person.username}`}>
-          <img className="contributor-avatar" src={`https://avatars.githubusercontent.com/u/${person.avatarId}?s=160&v=4`} alt="" width={80} height={80} decoding="async" />
+          <img className="contributor-avatar" src={`https://avatars.githubusercontent.com/u/${person.avatarId}?s=160&v=4`} alt="" width={56} height={56} decoding="async" />
           <header className="contributor-identity"><h2 id={`contributor-${person.username}`}>{person.name}</h2><span>@{person.username}</span></header>
           <div className="contributor-details">
             <p className="contributor-introduction">{person.introduction}</p>
