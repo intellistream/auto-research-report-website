@@ -6,6 +6,7 @@ import type { ResearchReport } from "./topic-report";
 import TopicAcademicPaper, { AcademicPaperCard } from "./TopicAcademicPaper";
 import type { AcademicPaper } from "./academic-paper";
 import AclGraphTopic, { AclGraphTopicCard } from "./AclGraphTopic";
+import SpecDecGuide from "./SpecDecGuide";
 
 export type Entry = {
   workId: string;
@@ -53,6 +54,7 @@ function TopicDetail({ topic }: { topic: Topic }) {
         <div className="docx-eyebrow">技术专题 · 试运行</div>
         <h1>{topic.title}</h1>
         <p>{topic.description}</p>
+        {topic.id === "speculative-decoding" && <p><Link to="/topics/speculative-decoding">返回机制导引</Link></p>}
       </header>
       <dl className="docx-flow-summary">
         <div><dt>专题收录 PR</dt><dd>{topic.counts.total}</dd></div>
@@ -117,6 +119,10 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
       {topic ? (
         topic.id === "aclgraph" ? (
           <AclGraphTopic topic={topic} />
+        ) : topic.id === "speculative-decoding" && (!view || view === "guide") ? (
+          <SpecDecGuide topic={topic} />
+        ) : topic.id === "speculative-decoding" && view === "evidence" ? (
+          <TopicDetail topic={topic} />
         ) : topic.academicPaper && (view !== "report" || !topic.report) ? (
           <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} />
         ) : index.schemaVersion === 2 && topic.report ? (
