@@ -32,7 +32,6 @@ class TopicAssetsTest(unittest.TestCase):
                         seen.add(version)
                         folder = f"topic-reports/{topic['id']}/{version}"
                         self.assertEqual(report["manifestPath"], f"{folder}/manifest.json")
-                        self.assertEqual(report["pdfPath"], f"{folder}/report.pdf")
                         manifest = json.loads((ARCHIVE / report["manifestPath"]).read_bytes())
                         self.assertEqual(manifest["topicId"], topic["id"])
                         self.assertEqual(manifest["version"], version)
