@@ -54,7 +54,6 @@ function TopicDetail({ topic }: { topic: Topic }) {
         <div className="docx-eyebrow">技术专题 · 试运行</div>
         <h1>{topic.title}</h1>
         <p>{topic.description}</p>
-        {topic.id === "speculative-decoding" && <p><Link to="/topics/speculative-decoding">返回机制导引</Link></p>}
       </header>
       <dl className="docx-flow-summary">
         <div><dt>专题收录 PR</dt><dd>{topic.counts.total}</dd></div>
