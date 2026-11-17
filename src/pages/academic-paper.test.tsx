@@ -24,12 +24,12 @@ function render(path: string, topic = nextTopic) {
 }
 
 describe("academic manuscript branch", () => {
-  it("uses one topic title and navigation for all four sections", () => {
+  it("uses one topic title and navigation for the three sections", () => {
     const html = render("/topics/aclgraph");
     expect(html).toContain("一次前向怎样用上 ACLGraph？");
     expect(html).toContain("view=paper");
     expect(html).toContain("view=report");
-    expect(html).toContain("view=evidence");
+    expect(html).not.toContain("view=evidence");
     expect(html).toContain("<h1>ACL Graph</h1>");
     expect(html).not.toContain("<iframe");
   });
@@ -51,14 +51,14 @@ describe("academic manuscript branch", () => {
     expect(html).toContain("view=report");
     const reportView = render("/topics/aclgraph?view=report");
     expect(reportView).toContain(oldTopic.report!.title);
-    expect(reportView).not.toContain("工程证据的持续积累");
+    expect(reportView).toContain("工程证据的持续积累");
     expect(reportView).not.toContain("取材证据附录");
     expect(reportView).not.toContain("<iframe");
   });
   it("names the topic in the directory and keeps the manuscript inside its own section", () => {
     const html = render("/topics");
     expect(html).toContain("ACL Graph");
-    expect(html).toContain("PR 与趋势");
+    expect(html).not.toContain("PR 与趋势");
     expect(html).not.toContain(paper.title);
     expect(html).not.toContain(paper.abstract);
   });
