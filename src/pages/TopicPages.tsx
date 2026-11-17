@@ -6,7 +6,7 @@ import type { ResearchReport } from "./topic-report";
 import TopicAcademicPaper, { AcademicPaperCard } from "./TopicAcademicPaper";
 import type { AcademicPaper } from "./academic-paper";
 import AclGraphTopic, { AclGraphTopicCard } from "./AclGraphTopic";
-import SpecDecGuide from "./SpecDecGuide";
+import SpecDecTopic, { SpecDecTopicCard } from "./SpecDecTopic";
 
 export type Entry = {
   workId: string;
@@ -119,10 +119,8 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
       {topic ? (
         topic.id === "aclgraph" ? (
           <AclGraphTopic topic={topic} />
-        ) : topic.id === "speculative-decoding" && (!view || view === "guide") ? (
-          <SpecDecGuide topic={topic} />
-        ) : topic.id === "speculative-decoding" && view === "evidence" ? (
-          <TopicDetail topic={topic} />
+        ) : topic.id === "speculative-decoding" ? (
+          <SpecDecTopic topic={topic} />
         ) : topic.academicPaper && (view !== "report" || !topic.report) ? (
           <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} />
         ) : index.schemaVersion === 2 && topic.report ? (
@@ -137,7 +135,7 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
             <p>综合论文与工程证据，理解核心技术问题、解决路径与尚待验证的研究方向。</p>
           </header>
           <ul className="topic-directory">
-            {index.topics.map((row) => row.id === "aclgraph" ? <AclGraphTopicCard key={row.id} /> : row.academicPaper ? <AcademicPaperCard key={row.id} topic={row} paper={row.academicPaper} /> : row.report && index.schemaVersion === 2 ? <TopicReportCard key={row.id} topic={row} report={row.report} /> : (
+            {index.topics.map((row) => row.id === "aclgraph" ? <AclGraphTopicCard key={row.id} /> : row.id === "speculative-decoding" ? <SpecDecTopicCard key={row.id} topic={row} /> : row.academicPaper ? <AcademicPaperCard key={row.id} topic={row} paper={row.academicPaper} /> : row.report && index.schemaVersion === 2 ? <TopicReportCard key={row.id} topic={row} report={row.report} /> : (
               <li key={row.id} className="topic-card">
                 <h2><Link to={`/topics/${row.id}`}>{row.title} <ArrowUpRight size={17} /></Link></h2>
                 <p>{row.description}</p>
