@@ -109,6 +109,7 @@ export default function SpecDecGuide({ topic }: { topic: Topic }) {
       </table>
       <p className="acl-question"><span>下一步可验证的问题</span>给定 Target、设备与请求并发，能否把每轮 Drafter 信心、验证成本与 Recurrent State Commit 纳入统一决策，在保持正确性的同时改善真实 TPOT/Goodput？先用现有 Adaptive Verification 与 HybridSpec 机制作为强基线。</p>
       <p className="acl-note">此页只提供机制导引和一手来源入口。动态研究报告、版本化综述和 PDF 尚未发布；后续将仅在证据与冻结产物具备时加入，不以占位下载或待核验的实验结果充数。</p>
+      <p><Link to={{ search: "view=report" }}>阅读动态研究报告：技术路线、工程证据与待验证问题 <ArrowRight size={14} aria-hidden="true" /></Link></p>
       <p><Link to={{ search: "view=evidence" }}>继续查看 {topic.entries.length} 条社区 PR 候选与日报回溯 <ArrowRight size={14} aria-hidden="true" /></Link></p>
     </section>
   </article>;
