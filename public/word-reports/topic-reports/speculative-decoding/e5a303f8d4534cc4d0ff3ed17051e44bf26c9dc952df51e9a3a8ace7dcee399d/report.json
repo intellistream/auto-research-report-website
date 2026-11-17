@@ -1,0 +1,872 @@
+{
+  "title": "Speculative Decoding：从候选生成到可验证的系统加速",
+  "abstract": "Speculative Decoding 通过低成本 Draft、多 Token Target Verify、Rejection Sampling 和合法前缀提交，降低昂贵的顺序调用；其服务收益却由草稿质量、验证宽度、Graph/Host 开销、KV/GDN 状态和动态请求共同决定。本文在完整保留 vLLM 与 vLLM-Ascend 已分类的 105 条 PR 线索（68+37）的前提下，综合官方文档、10 项原始论文与 18 条代表性社区 PR，梳理从 N-gram/EAGLE/MTP 经 DFlash/DSpark 到 Adaptive Verification/HybridSpec 的技术演进。综合判断是：提高候选接受长度不等于提高吞吐，必须同时验证 Target 输出正确性、Accepted State 生命周期和端到端关键路径确实缩短。当前证据主要是来源作者实验，尚不能支持跨模型或跨硬件的统一性能结论；本站没有运行 NPU/GPU 实验。",
+  "researchQuestions": [
+    "推测轮次如何在保持 Target 输出/采样合同的条件下减少串行调用？",
+    "各类 Drafter 的顺序依赖、候选质量与内存代价如何进入服务关键路径？",
+    "动态批次下如何让 Adaptive Verification 避免多 Token Target 计算浪费？",
+    "KV/SSM/GDN/KDA 与 Prefix Cache 怎样正确提交 Accepted Prefix，隔离被拒绝分支？",
+    "社区作者报告的局部性能证据在何种软硬件与 Workload 条件下成立，怎样验证其 Serving 收益？"
+  ],
+  "methodology": {
+    "type": "问题驱动的持续演进叙述性综述；非穷尽系统综述或复现实验",
+    "searchDate": "2026-11-17",
+    "scope": "2026-10-22 至 11-11 的 21 份 vLLM/vLLM-Ascend 社区日报，完整保留已分类 105 条 PR；代表性 18 条深入综合。增补原始论文与官方资料截至 11-17。",
+    "searchStrategy": "从官方接口与源码、原始论文、原始 PR 描述/必要 Diff 入手，对照 SpecDec 一次循环的 Draft→Verify→Acceptance→State Commit。既有 methods/runtime/verification 分类不做裁撤或重新标注；本综述单独组织技术 taxonomy。",
+    "inclusionCriteria": [
+      "保留全部原先已分类的 105 条社区 PR 线索，无论相关强弱。",
+      "正文的机制性结论必须明确链接一手来源，注明合入状态和适用上下文。",
+      "不同设备、模型、并发和采样设置下的实验条件分别列出，不抽象成统一 Speedup。"
+    ],
+    "exclusionCriteria": [
+      "不删除或重新归类任何已收录 PR；直接机制与关联优化仅在正文中区分。",
+      "不把作者性能数字、日报二手分析或本地研究意向冒充本站复现实验。",
+      "未确认的平台、开放 PR、固定版本兼容性一律不推断为已实现或生产可用。"
+    ],
+    "synthesis": "论文提供数学与算法机制；官方文档/源码提供版本化执行合同；原始 PR 提供实现路径、条件与局部作者对照。按因果执行阶段分类，保留 7 组可追溯工程证据记录与 6 个待验证研究问题。"
+  },
+  "sections": [
+    {
+      "id": "correctness",
+      "title": "正确性：减少 Target 轮数，而不是消除自回归依赖",
+      "paragraphs": [
+        "给定已提交前缀 x_<t，Drafter 生成候选 y_1…y_K，Target 对对应条件位置进行验证。经典概率推测采样在正确实现的条件下用 min(1, p(y)/q(y)) 决定接受，拒绝时由归一化的正残差分布补样，并在全部接受时按规则处理额外 Target token。关键源是 Leviathan et al., ICML 2023，其逻辑不同于在 Greedy 模式下简单比较 token 是否一致。Blockwise Parallel Decoding, NeurIPS 2018 给出并行预测/确认前缀的早期路线。",
+        "正确性至少拆成三个门槛： (i) Greedy 输出 token IDs 与 Target AR 严格比对；(ii) 非 Greedy 的算法采样满足 Target 分布（同一 Seed 不保证完全相同的 token 序列）；(iii) 已接受前缀之外的 KV、注意力位置、GDN/Mamba/KDA 循环状态、Draft Cache 和 Bonus Token 的更新均满足生命周期合同。不能把 GSM8K 接近或 synthetic acceptance 下吞吐提升称为 exact-sampling 正确性。",
+        "推测解码所需的计算是 *Draft → Target Verify → Acceptance/Sampling → Commit / Reuse*，而非仅一个 Draft Model。见 vLLM 官方 SpecDec 指南、vLLM Ascend SpecDec 指南、SGLang 官方 SpecDec 文档。"
+      ],
+      "sourceIds": [
+        "D1",
+        "D2",
+        "P1",
+        "P2",
+        "E5",
+        "E7"
+      ]
+    },
+    {
+      "id": "drafter-evolution",
+      "title": "Drafter 设计：候选质量、并行性和推测深度的三角关系",
+      "paragraphs": [
+        "Speculators 官方决策指南 是模型、训练和选择的上游入口，和 Runtime 支持矩阵需分别阅读。论文方法、已发布 checkpoint、具体 Runner 代码路径及底层设备支持属于四个不同层级，不自动等价。"
+      ],
+      "sourceIds": [
+        "D3",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P10"
+      ]
+    },
+    {
+      "id": "verify-budget",
+      "title": "验证的代价：并行不一定划算",
+      "paragraphs": [
+        "Target Verify 会处理大致 B × (K+1) 的 Query Rows（实际受 ragged query、Padding 和 Dynamic Verification 影响）。只有被接受的连续前缀转化为有效输出，拒绝之后执行过的行可能纯粹浪费计算。令 A = E[committed tokens/round]，顺序路径的粗略估算：",
+        "有 Stream Overlap、异步调度和多请求组批时，第二行不能直接用 Kernel 求和。理想情况要同时缩短 Target 执行轮次、避免高 Batch 下 B×K 造成计算瓶颈、控制新的中间缓存。高 Acceptance Rate 只影响分母，无法保证分子变小。",
+        "vLLM Adaptive Verification 在每请求/位置估计 Prefix Survival，并用实测 Step Cost Profile 限制全局验证 Token 预算。其适用方法与硬件版本必须按文档时间核验；",
+        "vLLM #63421 针对 Budget Kernel 的 Host JIT/Launch 开销，vLLM #65175 针对 XPress 与 Acceptance Estimator 接口；说明动态预算本身是执行路径；",
+        "vLLM #64915 针对固定推测宽度时的变长 Decode CUDA Graph，vLLM #63801 专为多 Token Verify 预取历史 KV；说明 Verify 的 Attention/Graph 形状不同于普通单 Token Decode；",
+        "Ascend #20254 将 Rejection Sampling 小 Kernel 纳入 ACL Graph 以压低 Host 提交开销，Ascend #20006 解决大批验证行下 Top-k/Top-p 的峰值显存问题。",
+        "这些 PR 互不构成一个统一的“已经集成优化栈”；每个 PR 自己的依赖、支持配置、对照实验和修订历史须独立标记。"
+      ],
+      "sourceIds": [
+        "D4",
+        "P2",
+        "P8",
+        "P9",
+        "E2",
+        "E3",
+        "E4",
+        "E17"
+      ]
+    },
+    {
+      "id": "draft-runtime",
+      "title": "Draft 侧工程：减少不必要的多步计算和内存",
+      "paragraphs": [
+        "AR Drafter 可能需要 K 次 Draft Decode，并在每步维护 Meta/Cache；并行 Drafter 则转向一次大 Forward + Candidate Selector / Markov Sampling。两者均受到 Graph Shape、启动 JIT、KV 容量与 Target 隐状态传递的约束。",
+        "vLLM #63096：ROCm AITER Draft Backend 的 Graph/Metadata 更新能力；只在其指定 Draft Backend 与硬件条件下成立。",
+        "Ascend #19512 / #20279：DFlash2 Draft 在 MRV2 上的 Full ACLGraph Capture 和 Replay 路径；二者存在相关/重叠实现，必须检查 upstream 实际基线再选取证据。",
+        "vLLM #62784：对不会被消费的 Draft 决定 K=0；与普通 P/D Prefill 优化的区别在于它确实更改 Speculator 的 Draft 调用。",
+        "vLLM #64109：DFlash/DSpark Drafter Sliding-window KV 的尾部驻留约束；不能直接沿用 Target 的历史 KV 留存策略。",
+        "vLLM #65553 / #64612：分别作用于 DSpark / DFlash 的 Draft KV FP8 配置；效益首先是 Draft 侧显存，不能不测量就推断 TPOT 提升。"
+      ],
+      "sourceIds": [
+        "D3",
+        "E1",
+        "E6",
+        "E8",
+        "E13",
+        "E14"
+      ]
+    },
+    {
+      "id": "state-commit",
+      "title": "Correct State：Hybrid Model 的必要条件",
+      "paragraphs": [
+        "对于传统全注意力模型，最先可见的是 KV Slots/Block Table 与 accepted prefix 的映射。对于 GDN/Mamba/KDA，Target Verify 还产生递归更新的隐藏状态；拒绝位置之后的候选中间态不能流入下一轮。必须区分：Checkpoint（历史合法状态）→ Speculative Intermediate → Accepted Prefix Commit。这不是可忽略的 Kernel 细节，而是 SpecDec 准确性的构成部分。",
+        "vLLM #66595 提出在下一轮 Verify 中回放上轮 accepted tokens、推迟对应 Commit 的实现合同；其适用的是描述中指定的 KDA/RecoverSSM 实现。",
+        "vLLM #65182 针对 Mamba2 Spec 的共享 accepted-token / graph metadata；对应的缓冲区别名关系必须正确。",
+        "Ascend #21430 优化 GDN Hybrid + SpecDec 下 Host Copy 与 RecoverSSM Commit 的同步顺序；",
+        "Ascend #19954 覆盖可变推测长度、混合 Spec/Non-spec 批次的 GDN metadata；",
+        "vLLM #61589 为 EAGLE/MTP Prefix Cache 的 Lookahead Token 身份提供了更细的缓存命中契约。",
+        "特别注意：“采用 RecoverSSM/重放”是一个机制路线，不是所有 vLLM/Ascend 版本、GDN/KDA 模型都已经实现或支持的结论。不能拿 KDA 上的实现通过，直接断言 Qwen GDN Target 在 910B2 上正确。硬件与版本由官方文档和目标 PR Diff 共同限定。"
+      ],
+      "sourceIds": [
+        "D2",
+        "P9",
+        "E5",
+        "E7",
+        "E11",
+        "E12",
+        "E18"
+      ]
+    },
+    {
+      "id": "community-map",
+      "title": "证据体系：按社区和运行阶段组织，而不是 PR 标题聚合",
+      "paragraphs": [
+        "当前网站扫描结果的 methods、runtime、verification 是历史初筛标签，并不直接等价于严格的研究 taxonomy。正式报告需要建立二级交叉映射：",
+        "Draft / Model：EAGLE/MTP 与 DFlash/DSpark、候选选择、Draft Context、Graph、Draft KV；",
+        "Verify / Sampling：Target 多 Token Attention、Budget、Rejection Sampler、Bonus Token；",
+        "State / Lifetime：KV 的跨轮复用，GDN/Mamba/KDA Checkpoint、Commit、Rejected Path；",
+        "Serving / Parallelism：批次变化、P/D Prefill-only、TP/DP/PP、Async Scheduling、设备/Host Launch；",
+        "Evidence / Baseline：PR 状态和 Diff、论文条件、平台与配置、Greedy/Probabilistic、是否独立复现。",
+        "明确排除原则：普通 MoE Fusion、普通 Single-token Decode、通用 KV Store/Pool、QLI Sparse Indexer 候选块等，即使 README 或实验命令中出现 MTP/DSpark，也不作为 SpecDec 主干证据。见 24 条原始来源人工排除索引；排除仅意味着不属本专题的主要工程机制，仍可从其他方向建立链接。"
+      ],
+      "sourceIds": [
+        "D1",
+        "D2",
+        "D5",
+        "E4",
+        "E15",
+        "E16"
+      ]
+    },
+    {
+      "id": "measurement",
+      "title": "如何做公平 Benchmark 和因果归因",
+      "paragraphs": [
+        "最小实验矩阵不是“单组开启 Spec、然后报 TPS”，而是：",
+        "Synthetic Acceptance 对隔离 Verify Kernel 的成本非常有用，不保证生成 Token 符合 Target 分布；必须另有真实接受率与输出正确性的闭环。对 K、Batch 或设备变化导致的收益，不应把多个论文/PR 的速度直接相加或取最大值作为预期值。"
+      ],
+      "sourceIds": [
+        "D4",
+        "E1",
+        "E2",
+        "E8",
+        "E9",
+        "E10",
+        "E12",
+        "E17"
+      ]
+    },
+    {
+      "id": "synthesis",
+      "title": "综合判断：以可验证的系统收益而非单一接受率为目标",
+      "paragraphs": [
+        "完整推测轮次包括 Draft、Target Verify、Sampling、Accepted-State Commit，以及 Serving 在每轮之前与之后的调度。不同算法优化不同子段，任何单点提速都需要经过真正的性能归因，特别是 Host 图准备、KV/GDN 状态与拥塞切换。",
+        "对于并行草稿，较长的候选链可能在 Target 上产生更多被拒绝位置。Adaptive Verification 根据各位置存活概率和设备预算优化 Target 计算量；HybridSpec 进一步把 GDN+MoE 的路由及状态成本建模。它们提供现成强基线，而不是空白研究方向的证明。",
+        "本报告以正式的 vLLM、vLLM-Ascend、Speculators、SGLang 文档以及历史论文和 18 条原始 PR 做技术综合；所有 105 条组织分类 PR 保持取材资格。作者报告的速度数字仍停留在特定设备、模型和 PR 修订，不代表本站独立复现。"
+      ],
+      "sourceIds": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "P7",
+        "P8",
+        "P9",
+        "E1",
+        "E2",
+        "E12"
+      ]
+    }
+  ],
+  "taxonomy": [
+    {
+      "problem": "低开销 Draft 与候选质量",
+      "approach": "N-gram/Prompt Lookup、EAGLE/MTP、DFlash/DFlash2、DSpark",
+      "tradeoff": "AR 顺序深度、块内依赖、候选后缀质量、训练与额外 Draft KV",
+      "sourceIds": [
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "D3"
+      ]
+    },
+    {
+      "problem": "多分支 Verify 与结果正确性",
+      "approach": "线性候选/Tree Attention、Greedy 对齐与概率拒绝/残差采样",
+      "tradeoff": "更宽 Mask/Query 与 Bonus/Reject 更新不能破坏 Target 分布",
+      "sourceIds": [
+        "P2",
+        "P3",
+        "P4",
+        "E4",
+        "E10"
+      ]
+    },
+    {
+      "problem": "高并发下动态验证预算",
+      "approach": "Prefix Survival + Profiled Cost + Request Budget",
+      "tradeoff": "Confidence Head/Estimator 校准和 Budget Kernel 本身消耗时间",
+      "sourceIds": [
+        "D4",
+        "P8",
+        "E2",
+        "E3"
+      ]
+    },
+    {
+      "problem": "Hybrid MoE/GDN Target 代价",
+      "approach": "HybridSpec Router-aware 两阶段 Verify + Accepted State Reconstruction",
+      "tradeoff": "MoE Router/Experts 与 GDN/KDA 使 Verify Cost 随长度强烈变化",
+      "sourceIds": [
+        "P9",
+        "D2",
+        "E7",
+        "E12"
+      ]
+    },
+    {
+      "problem": "Graph/Host 执行与 Shape",
+      "approach": "多步 Draft Graph、ACLGraph Rejection、Varlen Verify Graph",
+      "tradeoff": "动态 Query Length、Host Launch、JIT、Graph 回退与资源规划",
+      "sourceIds": [
+        "E1",
+        "E8",
+        "E9",
+        "E13",
+        "E17"
+      ]
+    },
+    {
+      "problem": "KV/SSM State 一致性",
+      "approach": "Lookahead Hash、RecoverSSM、GDN Metadata 和 Deferred Commit",
+      "tradeoff": "Rejected Candidate 不得污染历史；前缀命中与 Preemption 要同态",
+      "sourceIds": [
+        "E5",
+        "E7",
+        "E11",
+        "E15",
+        "E18"
+      ]
+    },
+    {
+      "problem": "系统资源与跨并行部署",
+      "approach": "Prefill-only 跳过 Draft、Draft KV Tail、Cross-TP Hybrid History",
+      "tradeoff": "缓存容量、P/D 迁移、TP Layout 和显存争用；不能只看局部延迟",
+      "sourceIds": [
+        "E6",
+        "E14",
+        "E15"
+      ]
+    },
+    {
+      "problem": "工程证据与可复现性",
+      "approach": "固定版本配对与 Concurrency Sweep，分层拆解 Critical Path",
+      "tradeoff": "不同 SoC/Backend/Workload、作者数字与本站实测不能拼接",
+      "sourceIds": [
+        "E1",
+        "E2",
+        "E8",
+        "E12",
+        "M1"
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "id": "contract",
+      "title": "Hybrid State 全生命周期正确性",
+      "observation": "RecoverSSM、Lookahead Hash 与 GDN Metadata 有不同代码入口，部分重要 PR 未合入。",
+      "question": "拒绝、Prefix Hit、Preemption 和 P/D 迁移后，Checkpoint 是否仍与 Target AR 合法前缀一致？",
+      "validation": "同 Token 输入与绝对位置比较各层 KV/SSM，覆盖 0/1/K 接受、Bonus、重新加入和 Graph Replay。",
+      "sourceIds": [
+        "E5",
+        "E7",
+        "E11",
+        "E15"
+      ],
+      "status": "evidence-gap"
+    },
+    {
+      "id": "cost",
+      "title": "Adaptive Budget 与 Hybrid Target 成本的联合模型",
+      "observation": "已有 AV/DSpark/HybridSpec，却缺少同 Target/同设备的完整竞争对照。",
+      "question": "在当前强基线已知的前提下，同时考虑 Draft、Verify、Sampler 与 State 还有可重复的 Goodput 收益吗？",
+      "validation": "AR/Fixed-K/AV/Hybrid-aware 同前态多轮交错 A/B；记录 K、存活概率、Query Rows、TPOT/Goodput。",
+      "sourceIds": [
+        "D4",
+        "P8",
+        "P9",
+        "E2",
+        "E3"
+      ],
+      "status": "hypothesis"
+    },
+    {
+      "id": "graph",
+      "title": "动态 Verify Shape 与 Graph 资源的联合规划",
+      "observation": "Draft/Verify/Sampler 各有 Graph PR，部分尚未合并，Host CPU 时间可能不同。",
+      "question": "在不同模型与 Concurrency 下，变长形状和图重放什么时候比即时回退更划算？",
+      "validation": "固定工作量分离 Graph Coverage、JIT/Host Dispatch、设备执行及同步，记录回退与峰值 HBM。",
+      "sourceIds": [
+        "E1",
+        "E8",
+        "E9",
+        "E17"
+      ],
+      "status": "hypothesis"
+    },
+    {
+      "id": "kv",
+      "title": "Draft KV 与 Target KV 的容量竞争",
+      "observation": "Draft Tail 以及 Prefix Lookahead 身份带来不同于普通 KV 的生命周期。",
+      "question": "长上下文与动态批次下，较小 Draft KV 的容量收益能否传到端到端调度？",
+      "validation": "按 Prompt/Prefix Hit/K/窗口记录 Draft/Target KV Pages、Eviction、Preemption 与 Serve Latency。",
+      "sourceIds": [
+        "E5",
+        "E6",
+        "E14"
+      ],
+      "status": "hypothesis"
+    },
+    {
+      "id": "transfer",
+      "title": "跨平台兼容矩阵与真实实施边界",
+      "observation": "ROCm、GB300、Ascend 910B4/A5 对 Graph、Recurrent 和 Sampling 的支持不同。",
+      "question": "哪些性能提升是算法普适，哪些依赖本机原生算子、驱动和 Graph Mode？",
+      "validation": "逐平台固定 Pair、检查官方能力表，再以相同 Correctness 与 Workload 验证；不跨平台移植数值。",
+      "sourceIds": [
+        "D1",
+        "D2",
+        "E1",
+        "E8",
+        "E16"
+      ],
+      "status": "evidence-gap"
+    },
+    {
+      "id": "serving",
+      "title": "局部优化到 Serving 收益的因果传递",
+      "observation": "#63096 的 Draft Loop 改善未稳定转为 Serving TPS，#64915 未合并且一组基线不稳定。",
+      "question": "在多次交错 A/B 下，TPOT/TTFT/Goodput 与 HBM 是否同时可接受且可重现？",
+      "validation": "Concurrency/Length 网格、前态对齐、Warmup 与波动区间、Output Correctness 和调度关键路径跟踪。",
+      "sourceIds": [
+        "E1",
+        "E2",
+        "E12",
+        "E17"
+      ],
+      "status": "evidence-gap"
+    }
+  ],
+  "references": [
+    {
+      "id": "D1",
+      "kind": "documentation",
+      "title": "vLLM Speculative Decoding Guide",
+      "url": "https://docs.vllm.ai/en/latest/features/speculative_decoding/",
+      "evidenceLevel": "官方文档或源码（版本相关）",
+      "note": "运行方法的实际平台支持按版本和配置核验。"
+    },
+    {
+      "id": "D2",
+      "kind": "documentation",
+      "title": "vLLM Ascend Speculative Decoding Guide",
+      "url": "https://docs.vllm.ai/projects/ascend/en/main/user_guide/feature_guide/speculative_decoding.html",
+      "evidenceLevel": "官方文档或源码（版本相关）",
+      "note": "注意 MRV2/SoC/CANN 兼容边界。"
+    },
+    {
+      "id": "D3",
+      "kind": "documentation",
+      "title": "Speculators Algorithm Decision Guide",
+      "url": "https://docs.vllm.ai/projects/speculators/en/latest/user_guide/algorithms/decision_guide/",
+      "evidenceLevel": "官方文档或源码（版本相关）",
+      "note": "Draft 架构和训练适配不是 Runtime 兼容矩阵。"
+    },
+    {
+      "id": "D4",
+      "kind": "documentation",
+      "title": "vLLM Adaptive Verification Guide",
+      "url": "https://docs.vllm.ai/en/latest/features/speculative_decoding/adaptive_verification/",
+      "evidenceLevel": "官方文档或源码（版本相关）",
+      "note": "采用存活概率和实测 Shape Cost 的预算。"
+    },
+    {
+      "id": "D5",
+      "kind": "documentation",
+      "title": "SGLang Speculative Decoding",
+      "url": "https://docs.sglang.io/docs/advanced_features/speculative_decoding",
+      "evidenceLevel": "官方文档或源码（版本相关）",
+      "note": "跨引擎机制对照，不迁移其性能数字。"
+    },
+    {
+      "id": "D6",
+      "kind": "documentation",
+      "title": "vLLM SpecDec Runtime Source",
+      "url": "https://github.com/vllm-project/vllm/tree/main/vllm/v1/spec_decode",
+      "evidenceLevel": "官方文档或源码（版本相关）",
+      "note": "源码入口，请在使用时固定 commit。"
+    },
+    {
+      "id": "D7",
+      "kind": "documentation",
+      "title": "vLLM Ascend MRV2 SpecDec Source",
+      "url": "https://github.com/vllm-project/vllm-ascend/tree/main/vllm_ascend/worker/v2/spec_decode",
+      "evidenceLevel": "官方文档或源码（版本相关）",
+      "note": "Proposer/Sampler/Graph 侧源码入口，请固定 commit。"
+    },
+    {
+      "id": "P1",
+      "kind": "paper",
+      "title": "Blockwise Parallel Decoding",
+      "url": "https://papers.nips.cc/paper/8212-blockwise-parallel-decoding-for-deep-autoregressive-models",
+      "year": 2018,
+      "evidenceLevel": "原始论文（作者报告）",
+      "note": "早期多 Token 提案与确认。"
+    },
+    {
+      "id": "P2",
+      "kind": "paper",
+      "title": "Speculative Decoding — Leviathan et al.",
+      "url": "https://proceedings.mlr.press/v202/leviathan23a.html",
+      "year": 2023,
+      "evidenceLevel": "原始论文（作者报告）",
+      "note": "概率接受与残差分布的正确性基线。"
+    },
+    {
+      "id": "P3",
+      "kind": "paper",
+      "title": "Medusa",
+      "url": "https://proceedings.mlr.press/v235/cai24b.html",
+      "year": 2024,
+      "evidenceLevel": "原始论文（作者报告）",
+      "note": "多头草稿及候选树。"
+    },
+    {
+      "id": "P4",
+      "kind": "paper",
+      "title": "SpecInfer",
+      "url": "https://doi.org/10.1145/3620666.3651335",
+      "year": 2024,
+      "evidenceLevel": "原始论文（作者报告）",
+      "note": "树型 Target Verify。"
+    },
+    {
+      "id": "P5",
+      "kind": "paper",
+      "title": "EAGLE",
+      "url": "https://proceedings.mlr.press/v235/li24bt.html",
+      "year": 2024,
+      "evidenceLevel": "原始论文（作者报告）",
+      "note": "基于 Target Feature 的 AR Draft。"
+    },
+    {
+      "id": "P6",
+      "kind": "paper",
+      "title": "EAGLE-3",
+      "url": "https://proceedings.nips.cc/paper_files/paper/2025/hash/c7b5a35ea98b62512a869c19ea7b03cb-Abstract-Conference.html",
+      "year": 2025,
+      "evidenceLevel": "原始论文（作者报告）",
+      "note": "直接 Token Prediction，Training-Time Test。"
+    },
+    {
+      "id": "P7",
+      "kind": "paper",
+      "title": "DFlash",
+      "url": "https://proceedings.mlr.press/v306/chen26bv.html",
+      "year": 2026,
+      "evidenceLevel": "原始论文（作者报告）",
+      "note": "并行块式扩散 Drafter。"
+    },
+    {
+      "id": "P8",
+      "kind": "paper",
+      "title": "DSpark",
+      "url": "https://arxiv.org/abs/2607.05147",
+      "year": 2026,
+      "evidenceLevel": "原始论文（作者报告）",
+      "note": "半自回归 Draft 与置信度调度。"
+    },
+    {
+      "id": "P9",
+      "kind": "paper",
+      "title": "HybridSpec",
+      "url": "https://arxiv.org/abs/2611.04055",
+      "year": 2026,
+      "evidenceLevel": "原始论文（作者报告）",
+      "note": "GDN-MoE Target-aware Budget 与状态回放；2026-11 预印本。"
+    },
+    {
+      "id": "P10",
+      "kind": "paper",
+      "title": "DFLare",
+      "url": "https://aclanthology.org/2026.emnlp-main.1503/",
+      "year": 2026,
+      "evidenceLevel": "原始论文（作者报告）",
+      "note": "增强块式 Draft 层间条件表达。"
+    },
+    {
+      "id": "E1",
+      "kind": "pr",
+      "title": "ROCm AITER Multi-step Draft Graph",
+      "url": "https://github.com/vllm-project/vllm/pull/63096",
+      "workId": "github:vllm-project/vllm#63096",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 已合入）",
+      "note": "作者隔离 Draft Loop 有收益，但 E2E 变化接近噪声。"
+    },
+    {
+      "id": "E2",
+      "kind": "pr",
+      "title": "Adaptive Budget Triton Kernel",
+      "url": "https://github.com/vllm-project/vllm/pull/63421",
+      "workId": "github:vllm-project/vllm#63421",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 已合入）",
+      "note": "预算计算本身的 JIT 与 Host Launch 是执行成本。"
+    },
+    {
+      "id": "E3",
+      "kind": "pr",
+      "title": "XPress Acceptance Estimator",
+      "url": "https://github.com/vllm-project/vllm/pull/65175",
+      "workId": "github:vllm-project/vllm#65175",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 已合入）",
+      "note": "修正置信度未传递造成的 AV 错误裁剪。"
+    },
+    {
+      "id": "E4",
+      "kind": "pr",
+      "title": "HiSparse Multi-token Verification Prefetch",
+      "url": "https://github.com/vllm-project/vllm/pull/63801",
+      "workId": "github:vllm-project/vllm#63801",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 已合入）",
+      "note": "多 Token Verify 的 KV Staging。"
+    },
+    {
+      "id": "E5",
+      "kind": "pr",
+      "title": "Lookahead Block Hash for EAGLE/MTP",
+      "url": "https://github.com/vllm-project/vllm/pull/61589",
+      "workId": "github:vllm-project/vllm#61589",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 已合入）",
+      "note": "Prefix KV 依赖后一 Token 的身份。"
+    },
+    {
+      "id": "E6",
+      "kind": "pr",
+      "title": "Skip Unused Drafts",
+      "url": "https://github.com/vllm-project/vllm/pull/62784",
+      "workId": "github:vllm-project/vllm#62784",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 已合入）",
+      "note": "Prefill-only 和已结束请求不做无用 Draft。"
+    },
+    {
+      "id": "E7",
+      "kind": "pr",
+      "title": "RecoverSSM Deferred Commit",
+      "url": "https://github.com/vllm-project/vllm/pull/66595",
+      "workId": "github:vllm-project/vllm#66595",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 未合入）",
+      "note": "KDA Accepted State Replay 与生命周期。"
+    },
+    {
+      "id": "E8",
+      "kind": "pr",
+      "title": "DFlash2 MRV2 Full ACLGraph",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19512",
+      "workId": "github:vllm-project/vllm-ascend#19512",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 已合入）",
+      "note": "4×910B4 作者对照；不证明 910B2 可用。"
+    },
+    {
+      "id": "E9",
+      "kind": "pr",
+      "title": "Rejection Sampling ACLGraph",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20254",
+      "workId": "github:vllm-project/vllm-ascend#20254",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 未合入）",
+      "note": "Host Launch 关键路径的候选修正。"
+    },
+    {
+      "id": "E10",
+      "kind": "pr",
+      "title": "Chunk Top-k/Top-p to Avoid Sampling OOM",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20006",
+      "workId": "github:vllm-project/vllm-ascend#20006",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 未合入）",
+      "note": "Spec Verify 高并发峰值排序内存。"
+    },
+    {
+      "id": "E11",
+      "kind": "pr",
+      "title": "GDN Mixed Batch Metadata Fusion",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19954",
+      "workId": "github:vllm-project/vllm-ascend#19954",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 已合入）",
+      "note": "兼容可变 Spec 与混合 Batch。"
+    },
+    {
+      "id": "E12",
+      "kind": "pr",
+      "title": "RecoverSSM Commit D2H Overlap",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/21430",
+      "workId": "github:vllm-project/vllm-ascend#21430",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 未合入）",
+      "note": "D2H snapshot 与 commit 排序的 Host 空泡。"
+    },
+    {
+      "id": "E13",
+      "kind": "pr",
+      "title": "DFlash2 ACL Graph Mode Selection",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20279",
+      "workId": "github:vllm-project/vllm-ascend#20279",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 未合入）",
+      "note": "与 #19512 相关但独立审查状态。"
+    },
+    {
+      "id": "E14",
+      "kind": "pr",
+      "title": "DFlash/DSpark Draft Tail KV",
+      "url": "https://github.com/vllm-project/vllm/pull/64109",
+      "workId": "github:vllm-project/vllm#64109",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 未合入）",
+      "note": "草稿的尾部 KV 容量约束。"
+    },
+    {
+      "id": "E15",
+      "kind": "pr",
+      "title": "Cross-TP Hybrid Decode History Reuse",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20755",
+      "workId": "github:vllm-project/vllm-ascend#20755",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 未合入）",
+      "note": "State/KV 迁移与 MTP Lookahead 的周边机制。"
+    },
+    {
+      "id": "E16",
+      "kind": "pr",
+      "title": "GLM Specialized Uniform MTP Verify",
+      "url": "https://github.com/vllm-project/vllm/pull/63102",
+      "workId": "github:vllm-project/vllm#63102",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 已合入）",
+      "note": "GB300 TP4 专用多 Token Verify。"
+    },
+    {
+      "id": "E17",
+      "kind": "pr",
+      "title": "Varlen Graph for Fixed Speculation",
+      "url": "https://github.com/vllm-project/vllm/pull/64915",
+      "workId": "github:vllm-project/vllm#64915",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 关闭未合入）",
+      "note": "作者大幅性能数字含不稳定基线，不能视为已发布特性。"
+    },
+    {
+      "id": "E18",
+      "kind": "pr",
+      "title": "Hybrid Cache Group Metadata Reuse",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20345",
+      "workId": "github:vllm-project/vllm-ascend#20345",
+      "evidenceLevel": "原始 PR（截至 2026-11-17 未合入）",
+      "note": "GDN 组间元数据、图捕获分支一致性。"
+    },
+    {
+      "id": "M1",
+      "kind": "methodology",
+      "title": "TACL Survey Papers Guidance",
+      "url": "https://transacl.org/index.php/tacl/about/submissions",
+      "evidenceLevel": "综述组织方法"
+    },
+    {
+      "id": "M2",
+      "kind": "methodology",
+      "title": "PRISMA Living Systematic Reviews",
+      "url": "https://www.prisma-statement.org/lsr",
+      "evidenceLevel": "更新透明度的方法参考；非完成的系统综述"
+    }
+  ],
+  "limitations": [
+    "选取性叙述综述，非完全覆盖全部论文与社区的系统综述；105 条 PR 保留且均可浏览，但只综合其中 18 条代表性工程记录。",
+    "当前仅抽查公开原始文档和 PR，不曾执行任何 NPU/GPU、E2E Serving、Greedy 或概率分布的独立复现。",
+    "部分核心 PR 尚未合入，官方 latest 文档与用户的固定旧版本平台不能自动等价。真实可用性必须重新执行兼容矩阵 Gate。",
+    "不同作者性能记录分别对应 MI355X、H200、GB300/Rubin、910B4/A5 等配置，不能拼接倍数或外推到 910B2。",
+    "Research Gaps 仅描述本次证据范围下尚未闭环的交叉条件，不代表全领域无人研究或存在已被证明的新贡献。",
+    "正式学术稿、独立专家审阅与 PDF 导出尚未完成；当前报告可在本分支作为动态研究稿阅读。"
+  ],
+  "changelog": [
+    {
+      "date": "2026-11-17",
+      "summary": "R1：保留 105 条社区 PR 及原分类；建立来源到机制的系统综合、7 组作者实验对照和 6 个验证假设。"
+    }
+  ],
+  "asOf": "2026-11-17",
+  "revision": 1,
+  "version": "e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d",
+  "previousVersion": null,
+  "status": "research-draft",
+  "synthesizedWorkIds": [
+    "github:vllm-project/vllm#63096",
+    "github:vllm-project/vllm#63421",
+    "github:vllm-project/vllm#65175",
+    "github:vllm-project/vllm#63801",
+    "github:vllm-project/vllm#61589",
+    "github:vllm-project/vllm#62784",
+    "github:vllm-project/vllm#66595",
+    "github:vllm-project/vllm-ascend#19512",
+    "github:vllm-project/vllm-ascend#20254",
+    "github:vllm-project/vllm-ascend#20006",
+    "github:vllm-project/vllm-ascend#19954",
+    "github:vllm-project/vllm-ascend#21430",
+    "github:vllm-project/vllm-ascend#20279",
+    "github:vllm-project/vllm#64109",
+    "github:vllm-project/vllm-ascend#20755",
+    "github:vllm-project/vllm#63102",
+    "github:vllm-project/vllm#64915",
+    "github:vllm-project/vllm-ascend#20345"
+  ],
+  "pendingEvidence": [],
+  "sourceDelta": {
+    "added": [
+      "github:vllm-project/vllm#63096",
+      "github:vllm-project/vllm#63421",
+      "github:vllm-project/vllm#65175",
+      "github:vllm-project/vllm#63801",
+      "github:vllm-project/vllm#61589",
+      "github:vllm-project/vllm#62784",
+      "github:vllm-project/vllm#66595",
+      "github:vllm-project/vllm-ascend#19512",
+      "github:vllm-project/vllm-ascend#20254",
+      "github:vllm-project/vllm-ascend#20006",
+      "github:vllm-project/vllm-ascend#19954",
+      "github:vllm-project/vllm-ascend#21430",
+      "github:vllm-project/vllm-ascend#20279",
+      "github:vllm-project/vllm#64109",
+      "github:vllm-project/vllm-ascend#20755",
+      "github:vllm-project/vllm#63102",
+      "github:vllm-project/vllm#64915",
+      "github:vllm-project/vllm-ascend#20345"
+    ],
+    "changed": [],
+    "removed": []
+  },
+  "evidenceDetails": [
+    {
+      "id": "draft-graph",
+      "sourceIds": [
+        "E1"
+      ],
+      "comparison": "ROCm Multi-step Draft Graph",
+      "mechanism": "允许 AITER Metadata 视图在多个 Draft 步原位更新",
+      "level": "已合入 PR 的作者报告；本站未复现",
+      "environment": "MI355X / ROCm AITER",
+      "revision": "vLLM #63096",
+      "workload": "K=3/7，B=1/8/32 与 Serving Concurrency 对照",
+      "result": "作者报告 Draft Loop 约90–120µs/轮减少；端到端 TPS 变化接近噪声。",
+      "limitation": "不能把 Draft Microbenchmark 的改善当作服务加速。",
+      "verification": "原始 PR 描述阅读"
+    },
+    {
+      "id": "budget-kernel",
+      "sourceIds": [
+        "E2"
+      ],
+      "comparison": "Adaptive Verification Budget Selector",
+      "mechanism": "Warmup 预编译单个 Triton Budget Kernel",
+      "level": "已合入 PR 的作者报告；本站未复现",
+      "environment": "H200，Qwen3-4B + DSpark",
+      "revision": "vLLM #63421",
+      "workload": "GSM8K 128 Prompts，K7，Concurrency16",
+      "result": "作者报告 Host Budget 76–90µs→约15µs，Output TPS 4783→6803。",
+      "limitation": "不能推广到任意 SoC、并发或 Drafter。",
+      "verification": "原始 PR 描述阅读"
+    },
+    {
+      "id": "verify-graph",
+      "sourceIds": [
+        "E17"
+      ],
+      "comparison": "Fixed-width Speculation 的 Varlen Graph",
+      "mechanism": "动态组批时复用可变长度 Decode Graph",
+      "level": "Closed/Not merged；作者报告，本站未复现",
+      "environment": "4×Rubin，DeepSeek-V4.1-Flash，DP4/EP4",
+      "revision": "vLLM #64915（未合并）",
+      "workload": "DSpark K5，高并发长输入",
+      "result": "作者报告图覆盖与 TPS 大幅改善，但至少一组对照未通过稳定性条件。",
+      "limitation": "不能作为 main 已有能力或稳定收益证据。",
+      "verification": "原始 PR 描述阅读"
+    },
+    {
+      "id": "dflash-graph",
+      "sourceIds": [
+        "E8",
+        "E13"
+      ],
+      "comparison": "Ascend DFlash2 Full ACLGraph",
+      "mechanism": "MRV2 草稿 Backbone/Candidate Selector/Proposal Cache 的完整图复用",
+      "level": "#19512 已合入、#20279 未合入；本站未复现",
+      "environment": "4×910B4、Qwen3.8-27B、TP4、K7（#19512）",
+      "revision": "Ascend #19512/#20279",
+      "workload": "五场景、384 请求/部署，作者分日对照",
+      "result": "作者提供图捕获及服务对照证据；此处不合并为跨设备统一收益。",
+      "limitation": "跨天对照与新旧版本差异，不能推导旧 910B2 兼容。",
+      "verification": "两 PR 原始描述阅读"
+    },
+    {
+      "id": "sampling",
+      "sourceIds": [
+        "E9",
+        "E10"
+      ],
+      "comparison": "Rejection Host Launch 与 Peak HBM",
+      "mechanism": "ACLGraph 汇总采样 Kernel；Chunk Top-k/p 的中间排序缓冲",
+      "level": "均为未合入 PR 的作者报告",
+      "environment": "Ascend 910B 与 Qwen3-8B DSpark TP4 高并发",
+      "revision": "Ascend #20254/#20006",
+      "workload": "K+1 行随并发增长；多次 Triton Host Launch",
+      "result": "作者报告 Host 约1.98ms 而设备约110–170µs，并记录高并发 Sampling OOM。",
+      "limitation": "不同 PR 不构成同一次加速对照；解决 OOM 亦不保证 TPS 提升。",
+      "verification": "两 PR 原始描述阅读"
+    },
+    {
+      "id": "hybrid-commit",
+      "sourceIds": [
+        "E7",
+        "E12"
+      ],
+      "comparison": "RecoverSSM State Commit 与 Host Overlap",
+      "mechanism": "下轮 Verify 重放合法状态，或提前 D2H Snapshot 让 Commit 与后续输入准备重叠",
+      "level": "均未合入，作者报告",
+      "environment": "KDA GPU 指定配置；Ascend A5 Qwen GDN/MTP",
+      "revision": "vLLM #66595 / Ascend #21430",
+      "workload": "分别 Concurrency128 / 72",
+      "result": "作者分别报告 KDA c128 +5.4% 输出 TPS；A5 c72 TPS 约24→30。",
+      "limitation": "模型、设备、运行时不同，不能迁移成旧固定 Pair 结果。",
+      "verification": "原始 PR 描述阅读"
+    },
+    {
+      "id": "pd-cache",
+      "sourceIds": [
+        "E5",
+        "E15"
+      ],
+      "comparison": "Lookahead Prefix Hash 与 Cross-TP Hybrid History",
+      "mechanism": "Draft KV 的后一 Token 身份；迁移时保持 Hybrid Recurrent Checkpoint 所有权",
+      "level": "#61589 已合入，#20755 未合入",
+      "environment": "vLLM Local Prefix Cache；Ascend 8×910 + Qwen3.8-MTP3（作者配置）",
+      "revision": "vLLM #61589 / Ascend #20755",
+      "workload": "Prefix Hit 与跨 TP1/2/4 Restore",
+      "result": "#20755 作者报告 Restore TTFT 814.66→289.54ms；不是 Spec Step TPOT 提升。",
+      "limitation": "指标属 State Restore 而非 Draft/Verify，PR 未合入且本站未复现。",
+      "verification": "两 PR 原始描述阅读"
+    }
+  ],
+  "markdownPath": "topic-reports/speculative-decoding/e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d/report.md",
+  "htmlPath": "topic-reports/speculative-decoding/e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d/report.html",
+  "manifestPath": "topic-reports/speculative-decoding/e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d/manifest.json"
+}
