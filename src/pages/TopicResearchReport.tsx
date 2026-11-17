@@ -125,7 +125,7 @@ function ReportHistory({ topic, report, current, embedded, requested }: {
     {pending.length > 0 && <details className="survey-pending">
       <summary>{pending.length} 项新证据待综合研究 <ArrowRight size={14} /></summary>
       <p>这些条目已进入取材索引。后续修订将核查它们是否改变已有判断。</p>
-      {embedded ? <Link to={{ search: "view=evidence" }}>查看 PR 与趋势</Link> : <EvidenceList entries={pending} labels={topic.labels} />}
+      {embedded ? <ReportJump id="survey-appendix">查看 PR 取材索引</ReportJump> : <EvidenceList entries={pending} labels={topic.labels} />}
     </details>}
   </>;
 }
@@ -207,7 +207,7 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
     { id: "survey-gaps", title: "Research Gaps" }, { id: "survey-limitations", title: "局限与证据边界" },
     ...(report.reviewSummary ? [{ id: "survey-review", title: "独立审查摘要" }] : []),
     { id: "survey-references", title: "参考文献" }, { id: "survey-evolution", title: "版本与持续研究" },
-    ...(!embedded ? [{ id: "survey-appendix", title: "取材证据附录" }] : []),
+    embedded ? { id: "survey-pr-trends", title: "PR 与趋势" } : { id: "survey-appendix", title: "取材证据附录" },
   ];
   const uses = (id: string) => [
     ...report.taxonomy.flatMap((row, index) => row.sourceIds.includes(id) ? [{ id: `survey-route-${index}`, title: `路线 ${index + 1}` }] : []),
@@ -283,6 +283,17 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
       </header>
       {current?.error && <p className="survey-artifact-note" role="status">{current.error}</p>}
       <ReportUpdateOverview report={report} topicId={topic.id} />
+      <details className="report-brief-disclosure report-pr-trends" id="survey-pr-trends" tabIndex={-1}>
+        <summary>PR 与趋势 <span>每日收录与 {topic.entries.length} 条 PR 线索</span></summary>
+        <div className="report-brief-disclosure-content">
+          <EvidenceTimeline topic={topic} report={report} />
+          <section id="survey-appendix" tabIndex={-1} aria-labelledby="report-pr-index">
+            <h3 id="report-pr-index">PR 取材索引</h3>
+            <p className="survey-muted">覆盖 {topic.coverage.firstDay} 至 {topic.coverage.lastDay}。可按社区或子方向筛选，打开原始 PR 或对应日报。</p>
+            <EvidenceList entries={topic.entries} labels={topic.labels} />
+          </section>
+        </div>
+      </details>
       <details className="report-brief-disclosure" id="survey-analysis" tabIndex={-1} open={analysisOpen} onToggle={(event) => setAnalysisOpen(event.currentTarget.open)}>
         <summary>具体分析 <span>{report.sections.length} 节正文、证据与引用</span></summary>
         <div className="report-brief-disclosure-content">

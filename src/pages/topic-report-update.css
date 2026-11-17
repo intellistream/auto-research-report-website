@@ -87,6 +87,10 @@
 .report-brief-disclosure-content { padding: 0 .85rem .85rem; min-width: 0; }
 .report-brief-disclosure .survey-toolbar { margin: .25rem 0 .85rem; }
 .report-brief-disclosure .survey-paper { max-width: none; }
+.report-pr-trends .survey-trend { margin-top: .3rem; }
+.report-pr-trends #survey-appendix { scroll-margin-top: 1rem; }
+.report-pr-trends #survey-appendix h3 { margin: .75rem 0 .35rem; }
+.report-pr-trends .topic-evidence-row a { overflow-wrap: anywhere; }
 @media (max-width: 650px) {
   .report-brief-overview, .report-brief-evidence-grid { grid-template-columns: minmax(0, 1fr); }
   .report-brief-next ul { margin-bottom: .4rem; }
