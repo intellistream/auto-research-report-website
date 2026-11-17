@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
-  ArrowDownToLine, ArrowRight, ArrowUpRight, Check, CircleCheck, Cpu, Database, HardDrive,
+  ArrowDownToLine, ArrowRight, Check, CircleCheck, Cpu, Database, HardDrive,
   Layers, ListOrdered, MessageSquare, Pause, Play, Recycle, RotateCcw, Send, Sparkles, X,
   type LucideIcon,
 } from "lucide-react";
@@ -53,64 +53,103 @@ const examples = {
   ],
 } satisfies Record<string, [Frame, Frame, Frame]>;
 
+const STEP_DURATION = 1900;
+
 export default function InferenceStageDemo({ stage }: { stage: keyof typeof examples }) {
   const frames: Frame[] = examples[stage];
   const last = frames.length - 1;
   const [step, setStep] = useState(0);
-  const [playing, setPlaying] = useState(false);
+  const [playback, setPlayback] = useState<"idle" | "playing" | "paused" | "complete">("idle");
+  const [run, setRun] = useState(0);
+  // Keep the remaining dwell time when CSS animations are paused and resumed.
+  const timeline = useRef({ key: "", remaining: STEP_DURATION });
+  const playing = playback === "playing";
 
   useEffect(() => {
-    if (!playing || step === last) return;
+    if (!playing) return;
+    const key = `${run}:${step}`;
+    if (timeline.current.key !== key) timeline.current = { key, remaining: STEP_DURATION };
+    const clock = timeline.current;
+    const started = performance.now();
     const timer = window.setTimeout(() => {
-      setStep(step + 1);
-      if (step + 1 === last) setPlaying(false);
-    }, 1150);
-    return () => window.clearTimeout(timer);
-  }, [last, playing, step]);
+      if (step === last) setPlayback("complete");
+      else setStep(step + 1);
+    }, clock.remaining);
+    return () => {
+      window.clearTimeout(timer);
+      clock.remaining = Math.max(0, clock.remaining - (performance.now() - started));
+    };
+  }, [last, playing, run, step]);
+
+  useEffect(() => {
+    function pauseWhenHidden() {
+      if (document.hidden) setPlayback((current) => current === "playing" ? "paused" : current);
+    }
+    document.addEventListener("visibilitychange", pauseWhenHidden);
+    return () => document.removeEventListener("visibilitychange", pauseWhenHidden);
+  }, []);
+
+  function chooseStep(index: number) {
+    setPlayback("idle");
+    setStep(index);
+    setRun((current) => current + 1);
+  }
 
   function togglePlayback() {
     if (playing) {
-      setPlaying(false);
+      setPlayback("paused");
     } else {
-      if (step === last) setStep(0);
-      setPlaying(true);
+      if (playback !== "paused") {
+        if (step === last) setStep(0);
+        setRun((current) => current + 1);
+      }
+      setPlayback("playing");
     }
   }
 
   return (
-    <>
+    <div className="map-demo" data-playback={playback} data-stage={stage}
+      style={{ "--step-duration": `${STEP_DURATION}ms` } as CSSProperties}>
       <div className="map-demo-frames" role="group" aria-label="演示步骤">
         {frames.map(({ label, icon: Icon, tokens }, index) => (
-          <div className="map-demo-phase" key={label}>
+          <div className="map-demo-phase" key={label} data-state={index === step ? "active" : index < step ? "done" : "pending"}>
             <button type="button" className="map-demo-frame" data-state={index === step ? "active" : index < step ? "done" : "pending"}
-              aria-current={index === step ? "step" : undefined} onClick={() => { setPlaying(false); setStep(index); }}>
+              aria-current={index === step ? "step" : undefined} onClick={() => chooseStep(index)}>
               <span className="map-demo-frame-head"><span className="map-demo-number">{index + 1}</span><strong>{label}</strong></span>
-              <span className="map-demo-scene">
+              <span className="map-demo-scene" key={run}>
                 <Icon size={29} strokeWidth={1.6} aria-hidden />
-                {index <= step ? <span className="map-demo-tokens">
-                  {tokens.map((token) => typeof token === "string"
-                    ? <span className="map-demo-token" key={token}>{token}</span>
-                    : <span className="map-demo-token" key={token.text} data-result={token.result}>
-                      {token.result === "keep" ? <Check size={13} aria-label="保留" /> : <X size={13} aria-label="丢弃" />}
-                      {token.text}
-                    </span>)}
-                </span> : <span className="map-demo-placeholder" aria-hidden />}
+                <span className="map-demo-token-area">
+                  <span className="map-demo-tokens" aria-hidden={index > step ? true : undefined}>
+                    {tokens.map((token, tokenIndex) => {
+                      const style = { "--token-order": stage === "prefill" && index === 1 ? 0 : tokenIndex } as CSSProperties;
+                      return typeof token === "string"
+                        ? <span className="map-demo-token" key={token} style={style}>{token}</span>
+                        : <span className="map-demo-token" key={token.text} data-result={token.result} style={style}>
+                          {token.result === "keep" ? <Check size={13} aria-label="保留" /> : <X size={13} aria-label="丢弃" />}
+                          {token.text}
+                        </span>;
+                    })}
+                  </span>
+                  {index > step && <span className="map-demo-placeholder" aria-hidden />}
+                </span>
               </span>
+              <span className="map-demo-progress" aria-hidden key={`progress-${run}`}><i /></span>
             </button>
-            {index < last && <ArrowRight className="map-demo-arrow" size={20} aria-hidden />}
+            {index < last && <span className="map-demo-arrow" aria-hidden><ArrowRight size={20} /><i key={run} /></span>}
           </div>
         ))}
       </div>
       <div className="map-demo-controls">
         <span className="map-v2-sr-only" role="status">第 {step + 1} 步，{frames[step].label}</span>
         <button type="button" onClick={togglePlayback}>
-          {playing ? <Pause size={15} aria-hidden /> : step === last ? <RotateCcw size={15} aria-hidden /> : <Play size={15} aria-hidden />}
-          {playing ? "暂停" : step === last ? "重播" : "播放演示"}
+          {playing ? <Pause size={15} aria-hidden /> : step === last && playback !== "paused" ? <RotateCcw size={15} aria-hidden /> : <Play size={15} aria-hidden />}
+          {playing ? "暂停" : playback === "paused" ? "继续播放" : step === last ? "重播" : "播放演示"}
         </button>
-        <button type="button" disabled={step === last} onClick={() => { setPlaying(false); setStep(step + 1); }}>
-          下一步 <ArrowUpRight size={15} aria-hidden />
+        <button type="button" disabled={step === last} onClick={() => chooseStep(step + 1)}>
+          下一步 <ArrowRight size={15} aria-hidden />
         </button>
+        <span className="map-demo-position" aria-hidden>{String(step + 1).padStart(2, "0")} / 03 · {playing ? "演示中" : playback === "paused" ? "已暂停" : step === last ? "演示完成" : "可逐步查看"}</span>
       </div>
-    </>
+    </div>
   );
 }

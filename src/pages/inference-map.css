@@ -215,6 +215,7 @@
 .map-demo-phase { position: relative; min-width: 0; }
 
 .map-demo-frame {
+  position: relative;
   display: grid;
   align-content: start;
   gap: 8px;
@@ -226,6 +227,7 @@
   background: #204a41;
   color: #eef9f4;
   text-align: left;
+  transition: background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease;
 }
 
 .map-demo-frame:hover { border-color: #a0dec7; }
@@ -255,6 +257,7 @@
   background: #132f28;
   color: #dcf3e9;
   font-size: 11px;
+  transition: background-color 280ms ease, color 280ms ease;
 }
 
 .map-demo-frame[data-state="active"] .map-demo-number { background: #b3ebd6; color: #153b33; }
@@ -284,15 +287,23 @@
   gap: 5px;
   min-width: 0;
 }
-.map-demo-frame[data-state="active"] .map-demo-tokens { animation: map-demo-enter 200ms ease-out both; }
-
-@keyframes map-demo-enter {
-  from { opacity: 0; transform: translateX(-4px); }
-  to { opacity: 1; transform: none; }
+.map-demo-token-area { position: relative; flex: 1; min-width: 0; }
+.map-demo-frame[data-state="pending"] .map-demo-tokens { visibility: hidden; }
+.map-demo-frame[data-state="active"] .map-demo-token {
+  animation: map-demo-enter 460ms cubic-bezier(.2, .7, .2, 1) both;
+  animation-delay: calc(100ms + var(--token-order) * 120ms);
+}
+.map-demo-frame[data-state="active"] .map-demo-scene > svg {
+  animation: map-demo-process 900ms ease-out both;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .map-demo-frame[data-state="active"] .map-demo-tokens { animation: none; }
+@keyframes map-demo-enter {
+  from { opacity: 0; transform: translateY(7px) scale(.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes map-demo-process {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(1.08); background-color: #326b59; }
 }
 
 .map-demo-token {
@@ -315,8 +326,8 @@
 .map-demo-token[data-result="drop"] { background: #ffe0cf; color: #752d17; text-decoration: line-through; }
 
 .map-demo-placeholder {
-  flex: 1;
-  height: 32px;
+  position: absolute;
+  inset: 0;
   border: 1px dashed #80a79a;
   border-radius: 5px;
 }
@@ -328,9 +339,55 @@
   color: #c5e4d9;
   transform: rotate(90deg);
   pointer-events: none;
+  width: 20px;
+  height: 20px;
 }
 
-.map-demo-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.map-demo-arrow i {
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #b9edd9;
+  opacity: 0;
+}
+.map-demo[data-playback="playing"] .map-demo-phase[data-state="active"] .map-demo-arrow i,
+.map-demo[data-playback="paused"] .map-demo-phase[data-state="active"] .map-demo-arrow i {
+  animation: map-demo-transfer var(--step-duration) ease-in-out both;
+}
+@keyframes map-demo-transfer {
+  0%, 65% { opacity: 0; transform: translateX(-3px); }
+  72% { opacity: 1; }
+  94% { opacity: 1; transform: translateX(17px); }
+  100% { opacity: 0; transform: translateX(20px); }
+}
+.map-demo-progress {
+  position: absolute;
+  inset: auto 10px 0;
+  height: 2px;
+  overflow: hidden;
+}
+.map-demo-progress i {
+  display: block;
+  height: 100%;
+  background: #a2e4cc;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.map-demo-frame[data-state="done"] .map-demo-progress i,
+.map-demo[data-playback="complete"] .map-demo-frame[data-state="active"] .map-demo-progress i { transform: scaleX(1); }
+.map-demo:is([data-playback="playing"], [data-playback="paused"]) .map-demo-frame[data-state="active"] .map-demo-progress i {
+  animation: map-demo-progress var(--step-duration) linear both;
+}
+@keyframes map-demo-progress { to { transform: scaleX(1); } }
+.map-demo[data-playback="paused"] .map-demo-frame[data-state="active"] .map-demo-token,
+.map-demo[data-playback="paused"] .map-demo-frame[data-state="active"] .map-demo-scene > svg,
+.map-demo[data-playback="paused"] .map-demo-frame[data-state="active"] .map-demo-progress i,
+.map-demo[data-playback="paused"] .map-demo-phase[data-state="active"] .map-demo-arrow i { animation-play-state: paused; }
+.map-demo-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.map-demo-position { margin-left: auto; color: #c3e2d6; font-size: 11px; font-variant-numeric: tabular-nums; }
 .map-demo-controls button {
   display: inline-flex;
   align-items: center;
@@ -345,6 +402,8 @@
 }
 
 .map-demo-controls button:first-of-type {
+  min-width: 96px;
+  justify-content: center;
   border-color: #b9edd9;
   background: #b9edd9;
   color: #153b33;
@@ -352,6 +411,11 @@
 }
 
 .map-demo-controls button:disabled { opacity: .5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .map-demo *, .map-demo *::before, .map-demo *::after { animation: none !important; transition: none !important; }
+  .map-demo-frame[data-state="active"] .map-demo-progress i { transform: scaleX(1); }
+}
 
 .map-v2-evidence {
   margin-top: 12px;
