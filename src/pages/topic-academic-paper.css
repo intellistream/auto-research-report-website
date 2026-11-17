@@ -1,7 +1,15 @@
 .academic-paper-page :focus-visible { outline: 2px solid #287352; outline-offset: 3px; }
-.academic-paper-downloads { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
-.academic-paper-downloads a { display: inline-flex; align-items: center; gap: .4rem; padding: .65rem .85rem; border: 1px solid #c5d8ca; border-radius: 6px; }
+.academic-paper-heading { margin-bottom: 1.1rem; }
+.academic-paper-heading .topic-meta { margin: 0; }
+.academic-paper-downloads { display: flex; flex-wrap: wrap; gap: .6rem; margin: .8rem 0; }
+.academic-paper-downloads a, .academic-paper-downloads button { display: inline-flex; align-items: center; gap: .4rem; padding: .65rem .85rem; border: 1px solid #c5d8ca; border-radius: 6px; }
+.academic-paper-downloads button { font: inherit; background: #fff; color: #285e46; cursor: pointer; }
 .academic-paper-downloads a:first-child { background: #286449; color: white; }
+.academic-paper-fulltext { border-top: 1px solid #d4e3d9; padding-top: 1.25rem; }
+.academic-paper-fulltext-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem 1rem; }
+.academic-paper-fulltext-heading h3 { margin: 0; font-size: 1.35rem; scroll-margin-top: 1rem; }
+.academic-paper-fulltext-heading a { font-size: .875rem; }
+.academic-paper-fulltext-heading svg { vertical-align: text-bottom; }
 .academic-paper-sources, .academic-paper-abstract { margin: .8rem 0; font-size: .9rem; line-height: 1.8; }
 .academic-paper-page summary { cursor: pointer; }
 .academic-paper-sources .topic-links { margin: .7rem 0; }

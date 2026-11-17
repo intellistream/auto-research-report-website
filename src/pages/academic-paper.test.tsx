@@ -100,6 +100,9 @@ describe("academic manuscript branch", () => {
     expect(actual.assets.markdown.sha256).toBe("382fe4bee7515b7487bdebda015306829939675fbece64a3672947f3f44d194b");
     const hrefs = academicPaperHrefs("aclgraph", actual)!;
     const html = render("/topics/aclgraph?view=paper", publishedTopic);
+    expect(html).toContain("技术路线与待验证问题");
+    expect(html.indexOf("技术路线与待验证问题")).toBeLessThan(html.indexOf("<iframe"));
+    expect(html).toContain(`href="${hrefs.html}#${encodeURIComponent("可组合的状态有效性契约")}"`);
     expect(html).toContain(`src="${hrefs.html}"`);
     expect(html).toContain(`href="${hrefs.pdf}"`);
     expect(html).toContain(`href="${hrefs.sources}"`);
