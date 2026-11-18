@@ -30,3 +30,23 @@ jobs:
         run: npm test
       - name: TypeScript and production build
         run: npm run build
+      - name: Install isolated browser smoke dependencies
+        run: |
+          npm install --no-save --package-lock=false playwright@1.57.0
+          npx playwright install --with-deps chromium
+      - name: Exercise all topic views in Chromium
+        run: |
+          (npm run preview -- --host 127.0.0.1 --port 5173 > /tmp/specdec-preview.log 2>&1 & echo $! > /tmp/specdec-preview.pid)
+          for i in $(seq 1 35); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node .github/specdec-browser-smoke.mjs
+      - name: Upload browser snapshots (temporary)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: specdec-browser-snapshots
+          path: /tmp/specdec-browser
+          if-no-files-found: ignore
+          retention-days: 1
