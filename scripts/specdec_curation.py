@@ -70,7 +70,7 @@ def classify(record, block):
     return "runtime"
 
 
-def sync(index, catalog, flow, archive):
+def sync(index, catalog, flow, archive, incoming=None):
     """Returns a new index; requires current, version-matched immutable reports."""
     topic = next((x for x in index["topics"] if x["id"] == "speculative-decoding"), None)
     if not topic or not topic.get("survey"):
@@ -100,7 +100,7 @@ def sync(index, catalog, flow, archive):
         key = (day, version)
         if key not in report_cache:
             path = archive / day / version / "report.json"
-            report_cache[key] = load(path)
+            report_cache[key] = incoming if incoming and incoming.get("sha256") == version and incoming.get("day") == day else load(path)
             if report_cache[key]["sha256"] != version or report_cache[key]["day"] != day:
                 raise ValueError(f"Daily report source mismatch {path}")
         block = entry_block(report_cache[key], work_id)

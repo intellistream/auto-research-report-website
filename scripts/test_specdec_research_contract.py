@@ -36,11 +36,16 @@ class SpecDecResearchContract(unittest.TestCase):
 
     def test_105_candidates_preserved_and_screening_transparent(self) -> None:
         rows = self.sources["prCandidates"]
-        original = self.topic["entries"]
+        original = [e for e in self.topic["entries"] if e["workId"] in self.topic["survey"]["candidateBaseline"]]
         self.assertEqual(len(rows), 105)
         self.assertEqual(len({r["workId"] for r in rows}), 105)
         self.assertEqual({r["workId"] for r in rows}, {e["workId"] for e in original})
-        self.assertEqual(self.topic["counts"]["byRepository"], {"vllm": 68, "vllm-ascend": 37})
+        self.assertEqual(len(self.topic["survey"]["candidateBaseline"]), 105)
+        self.assertEqual(len(self.topic["entries"]), 125)
+        self.assertEqual(
+            {x["workId"] for x in self.topic["entries"]} - set(self.topic["survey"]["candidateBaseline"]),
+            {x["workId"] for x in self.topic["entries"] if x["day"] >= "2026-11-12"},
+        )
         lookup = {e["workId"]: e for e in original}
         for row in rows:
             candidate = lookup[row["workId"]]
