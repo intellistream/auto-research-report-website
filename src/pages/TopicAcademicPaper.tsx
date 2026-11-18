@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowUpRight, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import { academicPaperHeadings, academicPaperHrefs, revealPaperHeading, type AcademicPaper } from "./academic-paper";
-import AclGraphSurveyMap, { aclGraphSurveyVersion } from "./AclGraphSurveyMap";
+import AclGraphSurveyMap from "./AclGraphSurveyMap";
 import "./topic-academic-paper.css";
 
 export function AcademicPaperCard({ topic, paper }: { topic: Topic; paper: AcademicPaper }) {
@@ -57,7 +57,7 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
     return <p role="alert">论文版本元数据无效，无法读取此稿。<Link to="/topics">返回专题目录</Link></p>;
   }
   const Title = embedded ? "h2" : "h1";
-  const showMap = topic.id === "aclgraph" && paper.version === aclGraphSurveyVersion;
+  const showMap = topic.id === "aclgraph" && !!topic.report;
 
   return (
     <div className="academic-paper-page">
@@ -72,7 +72,7 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
         </div>
       </header>
 
-      {showMap && <AclGraphSurveyMap htmlHref={hrefs.html} revealSection={revealSection} />}
+      {showMap && <AclGraphSurveyMap topic={topic} htmlHref={hrefs.html} revealSection={revealSection} />}
 
       <section className="academic-paper-fulltext" aria-labelledby="academic-paper-fulltext">
         <div className="academic-paper-fulltext-heading">

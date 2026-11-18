@@ -978,6 +978,295 @@
           }
         },
         "manifestPath": "topic-papers/aclgraph/c2e049495b12bf5dec36e89bedcabdf9c9f9324c2674cdf42aa557360985db75/manifest.json"
+      },
+      "survey": {
+        "schemaVersion": 1,
+        "reportVersion": "6dd5554a521e6faeb3477353dd6258a54089733402109dec9c3555eb67ba1d66",
+        "paperVersion": "c2e049495b12bf5dec36e89bedcabdf9c9f9324c2674cdf42aa557360985db75",
+        "reviewedAt": "2026-11-17",
+        "thesis": "ACL Graph 复用设备执行计划，收益取决于关键路径上减少了哪些准备、提交和等待。动态状态仍需满足地址、值、有效范围、依赖顺序和请求归属约束。局部任务消除、后端选择和服务提速应分别评价。",
+        "routes": [
+          {
+            "id": "state",
+            "title": "更新回放状态",
+            "problem": "换了请求，图仍需读取本轮状态",
+            "mechanism": [
+              "准备本轮参数",
+              "更新参数并记录事件",
+              "消费者等待后读取"
+            ],
+            "assessment": "主机任务参数更新与图内设备元数据生成是两类路径；设备驻留不等于设备生成。已有消费者时点和动态回放测试，应先核查现有保护。",
+            "limitation": "固定地址不保证值、有效范围或请求归属正确；局部测试不能代替整模型质量和跨流复用检查。",
+            "sourceIds": [
+              "D4",
+              "E1",
+              "E3"
+            ],
+            "evidenceIds": [
+              "e1-h2d-removal",
+              "e3-dynamic-replay"
+            ],
+            "gapIds": [
+              "state-ownership"
+            ],
+            "paperSection": "7.1",
+            "paperAnchor": "可组合的状态有效性契约"
+          },
+          {
+            "id": "buckets",
+            "title": "分桶与图族管理",
+            "problem": "输入变化，填充和持图都占资源",
+            "mechanism": [
+              "划分合法输入桶",
+              "匹配完整图或分段图",
+              "不兼容时安全回退"
+            ],
+            "assessment": "图覆盖率、填充和资源预算需要联合衡量。草稿图已有模式隔离与双卡填充用例，可作为验证起点。",
+            "limitation": "配置开关不等于实际命中模式；用例存在不代表已执行通过。时延表未披露的单位和重复次数不能补写。",
+            "sourceIds": [
+              "D1",
+              "D3",
+              "D5",
+              "P2",
+              "E4",
+              "E5",
+              "E8"
+            ],
+            "evidenceIds": [
+              "e5-modes-padded"
+            ],
+            "gapIds": [
+              "capture-budget"
+            ],
+            "paperSection": "7.2",
+            "paperAnchor": "图族维护与资源调度的联合选择"
+          },
+          {
+            "id": "metadata",
+            "title": "生成与共享元数据",
+            "problem": "逐层准备长度和布局，形成重复开销",
+            "mechanism": [
+              "定位准备与搬运成本",
+              "设备生成或复用计划",
+              "分别测任务与服务关键路径"
+            ],
+            "assessment": "已有特定 H2D 任务从 72 降至 0 的作者记录。后端切换、图开关与计划共享是不同对照，不能拼成统一加速比。",
+            "limitation": "计划共享的服务差值区间含零；六层微基准不含完整模型和通信。历史基线与当前移植版本也须分开。",
+            "sourceIds": [
+              "D4",
+              "E1",
+              "E2",
+              "E3",
+              "E4"
+            ],
+            "evidenceIds": [
+              "e1-h2d-removal",
+              "e2-backend-graphs",
+              "e2-eager-graph",
+              "e2-plan-sharing",
+              "e3-historical-service"
+            ],
+            "gapIds": [
+              "causal-backend-graph"
+            ],
+            "paperSection": "7.3",
+            "paperAnchor": "计划生成位置与跨消费者共享"
+          },
+          {
+            "id": "overlap",
+            "title": "跨算子资源调度",
+            "problem": "计算、访存与通信互相等待",
+            "mechanism": [
+              "识别可重叠阶段",
+              "按图容量分配资源",
+              "比较整体时间与局部代价"
+            ],
+            "assessment": "多流重叠可能隐藏局部变慢的内核。资源计划须与捕获容量、工作空间及事件依赖一起评价。",
+            "limitation": "资源上限不是独占保证；指定形状微基准和波动的历史服务基线，不能证明跨模型稳定收益。",
+            "sourceIds": [
+              "D1",
+              "D5",
+              "P1",
+              "P2",
+              "E7",
+              "E8"
+            ],
+            "evidenceIds": [],
+            "gapIds": [
+              "capture-budget"
+            ],
+            "paperSection": "7.4",
+            "paperAnchor": "跨图与多算子的资源和状态约束"
+          },
+          {
+            "id": "lifecycle",
+            "title": "生命周期与恢复",
+            "problem": "预热、捕获和资源恢复影响服务准备",
+            "mechanism": [
+              "分别计量编译与捕获",
+              "维护工作空间与对象寿命",
+              "检查异常清理与再次加载"
+            ],
+            "assessment": "声明式预热和并行编译改变启动阶段；图恢复还要求环境与绑定兼容。两类成本需要分别记录。",
+            "limitation": "42-key 编译与服务 5-key 预热不是同一工作量。旧挂起和退出的原因未定；论文中的恢复机制也不代表 Ascend 已具备跨进程图恢复能力。",
+            "sourceIds": [
+              "D1",
+              "D4",
+              "E2",
+              "E6",
+              "E9"
+            ],
+            "evidenceIds": [
+              "e2-eager-graph"
+            ],
+            "gapIds": [
+              "lifecycle-reliability"
+            ],
+            "paperSection": "7.5",
+            "paperAnchor": "恢复兼容性与部分失效处理"
+          }
+        ],
+        "update": {
+          "summary": "主判断延续。图执行的收益取决于关键路径上少了哪段开销。本版补齐对照条件，收紧性能结论。",
+          "previousRevision": 2,
+          "evidence": [
+            {
+              "title": "服务提速仍需重复验证",
+              "change": "后端实验只有一次顺序配对。计划共享的服务差值区间含零。",
+              "sourceIds": [
+                "E2"
+              ],
+              "evidenceIds": [
+                "e2-backend-graphs",
+                "e2-plan-sharing"
+              ]
+            },
+            {
+              "title": "补强局部回放正确性",
+              "change": "补录作者报告的 112 次动态回放和负对照。当前上游集成与整模型质量仍需配对验证。",
+              "sourceIds": [
+                "E3"
+              ],
+              "evidenceIds": [
+                "e3-dynamic-replay"
+              ]
+            },
+            {
+              "title": "搬运减少，首 token 收益待测",
+              "change": "轨迹中冗余 H2D 任务从 72 降到 0。在线每组只测了 1 个正式请求。",
+              "sourceIds": [
+                "E1"
+              ],
+              "evidenceIds": [
+                "e1-h2d-removal"
+              ]
+            },
+            {
+              "title": "草稿图补齐回退与填充证据",
+              "change": "源码核实了模式隔离和两卡填充用例。时延表的单位与重复次数仍待确认。",
+              "sourceIds": [
+                "E5"
+              ],
+              "evidenceIds": [
+                "e5-modes-padded"
+              ]
+            }
+          ],
+          "nextGapIds": [
+            "causal-backend-graph",
+            "state-ownership",
+            "capture-budget"
+          ]
+        },
+        "researchAssessment": {
+          "asOf": "2026-11-17",
+          "scope": "第二项工作的纯推理论文选题；保留有证据的工程结论与评测限制。",
+          "summary": "目前没有确认的 Research Gap。以下为待验证问题与评测要求；须先证明合理的常规方案之后，仍有可重复的错误或用户可感知代价。",
+          "decisions": [
+            {
+              "gapId": "causal-backend-graph",
+              "decision": "missing_evidence",
+              "reason": "后端与图开关在不同提交和对照中测量，尚缺目标服务中同条件运行后仍有代价的见证。",
+              "reopenWhen": "取得同模型、同请求的配对，定位现有更新、元数据准备或回放后仍留在关键路径的开销。",
+              "sourceUrls": [
+                "https://github.com/vllm-project/vllm-ascend/pull/21281"
+              ]
+            },
+            {
+              "gapId": "state-ownership",
+              "decision": "missing_evidence",
+              "reason": "已有消费者等待与复用保护。材料中的 v0.30.0rc1 单卡微型随机权重模型对照，以三路 setter 修复 workspace 登记；图运行两臂各记录 127 次图更新事件，三臂各 10 个请求的对应输出一致。该记录未测时延或显存，不能据旧归属错误推导通用新合同的必要性；本轮未重跑实机。",
+              "reopenWhen": "在普通保护和三类 owner 写入均生效的固定版本上，发现同输入、同前态可复现的错误、等待或显存代价。",
+              "sourceUrls": [
+                "https://github.com/vllm-project/vllm-ascend/pull/21172",
+                "https://github.com/vllm-project/vllm-ascend/issues/20143#issuecomment-6472390990",
+                "https://github.com/vllm-project/vllm-ascend/pull/20238"
+              ]
+            },
+            {
+              "gapId": "capture-budget",
+              "decision": "missing_evidence",
+              "reason": "精确静态桶已覆盖已知失配；真实混批的分段图观察仍缺同输入、同预算、同输出的普通对照。",
+              "reopenWhen": "在合法捕获桶中以实际图内 profiling 选择逐桶静态方案，再在留出负载上量出仍影响服务的代价。",
+              "sourceUrls": [
+                "https://github.com/vllm-project/vllm-ascend/issues/16049",
+                "https://github.com/vllm-project/vllm-ascend/pull/16970",
+                "https://github.com/vllm-project/vllm-ascend/pull/21414"
+              ]
+            },
+            {
+              "gapId": "lifecycle-reliability",
+              "decision": "missing_evidence",
+              "reason": "旧挂起与退出的图资源归因未知。另一处填充崩溃的公开记录保持镜像、代码与负载不变，只替换运行库：11 分钟内 56,306 次填充路径命中未崩溃，换回旧库复现。计数不是请求数，只支持该环境的普通工程修复，不能与旧挂起合并为通用生命周期缺陷；本轮未重跑实机。",
+              "reopenWhen": "在已修运行库、安全释放和常规恢复均生效时，仍能复现同一明确图资源的泄漏、挂起或服务失败。",
+              "sourceUrls": [
+                "https://github.com/vllm-project/vllm-ascend/pull/21373",
+                "https://github.com/vllm-project/vllm-ascend/pull/21281",
+                "https://github.com/vllm-project/vllm-ascend/issues/19608#issuecomment-6648690129"
+              ]
+            },
+            {
+              "gapId": "reproducible-matrix",
+              "decision": "evaluation_requirement",
+              "reason": "跨模型、设备和负载复现是具体主张的评测要求；现有材料没有给出指定机制与可比负载下反复出现的剩余问题。",
+              "reopenWhen": "先取得具体图机制在强普通对照之后仍有实际代价的案例，再限定结果迁移问题。",
+              "sourceUrls": [
+                "https://github.com/vllm-project/vllm-ascend/pull/21191",
+                "https://github.com/vllm-project/vllm-ascend/pull/19716",
+                "https://github.com/vllm-project/vllm-ascend/pull/19909"
+              ]
+            }
+          ]
+        },
+        "pendingQuestions": [
+          {
+            "workId": "github:vllm-project/vllm-ascend#21519",
+            "routeIds": [
+              "buckets"
+            ],
+            "question": "视觉编码器的哪些输入形状和布局可以复用图？",
+            "missingEvidence": "核对捕获键、填充与回退条件，并取得输出一致性、实际命中率及同版本服务对照。"
+          },
+          {
+            "workId": "github:vllm-project/vllm-ascend#21172",
+            "routeIds": [
+              "state",
+              "metadata",
+              "overlap"
+            ],
+            "question": "辅助流准备被捕获后，消费者等待是否仍进入关键路径？",
+            "missingEvidence": "核对生产、等待与覆盖顺序；在同请求和同前态下测等待，保留现有同步保护的常规基线。"
+          },
+          {
+            "workId": "github:vllm-project/vllm-ascend#20254",
+            "routeIds": [
+              "state",
+              "buckets"
+            ],
+            "question": "候选接受处理的一次图提交省去了哪段开销？",
+            "missingEvidence": "分离主机提交、设备处理与拒绝长度变化，核对动态回放正确性和用户时延，不能用提交次数代替收益。"
+          }
+        ]
       }
     },
     {

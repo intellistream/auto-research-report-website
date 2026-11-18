@@ -175,7 +175,10 @@ describe("frozen ACLGraph contract", () => {
     expect(html.indexOf("证据怎样改变判断")).toBeLessThan(html.indexOf('id="survey-paper"'));
     expect(html).toContain("复核 4 条已有来源");
     expect(html).toContain("7 项证据详情");
-    expect(html).toContain("计划共享的服务差值区间含零");
+    // This legacy fixture omits the manuscript, so its curated guide has an
+    // incomplete version binding and the overview must use the frozen report.
+    expect(html).toContain(frozen.changelog.at(-1)!.summary);
+    expect(html).not.toContain(actual.survey!.update.summary);
     expect(html).toContain('id="survey-evolution" tabindex="-1"');
   });
   it("renders all seven published evidence records and the full independent review in both reading modes", () => {
