@@ -75,7 +75,12 @@ def sync(index, catalog, flow, archive):
     topic = next((x for x in index["topics"] if x["id"] == "speculative-decoding"), None)
     if not topic or not topic.get("survey"):
         raise ValueError("SpecDec source index and reviewed guide required")
-    baseline_day = topic["coverage"]["lastDay"]
+    baseline = set(topic["survey"].get("candidateBaseline", []))
+    baseline_dates = [row["day"] for row in topic["entries"] if row["workId"] in baseline]
+    if not baseline_dates:
+        raise ValueError("Original reviewed candidate baseline is missing")
+    frozen_cutoff = max(baseline_dates)
+    last_indexed = topic["coverage"]["lastDay"]
     known = {row["workId"] for row in topic["entries"]}
     current = [item for item in flow["entries"]
                if item["day"] in catalog["days"]
@@ -84,7 +89,7 @@ def sync(index, catalog, flow, archive):
     added = []
     for record in current:
         work_id = record["workId"]
-        if record["day"] < baseline_day or work_id in known:
+        if record["day"] <= frozen_cutoff or record["day"] < last_indexed or work_id in known:
             continue
         if record["stage"] != "speculative" and work_id not in CROSS_LAYER:
             continue
