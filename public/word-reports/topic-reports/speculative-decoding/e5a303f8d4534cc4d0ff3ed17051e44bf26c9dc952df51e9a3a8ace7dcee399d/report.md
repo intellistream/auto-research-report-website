@@ -253,7 +253,7 @@ Verify Budget 变化意味着每条请求本轮计算的候选数不同，State 
 
 以 vLLM v0.23.0（0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665）和 vLLM-Ascend v0.23.0（5cb98caaadeff42b5b62b996e34bb2aaa29d20fd）为静态基线，Scheduler.schedule 使用 num_computed_tokens 与包含 Spec Token 的需求决定本轮预算；BaseSpeculator.propose 生成候选；GPUModelRunner.sample 在存在 Draft 时调用 RejectionSampler；postprocess_sampled 先更新计数和历史，再执行 model_state.postprocess_state。Ascend 扩展还把 num_computed_tokens D2H，等待设备 Event 后更新下一轮 CPU Sequence Length。
 
-该调用链标识组件所有权，不意味着所有方法在旧 Pair 可用，更不能把 2026 年 10–11 月后续合入的 AV/DSpark/DFlash2/RecoverSSM PR 当作旧固定版本实现。版本化差异、完整源码路径和组合适用性见附录 B；未核验模型/TP/CANN 组合不能直接填为支持。
+该调用链标识组件所有权，不意味着所有方法在旧 Pair 可用，更不能把 2026 年 10–11 月后续合入的 AV/DSpark/DFlash2/RecoverSSM PR 当作旧固定版本实现。版本化差异、完整源码路径和组合适用性见固定源码审计资料；未核验模型/TP/CANN 组合不能直接填为支持。
 
 *来源：[[D6]](#ref-D6) [[D7]](#ref-D7) [[E2]](#ref-E2) [[E8]](#ref-E8) [[E12]](#ref-E12)*
 
@@ -363,11 +363,11 @@ G3：在真正支持可变 Verify Shape 与 Graph 的软件/Backend 组合上，
 
 *本章来源：[[D4]](#ref-D4) [[P9]](#ref-P9) [[E2]](#ref-E2) [[E3]](#ref-E3) [[E5]](#ref-E5) [[E7]](#ref-E7) [[E14]](#ref-E14) [[E17]](#ref-E17) [[E1]](#ref-E1) [[E9]](#ref-E9) [[E11]](#ref-E11) [[P2]](#ref-P2) [[D6]](#ref-D6) [[D7]](#ref-D7) [[E12]](#ref-E12)*
 
-## 附录 A：核心 PR 原始证据与归因边界
+## 局部工程证据对照与归因边界
 
 正文围绕研究问题论证；以下记录原始 PR 作者报告的环境、数据、失败和核验范围。数据不能跨设备/模型/版本相加。
 
-### A.E2 Adaptive Verification Budget Selector
+### E2 Adaptive Verification Budget Selector
 
 | 项目 | 记录 |
 |---|---|
@@ -385,7 +385,7 @@ G3：在真正支持可变 Verify Shape 与 Graph 的软件/Backend 组合上，
 
 来源：[[E2]](#ref-E2)
 
-### A.E3 XPress Acceptance Estimator
+### E3 XPress Acceptance Estimator
 
 | 项目 | 记录 |
 |---|---|
@@ -403,7 +403,7 @@ G3：在真正支持可变 Verify Shape 与 Graph 的软件/Backend 组合上，
 
 来源：[[E3]](#ref-E3)
 
-### A.E5 Lookahead Block Hash 与 Prefix Cache
+### E5 Lookahead Block Hash 与 Prefix Cache
 
 | 项目 | 记录 |
 |---|---|
@@ -421,7 +421,7 @@ G3：在真正支持可变 Verify Shape 与 Graph 的软件/Backend 组合上，
 
 来源：[[E5]](#ref-E5)
 
-### A.E7 RecoverSSM Deferred Replay
+### E7 RecoverSSM Deferred Replay
 
 | 项目 | 记录 |
 |---|---|
@@ -439,7 +439,7 @@ G3：在真正支持可变 Verify Shape 与 Graph 的软件/Backend 组合上，
 
 来源：[[E7]](#ref-E7)
 
-### A.E1 ROCm Multi-step Draft Graph
+### E1 ROCm Multi-step Draft Graph
 
 | 项目 | 记录 |
 |---|---|
@@ -457,7 +457,7 @@ G3：在真正支持可变 Verify Shape 与 Graph 的软件/Backend 组合上，
 
 来源：[[E1]](#ref-E1)
 
-### A.E8 Ascend DFlash2 Full ACLGraph
+### E8 Ascend DFlash2 Full ACLGraph
 
 | 项目 | 记录 |
 |---|---|
@@ -475,7 +475,7 @@ G3：在真正支持可变 Verify Shape 与 Graph 的软件/Backend 组合上，
 
 来源：[[E8]](#ref-E8)
 
-### A.E9 Rejection Sampling ACLGraph
+### E9 Rejection Sampling ACLGraph
 
 | 项目 | 记录 |
 |---|---|
@@ -493,7 +493,7 @@ G3：在真正支持可变 Verify Shape 与 Graph 的软件/Backend 组合上，
 
 来源：[[E9]](#ref-E9)
 
-### A.E12 RecoverSSM D2H 与 Commit Overlap
+### E12 RecoverSSM D2H 与 Commit Overlap
 
 | 项目 | 记录 |
 |---|---|
@@ -511,7 +511,7 @@ G3：在真正支持可变 Verify Shape 与 Graph 的软件/Backend 组合上，
 
 来源：[[E12]](#ref-E12)
 
-### A.E11 GDN Mixed-batch Metadata Fusion
+### E11 GDN Mixed-batch Metadata Fusion
 
 | 项目 | 记录 |
 |---|---|
@@ -529,7 +529,7 @@ G3：在真正支持可变 Verify Shape 与 Graph 的软件/Backend 组合上，
 
 来源：[[E11]](#ref-E11)
 
-### A.E17 Fixed-width Spec Varlen Graph
+### E17 Fixed-width Spec Varlen Graph
 
 | 项目 | 记录 |
 |---|---|
@@ -547,15 +547,15 @@ G3：在真正支持可变 Verify Shape 与 Graph 的软件/Backend 组合上，
 
 来源：[[E17]](#ref-E17)
 
-## 附录 B：固定源码与实现支持矩阵
+## 固定源码与实现支持矩阵
 
 [查看 vLLM v0.23.0 / vLLM-Ascend v0.23.0 固定源码调用链及兼容矩阵](implementation-audit.md)。原始实现与后续已合入、开放及关闭未合入的 PR 按版本区分。
 
-## 附录 C：105 条 PR 候选账本
+## 105 条 PR 来源与候选索引
 
 [来源索引与 105 条候选审计状态](source-ledger.json) · [10 条详细 PR 数据](evidence-ledger.json)。原日报分类和候选身份不因 R2 结构重写而变化。
 
-## 附录 D：Research Gaps 的实验条件与证伪设计
+## Research Gaps：具体实验与证伪条件
 
 ### G1 验证预算与实际 Target 成本的联合校准（hypothesis）
 
