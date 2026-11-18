@@ -196,7 +196,7 @@ def validate_survey(survey, topic, archive=None):
 def historical_binding(survey, topic, archive):
     """Validate an inactive guide against its original frozen evidence."""
     bound = deepcopy(topic)
-    report_version, paper_version = survey["reportVersion"], survey["paperVersion"]
+    report_version, paper_version = survey["reportVersion"], survey.get("paperVersion")
     if report_version != topic.get("report", {}).get("version"):
         path = f"topic-reports/{topic['id']}/{report_version}/report.json"
         bound["report"] = json.loads(asset_path(archive, path).read_text(encoding="utf-8"))
@@ -232,7 +232,7 @@ def import_survey(source, index_path, topic_id="aclgraph", *, check=False):
         require(isinstance(current_report, str) and VERSION.fullmatch(current_report),
                 "current report: SHA-256 required")
         stale = hashes_valid and (survey["reportVersion"] != current_report
-                                 or survey["paperVersion"] != topic.get("academicPaper", {}).get("version"))
+                                 or survey.get("paperVersion") != (topic.get("academicPaper") or {}).get("version"))
         if stale:
             historical_binding(survey, topic, index_path.parent)
             return PENDING_REVIEW
