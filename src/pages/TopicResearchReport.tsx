@@ -39,7 +39,7 @@ function EvidenceCard({ evidence, references, chineseTitle }: {
   const title = chineseTitle ?? evidence.comparison;
   return <details id={`survey-evidence-${evidence.id}`} tabIndex={-1} className="survey-evidence-detail">
     <summary><h3>{title}</h3><span>{evidence.level}</span></summary>
-    <table><caption>{title}：对照条件、作者报告与证据边界</caption><tbody>{([
+    <table><caption>{chineseTitle ? `${title}：对照条件、作者报告与证据边界` : `${title}：条件、结果与证据边界`}</caption><tbody>{([
       ["机制", evidence.mechanism], ["证据层级", evidence.level], ["环境", evidence.environment],
       ["测试版本", evidence.revision], ["工作量", evidence.workload], ["结果", evidence.result],
       ["限制", evidence.limitation], ["核验范围", evidence.verification],
@@ -72,7 +72,7 @@ function EvidenceDetails({ report, topicId }: { report: ResearchReport; topicId:
     ...(other.length ? [{ title: "其他有条件的工程对照", rows: other }] : []),
   ];
   return <details id="survey-evidence" tabIndex={-1} className="survey-details survey-evidence-details">
-    <summary><span>局部工程证据对照</span><small>{evidence.length} 项代表性记录 · 展开核对机制、版本、工作量和局限</small></summary>
+    <summary><span>局部工程证据对照</span><small>{spec ? `${evidence.length} 项代表性记录 · 展开核对机制、版本、工作量和局限` : `${evidence.length} 类测量与验证 · 展开核对版本、工作量和限制`}</small></summary>
     {spec ? <>
       {specDecEvidenceContext.map(paragraph => <p key={paragraph} className="specdec-academic-prose">{paragraph}</p>)}
       {groups.filter(group => group.rows.length).map(group => <section key={group.title} className="specdec-evidence-group" aria-label={group.title}>
@@ -333,12 +333,13 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
         </div>
       </section>
       <details id="survey-methods" className="survey-details" tabIndex={-1}>
-        <summary><span>范围与研究方法</span><small>检索范围、纳排标准与证据分级</small></summary>
+        <summary><span>{isSpec ? "范围与研究方法" : "研究范围与方法"}</span><small>{isSpec ? "检索范围、纳排标准与证据分级" : "查看检索、纳排标准与证据分级"}</small></summary>
         {isSpec && <div className="specdec-academic-introduction">
           {specDecMethodContext.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
           <p>当前网站候选索引共 {topic.entries.length} 条，其中冻结研究版基于 {topic.survey?.candidateBaseline?.length ?? 105} 条历史候选；其后新增条目仅作为待核线索。原版深入审查的 {report.evidenceDetails?.length ?? 0} 项代表性记录并未自动扩展为同等规模的独立复现。</p>
         </div>}
         <Methodology report={report} />
+        {isSpec ? <>
         <div className="survey-evidence-guide"><h3>证据层级与适用边界</h3><ul>
           <li>官方接口、固定版本文档与源码用于界定相应版本的机制、接口和支持条件。</li>
           <li>原始论文解释理论、算法和作者提出的机制；其设备性能数字不能移作其他平台的测量。</li>
@@ -346,6 +347,15 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
           <li>研究假设须与既有结果、尚缺证据和可证伪实验区分，未经验证的适配不能描述为已支持。</li>
         </ul></div>
         <p className="survey-evidence-note">性能与正确性应分别评价：任务数、局部内核耗时、客户端吞吐、逐 token 输出和混合状态一致性分别对应不同证据；跨版本、后端及接受轨迹的差值不能简单相减归因。</p>
+        </> : <>
+        <div className="survey-evidence-guide"><h3>如何使用这些来源</h3><ul>
+          <li>官方接口、固定版本文档与固定提交源码：解释对应版本的机制与约束。</li>
+          <li>原始系统论文：提供分析背景，其 GPU 结果不作为 Ascend 实测。</li>
+          <li>工程 PR 是一手公开记录；日报是二级整理。原文核查范围、历史日期与测试条件见每条来源说明。</li>
+          <li>综述方法来源：说明组织与更新原则，不提供性能证明。</li>
+        </ul></div>
+        <p className="survey-evidence-note">各项工程证据的取材层级以来源标注为准，区分一手原文、固定版本资料与二手日报分析。不同设备、负载和测试口径下的结果不能直接合并为统一加速比。</p>
+        </>}
       </details>
       <section id="survey-taxonomy" tabIndex={-1}><div className="survey-kicker">TECHNICAL LANDSCAPE</div>
         <h2>{isSpec ? "技术路线与权衡" : "技术路线与关键权衡"}</h2>
