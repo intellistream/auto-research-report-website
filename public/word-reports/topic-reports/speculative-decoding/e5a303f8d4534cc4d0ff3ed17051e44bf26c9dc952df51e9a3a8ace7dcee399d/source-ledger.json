@@ -246,7 +246,7 @@
     {
       "id": "P10",
       "kind": "paper",
-      "title": "DFLare",
+      "title": "DFlare: Scaling Up Draft Capacity for Block Diffusion Speculative Decoding",
       "url": "https://aclanthology.org/2026.emnlp-main.1503/",
       "workId": null,
       "sourceIdentity": null,
