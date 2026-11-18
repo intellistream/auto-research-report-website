@@ -51,6 +51,7 @@ class SpecDecResearchContract(unittest.TestCase):
         checked = [r for r in rows if r["reviewLevel"] != "daily-report-index-only"]
         self.assertEqual(len(checked), 10)
         self.assertEqual(sum(r["prStatus"] is None for r in rows), 95)
+        self.assertEqual(sum(r.get("originalPrTitle") is not None for r in rows), 10)
 
     def test_ten_primary_pr_records_are_auditable(self) -> None:
         records = self.cards["records"]
