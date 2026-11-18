@@ -24,6 +24,8 @@ Speculative decoding uses inexpensive proposals to expose parallel verification 
 
 本文给出三项综合。首先，以候选、验证和提交边界建立共同记号，说明随机验证与状态发布须满足哪些独立条件。其次，沿候选依赖、验证预算、状态恢复与执行路径比较代表机制，尤其关注块并行草稿与混合 GDN–MoE 目标的结合。最后，通过同基线证据对照解释离线吞吐、在线延迟和 SLO 指标的适用范围，并提出可用配对实验检验的研究问题。本文属于机制综合，所述性能测量来自相应一手来源。
 
+第二节说明文献获取及已发表综述的覆盖。第三节建立共同记号，第四至第六节沿草稿、验证和运行时状态展开，第七节核对实验分母与基线，第八节给出可检验的后续问题。
+
 # 研究范围与文献获取 {#scope}
 
 本文采用问题导向的叙述性技术综述。研究截点为 2026 年 11 月 18 日，来源复核日期为 2026 年 11 月 18 日。以公开的 Decoding Acceleration 索引、11 月检索记录及网站既有专题索引定位候选，再以系统名、DOI、arXiv 编号和组合关键词追查原文，包括 “speculative decoding recurrent state”、“draft verification budget”、“MoE expert bytes” 和 “hardware-aware speculative decoding”。正文纳入直接改变候选、验证、提交状态或服务成本，并具有可定位方法或实现证据的工作。多模态结果用于解释条件信息和节点预算，泛 Agent 应用、非推测优化和缺乏可核查技术材料的候选不进入主论证。定向检索的覆盖范围随问题而定。[@awesome-index; @website-index]
@@ -44,49 +46,48 @@ Table: 表 1　单轮与批次的比较记号。时间以墙钟或明示的设�
 | $D,K,N$ | 候选与预算 | 草稿链长、验证链长、树验证节点数 |
 | $A,R$ | 进度 | 接受的草稿数、实际提交的输出数 |
 | $B,L,Q$ | 执行形状 | 活跃解码请求数、上下文长度向量、实际目标查询行数 |
-| $T_0,T_{
-m spec}$ | 关键路径 | 同配置普通解码步与推测轮的时间 |
+| $T_0,T_{\mathrm{spec}}$ | 关键路径 | 同配置普通解码步与推测轮的时间 |
+
+在[图 1](#fig-round)中，验证和输出提交沿同一逻辑路径，时间核算覆盖前后的执行及等待。
+
+![图 1　推测轮次、前缀状态与成本的关系。框中 $D$、$K$、$N$ 与 $R$ 的定义见表 1。箭头表示依赖与职责。](figures/specdec-round.png){#fig-round width=100%}
 
 ## 验证规则决定保真度 {#fidelity}
 
 在给定相同 tokenizer、前缀、logits 变换和 tie-breaking 的数学模型下，贪心验证逐位置比较候选与目标 argmax，在第一个不匹配处由目标决定输出，沿因果路径归纳可得贪心一致。有限精度下，宽验证与逐 token 运行可能选择不同 kernel 或归约顺序。若目标的两个最高 logit 接近，微小差异也能改变 argmax。应分别说明数学保证与实测 token 一致率。放宽到 top-$k$ 或以分数阈值直接接受，则改变了承诺，评估应回到任务质量或明确的近似准则。[@blockwise; @chen]
 
-精确的 token-wise 推测采样在每个已经沿草稿到达的位置使用两份条件分布。$p_i(v)$ 是目标实际抽样分布，$q_i(v)$ 是生成当前草稿 token 的真实分布，条件均为该位置的合法前缀，包含各自生效的温度、截断及其他变换。对 $y_isim q_i$，接受概率与首次拒绝的纠正分布分别为
+精确的 token-wise 推测采样在每个已经沿草稿到达的位置使用两份条件分布。$p_i(v)$ 是目标实际抽样分布，$q_i(v)$ 是生成当前草稿 token 的真实分布，条件均为该位置的合法前缀，包含各自生效的温度、截断及其他变换。对 $y_i\sim q_i$，接受概率与首次拒绝的纠正分布分别为
 $$
-a_i(y_i)=min{1,p_i(y_i)/q_i(y_i)},qquad
-r_i(v)=rac{[p_i(v)-q_i(v)]_+}{sum_u[p_i(u)-q_i(u)]_+}.
+a_i(y_i)=\min\{1,p_i(y_i)/q_i(y_i)\},\qquad
+r_i(v)=\frac{[p_i(v)-q_i(v)]_+}{\sum_u[p_i(u)-q_i(u)]_+}.
 $$
 
-接受的概率质量为 $min(p_i(v),q_i(v))$，总拒绝质量为 $sum_u[p_i(u)-q_i(u)]_+$，补回后恰得 $p_i(v)$。当分母为零时，该拒绝分支以概率零发生。所有候选被接受后，额外输出从下一位置的目标分布采样。跨位置的保证依赖条件分布与已提交前缀一致，因而同一随机种子下出现不同序列与分布正确性可以同时成立。树、多候选以及 block verification 各需核对自身的选择与纠正规则。[@leviathan; @chen]
+接受的概率质量为 $\min(p_i(v),q_i(v))$，总拒绝质量为 $\sum_u[p_i(u)-q_i(u)]_+$，补回后恰得 $p_i(v)$。当分母为零时，该拒绝分支以概率零发生。所有候选被接受后，额外输出从下一位置的目标分布采样。跨位置的保证依赖条件分布与已提交前缀一致，因而同一随机种子下出现不同序列与分布正确性可以同时成立。树、多候选以及 block verification 各需核对自身的选择与纠正规则。[@leviathan; @chen]
 
 预算裁剪也有保真度前提。若在抽得本位置候选前按已知前缀和分数决定是否验证，经典规则可继续使用对应的条件 $q_i$。若选择依赖已经抽出的候选，验证器须匹配被选择对象的条件分布，或采用有独立证明的联合机制。以数学反例说明：令 $p=q$ 为二元均匀分布，只在候选为 1 时用原 $q$ 验证，否则从 $p$ 重新采样。被验证的 1 总被接受，最终输出 1 的概率成为 $3/4$。这里产生偏差的原因是送去验证的候选已经改变分布。贪心前缀裁剪还有自己的一组条件，主要是目标计算的因果不变性、fallback 及状态重建。[@leviathan; @codesign]
 
 ## 合法前缀状态与发布 {#state-invariant}
 
-用 $cle |h|$ 表示目标实际物化到的位置，$S_c$ 包括目标侧有效 KV、循环层及卷积状态，以及后续读取所需的索引和长度。对给定目标配置 $	heta$，状态契约要求
+用 $c\le |h|$ 表示目标实际物化到的位置，$S_c$ 包括目标侧有效 KV、循环层及卷积状态，以及后续读取所需的索引和长度。对给定目标配置 $\theta$，状态契约要求
 $$
-S_c simeq F_{	heta}(h_{1:c}),qquad
-mathrm{pending}=h_{c+1:|h|}.
+S_c \simeq F_{\theta}(h_{1:c}),\qquad
+\mathrm{pending}=h_{c+1:|h|}.
 $$
-$F_{	heta}$ 表示普通解码对该前缀的状态计算，$simeq$ 表示对后续目标计算可观察等价，有限精度时应给出容差或差分指标。物理块地址可以不同，逻辑位置、请求归属、有效范围和读写依赖必须相符。未提交分支可以暂存在设备缓冲中，但后续计算、其他请求及前缀缓存不可把它们当成合法历史。草稿缓存属于另一套状态，以其自身模型和同一合法历史重新裁剪、补齐或重建；它不需要与目标 KV 数值相等。[@codesign]
+$F_{\theta}$ 表示普通解码对该前缀的状态计算，$\simeq$ 表示对后续目标计算可观察等价，有限精度时应给出容差或差分指标。物理块地址可以不同，逻辑位置、请求归属、有效范围和读写依赖必须相符。未提交分支可以暂存在设备缓冲中，但后续计算、其他请求及前缀缓存不可把它们当成合法历史。草稿缓存属于另一套状态，以其自身模型和同一合法历史重新裁剪、补齐或重建；它不需要与目标 KV 数值相等。[@codesign]
 
 这一条件把验证与提交分开。验证器决定哪一段可以输出，提交器据此确定物化边界，必要时回收临时 KV、重建循环状态并发布计数。请求退出、槽位复用、异步 D2H 及图重放会引入额外的消费者排序要求。只检查当前轮返回的 token 可能放过被拒后缀残留到下一轮的问题。有限精度与状态污染也应分别定位，前者通常表现为相同逻辑前缀下的小幅计算差异，后者能通过先核对边界、索引和依赖再做差分来识别。[@codesign]
 
 ## 从接受长度到单位有效输出时间 {#cost}
 
-对截断前的一条固定长度链，按 $A$ 的尾和恒等式有 $mathbb E[A]=sum_{j=1}^{K}Pr(Age j)$。其中每一项是前 $j$ 个位置共同接受的概率，可以写成沿存活路径的条件概率连乘。常见比例模型以所有位置的条件接受概率相同为近似。请求类型、生成位置和已接受历史改变这些条件时，单个全局接受率无法准确恢复 $mathbb E[A]$。同一平均接受率还可以对应不同的拒绝位置与落到关键路径上的恢复成本。[@leviathan; @chen]
+对截断前的一条固定长度链，按 $A$ 的尾和恒等式有 $\mathbb{E}[A]=\sum_{j=1}^{K}\Pr(A\ge j)$。其中每一项是前 $j$ 个位置共同接受的概率，可以写成沿存活路径的条件概率连乘。常见比例模型以所有位置的条件接受概率相同为近似。请求类型、生成位置和已接受历史改变这些条件时，单个全局接受率无法准确恢复 $\mathbb{E}[A]$。同一平均接受率还可以对应不同的拒绝位置与落到关键路径上的恢复成本。[@leviathan; @chen]
 
-设一次执行依赖图中草稿、验证、选择、状态提交和运行时操作的持续时间分别由对应节点记录。串行时这些时间可以相加。存在并行准备、D2H 重叠或跨请求资源竞争时，用已测相互干扰条件下的关键路径时间 $T_{
-m spec}$，并把排队与调度间隙按测量范围单列。对串行、可比且可作长期统计的解码轮，单位输出代价及收益为
+设一次执行依赖图中草稿、验证、选择、状态提交和运行时操作的持续时间分别由对应节点记录。串行时这些时间可以相加。存在并行准备、D2H 重叠或跨请求资源竞争时，用已测相互干扰条件下的关键路径时间 $T_{\mathrm{spec}}$，并把排队与调度间隙按测量范围单列。对串行、可比且可作长期统计的解码轮，单位输出代价及收益为
 $$
-g_{
-m spec}=rac{mathbb E[T_{
-m spec}]}{mathbb E[R]},qquad
-g_0=rac{mathbb E[T_0]}{mathbb E[R_0]},qquad
-	ext{speedup}=rac{g_0}{g_{
-m spec}} .
+g_{\mathrm{spec}}=\frac{\mathbb{E}[T_{\mathrm{spec}}]}{\mathbb{E}[R]},\qquad
+g_0=\frac{\mathbb{E}[T_0]}{\mathbb{E}[R_0]},\qquad
+\text{speedup}=\frac{g_0}{g_{\mathrm{spec}}} .
 $$
-这里用总时间除以总输出的相应估计量。对批次应按所有请求的实际提交量记分子，将共同的墙钟窗口只计一次。在线服务还应分别记录请求排队、首 token、token 间隔、完成分位数及 SLO 下的可持续请求率。离线单轮比值用于解释热路径，不能单独推导带到达过程的服务收益。[@optimal; @codesign]
+这里用总时间除以总输出的相应估计量。计算批次吞吐时，应以所有请求的实际提交量之和作分子，共同的墙钟窗口只计一次。在线服务还应分别记录请求排队、首 token、token 间隔、完成分位数及 SLO 下的可持续请求率。离线单轮比值用于解释热路径，不能单独推导带到达过程的服务收益。[@optimal; @codesign]
 
 # 候选生成与依赖结构 {#drafting}
 
@@ -123,11 +124,11 @@ Table: 表 2　候选生成机制与验证接口。几何描述提交给验证�
 
 ## 从固定窗口到边际收益 {#marginal-budget}
 
-候选生成和目标验证可以使用不同预算。扩大链长或节点数一般增加覆盖机会，也把更多工作放入 $Q$，且 $Q$ 到耗时的映射受图桶、tile、KV 长度和并行配置制约。对一个局部可比较的执行状态，令 $G=mathbb E[R]$、$C=mathbb E[T]$，新增候选后分别变化 $Delta G,Delta C$，并令 $lambda=G/C$。当两种方案的时间都为正时，提高单位时间提交量等价于
+候选生成和目标验证可以使用不同预算。扩大链长或节点数一般增加覆盖机会，也把更多工作放入 $Q$，且 $Q$ 到耗时的映射受图桶、tile、KV 长度和并行配置制约。对一个局部可比较的执行状态，令 $G=\mathbb{E}[R]$、$C=\mathbb{E}[T]$，新增候选后分别变化 $\Delta G,\Delta C$，并令 $\lambda=G/C$。当两种方案的时间都为正时，提高单位时间提交量等价于
 $$
-Delta G > lambda Delta C .
+\Delta G > \lambda \Delta C .
 $$
-这只是两个配置的代数比较。$Delta G$ 需估计候选确实落入已提交路径的概率，$Delta C$ 应包含新增草稿、验证、发布与可见等待。在线队列还受分批边界和其他请求影响，因此该比较只为给定工作状态提供成本信号。块级拒绝采样也能提高同一候选块的 $mathbb E[R]$。Sun 等在固定外层算法和合法验证器族中证明 block verification 的进度最优性，并用相应纠正分布维持精确抽样。词表归约、设备支持和实际端到端成本仍属于额外证据。[@leviathan; @blockverification; @hybridspec; @sglangdocs]
+这只是两个配置的代数比较。$\Delta G$ 需估计候选确实落入已提交路径的概率，$\Delta C$ 应包含新增草稿、验证、发布与可见等待。在线队列还受分批边界和其他请求影响，因此该比较只为给定工作状态提供成本信号。块级拒绝采样也能提高同一候选块的 $\mathbb{E}[R]$。Sun 等在固定外层算法和合法验证器族中证明 block verification 的进度最优性，并用相应纠正分布维持精确抽样。词表归约、设备支持和实际端到端成本仍属于额外证据。[@leviathan; @blockverification; @hybridspec; @sglangdocs]
 
 MagicDec 说明高批量的费用曲线还取决于上下文。当长上下文推高 KV 读取，草稿通过稀疏 KV 降低自身费用，目标可在共享前缀读取中摊销验证行。短上下文与计算饱和情形可能出现不同趋势。*Performance or Illusion?* 在 vLLM 多模型、多负载、多个 draft 策略的测量中进一步量化了多区间的收益差异，指出验证经常占主导，接受长度也随任务与位置波动。它们共同支持按 $(B,L,Q)$ 测量，批量本身不足以确定验证是否昂贵。长上下文结论还需固定实际读写的缓存精度和生成长度。[@magicdec; @illusion]
 
@@ -155,6 +156,10 @@ HybridSpec 先根据已校准的延迟和草稿置信选取窗口，在第一个
 
 固定检查点的位置并非总要在输出刚提交时更新。vLLM 的 RecoverSSM 草案 #66595 将提交后的接受计数留给下一次验证，由验证重放上一轮的已接受 token，并在请求离开 runner 时处理 pending state。这使“逻辑输出已发布”和“状态已物化”成为明确的两个边界。如果调度器缓存或迁移请求，需保证读取到的检查点和待重放信息属于同一请求世代，且只对同一已提交历史重放一次。该例是截至复核时仍开放的代码提案，能说明协议选择，运行收益及通用兼容需独立确认。[@pr-recover]
 
+[图 2](#fig-commit)对比了目标侧两类状态的合法提交粒度。混合模型可以在同一轮使用两种路径。
+
+![图 2　注意力 KV 与循环检查点的提交。物理回收可由后端延后，后续消费者只读取合法的状态范围。](figures/state-commit.png){#fig-commit width=100%}
+
 ## 固定 vLLM 与 Ascend 路径 {#fixed-runtime}
 
 在 vLLM 固定提交 `0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665`，调度器的 `schedule` 在 token 预算和请求进度下安排本轮工作，`update_draft_token_ids` 接收候选。GPU MRV2 的 `BaseSpeculator.propose` 接收批次、目标隐藏特征、接受或拒绝计数及抽样信息。Runner 的 `prepare_inputs` 和 `execute_model` 准备 token 行、位置和 KV block tables。目标 `sample` 在存在草稿时调用 `rejection_sampler` 并传入 draft logits，得到抽样与拒绝计数。`postprocess_sampled` 首先通过 `post_update` 更新 token、计算进度和请求统计，再调用 `model_state.postprocess_state` 处理模型专用状态。采样配置中还存在 synthetic 方法，调试模式产生的接受计数不提供分布保证。以上证据定位到 MRV2 的相关代码路径，整体功能入口以官方文档补充。[@vllm-pin; @vllm-scheduler; @vllm-sampler; @vllm-draft; @vllmdocs]
@@ -167,7 +172,7 @@ vLLM-Ascend 固定 `5cb98caaadeff42b5b62b996e34bb2aaa29d20fd` 的 MRV2 在继承
 
 草稿优化的收益受它在关键路径上的占比约束。Weights That Stay 把 serial head 的词表投影分片驻留在 on-chip 存储上，在单个 persistent kernel 中推进状态和选择 token，减少重复访存及 host launch。该论文在单 H100 的 SGLang Qwen3-4B/8B Markov 草稿集成中分别报告最高 12.3%/8.6% 的客户端吞吐提升，B200 的头部容量实验处在另一测量层。能否迁移取决于投影分片、片上可用容量、同步以及目标计算与草稿资源干扰。优化草稿缓存也有类似的分母问题。Gupta 与 Li 在 Qwen2.5-3B/1.5B 的 batch-one 原型里测得 packed K4V4 减少草稿缓存存储字节，Table 8 的整体峰值分配却与对应 BF16 推测设置相同，1K 与 16K 的端到端平均时延均更长。该表的 batched verifier 还出现 greedy token 与顺序参考不一致，应保留这项数值边界。[@weights; @draftkv]
 
-服务资源按共享窗口消费。草稿权重、额外 KV 页、循环状态、保留多个形状的图缓冲和大 batch 的 padding 会改变可同时容纳的请求数。每请求 TPOT 下降可能伴随更少的可用 KV 页或更高 TTFT。当 decode 与 chunked prefill 共享目标 step，增加一条候选可能延长当前 prefill 等待，并通过排队放大后续请求的 tail latency。SGLang 文档的例子也说明，随机验证模式与链宽、硬件后端和分离部署相关。在 SGLang 固定 DFlash runner 中，`_chain_accept_indices` 生成接受行索引，目标状态有独立的 `_update_target_mamba_state_after_verify` 路径。应用最新文档选项时须再查部署版本。[@illusion; @forespark; @sglangdocs; @sglang-pin]
+服务资源按共享窗口消费。草稿权重、额外 KV 页、循环状态、保留多个形状的图缓冲和大 batch 的 padding 会改变可同时容纳的请求数。每请求 TPOT 下降可能伴随更少的可用 KV 页或更高 TTFT。当 decode 与 chunked prefill 共享目标 step，增加一条候选可能延长当前 prefill 等待，并通过排队放大后续请求的 tail latency。SGLang 文档的例子也说明，随机验证模式与链宽、硬件后端和分离部署相关。在 SGLang 固定 DFlash runner 中，`_chain_accept_indices` 生成接受行索引，目标状态有独立的 `_update_target_mamba_state_after_verify` 路径。固定实现还会在部分设备缺乏非贪心验证时产生贪心 fallback 提示，明确指出请求分布无法保持。应用最新文档选项时须再查部署版本。[@illusion; @forespark; @sglangdocs; @sglang-pin]
 
 # 实验证据的可比性 {#evidence}
 
@@ -183,7 +188,7 @@ Table: 表 3　代表性作者实验与各自的证据边界。表中数字来�
 |:--|:--|:--|
 | HybridSpec Table 1、Appendix E [@hybridspec] | SGLang 0.5.16、A100 80 GB、三个 Qwen3.5/3.6 GDN–MoE 与官方 DFlash，SPEED-Bench 主表 280 测试请求，单请求贪心 | 按类别汇总的 post-prefill speedup 为 AR 的 1.75–1.88 倍。附录另有温度 1 两组模型与四并发闭环，覆盖有限 |
 | ForeSpark Figures 8–9 [@forespark] | vLLM 0.30.0，Qwen3-14B TP8 H100；GLM 系列 TP8+EP8 B200。ShareGPT，主结果为贪心 | Qwen3-14B 在 ShareGPT-E2E 开放到达下，90% 达标时的请求率为 DSpark 的 1.51 倍，为最强基线的 1.20 倍 |
-| TableTune Table 1、§6 [@tabletune] | H100，vLLM V2，闭环模型及草稿组合，对照逐负载最佳固定长度 | 五种草稿配置中四种的校准表达到最佳固定基线吞吐的至少 94%。图模式影响表的可转移性 |
+| TableTune Table 1、§6 [@tabletune] | H100，vLLM V2，闭环模型及草稿组合，对照逐负载最佳固定长度 | 五组测试中四组的校准表达到最佳固定基线吞吐的至少 94%。图模式影响表的可转移性 |
 | Twig §§VI–VII [@twig] | SGLang，A100/GB10，含 Qwen3.5 和混合模型的树验证；有离线和 Open-SWE-Traces 在线案例 | 分开测树 verifier、整模型与在线尾部时延。收益依赖状态 kernel、预算和端到端调度组合 |
 | SpecSearch Figure 2、§V [@specsearch] | Qwen3-4B、RTX 5090，vLLM AR 与 DFlash 配置，短输出、不同并发 | 在该 sweep 中 DFlash 吞吐由并发 2 的 AR 3.50 倍变成并发 64 的 0.76 倍。设备与内存校准决定排序 |
 | Draft KV quantization Table 8 [@draftkv] | Qwen2.5-3B/1.5B，1K/16K、256 输出、batch one，packed K4V4 与 BF16 SD | 实际缓存字节下降与整体峰值不变、解码变慢同时出现。该原型不等于生产在线服务 |
