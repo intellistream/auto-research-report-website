@@ -1,0 +1,725 @@
+# Speculative Decoding：候选生成、验证预算与合法状态的系统协同
+
+**学术结构重写稿（编辑中的 R2）** · 站点资产仍使用初始 R1 / revision 1 / version `e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d` · 资料截止 2026-11-18
+
+## 摘要
+
+推测解码将部分串行 Target Forward 替换为低成本候选生成和较宽的目标验证，但减少轮次不等于减少单位有效输出的执行成本。其核心矛盾在于：更强的候选依赖可能增加 Draft 延迟，更宽的验证可能放大 Attention/MoE 工作量，而合法前缀的 KV/递归状态提交及运行时图、调度又可能改变关键路径。本文以目标分布与 Accepted State 的正确性合同为前提，采用单位有效 Token 成本模型，按 Candidate、Verification、Hybrid State 和 Serving Runtime 四个互相约束的层面组织算法论文、官方语义、固定源码及有条件的工程 PR。比较揭示三种瓶颈迁移：Draft 串行步骤减少后，Verify 与候选质量成为新约束；验证预算由固定长度转向概率和实际 Target 成本驱动，同时引入估计与选择器开销；State/Graph 局部加速若未改变服务关键路径，不能稳定转化为吞吐收益。ROCm Draft Loop、Ascend GDN Metadata 和 Adaptive Verification 的正反证据支持这种条件性认识，而不同硬件、软件和请求形状之间的结果不可合并为统一倍率。最后提出跨生命周期状态合同、目标成本校准及 Graph/容量联合决策等可证伪问题。
+
+## 中心命题与研究问题
+
+**中心命题：** 在维持 Target 输出分布与 Accepted State 合法性的前提下，Candidate Generation、Verification Budget 与 Serving Runtime 如何协同降低单位有效输出 Token 的真实成本？
+
+- RQ1（正确性）：经典概率接受、树路径和 Hybrid KV/SSM 状态分别要求哪些不变量，什么时候 Token 已确认却仍不能读取对应设备状态？
+- RQ2（候选生成）：Lookup、EAGLE/MTP、树式与块并行 Drafter 通过改变哪些条件依赖获得候选质量，额外串行深度、训练与 KV 成本怎样转移？
+- RQ3（Target Verification）：从固定 K 到 Adaptive/Router-aware Budget，何时概率存活、Verify Shape 与 Budget Selector 的真实成本会改变最优宽度？
+- RQ4（Serving）：Graph、Sampling、Scheduler、KV/State 及 Host/Device 重叠怎样共同决定 TPOT、Goodput 与兼容性，如何证明局部收益传递到服务？
+
+## 研究范围与检索/综合方法
+
+**综述类型：** 问题驱动、持续演进的叙述性技术综述（不是穷尽检索的系统综述）
+
+**检索日期：** 核心 PR 状态复查 2026-11-18；初始候选日报窗口 2026-10-22 至 2026-11-11
+
+**直接范围与证据层级：** 直接对象是 SpecDec 单轮的分布/状态正确性、Candidate 条件依赖、Target Verification 与 Serving Runtime 关键路径。论文用于阐释理论、方法结构和作者所述机制；官方文档与 vLLM v0.23.0 (0fc695fc)、Ascend v0.23.0 (5cb98caa) 固定源码用于界定真实接口；原始 PR 的实现描述与条件化测试用于分析工程代价和反例。原专题 105 条 PR 原分类、原顺序与原文链接不变，其中 10 条核对了原始 PR 描述及变更文件作为详细样本，其余为观察候选而非已全面核验的研究证据。
+
+**检索策略：** 从经典 Speculative Sampling、Blockwise、Medusa/SpecInfer、EAGLE-3、DFlash/DSpark、HybridSpec 出发，按“减少何种串行依赖→引入何种 Verify/State/Host/Memory 代价”读取。用固定源码定位 Scheduler、Proposer、Sampler 与 State 生产/消费责任；对十条代表 PR 读取原始说明、状态、Head SHA 和相关文件，按同一因果问题选取正例与反例。候选账本记录日报来源、原标签、是否阅读及正文归属；新机制不由 PR 数量推断趋势强度。
+
+**综合方法：** 对每种路线统一比较基线瓶颈、改变的计算/依赖、候选质量、增加的 Verify/State/Host/HBM 代价、适用负载和来源层级。正文使用“机制→实现职责→同条件可归因观察→反例/混杂因素→综合判断”的因果顺序；详细实验表、失败、Head SHA 和 105 条候选账本留在附录。跨层结论须同时回答 Candidate→Verify、Verify→Accepted State 和 Runtime 局部→Serving 三条链；Research Gap 与评估方法分开，并为每个假设给出强基线、控制和证伪条件。
+
+**纳入依据：**
+
+- 机制可解释、约束可追踪的原始论文与官方实现是技术主干；工程 PR 需明确旧路径、改动职责和适用模式才进入因果论证。
+- 105 条社区已分类 PR 作为候选观察池全部保留；10 条核心 PR 的作者实验及负面结果单独审计，不推定其余 95 条已同等核验。
+- 按 Candidate、Verification & Acceptance、State、Runtime 四个正交维度分类；分别追踪性能瓶颈和继发代价，不按发表时间或加速倍数排列方法先进性。
+
+**排除或降级规则：**
+
+- 跨设备/软件/模型或不同 Acceptance 轨迹的结果不视为同一 A/B；微基准和 Synthetic/Dummy-KV 结果不直接解释成真实 Serving 加速。
+- 未合入 PR、无一致环境的兼容组合和未运行的独立实验，只作为候选证据或研究假设，不表述为官方稳定支持。
+- 其他系统的编译/图调度只提供边界比较；仅被提及但未用于机制推论的资料应置于背景而非虚构正文依据。
+
+## 技术全景：方法分类与瓶颈迁移
+
+方法分类是正交维度；瓶颈迁移表示一种方案改变了哪段依赖及其继发代价，而非严格的历史优胜排序。
+
+| 机制维度 | 主要路线 | 权衡与条件 | 来源 |
+|---|---|---|---|
+| Candidate Generation：候选如何形成条件依赖 | 历史检索/独立 Draft Model；EAGLE/MTP 的序列化特征提案；Medusa/SpecInfer 的多分支树；DFlash、DFlare、DSpark 的块并行/弱序列依赖 | 关键比较变量是 Draft Forward 深度、候选存活率、训练成本、Proposal Tree Size、额外权重/KV 与更新历史的难度；并存方法各适用不同重复程度与模型结构。 | [[P1]](#ref-P1) [[P3]](#ref-P3) [[P4]](#ref-P4) [[P5]](#ref-P5) [[P6]](#ref-P6) [[P7]](#ref-P7) [[P8]](#ref-P8) [[P10]](#ref-P10) [[D3]](#ref-D3) |
+| Verification & Acceptance：验证哪些位置 | 顺序/树式目标验证；Fixed K、存活概率驱动的 Adaptive Verification、含 Router/Expert 代价的 Target-aware Budget；Greedy 与精确分布采样分离 | Verify Rows、Attention/MoE Kernel Shape、Sampler、预算选择器开销和正确性必须合算；更高 Acceptance Rate 未必对应更低每 Token 服务时延。 | [[P2]](#ref-P2) [[P4]](#ref-P4) [[D4]](#ref-D4) [[P8]](#ref-P8) [[P9]](#ref-P9) [[E2]](#ref-E2) [[E3]](#ref-E3) |
+| State：已确认输出与设备历史何时一致 | Token/Pending/Bonus；Attention KV 与递归 GDN/Mamba/KDA；RecoverSSM、Lookahead Hash、跨生命周期 Checkpoint 与 Commit | 多位置 Verify 的临时状态不能被错误当成 Accepted State；Prefix/Preemption/P-D 与异步事件改变所有权、有效范围和恢复路径。 | [[P2]](#ref-P2) [[P9]](#ref-P9) [[E5]](#ref-E5) [[E7]](#ref-E7) [[E12]](#ref-E12) [[E15]](#ref-E15) |
+| Serving Runtime：关键路径和可复用资源如何协调 | Scheduler、Speculator、Target/Sampler、模型图与 Sampling Graph、可变形状 Bucket、Draft/Target KV 与 SSM/Graph 工作空间 | Host Launch、异步重叠、Padding、显存与长尾请求共同影响 TPOT/ITL、Output TPS 与 Goodput；某个单核/局部阶段更快不足以作服务结论。 | [[D6]](#ref-D6) [[D7]](#ref-D7) [[E1]](#ref-E1) [[E8]](#ref-E8) [[E9]](#ref-E9) [[E11]](#ref-E11) [[E14]](#ref-E14) [[E17]](#ref-E17) |
+
+| 此前瓶颈 | 机制与执行依赖变化 | 继发代价 | 来源 |
+|---|---|---|---|
+| 目标自回归串行步数 | 在合法前缀上提前提出 K 个候选，Target 一次求取多位置概率 | Draft 深度、质量与候选树宽度；收益受 Prefix Survival 约束 | [[P1]](#ref-P1) [[P2]](#ref-P2) [[P3]](#ref-P3) [[P5]](#ref-P5) |
+| Draft 仍需多步 AR Forward | 块扩散/局部依赖建模与 Target 特征融合 | 块后部相关性、训练/投影、条件估计与 Verify Rows | [[P6]](#ref-P6) [[P7]](#ref-P7) [[P8]](#ref-P8) [[P10]](#ref-P10) |
+| Fixed K 无视不同位置的边际价值 | Adaptive Budget + Target-aware Router/Kernel Cost | Estimator 校准、Budget Selector Host 代价、动态 Graph Shape | [[D4]](#ref-D4) [[P9]](#ref-P9) [[E2]](#ref-E2) [[E3]](#ref-E3) |
+| 候选与验证的局部优化并未减少服务轮次成本 | Accepted-State 维护与 Graph/Host/Cache 调度协同 | KV/SSM Checkpoint、同步、图资源、容量和异常恢复 | [[E1]](#ref-E1) [[E5]](#ref-E5) [[E7]](#ref-E7) [[E8]](#ref-E8) [[E9]](#ref-E9) [[E11]](#ref-E11) [[E12]](#ref-E12) |
+
+## 1. 推测执行的基本机制与正确性合同
+
+推测解码首先是一种受约束的计算重排：Drafter 可预测未来 Token，但 Target 的条件分布与最终已接受的历史不能被草稿取代。只有在明确定义可提交输出和设备可见状态后，“少执行几轮”才具有可比较的含义。
+
+### 1.1 自回归依赖与完整 K=3 轮次
+
+在已确认前缀 P 上，Drafter 连续提出 [A,B,C]。Greedy Target 在一次 Verify 中依次给出 [A,B,D]，因此前两枚匹配、第三枚被拒绝，逻辑提交 P+[A,B,D]。被拒绝的 C 的临时 KV/SSM 不得成为下一轮历史；被 Target 选择的 D 若尚未实际计算相应设备状态，可以作为 Pending Token，在下一轮推进。若三个候选全部通过且实现额外计算了第 K+1 个 Target 位置，Bonus Token 才按对应规则输出；EOS 和预算截断应另行处理。
+
+Target 的多位置计算并不取消因果条件：第 i 位置的概率仍以 P 和之前的候选为条件，只有最先出现拒绝前的连续前缀可直接接受。树式提案需要沿同一祖先路径裁决，不能把互斥分支的验证结果拼接成一条合法序列。
+
+*来源：[[P1]](#ref-P1) [[P2]](#ref-P2) [[P4]](#ref-P4)*
+
+### 1.2 从 Greedy 对齐到概率精确采样
+
+经典概率方案中，草稿对词 y 的提议概率为 q(y)，Target 概率为 p(y)。若 q(y)>0，接受概率为 a(y)=min(1,p(y)/q(y))；拒绝后从 r(x)∝max(0,p(x)−q(x)) 的正残差分布采样，使修正 Token 的边际分布回到 p。比如 q(A,B,C)=(0.5,0.3,0.2)、p=(0.4,0.4,0.2) 时，对提议 A 的接受概率是 0.8；若拒绝，残差质量只落在 B。该例是概率算术，不是模型实验。
+
+Greedy Exact Match、分布保持的随机接受和允许偏差的近似/语义校验属于不同合同。一个模型在 GSM8K 准确率相近，不能据此证明逐位置采样分布相同；单 Seed 的 Token 相等，也不足以代替概率或状态正确性验证。
+
+*来源：[[P2]](#ref-P2) [[P3]](#ref-P3) [[P4]](#ref-P4)*
+
+### 1.3 四层不变量：输出、状态与时序
+
+输出分布：每个确认位置遵守声称的 Target 分布合同；Token/Prefix：只提交连续接受的合法祖先链及正确修正 Token；状态：所有下一轮可见的 Attention KV、Draft KV 与 GDN/Mamba/KDA Checkpoint 必须对应 Accepted Prefix；时序：设备生产、Sampling、Commit、Host 读取和缓冲复用满足必要的 happens-before。
+
+最后两类约束不能由 Token 输出一致取代。尤其 Hybrid Recurrent 状态可能记录 Verify 末端而非被接受边界，异步执行又可能使最新值被过早读取；因此 §5 将进一步讨论 Checkpoint、Pending Replay 与请求生命周期。
+
+*来源：[[P2]](#ref-P2) [[P9]](#ref-P9) [[D6]](#ref-D6) [[D7]](#ref-D7) [[E7]](#ref-E7)*
+
+**本章综合判断：** 推测轮次的合法性既是采样数学，也是设备状态契约。Candidate 的更宽、更深或多分支搜索只能改变潜在可接受前缀；其价值需要由单位合法输出成本而不是草稿数量衡量。
+
+*本章来源：[[P1]](#ref-P1) [[P2]](#ref-P2) [[P4]](#ref-P4) [[P3]](#ref-P3) [[P9]](#ref-P9) [[D6]](#ref-D6) [[D7]](#ref-D7) [[E7]](#ref-E7)*
+
+## 2. 单位有效输出 Token 的统一成本模型
+
+若每轮只看接受率，容易忽略 Verify 的额外计算、草稿自回归深度、Sampler/State 及 Host 调度。统一成本模型把上述开销放回同一个端到端关键路径，建立不同方法之间可以被证伪的共同坐标。
+
+### 2.1 有效提交量与位置存活概率
+
+令 α_i 为第 i 个候选在前 i−1 个均被接受的条件下继续被接受的概率，S_i=∏_{j=1}^i α_j 是前 i 个候选全部存活的概率。在无 EOS 截断、存在合法 Bonus 的经典 K 位直线提案中，E[N_committed]=1+Σ_{i=1}^K S_i。该公式度量最终输出而非 Draft 提议量；若 Bonus 路径或终止规则不同，必须调整计数。
+
+常见的“接受率” accepted/proposed、包含 Bonus 的 Acceptance Length 和 Committed Tokens/Round 含义不同。树式 Draft 的候选数量与最长可接受路径长度也不同，不能用同一个 K 代替所有工作量。
+
+*来源：[[P1]](#ref-P1) [[P2]](#ref-P2) [[P4]](#ref-P4) [[E8]](#ref-E8)*
+
+### 2.2 单轮真实成本与盈亏判据
+
+为给定请求轨迹 W 定义 T_round(W)=CriticalPath(Draft,TargetVerify,Sampling,StateCommit,Host/Device)。单位有效输出的工作量成本可近似比较 E[T_round]/E[N_committed]；它既不是简单的 T_draft+T_verify+T_sample+T_commit（这些阶段可能异步重叠），也不等于在线请求的 TPOT，因为 Prefill、调度等待及不同并发请求会改变所观察区间。
+
+设每个请求实际选择验证长度 m_r，则 Draft 最大深度 K、Verify Budget m_r、未填充 Target Query Rows Σ_r(m_r+1) 与 Graph Bucket Padding 后执行的 Rows 彼此不同。Target 成本还依赖 Attention KV 长度、Batch、MoE Expert Routing、Graph/Eager 回退及采样模式。理论节省的 Target Forward 轮次数，必须抵消这些新的执行工作才可能加速。
+
+评测应分级：Kernel Microbenchmark 描述局部指令或 Host Launch；轮次 Trace 描述重叠和 Critical Path；请求级 TTFT/TPOT/ITL 与全局 Output TPS/Goodput 则描述服务结果。固定权重、输入、模型版本与负载、交错 A/B、重复试验及失败记录，是从局部数字作因果判断的必要条件。
+
+*来源：[[P2]](#ref-P2) [[D4]](#ref-D4) [[E1]](#ref-E1) [[E2]](#ref-E2) [[E9]](#ref-E9) [[E11]](#ref-E11)*
+
+### 2.3 三个非单调反例
+
+更高位置存活率可能伴随更贵的 Drafter；更少的 Draft Host Metadata 只压缩局部环节；更高 Graph Coverage 也可能用 Padding、图常驻资源和额外复制交换。因而 Acceptance Length、Draft Loop 时间和 Graph Hit Rate 对在线吞吐都不是单调充分统计量。
+
+这些并非抽象警告：#63096 的 ROCm Draft Loop 改善在同组 Serving 对照中没有稳定扩展为 TPS 提升；#19954 的 GDN Metadata Stage 在 Ascend950DT 上缩短约 58%，高并发 Output TPS 仍只变动约 0.2%。它们将在 §7 与对应来源条件一起讨论。
+
+*来源：[[E1]](#ref-E1) [[E11]](#ref-E11) [[E17]](#ref-E17)*
+
+**本章综合判断：** 本章把优化目标从“减少 Target 次数”收紧为“降低带正确性约束的单位有效输出成本”。后续章节依次考察降低 Draft 依赖、选择 Verify 工作量、维护合法状态及改善 Runtime，各自把代价推向哪一个边界。
+
+*本章来源：[[P1]](#ref-P1) [[P2]](#ref-P2) [[P4]](#ref-P4) [[E8]](#ref-E8) [[D4]](#ref-D4) [[E1]](#ref-E1) [[E2]](#ref-E2) [[E9]](#ref-E9) [[E11]](#ref-E11) [[E17]](#ref-E17)*
+
+## 3. Candidate Generation：从经典候选到并行块式生成
+
+候选质量决定可连续接受的前缀长度，但更强候选通常意味着更多前向步骤、训练目标、额外权重或 KV 占用。Drafter 的演进不是一条先进性排行，而是围绕“条件信息从哪里来”和“预测多个位置有多大串行深度”的几条并存分支。
+
+### 3.1 检索与独立草稿：低成本与分布偏差
+
+N-gram/History Lookup 利用已有上下文的重复片段生成候选，不需要额外大规模 Draft 权重；它依赖任务的局部重复与词面相似，遇到新颖生成便难维持长连续命中。独立小模型 Drafter 则显式学习条件分布，可处理非重复内容，却引入小模型权重访问、独立 KV Cache、每步采样及与 Target 的分布差异。
+
+对两者的公平比较必须固定 Target 和工作量，再同时计算 Draft Token 生成深度、连续存活率及内存账；只比较候选模型规模或离线 Top-1 命中会漏掉真实执行成本。
+
+*来源：[[P1]](#ref-P1) [[P2]](#ref-P2) [[D1]](#ref-D1) [[D3]](#ref-D3)*
+
+### 3.2 EAGLE/MTP：用 Target 特征提高条件质量
+
+EAGLE 家族使用来自 Target 的中间表示构建较轻的特征级提案；EAGLE-3 引入多层 Target Feature Fusion 与 Training-Time Test 的训练设计，试图减少仅依靠单层特征预测长序列时的偏差。MTP 在体系结构中配置多 Token Prediction 模块，形成另一类依赖模型本身的预测路径。二者都可提高连续接受的机会，但多步自回归 Draft 仍可能包含 k−1 次串行执行，以及 Draft KV 和状态维护成本。
+
+当多步 Draft 以重复 Host Metadata Build/Graph Replay 执行，Candidate 质量不变也可能出现运行时浪费。ROCm #63096 通过复用持久 Metadata 使 K=3、Batch1 的 Draft Loop 从 571 降至 463 μs（作者测量），但并发32 TPS 从 27,741 到 27,572 tok/s（作者认为落在实例波动内），说明减少 Draft 环节本身不决定最终瓶颈。
+
+*来源：[[P5]](#ref-P5) [[P6]](#ref-P6) [[E1]](#ref-E1) [[D6]](#ref-D6)*
+
+### 3.3 树式候选：并行分支与验证宽度
+
+Medusa 通过多个预测头提出不同未来位置的候选并形成验证树；SpecInfer 从独立 Draft 模型组织多候选树，利用共享前缀的树式 Attention 在一次目标验证中检查分支。两种方法在候选来源上不同，共同代价是树节点数可能远大于最终被接受的单条路径。
+
+树方法的关键权衡不是“候选越多越好”，而是分支覆盖带来的前缀存活增益能否覆盖 Target 的 Tree Attention、索引和状态写入成本。只有沿匹配的祖先链选择结果，才能满足 §1 的 Token/Prefix 合同；其最好情形与直线 K 的公式也不能直接混用。
+
+*来源：[[P3]](#ref-P3) [[P4]](#ref-P4) [[P2]](#ref-P2)*
+
+### 3.4 块并行：DFlash、DFlare、DSpark 与 DFlash2 运行时
+
+DFlash 让轻量块扩散 Drafter 在较少序列步骤里并行预测一个 Token Block，利用 Target 特征条件化非因果块内计算。代价是块后部的依赖与 Target 自回归条件存在差异，可能拉低连续前缀存活率。DFlare 针对 DFlash 条件信息集中且每层输入相似的瓶颈，引入层级 Target 特征融合；这一改动重构条件容量而非取消 Verify 成本。
+
+DSpark 通过 Markov/Confidence 结构向并行提案补入局部序列依赖，并可为后续 Verification Budget 提供位置置信度。DFlash2 则在工程侧包含 Candidate Selector、Proposal Cache 和非因果滑窗 Attention 路径；Ascend #19512 使其在特定 MRV2 配置中执行 Full ACLGraph，属于部署执行证据，不能仅凭图的收益推导 DFlash2 算法优于其他 Drafter。
+
+相较串行 EAGLE/MTP，块并行试图减少 Draft 深度，却使 Target 验证宽度、位置置信度与非因果前态缓存更重要。这正是下一章从固定 K 转向自适应 Budget 的直接动因。
+
+*来源：[[P7]](#ref-P7) [[P8]](#ref-P8) [[P10]](#ref-P10) [[D3]](#ref-D3) [[E8]](#ref-E8)*
+
+**本章综合判断：** Candidate 方法改变了提案的时间深度和信息条件，却不能决定哪些位置值得由 Target 真实计算。候选存活率随位置下降以及 Tree/Block 的不同形状，使 Verification Budget 成为独立于 Drafter Architecture 的第二个优化问题。
+
+*本章来源：[[P1]](#ref-P1) [[P2]](#ref-P2) [[D1]](#ref-D1) [[D3]](#ref-D3) [[P5]](#ref-P5) [[P6]](#ref-P6) [[E1]](#ref-E1) [[D6]](#ref-D6) [[P3]](#ref-P3) [[P4]](#ref-P4) [[P7]](#ref-P7) [[P8]](#ref-P8) [[P10]](#ref-P10) [[E8]](#ref-E8)*
+
+## 4. Target Verification：从 Fixed K 到 Target-aware Budget
+
+一次 Target 前向可以验证多个位置，并不意味着每增加一个位置都值得付费。随着被接受前缀的生存概率下降，后部位置的边际价值与其带来的 Attention、MoE、Sampling 和 Graph 工作量发生分离。
+
+### 4.1 位置存活概率与 Fixed K 的边际代价
+
+Fixed K 为不同请求分配相同提案与验证上限，但高拒绝率请求的后部 Target Rows 几乎不可能贡献输出，低拒绝率请求则可能尚有未使用的 Target 并行余量。若增加第 i 个 Verify 位置，它的潜在新增有效输出受 S_i 约束，真实设备增量成本却取决于该 Batch 的 Query Shape、KV 长度与 Target Kernel。最优 K 因此既不是单一离线超参，也不能从全局平均接受率唯一确定。
+
+树式 Candidate 的问题更复杂：额外 Branch Node 的验证成本和提高路径覆盖概率同时增长。在线 Budget 必须知道哪些 Row 会被实际计算，而不是只知道 Draft 产生的 Token 数量。
+
+*来源：[[P2]](#ref-P2) [[P4]](#ref-P4) [[D4]](#ref-D4)*
+
+### 4.2 Adaptive Verification：概率估计与预算政策必须分开
+
+Adaptive Verification 根据候选逐位置置信度/预计存活率，在全局容量约束下为每条请求分配 Verify Rows。其机制至少分成两层：Estimator 产生可用于比较的概率信息，Budget Selection 决定保留多少位置。错误的置信度输入会让看似合理的策略裁掉有效候选，而预算分配自身又可能成为关键路径上的额外 Kernel/Host 工作。
+
+vLLM #65175 是概率输入合同的具体反例：旧 XPress Drafter 未将采样 Logits 接入 Acceptance Estimator，使 Adaptive Budget 使用未初始化缓冲而将接受长度压至约 1；修复后在 H100/Qwen3-8B、SPEED-Bench 并发32，AV Output TPS 从 2,227 升至 5,389，超过同环境 AV-off 的 4,468，但并发1 时 AV-on 375 仍低于 AV-off 408。作者观察支持“Estimator 输入正确后 Budget 可用”，并不支持 AV 在所有并发必然更快。
+
+*来源：[[D4]](#ref-D4) [[E3]](#ref-E3) [[P8]](#ref-P8)*
+
+### 4.3 Budget Selector 与真实 Target Cost
+
+vLLM #63421 将 AV 的运行期动态 torch.compile Budget Binding 改为预热后的 Triton Kernel；H200/Qwen3-4B/DSpark 的作者对照中，该路径 Host 时间从约 76–90 μs 降至 15 μs，修复了首次动态编译开销，AV median Output TPS 从 4,783 升至 6,803。与另一个预编译修复 #62539 的 6,756 接近，表明主要收益来自避免实现开销，而不是新的概率策略。
+
+更深层的 Target-aware 决策要把 Verify 的实际计算纳入成本模型：Attention Kernel 对非均匀长度的支持、Batch/Expert Distribution、Graph Bucket、Padding、并发共享资源，都可能使相同 K 的时延不同。HybridSpec 在 GDN-MoE Target 中进一步使用 Router 边界的代价信息组织分阶段验证；该论文的机制不能直接解释为旧 vLLM/Ascend Pair 已支持同一策略。
+
+*来源：[[E2]](#ref-E2) [[D4]](#ref-D4) [[P9]](#ref-P9) [[E17]](#ref-E17)*
+
+### 4.4 从选择正确的 Row 到提交合法状态
+
+如果预算在不同请求上产生不同 Verify Length，Sampler 必须按每条请求的真实 Query Row 和祖先次序输出 Accepted Count，状态层也必须只提交这些 Token 所对应的设备历史。将选择器改快不能略过这一关系；Verify 本身越宽、路由越复杂，丢弃的临时状态越需要清晰管理。
+
+这构成下一章的约束迁移：Verification 的最优决策既要减少无效计算，也要支付 Rejection 后 State Reconstruction、异步 Copy 和 Prefix/Cache Identity 的代价。
+
+*来源：[[P2]](#ref-P2) [[P9]](#ref-P9) [[E7]](#ref-E7) [[E12]](#ref-E12)*
+
+**本章综合判断：** Fixed-K 与 AV/Router-aware 路线的区别，是把“能验证多宽”变成“在此 Batch 与 Target 执行成本下值得验证多宽”。优化 Budget 必须同时审计 Estimator、Selector 和提交状态的代价，否则仍可能在真实服务中亏损。
+
+*本章来源：[[P2]](#ref-P2) [[P4]](#ref-P4) [[D4]](#ref-D4) [[E3]](#ref-E3) [[P8]](#ref-P8) [[E2]](#ref-E2) [[P9]](#ref-P9) [[E17]](#ref-E17) [[E7]](#ref-E7) [[E12]](#ref-E12)*
+
+## 5. Hybrid Target：Accepted-State 重构与缓存生命周期
+
+目标 Token 被 Sampling 确认，只确定了逻辑输出；它并不自动保证所有层的 KV、Recurrent Checkpoint、草稿历史与下轮设备读址已经同步。在 Hybrid GDN/MoE 中，这一缺口尤其明确，因为状态可能由压缩递归表示而非逐 Token KV Page 保存。
+
+### 5.1 三种历史与一次拒绝后的时序
+
+Attention KV 按位置保存可再读的历史；GDN/Mamba/KDA Recurrent State 把多位置输入折叠成隐状态；Drafter 的 KV/Proposal Cache 还可能包含候选与下一枚 Token 的 Lookahead 依赖。三者的形状、可见范围与恢复点不同：Verify 计算到候选 C 并不意味着采样拒绝 C 后允许使用其 Recurrent State。
+
+以 §1 的 P+[A,B,C] 为例，Target 先验证三枚候选并产生候选位置的临时 KV/SSM，随后 Sampler 仅接受 A、B，并用 Target D 修正；提交边界必须与 P+[A,B] 及相应的 Pending D 语义匹配。下一轮读取之前，系统或显式提交 Accepted State，或依靠 Recover/Replay 在合法前态上重建，绝不能沿被拒绝分支继续。
+
+*来源：[[P2]](#ref-P2) [[P9]](#ref-P9) [[E7]](#ref-E7) [[D6]](#ref-D6)*
+
+### 5.2 Accepted-State Reconstruction 与异步 Commit
+
+RecoverSSM 在合法 Checkpoint 上重放本轮已接受的 Token，以避免直接采用 Verify 最后一位置的递归状态。vLLM #66595 尝试把 Replay 推迟到下一次 Verify，并用 Pending Count 绑定 Request Slot；其 GB200/GLM-5.3-Flash、并发128 作者对照报告 Output TPS 9,275→9,780，但并发16仅 3,158→3,183，且 Batch1 局部 Verify+Commit 从 0.371 增至 0.383 ms。该 PR 截至核验日仍开放，且混合有本地依赖接线；收益不能泛化。
+
+Ascend #21430 从另一方向缩短 RecoverSSM 与 CPU 输入准备之间的等待：将 num_computed_tokens D2H Snapshot 提到 State Commit 之前，避免不必要地等待整段 Commit。这个异步重排只有在 Post-update 是被读取槽位最后写者、新 Request 写集与 Cached Request 读集不重叠时才成立；PR 的 72-way TPS 恢复是作者环境观察，缺少充分的重复与异常路径证据。
+
+*来源：[[E7]](#ref-E7) [[E12]](#ref-E12) [[D7]](#ref-D7)*
+
+### 5.3 Lookahead Hash、Prefix Cache 与请求恢复
+
+vLLM #61589 对 EAGLE/MTP 的块末 Draft KV 纳入 Lookahead Token Hash，使本地 Prefix Hit 可复用此前因额外依赖而丢弃的尾块；但 32K/B16 Text 的 Hash CPU 成本由 3.166 增至 3.566 ms（作者报告），且连接器场景保留旧 Hash 路径。因此它修正的是缓存身份和命中边界，不是无代价的全局加速。
+
+Prefix Hit、Preemption、跨 TP/P-D Restore、Streaming Re-add 与 Graph Replay 会改变 Request Slot、Block Owner、Checkpoint 生命周期或事件顺序。有效测试需要在 AR Oracle 下逐层比较 Recurrent State 和 KV，在 0/部分/全部接受、Bonus、Slot Reuse、跨流读写、恢复失败等路径插入负对照。只检查最终 Token 准确率无法证明这些内部状态可组合。
+
+*来源：[[E5]](#ref-E5) [[E7]](#ref-E7) [[E15]](#ref-E15) [[E18]](#ref-E18)*
+
+### 5.4 与 Verification/Runtime 的共同接口
+
+Verify Budget 变化意味着每条请求本轮计算的候选数不同，State Commit 必须知道真正可提交长度；Graph Capture 要求缓冲地址稳定，Scheduler 又要求 Token/Block 世代正确。这些条件共同确定一次轮次能否安全复用已有资源。
+
+该层的性能优化应区分安全性与时间节省两种证据：Token/KV/SSM/事件对照回答“可否正确复用”，Host Trace 与 Serving A/B 回答“减少何种关键路径”。后续 §6 才讨论如何让这些合同与运行时 Graph、容量和调度协作。
+
+*来源：[[P9]](#ref-P9) [[E5]](#ref-E5) [[E7]](#ref-E7) [[E11]](#ref-E11) [[E12]](#ref-E12)*
+
+**本章综合判断：** Hybrid SpecDec 的关键难点不是只有拒绝采样公式，而是合法 Accepted State 的生成、保存、恢复与下轮消费。状态路径一旦成为关键路径或占用容量，候选与验证层的理论收益就需要重新计算。
+
+*本章来源：[[P2]](#ref-P2) [[P9]](#ref-P9) [[E7]](#ref-E7) [[D6]](#ref-D6) [[E12]](#ref-E12) [[D7]](#ref-D7) [[E5]](#ref-E5) [[E15]](#ref-E15) [[E18]](#ref-E18) [[E11]](#ref-E11)*
+
+## 6. Serving Runtime：Scheduler、Graph、Host/Device 与容量约束
+
+运行时决定 SpecDec 从逻辑轮次映射为哪些具体任务：Scheduler 选择请求，Drafter 与 Target 分别产生设备工作，Sampler 裁决，State 后处理改变下一轮输入，Graph/Cache/Communication 决定这些操作的实际次序与资源。正确实现和性能收益必须在固定版本语境下分别判断。
+
+### 6.1 固定源码的职责与后续能力边界
+
+以 vLLM v0.23.0（0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665）和 vLLM-Ascend v0.23.0（5cb98caaadeff42b5b62b996e34bb2aaa29d20fd）为静态基线，Scheduler.schedule 使用 num_computed_tokens 与包含 Spec Token 的需求决定本轮预算；BaseSpeculator.propose 生成候选；GPUModelRunner.sample 在存在 Draft 时调用 RejectionSampler；postprocess_sampled 先更新计数和历史，再执行 model_state.postprocess_state。Ascend 扩展还把 num_computed_tokens D2H，等待设备 Event 后更新下一轮 CPU Sequence Length。
+
+该调用链标识组件所有权，不意味着所有方法在旧 Pair 可用，更不能把 2026 年 10–11 月后续合入的 AV/DSpark/DFlash2/RecoverSSM PR 当作旧固定版本实现。版本化差异、完整源码路径和组合适用性见固定源码审计资料；未核验模型/TP/CANN 组合不能直接填为支持。
+
+*来源：[[D6]](#ref-D6) [[D7]](#ref-D7) [[E2]](#ref-E2) [[E8]](#ref-E8) [[E12]](#ref-E12)*
+
+### 6.2 Draft/Verify/Sampling 的图与动态形状
+
+多步 Draft 往往在相近数据布局上重复执行，ROCm #63096 复用 Metadata 以减少逐步 Host Build；Ascend #19512 将特定 DFlash2 Backbone、Candidate Selector、Proposal Cache 纳入 Full ACLGraph，同时修复非因果窗口 FIA 语义。后者的 910B4/TP4 K7 历史 Eager 与 Graph 对照同时改变了实现与接受轨迹，不能把全部 TPOT 改善解释成捕获单项收益。
+
+Ascend #20254 的 Rejection Sampling Graph 试图将四次 Kernel Dispatch 聚合为一次 Replay；原 PR 910B/TP8/DSpark 作者报告 Sampler Host 从约 1.98 降至 0.53 ms，但 150 请求 Serving 的 Output TPS 从 174.95 到 181.60（+3.8%）同时伴随 Acceptance Length 1.96→2.01，Verify 轮次下降，Median TPOT 反而约 26.78→26.95 ms。可归因的主要是 Sampler Host 路径，而非整个 Serving 改善。
+
+Fixed Width Spec 中新请求/结束请求可使一个 Batch 内 Query Length 不一致。vLLM #64915 尝试复用 Varlen Decode Graph；该 PR 已关闭未合入，吞吐测试使用 Synthetic Acceptance 和 Dummy KV，且部分基线预热不稳。它说明图覆盖与动态形状的潜在收益，但不能证明已发布版本拥有此支持或真实 Token 质量。
+
+*来源：[[E1]](#ref-E1) [[E8]](#ref-E8) [[E9]](#ref-E9) [[E13]](#ref-E13) [[E17]](#ref-E17)*
+
+### 6.3 状态元数据、Host/Device 与异步重叠
+
+Ascend #19954 在 aligned GDN Cache 下把索引、分区、Padding 和共享 Conv Output 清理融合为单个 Triton Metadata Launch，保持准备阶段在 Graph 外。作者的 Ascend950DT/GLM-5.3-Flash、C32 对照为 Metadata 2.289→0.952 ms，而无 Profiler 的 Decode Output TPS 为 2,876.00→2,881.35；阶段节省没有等比例进入完整 Step，不能用同步微基准推导异步关键路径。
+
+#21430 提前 D2H Snapshot 的收益依赖 Stream Event 与 Slot Read/Write Set；同时 Cache Hit、Hybrid State Replay 或 Host 准备仍可能占用同一关键路径。执行期应直接观察 Host Dispatch、Device Timeline、Event Wait、Draft/Verify 交叠和每轮自然间隔，不以简单的 Kernel 总时长求和代替 Wall Clock。
+
+*来源：[[E11]](#ref-E11) [[E12]](#ref-E12) [[D7]](#ref-D7)*
+
+### 6.4 KV/SSM/Graph 资源与 Scheduler 的共同预算
+
+Target KV、Drafter KV、SSM Checkpoint、Graph Capture Workspace 与正在运行的批次共享有限 HBM。DFlash/DSpark 的 Draft Tail KV 优化、Prefix Lookahead 身份和无用 Draft 跳过分别改善驻留、复用或避免无用计算，但会影响 Admission、Preemption 和下一次请求合法前态。
+
+多种优化会改变系统容量边界：较长 Verify 可能使 Padding 与临时状态增长；更多 Captured Graph Bucket 可能占用常驻资源；跨 TP 或 P/D 历史恢复要求 Block Identity 一致。公平 Serving 对照必须固定可用 KV/Graph 内存、请求轨迹、模型/Backend，并单独测量 TTFT、TPOT/ITL、Output TPS、Goodput 与显存峰值。
+
+*来源：[[E5]](#ref-E5) [[E6]](#ref-E6) [[E10]](#ref-E10) [[E14]](#ref-E14) [[E15]](#ref-E15) [[E17]](#ref-E17)*
+
+**本章综合判断：** Runtime 的任务不是替代算法，而是决定 Draft、Verify 与 State 的计算能否在具体形状和硬件上成为可执行、可复用的关键路径。局部图/缓存/元数据改善何时能传到服务指标，需要跨层配对证据而非按 PR 逐条累加。
+
+*本章来源：[[D6]](#ref-D6) [[D7]](#ref-D7) [[E2]](#ref-E2) [[E8]](#ref-E8) [[E12]](#ref-E12) [[E1]](#ref-E1) [[E9]](#ref-E9) [[E13]](#ref-E13) [[E17]](#ref-E17) [[E11]](#ref-E11) [[E5]](#ref-E5) [[E6]](#ref-E6) [[E10]](#ref-E10) [[E14]](#ref-E14) [[E15]](#ref-E15)*
+
+## 7. 跨层证据综合：瓶颈迁移、反例与适用边界
+
+前三个优化层面共同组成一次条件化的因果实验：Candidate 影响可验证的有效前缀，Verification 影响 Target 与 Sampling 工作量，State 决定下一轮可读历史，Runtime 才把它们映射到真实设备和请求时序。下面不按 PR 发布时间排序，而按三条能被反例约束的传导链组织证据。
+
+### 7.1 Candidate → Verify：序列深度缩短不代表单位 Token 成本下降
+
+Block Parallel Draft、EAGLE/MTP 与树式提案分别改变 Draft 深度、连续候选质量或路径覆盖。它们只决定“可能被提交”的 Token 数，仍需支付 Target Query Rows。#63096 是一个明确的负对照：MI355X 上 K3 B1 Draft Loop 571→463 μs，但并发32、合成固定 Acceptance 的 Serving TPS 27,741→27,572，差异在实例波动内。因果可归因范围是 Metadata 空泡和 Draft Loop，不是完整模型吞吐。
+
+因此如果新的 Drafter 只是提高离线候选质量，却使 Target Query、KV/Weight Memory 或 Host 关键路径增长，单位输出成本仍可能不降。反过来若 Target 已是瓶颈，仅改 Draft Dispatch 也无法消除它。该链把 Candidate 质量优化与下一章的动态 Verify Budget 连接成一个实验问题。
+
+*来源：[[P6]](#ref-P6) [[P7]](#ref-P7) [[P8]](#ref-P8) [[E1]](#ref-E1) [[E8]](#ref-E8)*
+
+### 7.2 Verify → Accepted State：多位置工作与合法提交不可分离
+
+Fixed K 后部低存活率导致无效 Verify Rows；AV 借 Estimator 和 Budget 改变其分配。#65175 在 H100/XPress 上修复未初始化 Confidence 后，C32 AV-on Output TPS 高于 AV-off，但 C1/C8 仍更慢；#63421 则显示同一种 AV Policy 可能因预算选择器中途编译而严重亏损。两者共同说明概率估计、预算策略和 Kernel/Host 实现是不同因果环节。
+
+更宽的 Verify 同时增加了被拒绝分支的临时 KV/SSM。RecoverSSM、Lookahead Hash 和提前 D2H 的 PR 分别作用于状态重放、缓存身份和异步等待，尚不能由其中任何一项推断跨 Prefix/Preemption/P-D 的状态合同自动成立。该链的结论是：验证预算的真实代价必须包括正确提交和恢复，而不是只计算 Target 计算量。
+
+*来源：[[D4]](#ref-D4) [[E2]](#ref-E2) [[E3]](#ref-E3) [[E5]](#ref-E5) [[E7]](#ref-E7) [[E12]](#ref-E12)*
+
+### 7.3 Runtime 局部 → Serving：关键路径而非阶段百分比决定收益
+
+Ascend950DT 的 #19954 让 GDN Metadata 在 C32 从 2.289 降至 0.952 ms（约 −58%），而未 Profile 的 Output TPS 仅 2,876.00→2,881.35（约 +0.19%）；作者不宣称统计显著。Ascend 910B 的 #20254 Sampler Host 1.98→0.53 ms，但 Serving Output TPS 的 +3.8% 混入 Acceptance Length 增加和 Verify 轮次变化。两项共同表明局部路径节省无法通过线性相加得到在线加速。
+
+相对地，#19512 的 910B4 DFlash2 Graph 对照包含更大的 TPOT 变化，但 Eager/Graph 实现、FIA 语义和接受轨迹同时变化，仍不满足单一图开关的净因果识别；#64915 的 Rubin 结果虽显示 Graph Coverage 改变，使用 Synthetic Acceptance、Dummy KV，且方案关闭未合入。因此论证应回到同提交/同请求轨迹的 Critical Path 变化，而非把不兼容实验拼成统一 Benchmark。
+
+*来源：[[E8]](#ref-E8) [[E9]](#ref-E9) [[E11]](#ref-E11) [[E12]](#ref-E12) [[E17]](#ref-E17)*
+
+### 7.4 技术趋势与适用边界
+
+目前可形成的条件性认识是：Candidate 设计从增加条件信息或分支覆盖转向缩短 Draft 深度；Verification 从固定 K 转向存活概率与 Target 执行成本；Hybrid State 和 Runtime 从维护 Token 合法性扩展为 Checkpoint、KV/SSM 身份与图/Host/容量的共同规划。它们既有历史动因也有并存路线，不能推成必然单调的算法世代替代。
+
+证据下限同样明确：105 条是社区候选观察池，10 条为详细 PR 样本；论文机制、静态固定源码、PR 作者报告与综合推断是不同层级。若对照的 Acceptance 轨迹、模型、后端、Graph Bucket 或状态保存不同，数字只能支持该条件的局部观察。
+
+*来源：[[P3]](#ref-P3) [[P5]](#ref-P5) [[P7]](#ref-P7) [[P8]](#ref-P8) [[P9]](#ref-P9) [[D6]](#ref-D6) [[D7]](#ref-D7) [[E1]](#ref-E1) [[E2]](#ref-E2) [[E11]](#ref-E11)*
+
+**本章综合判断：** 最强的系统判断不是“某一算法胜出”，而是瓶颈沿 Candidate→Verify→State→Runtime 迁移，直至新的阶段进入真实服务关键路径。下一步必须以已有强方案为基线，用能否被反例推翻的实验检验跨层收益。
+
+*本章来源：[[P6]](#ref-P6) [[P7]](#ref-P7) [[P8]](#ref-P8) [[E1]](#ref-E1) [[E8]](#ref-E8) [[D4]](#ref-D4) [[E2]](#ref-E2) [[E3]](#ref-E3) [[E5]](#ref-E5) [[E7]](#ref-E7) [[E12]](#ref-E12) [[E9]](#ref-E9) [[E11]](#ref-E11) [[E17]](#ref-E17) [[P3]](#ref-P3) [[P5]](#ref-P5) [[P9]](#ref-P9) [[D6]](#ref-D6) [[D7]](#ref-D7)*
+
+## 8. Research Gaps、验证路线与研究局限
+
+已有机制与 PR 给出局部可行性，却不足以直接回答动态负载下的联合最优。研究缺口应指明已有方法已解决什么、还缺哪一个可检验交界，而不是把“尚未在本仓运行过”当作新的系统问题。
+
+### 8.1 机制未闭合与可证伪研究假设
+
+G1：基于已有 AV/HybridSpec，检查不同 Batch、MoE Expert Router 与 Attention Backend 下 Target 成本 Profile 是否失配；固定同一 Target/Drafter，比较 Fixed K、AV 与可配置的 Router-aware 策略，把 Selector 自身成本计入总 Critical Path。若 Router 额外信息没有提供可重复收益，假设应撤回。
+
+G2：基于 AR Oracle、RecoverSSM 和 Lookahead Hash 的已知机制，建立覆盖 Reject、Bonus、Preemption、Prefix、P/D 与 Graph Replay 的 Accepted-State Contract；逐层 KV/SSM 和事件负对照有一个失败，即不能宣称组合合同成立。
+
+G3：在真正支持可变 Verify Shape 与 Graph 的软件/Backend 组合上，测试 K 与 Graph Bucket 联合选择是否抵消 Padding/Host Launch 的代价；未合入的 #64915 只能作为候选机制，不是稳定强基线。G4：在固定请求轨迹、Prefix Cache 和 Memory Budget 下，测量 Draft/Target KV、SSM 与 Graph Workspace 的资源转移是否改善 Admission、Preemption、Restore TTFT 和 Goodput。
+
+*来源：[[D4]](#ref-D4) [[P9]](#ref-P9) [[E2]](#ref-E2) [[E3]](#ref-E3) [[E5]](#ref-E5) [[E7]](#ref-E7) [[E14]](#ref-E14) [[E17]](#ref-E17)*
+
+### 8.2 统一评估方法与 G5 的定位
+
+原 G5“局部提速如何传导到服务”在现阶段应首先作为 G1–G4 共同使用的评测与因果归因方法，而不是另起一个未经证明的新机制。只有在提出可跨负载预测收益转折点的具体模型、留出负载和误差判据后，才可将它升格为独立的 Hypothesis。
+
+统一 Protocol 应保留 AR、Fixed K、AV（以及兼容时的 Router-aware）强基线，使用同权重、同 Source Commit、请求 Arrival/ISL/OSL、温度和 EOS 规则，交错 A/B 重复执行；报告 Draft/Verify/Sampler/Commit/Host 自然关键路径、S_i、TTFT、TPOT/ITL P50/P95、TPS/Goodput、显存、预热和失败。合成 Acceptance、Dummy KV 或作者单次日志只能回答对应的局部问题。
+
+*来源：[[E1]](#ref-E1) [[E2]](#ref-E2) [[E3]](#ref-E3) [[E9]](#ref-E9) [[E11]](#ref-E11) [[E17]](#ref-E17)*
+
+### 8.3 四个 RQ 的综合回答与有效性边界
+
+对 RQ1：精确接受/残差采样维护 Target 分布，合法输出还要求 KV/SSM/时序与 Accepted Prefix 同步；当前跨生命周期组合验证并未被一条 PR 完整覆盖。对 RQ2：Lookup、EAGLE/MTP、树式与块并行分别交换重复性、条件质量、Draft 深度与树/块验证工作量，不存在与负载无关的唯一赢家。
+
+对 RQ3：最优 Verify Budget 由位置存活概率、Target Attention/MoE Cost 与 Selector 开销共同决定；Estimator 错误和编译空泡提供了确定的工程反例。对 RQ4：Serving Runtime 的 Graph/Metadata/Sampler/KV 提速只有改变当前请求轨迹的 Critical Path 才可能转化为稳定 TPOT/Goodput 收益；#63096、#19954 和 #20254 共同限定了这一结论。
+
+结论的主要威胁包括：不同设备和模型导致的外部有效性、PR 中同时变化的软件/Acceptance 轨迹造成的内在混杂、样本和重复不足的统计不确定性，以及开放/关闭 PR 与固定 v0.23.0 Pair 之间的版本间隙。它们应保留为明确边界，不能在结论中抹平。
+
+*来源：[[P2]](#ref-P2) [[P9]](#ref-P9) [[D6]](#ref-D6) [[D7]](#ref-D7) [[E1]](#ref-E1) [[E2]](#ref-E2) [[E3]](#ref-E3) [[E5]](#ref-E5) [[E7]](#ref-E7) [[E9]](#ref-E9) [[E11]](#ref-E11) [[E12]](#ref-E12)*
+
+**本章综合判断：** 因此 R2 的研究贡献是一个可审计的跨层解释框架：先证明采样与设备状态合法，再用单位有效输出成本判断候选、验证和运行时优化是否减少了同一条服务关键路径。后续更新应记录证据如何改变这些判断，而不只是累积 PR 数量。
+
+*本章来源：[[D4]](#ref-D4) [[P9]](#ref-P9) [[E2]](#ref-E2) [[E3]](#ref-E3) [[E5]](#ref-E5) [[E7]](#ref-E7) [[E14]](#ref-E14) [[E17]](#ref-E17) [[E1]](#ref-E1) [[E9]](#ref-E9) [[E11]](#ref-E11) [[P2]](#ref-P2) [[D6]](#ref-D6) [[D7]](#ref-D7) [[E12]](#ref-E12)*
+
+## 局部工程证据对照与归因边界
+
+正文围绕研究问题论证；以下记录原始 PR 作者报告的环境、数据、失败和核验范围。数据不能跨设备/模型/版本相加。
+
+### E2 Adaptive Verification Budget Selector
+
+| 项目 | 记录 |
+|---|---|
+| 机制 | 将运行期 torch.compile Budget Selection 改为 warmup 单次 JIT 的 Triton Budget Kernel。 |
+| 证据层级 | Merged; PR 作者实验与代码变更路径 |
+| 环境 | H200 ×1；Qwen3-4B + DSpark block7；GSM8K |
+| 测试版本 | vLLM #63421；作者注明同 build d561af5df 的交错 E2E |
+| 工作量 | 128 prompts、K7、并发16、每臂3次；CPU/GPU microbench 各不同 |
+| 作者报告的结果 | AV main 4,783→Triton 6,803 output tok/s（median）；#62539 6,756；Host budget 76–90→约15 μs。 |
+| 负面结果 | 动态编译首轮 1.8–4.7 秒/进程（作者记录），但 warmup 能消除这部分。 |
+| 归因/兼容边界 | 主因是中途编译与 Kernel Launch，而非 AV 算法本身变好；对照 #62539 已接近本 PR。 |
+| 本轮核验 | 阅读 PR 描述、原始对照表、4 个改动文件；未执行 H200 复现。 |
+| PR head | d28c23065300ee5b45dc9504f28a12be222d36bf |
+| 关键文件 | vllm/v1/worker/gpu/spec_decode/adaptive_verification.py |
+
+来源：[[E2]](#ref-E2)
+
+### E3 XPress Acceptance Estimator
+
+| 项目 | 记录 |
+|---|---|
+| 机制 | XPress 将最后一次 Jacobi Refinement 的 Draft Logits 交给在线 Acceptance Estimator；修正未初始化 Confidence Buffer 引发的误裁剪。 |
+| 证据层级 | Merged; PR 作者真实 Workload 与测试 |
+| 环境 | H100 ×1；Qwen3-8B + XPress b16；K15；Greedy |
+| 测试版本 | vLLM #65175；作者列明 baseline f9db1756e9 |
+| 工作量 | SPEED-Bench throughput_1K；并发1/8/32/64/128；30秒×3 trials；Prefix Cache off |
+| 作者报告的结果 | 并发32: AV off 4,468，旧 AV 2,227，修复 AV 5,389 tok/s；并发1: AV off 408、修复 AV 375，仍有 8% 左右损失。 |
+| 负面结果 | 旧实现 Acceptance Length≈1；主线测试 1 failed，PR 新测试 2 passed（作者报告）。 |
+| 归因/兼容边界 | 修的是 Estimator 输入连接；修复后并非所有并发都优于 AV off，不能外推到其他 Drafter。 |
+| 本轮核验 | 阅读 PR 说明、性能表及 6 个改动文件；未运行 H100。 |
+| PR head | 9132bccd77919c7ee3ac9f3bd4d709767797464e |
+| 关键文件 | vllm/v1/worker/gpu/spec_decode/xpress/speculator.py |
+
+来源：[[E3]](#ref-E3)
+
+### E5 Lookahead Block Hash 与 Prefix Cache
+
+| 项目 | 记录 |
+|---|---|
+| 机制 | EAGLE/EAGLE3/MTP 块末 Draft KV 依赖后一 Token；Hash 纳入 Lookahead Token，避免 Local Prefix Cache 命中时强制丢弃尾块。 |
+| 证据层级 | Merged; PR 作者 Unit、Hash Microbench；E2E 部分继承此前联合 PR |
+| 环境 | GB200 node；Hybrid Mamba/GDN、EAGLE/MTP；本地 Prefix Cache |
+| 测试版本 | vLLM #61589；叠加相关 #50897 的旧轮次数据 |
+| 工作量 | Hash CPU 基准随机 32K/128K tokens、B16/128/1024、15轮交错；PR 特定 E2E 本次未重跑 |
+| 作者报告的结果 | B16、32K text Hash 3.166→3.566ms（+12.6% CPU）；B128 +5.0%；联合旧 PR Qwen3.6-27B prefix hit 72.7→85.0%，但不是本拆分 PR 重跑。 |
+| 负面结果 | PR 明确排除一组 CLI e2e test；历史合并数据不能当成分拆 PR 独立证明。 |
+| 归因/兼容边界 | 命中长度改善有 CPU Hash 代价，且 KV Connector 路径维持旧 Hash；跨进程 Cache 协议需协同升级。 |
+| 本轮核验 | 阅读 PR 说明和 27 项改动路径；未确认拆分后独立 E2E 复现。 |
+| PR head | 9cc08bfe366e8ad3ac9fe7d53a64dd3847041a38 |
+| 关键文件 | vllm/v1/core/block_pool.py |
+
+来源：[[E5]](#ref-E5)
+
+### E7 RecoverSSM Deferred Replay
+
+| 项目 | 记录 |
+|---|---|
+| 机制 | 将已接受 Token 的 KDA State Replay 延后至下一次 Verify；Sampling 后记录 Pending Count，请求离开 Runner 时 Fold。 |
+| 证据层级 | Open, not merged; PR 作者 Unit + 指定环境测量 |
+| 环境 | GB200 node；GLM-5.3-Flash；TP4、MTP5、FP32 KDA State、Prefix Cache |
+| 测试版本 | vLLM #66595；作者以相同树关闭 Deferral 为基线 |
+| 工作量 | 随机输入/输出 1024/1024、Synthetic AL3.61；并发16/128；每行1次 |
+| 作者报告的结果 | 并发128 9,275→9,780 output tok/s（+5.4%）；并发16 3,158→3,183（+0.8%）；KDA batch1 0.371→0.383ms（局部退化）。 |
+| 负面结果 | PR 记载主线同样存在 56 个 specialized 测试失败；Streaming Session 第二轮状态历史与新请求不完全一致。 |
+| 归因/兼容边界 | 仅单次对照；另有 GLM stock RecoverSSM 本地接线；并非直接已合入功能或跨模型收益。 |
+| 本轮核验 | 阅读 PR 概述、单元测试/基准/限制；文件路径已检查；无 GB200 独立运行。 |
+| PR head | cdced7fb9741c8eca9661c56883ea9828b90fcd3 |
+| 关键文件 | vllm/v1/worker/gpu/model_states/recoverssm.py |
+
+来源：[[E7]](#ref-E7)
+
+### E1 ROCm Multi-step Draft Graph
+
+| 项目 | 记录 |
+|---|---|
+| 机制 | ROCm AITER Unified Attention Metadata 使用持久 Buffer 视图，启用 Fused Multi-step Draft Decode，避免每个 Draft Step 重新构建 Host Metadata。 |
+| 证据层级 | Merged; PR 作者分层 Microbench 与 Serving A/B |
+| 环境 | MI355X ROCm/AITER；Llama-3.1-8B EAGLE3；k3/7 |
+| 测试版本 | vLLM #63096；作者注明 main 124501da 等多轮基线 |
+| 工作量 | K3 Batch1/8/32：1151 calls×4轮（首轮舍弃）；服务并发1/8/32，3轮中位；Synthetic Acceptance |
+| 作者报告的结果 | K3 Draft Loop B1 571→463μs；服务 C32 27,741→27,572 tok/s（−0.6%），作者归为服务器间波动；C1 +0.1%。 |
+| 负面结果 | gpt-oss-20b 另一路在 k≥5 的 Greedy 偏差是既有基线问题；作者没有宣称 E2E 提速。 |
+| 归因/兼容边界 | 后端限定 ROCM_AITER_UNIFIED_ATTN；被减少的是 Draft Loop Host 空泡，不意味着 Target LM Head 与 Serving Critical Path 同步变短。 |
+| 本轮核验 | 阅读 PR 的机制、独立 Draft 与 Serving 对照和2文件 patch；无 MI355X 独立测试。 |
+| PR head | 11090e9315ca1c74d962feb90f3d4fd0e00e9cd8 |
+| 关键文件 | vllm/v1/attention/backends/rocm_aiter_unified_attn.py |
+
+来源：[[E1]](#ref-E1)
+
+### E8 Ascend DFlash2 Full ACLGraph
+
+| 项目 | 记录 |
+|---|---|
+| 机制 | 将 DFlash2 Backbone、Candidate Selector、Proposal Cache Update 纳入 MRV2 Full ACLGraph，同时修复非因果 SWA 的 FIA Band Mask。 |
+| 证据层级 | Merged; PR 作者跨日 Eager / Graph 对照 |
+| 环境 | 4×Ascend 910B4；Qwen3.8-27B-W8A8；TP4；K7；vLLM 0.32.0 + Ascend dev3176 |
+| 测试版本 | Ascend #19512；eager 2026-10-30，graph 2026-10-31 |
+| 工作量 | 五类场景，两轮/部署，累计 384 请求；temperature0、seed42，warmup 排除 |
+| 作者报告的结果 | 8K→8K C8，TPOT 21.739→10.838ms、输出 351.62→705.38 tok/s；Acceptance 49.39%→94.04%。 |
+| 负面结果 | GSM8K 类场景 Acceptance 75.50→72.03%，并非所有工作量都改善接受率。 |
+| 归因/兼容边界 | 对照含 PR 代码、FIA 行为及两日部署差异；接受率本身大幅变化，不能将整个 TPS 提升归因图回放；不代表 910B2 兼容。 |
+| 本轮核验 | 阅读 PR 完整实验表及 speculator/FIA 相关变更路径；未复现 910B4。 |
+| PR head | 2d4a2e00348ad29650da959f6603a20e90934479 |
+| 关键文件 | vllm_ascend/worker/v2/spec_decode/dflash2/speculator.py |
+
+来源：[[E8]](#ref-E8)
+
+### E9 Rejection Sampling ACLGraph
+
+| 项目 | 记录 |
+|---|---|
+| 机制 | 用单次 ACLGraph Replay 运行四个 Rejection Kernel，编译期固定 Launch Shape，复用输入 Buffer；不支持的 Sampling Mode 回退 Eager。 |
+| 证据层级 | Open, not merged; PR 作者 Host Profiler + 一次 Serving 对照 |
+| 环境 | Ascend 910B；DSpark K5、TP8；设备端 110–170μs |
+| 测试版本 | Ascend #20254；仅提交中的 Patch 路线 |
+| 工作量 | 150 请求、7.5M 输入/52.5K 输出 Token、并发6；工作量一致、但 RNG 接受轨迹变化 |
+| 作者报告的结果 | Sampler Host 1.98→0.53ms/轮；E2E Output TPS 174.95→181.60（+3.8%），Verify Rounds 26,795→26,095；每轮 11.20→11.08ms。 |
+| 负面结果 | Median TPOT 26.78→26.95ms 基本未改善；P99 TTFT 变化不能由这个 PR 单独归因。 |
+| 归因/兼容边界 | 更高 Acceptance Length 1.96→2.01 改变了 Verify 次数；E2E 的 3.8% 不全由 Kernel Graph 导致；部分模式仍 Eager。 |
+| 本轮核验 | 阅读 PR 的 Kernel/Graph 改动、Profiler 和 Serving 表；无独立 NPU 实测。 |
+| PR head | fe58a4cf1c89190bffe5f43b8d7220bfb875d31a |
+| 关键文件 | vllm_ascend/worker/v2/spec_decode/rejection_sampler_utils.py |
+
+来源：[[E9]](#ref-E9)
+
+### E12 RecoverSSM D2H 与 Commit Overlap
+
+| 项目 | 记录 |
+|---|---|
+| 机制 | 将 num_computed_tokens D2H Snapshot 提前至 Postprocess State Commit，缩小 CPU Sequence Length 更新的等待集合。 |
+| 证据层级 | Open, not merged; PR 作者 A5 单环境报告 |
+| 环境 | Ascend A5；Qwen3.x GDN Hybrid + MTP；MRV2 |
+| 测试版本 | Ascend #21430；基线描述在 PR，缺独立试验矩阵 |
+| 工作量 | 并发72；主要观察 Decode 稳态、Draft 后空泡和 GPQA；重复次数未披露 |
+| 作者报告的结果 | 作者报告每步约 40ms Idle Gap 消失，Decode TPS 约24→30；GPQA 88.89（缺配对细节）。 |
+| 负面结果 | 未披露样本方差和完整对照环境；PR 尚在开放，不是已稳定部署功能。 |
+| 归因/兼容边界 | 必须证明 Scheduled Cached Reqs 与新加入 Slot 的写集互不覆盖；原 PR 的因果归因依赖此生命周期约束。 |
+| 本轮核验 | 阅读 PR 的 D2H 时序解释及 model_runner 改动文件；无实际 A5 trace 或独立复验。 |
+| PR head | a0c28fd17a3bda74d3d2d5e431be28245b068ddf |
+| 关键文件 | vllm_ascend/worker/v2/model_runner.py |
+
+来源：[[E12]](#ref-E12)
+
+### E11 GDN Mixed-batch Metadata Fusion
+
+| 项目 | 记录 |
+|---|---|
+| 机制 | 合并 GDN Host Metadata 的索引、分区、填充和共享 Conv Output 清理，单次 Triton Launch；Metadata 仍在 Graph 外。 |
+| 证据层级 | Merged; PR 作者 Accuracy + Metadata/Serving 分层对照 |
+| 环境 | Ascend950DT；GLM-5.3-Flash；TP8+EP、MTP3、FULL_DECODE_ONLY |
+| 测试版本 | Ascend #19954；固定 vLLM 关联提交见原文 |
+| 工作量 | Meta 16请求单卡合成场景；另 x8 实测并发10/32/64，每指标三轮；26/26 Exact Metadata 对照 |
+| 作者报告的结果 | C32 Metadata 2.289→0.952ms（−58.42%）；对应无 Profile Decode TPS 2,876.00→2,881.35（+0.19%）；26/26 元数据精确一致。 |
+| 负面结果 | 异步重叠/其他开销稀释局部节省；部分 Cache/Layout/Capture 回退原实现。 |
+| 归因/兼容边界 | Metadata 阶段不等于完整 Step 关键路径；C32/C64 的 TPS 变化极小且作者明确不宣称统计显著性。 |
+| 本轮核验 | 阅读 PR 的 Layout、Kernel 文件、精确性与对照表；无独立 950DT 运行。 |
+| PR head | d40d2a64c656f7d86a996b23793ceaeb0f9ab3b0 |
+| 关键文件 | vllm_ascend/ops/gdn_attn_builder.py |
+
+来源：[[E11]](#ref-E11)
+
+### E17 Fixed-width Spec Varlen Graph
+
+| 项目 | 记录 |
+|---|---|
+| 机制 | 使 Fixed-width Spec 在 Mixed Query Length 下复用 Varlen Decode Graph；cached 1-token extension 不再误判为 Prefill。 |
+| 证据层级 | Closed, not merged; PR 作者合成吞吐与 Graph Profile |
+| 环境 | 4×Rubin；DeepSeek-V4.1-Flash；DP/EP4，DSpark K5；ISL131072/OSL1024 |
+| 测试版本 | vLLM #64915；作者区分 Published PR 与本地未 Push 后续 Patch |
+| 工作量 | 并发256；7min warmup+5min benchmark；Synthetic AL3.51，Dummy KV；无真实 Token 正确性测试 |
+| 作者报告的结果 | DeepGEMM output 20,862→39,943 tok/s；FlashInfer 14,910→39,567，但旧 FlashInfer Warmup 不稳；Graph Coverage 改善。 |
+| 负面结果 | FlashInfer baseline 未达到 5% Warmup Stability；真实 KV 的 Capacity Guard 未在该 PR 完整验证。 |
+| 归因/兼容边界 | 利用 Synthetic Acceptance 和 Dummy KV，无法支持真实输出质量；且 PR 关闭未合入，不属于 main 已发布支持矩阵。 |
+| 本轮核验 | 阅读 PR Graph 机制、实验表与未发布补丁说明；无 Rubin 独立复现。 |
+| PR head | 6f1891fb42992181a413bc6c4276889f4d3008f8 |
+| 关键文件 | vllm/v1/worker/gpu/model_runner.py |
+
+来源：[[E17]](#ref-E17)
+
+## 固定源码与实现支持矩阵
+
+[查看 vLLM v0.23.0 / vLLM-Ascend v0.23.0 固定源码调用链及兼容矩阵](implementation-audit.md)。原始实现与后续已合入、开放及关闭未合入的 PR 按版本区分。
+
+## 105 条 PR 来源与候选索引
+
+[来源索引与 105 条候选审计状态](source-ledger.json) · [10 条详细 PR 数据](evidence-ledger.json)。原日报分类和候选身份不因 R2 结构重写而变化。
+
+## Research Gaps：具体实验与证伪条件
+
+### G1 验证预算与实际 Target 成本的联合校准（hypothesis）
+
+**问题定位：** 已有 AV/Router-aware Cost Profile 对动态 MoE/Batch 的失配是否可低成本修正？
+
+**已有机制与证据：** Adaptive Verification 已利用候选存活概率和设备 Profile；GDN/MoE Target 的 Router/Expert 执行成本还与 Token 分布和并发相关。
+
+**最接近已有成果：** AV 与 Router-aware HybridSpec
+
+**假设或方法目标：** 动态批次中的 Router/Expert Cost 变化会使只基于固定 Profile 的预算错误排序，而额外的 Router 信息带来的实际收益大于其成本。
+
+**强基线：** AR、Fixed-K、现有 AV 与 HybridSpec 的同 Target/Drafter 强基线
+
+**控制变量：** 固定提交、权重、精度、Drafter、负载、K 可行范围、设备 Backend；仅变更预算政策
+
+**指标：** Selector Host/Device 成本、预测误差、Verify Rows、Per-step TPOT、Goodput、Expert 负载
+
+**拟验证：** 冻结 Target、Drafter 与请求序列，比较 Fixed K、AV 与 Router-aware 策略，记录位置存活率、实际 Query Rows、Router/Expert 负载和 TPOT/Goodput，核算预算选择器的全部成本。
+
+**证伪条件：** 若在留出负载下不能稳定降低总 Critical Path，或收益不足以抵消 Selector 额外工作，则假设不成立。
+
+*来源：[[D4]](#ref-D4) [[P8]](#ref-P8) [[P9]](#ref-P9) [[E2]](#ref-E2) [[E3]](#ref-E3)*
+
+### G2 Hybrid Accepted-State 跨生命周期正确性（mechanism-gap）
+
+**问题定位：** 不同 Accepted-State 机制能否在 Reject/Prefix/Preemption/P-D/Graph 组合下共同满足安全合同？
+
+**已有机制与证据：** RecoverSSM、Lookahead Hash 和 GDN Metadata 优化分别处理不同阶段；Preemption、Prefix Hit 和 P/D 恢复会重新组合这些约束。
+
+**最接近已有成果：** AR Oracle + 已有 RecoverSSM/Lookahead 实现
+
+**假设或方法目标：** 显式 Request 世代和 Accepted-State Commit 合同可以覆盖单 PR 未统一覆盖的 Reject/Bonus/Preemption/Prefix/P-D/Graph 组合。
+
+**强基线：** AR Oracle、最新合法状态实现、逐层 KV/SSM Debug Oracle
+
+**控制变量：** 固定 Token 前缀、请求到达、Block Layout 与并行度；控制同步 instrumentation 对时序的干扰
+
+**指标：** Token 一致、逐层状态差值、Event 依赖、Cache/Checkpoint Identity、错误率
+
+**拟验证：** 在同一模型前态下逐层比较 AR 与 Spec 的 KV/SSM State，覆盖 0/部分/全部接受、Bonus、请求复用、Preemption、Prefix Hit、跨实例 Restore 与 Graph Replay。
+
+**证伪条件：** 若任意组合出现错误状态读写，或安全性依赖无法保证的隐式同步，则合同不成立。
+
+*来源：[[E5]](#ref-E5) [[E7]](#ref-E7) [[E11]](#ref-E11) [[E15]](#ref-E15) [[E18]](#ref-E18)*
+
+### G3 动态 Verify Shape 与 Graph Bucket 的联合决策（hypothesis）
+
+**问题定位：** Verify Length 选择能否结合 Graph Bucket/Backend 的动态代价，而非一味增加图覆盖？
+
+**已有机制与证据：** Draft、Verify 和 Sampling 各有独立 Graph 路径；动态长度与填充可能增加捕获图数量及常驻 Workspace。
+
+**最接近已有成果：** 已合入的 Draft Graph + Fixed/Adaptive Verify 图路径
+
+**假设或方法目标：** 联合选择 K 与 Graph Bucket 能在同等内存预算下降低 Padding/Host Launch 损失。
+
+**强基线：** Eager、固定 Bucket、现有 AV+Graph 与 PR #19512 等合法设备基线
+
+**控制变量：** 固定模型、量化、Backend/Graph 编译模式、Batch/Context 分布、捕获内存预算
+
+**指标：** Graph Coverage、Fallback、Padding、HBM、Host Time、Verify Rows、TPOT
+
+**拟验证：** 相同内存预算下扫描 K、Batch 和 Bucket，分别采集 Host Dispatch、Graph Replay、Padding、峰值显存和 TPOT，明确兼容性回退与图覆盖比例。
+
+**证伪条件：** 若 Graph Bucket 增加的缓存和 Padding 成本抵消或超过减少的 Host Launch，假设被证伪。
+
+*来源：[[E1]](#ref-E1) [[E8]](#ref-E8) [[E9]](#ref-E9) [[E17]](#ref-E17)*
+
+### G4 Draft/Target KV 共存与状态恢复的容量收益（hypothesis）
+
+**问题定位：** 节省 Draft KV 后能否真实提高 Admission 和 Goodput，而不是把显存转移给 Graph/SSM？
+
+**已有机制与证据：** Draft Tail KV、Lookahead Prefix Hash 和 Cross-TP Hybrid History 具有不同的缓存身份与生命周期。
+
+**最接近已有成果：** Target Prefix Cache + Lookahead Hash + Draft Tail KV
+
+**假设或方法目标：** Draft KV 压缩或重分配能够提高 Admission 并减少 Preemption，而不会破坏 Cache Identity。
+
+**强基线：** 相同 Target/Drafter 下普通 KV、Lookahead Hash、Draft KV Tail 控制对照
+
+**控制变量：** 固定上下文/输出长度、Prefix Hit、Block Size、Memory Utilization 与 Request Arrival
+
+**指标：** HBM 分量、Cache Hit、Preemption、Admission、Restore TTFT、Goodput
+
+**拟验证：** 固定请求到达与 Prefix Hit 条件，比较 Draft/Target KV、SSM State 与 Graph Workspace 的峰值；测量 Admission、Eviction、Restore TTFT 和 Goodput。
+
+**证伪条件：** 若节省的 Draft KV 被图 Workspace/SSM State 抵消，或服务收益在重复负载下消失，则假设不成立。
+
+*来源：[[E5]](#ref-E5) [[E6]](#ref-E6) [[E14]](#ref-E14) [[E15]](#ref-E15)*
+
+### G5 局部执行优化到真实 Serving 收益的因果传递（evaluation-method）
+
+**问题定位：** 作为共同因果评估协议；只有建立可被留出负载证伪的预测模型才升格为新假设。
+
+**已有机制与证据：** 多步 Draft Graph 的局部收益并不一定体现在服务 TPS，部分变长 Verify Graph 方案仍未合入。
+
+**最接近已有成果：** AR / Fixed-K / AV / Graph On-Off 分层测量
+
+**假设或方法目标：** 存在可由 Draft/Verify/Sampler/State/Host 占比预测的 SpecDec 收益转折点。
+
+**强基线：** 同设备的 AR、Fixed-K、AV 强基线；明确未合入 PR 不做生产基线
+
+**控制变量：** 固定提交/权重/采样策略，交错 A/B 多轮；扫描 Concurrency、ISL/OSL、Prompt Hit
+
+**指标：** 每轮 Critical Path、AL、TTFT、TPOT/ITL P50/P95、Output TPS、Goodput、内存/错误率
+
+**拟验证：** 在固定提交和模型下交错执行 AR、Fixed K、AV，对相同请求轨迹测量 TTFT、TPOT/ITL 分布、TPS/Goodput、有效轮次与错误率，保留波动和失败样本。
+
+**证伪条件：** 若关键路径占比不能预测留出负载的收益方向，或重复试验差异区间包含零，则不能宣称稳定转折预测。
+
+*来源：[[E1]](#ref-E1) [[E2]](#ref-E2) [[E12]](#ref-E12) [[E17]](#ref-E17)*
+
+## 局限与有效性威胁
+
+- 内在有效性：原始 PR 作者实验可能同时改变 Backend、模型配置或接受轨迹；如 Ascend #19512 的跨日 Graph 对照与 Acceptance 大幅变化、#20254 同负载但随机种子未固定。它们只能支持对应场景的作者观察，不能单独鉴定 Graph 的净贡献。
+- 统计可信度：vLLM #63096 的服务 TPS 与基线波动相当；#19954 的高并发 Meta Stage 显著降低但 Output TPS 仅 +0.19% 左右；#21430 未披露重复次数。微基准、Host Trace 与 Serving Client Metric 必须分层，缺乏显著性的差值不包装为确定性提升。
+- 结构正确性：Hybrid State 的 Token、KV、Recurrent Checkpoint 和事件次序是不同验证对象；公开 Unit 测试和模拟 Acceptance 未覆盖全部 Prefix/Preemption/P-D/Graph 组合。未验证的能力不等于不存在或明确不支持。
+- 外部有效性：H200、MI355X、GB200、Rubin、910B、910B4、Ascend950DT/A5、不同 Model Runner 与软件版本的结果不能直接迁移。特别是当前固定 v0.23.0 Pair 与后续 MRV2 PR 之间存在版本间隙。
+- 检索与证据覆盖：105 条是社区已分类候选，10 条已针对原始 PR 描述与文件列表形成详细证据卡，其余候选尚未逐条阅读；不是穷尽系统综述、全源码 Diff 审计或独立硬件性能复现。论文与官方文档的适用版本需持续核对。
+- 持续性：当前首次 R1 的内容可继续修订，后续新增 PR、测量条件、失败记录应按 Source Ledger 更新；未知保持未知，不能把预期实验填写为已完成。
+
+## 研究记录与变更说明
+
+- 2026-11-17：初始 R1：建立 Draft→Verify→State→Serving 索引与来源证据。
+- 2026-11-18：R1 内容与来源审计：105 PR 候选账本、10 条代表证据卡、固定源码及状态合同。
+- 2026-11-18：R2 结构重写（仍在分支、未升级已发布版本）：11 节归为 8 个递进章节，1 个主命题与 4 RQ；新增瓶颈迁移与跨层因果论证，完整证据转附录。
+
+R1 原始版本已由 Git commit [83330844d152](https://github.com/intellistream/auto-research-report-website/tree/83330844d152de19bc1d880a0814a153551080f8) 固定。R2 重构的是论证与目录，本文未产生独立硬件复现或发布新站点版本。
+
+## 参考文献与原始工程来源
+
+- <a id="ref-D1"></a> **[D1]** [vLLM Speculative Decoding Guide](https://docs.vllm.ai/en/latest/features/speculative_decoding/) — 官方文档或源码（版本相关）；运行方法的实际平台支持按版本和配置核验。
+- <a id="ref-D2"></a> **[D2]** [vLLM Ascend Speculative Decoding Guide](https://docs.vllm.ai/projects/ascend/en/main/user_guide/feature_guide/speculative_decoding.html) — 官方文档或源码（版本相关）；注意 MRV2/SoC/CANN 兼容边界。
+- <a id="ref-D3"></a> **[D3]** [Speculators Algorithm Decision Guide](https://docs.vllm.ai/projects/speculators/en/latest/user_guide/algorithms/decision_guide/) — 官方文档或源码（版本相关）；Draft 架构和训练适配不是 Runtime 兼容矩阵。
+- <a id="ref-D4"></a> **[D4]** [vLLM Adaptive Verification Guide](https://docs.vllm.ai/en/latest/features/speculative_decoding/adaptive_verification/) — 官方文档或源码（版本相关）；采用存活概率和实测 Shape Cost 的预算。
+- <a id="ref-D5"></a> **[D5]** [SGLang Speculative Decoding](https://docs.sglang.io/docs/advanced_features/speculative_decoding) — 官方文档或源码（版本相关）；跨引擎机制对照，不迁移其性能数字。
+- <a id="ref-D6"></a> **[D6]** [vLLM SpecDec Runtime Source](https://github.com/vllm-project/vllm/tree/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/vllm/v1/worker/gpu/spec_decode) — vLLM v0.23.0 固定源码 0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665；Scheduler/Proposer/Acceptance/Commit 需结合各自文件核对；不是后续 PR head。
+- <a id="ref-D7"></a> **[D7]** [vLLM Ascend MRV2 SpecDec Source](https://github.com/vllm-project/vllm-ascend/tree/5cb98caaadeff42b5b62b996e34bb2aaa29d20fd/vllm_ascend/worker/v2/spec_decode) — Ascend v0.23.0 固定源码 5cb98caaadeff42b5b62b996e34bb2aaa29d20fd；后端 Speculator 目录；D2H/Postprocess 在独立 model_runner.py。
+- <a id="ref-P1"></a> **[P1]** [Blockwise Parallel Decoding](https://papers.nips.cc/paper/8212-blockwise-parallel-decoding-for-deep-autoregressive-models) — 原始论文（作者报告）；早期多 Token 提案与确认。
+- <a id="ref-P2"></a> **[P2]** [Speculative Decoding — Leviathan et al.](https://proceedings.mlr.press/v202/leviathan23a.html) — 原始论文（作者报告）；概率接受与残差分布的正确性基线。
+- <a id="ref-P3"></a> **[P3]** [Medusa](https://proceedings.mlr.press/v235/cai24b.html) — 原始论文（作者报告）；多头草稿及候选树。
+- <a id="ref-P4"></a> **[P4]** [SpecInfer](https://doi.org/10.1145/3620666.3651335) — 原始论文（作者报告）；树型 Target Verify。
+- <a id="ref-P5"></a> **[P5]** [EAGLE](https://proceedings.mlr.press/v235/li24bt.html) — 原始论文（作者报告）；基于 Target Feature 的 AR Draft。
+- <a id="ref-P6"></a> **[P6]** [EAGLE-3](https://proceedings.nips.cc/paper_files/paper/2025/hash/c7b5a35ea98b62512a869c19ea7b03cb-Abstract-Conference.html) — 原始论文（作者报告）；直接 Token Prediction，Training-Time Test。
+- <a id="ref-P7"></a> **[P7]** [DFlash](https://proceedings.mlr.press/v306/chen26bv.html) — 原始论文（作者报告）；并行块式扩散 Drafter。
+- <a id="ref-P8"></a> **[P8]** [DSpark](https://arxiv.org/abs/2607.05147) — 原始论文（作者报告）；半自回归 Draft 与置信度调度。
+- <a id="ref-P9"></a> **[P9]** [HybridSpec](https://arxiv.org/abs/2611.04055) — 原始论文（作者报告）；GDN-MoE Target-aware Budget 与状态回放；2026-11 预印本。
+- <a id="ref-P10"></a> **[P10]** [DFlare: Scaling Up Draft Capacity for Block Diffusion Speculative Decoding](https://aclanthology.org/2026.emnlp-main.1503/) — 原始论文（作者报告）；增强块式 Draft 层间条件表达。
+- <a id="ref-E1"></a> **[E1]** [ROCm AITER Multi-step Draft Graph](https://github.com/vllm-project/vllm/pull/63096) — 原始 PR（截至 2026-11-17 已合入）；作者隔离 Draft Loop 有收益，但 E2E 变化接近噪声。
+- <a id="ref-E2"></a> **[E2]** [Adaptive Budget Triton Kernel](https://github.com/vllm-project/vllm/pull/63421) — 原始 PR（截至 2026-11-17 已合入）；预算计算本身的 JIT 与 Host Launch 是执行成本。
+- <a id="ref-E3"></a> **[E3]** [XPress Acceptance Estimator](https://github.com/vllm-project/vllm/pull/65175) — 原始 PR（截至 2026-11-17 已合入）；修正置信度未传递造成的 AV 错误裁剪。
+- <a id="ref-E4"></a> **[E4]** [HiSparse Multi-token Verification Prefetch](https://github.com/vllm-project/vllm/pull/63801) — 原始 PR（截至 2026-11-17 已合入）；多 Token Verify 的 KV Staging。
+- <a id="ref-E5"></a> **[E5]** [Lookahead Block Hash for EAGLE/MTP](https://github.com/vllm-project/vllm/pull/61589) — 原始 PR（截至 2026-11-17 已合入）；Prefix KV 依赖后一 Token 的身份。
+- <a id="ref-E6"></a> **[E6]** [Skip Unused Drafts](https://github.com/vllm-project/vllm/pull/62784) — 原始 PR（截至 2026-11-17 已合入）；Prefill-only 和已结束请求不做无用 Draft。
+- <a id="ref-E7"></a> **[E7]** [RecoverSSM Deferred Commit](https://github.com/vllm-project/vllm/pull/66595) — 原始 PR（截至 2026-11-17 未合入）；KDA Accepted State Replay 与生命周期。
+- <a id="ref-E8"></a> **[E8]** [DFlash2 MRV2 Full ACLGraph](https://github.com/vllm-project/vllm-ascend/pull/19512) — 原始 PR（截至 2026-11-17 已合入）；4×910B4 作者对照；不证明 910B2 可用。
+- <a id="ref-E9"></a> **[E9]** [Rejection Sampling ACLGraph](https://github.com/vllm-project/vllm-ascend/pull/20254) — 原始 PR（截至 2026-11-17 未合入）；Host Launch 关键路径的候选修正。
+- <a id="ref-E10"></a> **[E10]** [Chunk Top-k/Top-p to Avoid Sampling OOM](https://github.com/vllm-project/vllm-ascend/pull/20006) — 原始 PR（截至 2026-11-17 未合入）；Spec Verify 高并发峰值排序内存。
+- <a id="ref-E11"></a> **[E11]** [GDN Mixed Batch Metadata Fusion](https://github.com/vllm-project/vllm-ascend/pull/19954) — 原始 PR（截至 2026-11-17 已合入）；兼容可变 Spec 与混合 Batch。
+- <a id="ref-E12"></a> **[E12]** [RecoverSSM Commit D2H Overlap](https://github.com/vllm-project/vllm-ascend/pull/21430) — 原始 PR（截至 2026-11-17 未合入）；D2H snapshot 与 commit 排序的 Host 空泡。
+- <a id="ref-E13"></a> **[E13]** [DFlash2 ACL Graph Mode Selection](https://github.com/vllm-project/vllm-ascend/pull/20279) — 原始 PR（截至 2026-11-17 未合入）；与 #19512 相关但独立审查状态。
+- <a id="ref-E14"></a> **[E14]** [DFlash/DSpark Draft Tail KV](https://github.com/vllm-project/vllm/pull/64109) — 原始 PR（截至 2026-11-17 未合入）；草稿的尾部 KV 容量约束。
+- <a id="ref-E15"></a> **[E15]** [Cross-TP Hybrid Decode History Reuse](https://github.com/vllm-project/vllm-ascend/pull/20755) — 原始 PR（截至 2026-11-17 未合入）；State/KV 迁移与 MTP Lookahead 的周边机制。
+- <a id="ref-E16"></a> **[E16]** [GLM Specialized Uniform MTP Verify](https://github.com/vllm-project/vllm/pull/63102) — 原始 PR（截至 2026-11-17 已合入）；GB300 TP4 专用多 Token Verify。
+- <a id="ref-E17"></a> **[E17]** [Varlen Graph for Fixed Speculation](https://github.com/vllm-project/vllm/pull/64915) — 原始 PR（截至 2026-11-17 关闭未合入）；作者大幅性能数字含不稳定基线，不能视为已发布特性。
+- <a id="ref-E18"></a> **[E18]** [Hybrid Cache Group Metadata Reuse](https://github.com/vllm-project/vllm-ascend/pull/20345) — 原始 PR（截至 2026-11-17 未合入）；GDN 组间元数据、图捕获分支一致性。
+- <a id="ref-M1"></a> **[M1]** [TACL Survey Papers Guidance](https://transacl.org/index.php/tacl/about/submissions) — 综述组织方法
+- <a id="ref-M2"></a> **[M2]** [PRISMA Living Systematic Reviews](https://www.prisma-statement.org/lsr) — 更新透明度的方法参考；非完成的系统综述
