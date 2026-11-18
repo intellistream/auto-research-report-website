@@ -382,7 +382,7 @@
           "title": "6.1 固定源码的职责与后续能力边界",
           "paragraphs": [
             "以 vLLM v0.23.0（0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665）和 vLLM-Ascend v0.23.0（5cb98caaadeff42b5b62b996e34bb2aaa29d20fd）为静态基线，Scheduler.schedule 使用 num_computed_tokens 与包含 Spec Token 的需求决定本轮预算；BaseSpeculator.propose 生成候选；GPUModelRunner.sample 在存在 Draft 时调用 RejectionSampler；postprocess_sampled 先更新计数和历史，再执行 model_state.postprocess_state。Ascend 扩展还把 num_computed_tokens D2H，等待设备 Event 后更新下一轮 CPU Sequence Length。",
-            "该调用链标识组件所有权，不意味着所有方法在旧 Pair 可用，更不能把 2026 年 10–11 月后续合入的 AV/DSpark/DFlash2/RecoverSSM PR 当作旧固定版本实现。版本化差异、完整源码路径和组合适用性见附录 B；未核验模型/TP/CANN 组合不能直接填为支持。"
+            "该调用链标识组件所有权，不意味着所有方法在旧 Pair 可用，更不能把 2026 年 10–11 月后续合入的 AV/DSpark/DFlash2/RecoverSSM PR 当作旧固定版本实现。版本化差异、完整源码路径和组合适用性见固定源码审计资料；未核验模型/TP/CANN 组合不能直接填为支持。"
           ],
           "sourceIds": [
             "D6",
