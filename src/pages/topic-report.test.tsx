@@ -223,8 +223,16 @@ describe("frozen ACLGraph contract", () => {
     expect(spec.report?.previousVersion).toBeNull();
     expect(spec.report?.version).toBe("e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d");
     expect(spec.report?.evidenceDetails).toHaveLength(10);
-    expect(spec.report?.sections.some(section => section.id === "worked-round")).toBe(true);
-    expect(spec.report?.sections.some(section => section.id === "fixed-source-contract")).toBe(true);
+    expect(spec.report?.centralQuestion).toContain("单位有效输出 Token");
+    expect(spec.report?.researchQuestions).toHaveLength(4);
+    expect(spec.report?.sections).toHaveLength(8);
+    expect(spec.report?.sections.map(section => section.id)).toEqual([
+      "spec-contract", "effective-cost", "candidate-methods", "target-verification",
+      "hybrid-state", "serving-runtime", "cross-layer-evidence", "research-outlook",
+    ]);
+    expect(spec.report?.bottleneckMigration).toHaveLength(4);
+    expect(spec.report?.conclusions).toHaveLength(4);
+    expect(spec.report?.sections.every(section => !!section.subsections?.length && !!section.conclusion)).toBe(true);
     expect(spec.report?.gaps.every(gap => !!gap.falsification && !!gap.strongBaseline)).toBe(true);
     const guide = render("/topics/speculative-decoding", spec);
     expect(guide).toContain("一次 Target 前向，能确认几个 token");
@@ -246,14 +254,17 @@ describe("frozen ACLGraph contract", () => {
     expect(living).toContain("Research Gaps");
     expect(living).toContain("PR 与趋势");
     expect(living).toContain("105");
-    expect(living).toContain("局部工程证据对照");
+    expect(living).toContain("附录 A：核心 PR 证据与归因边界");
     expect(living).toContain("10 条核心 PR 核验记录");
     expect(living).toContain("source-ledger.json");
     expect(living).toContain("implementation-audit.md");
     expect(living).toContain("负面结果或失败");
     expect(living).toContain("证伪条件");
-    expect(living).toContain("xpress");
-    expect(living).toContain("10 项证据详情");
+    expect(living).toContain("本章综合判断");
+    expect(living).toContain("瓶颈迁移：原始依赖");
+    expect(living).toContain("RQ4");
+    expect(living).toContain("XPress Acceptance Estimator");
+    expect(living).toContain("10 类测量与验证");
     expect(living).not.toContain("下载本版 PDF");
     const legacy = render("/topics/speculative-decoding?view=evidence", spec);
     expect(legacy).toContain("PR 与趋势");
