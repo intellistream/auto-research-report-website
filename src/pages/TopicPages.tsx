@@ -7,6 +7,7 @@ import TopicAcademicPaper, { AcademicPaperCard } from "./TopicAcademicPaper";
 import type { AcademicPaper } from "./academic-paper";
 import type { TopicSurvey } from "./topic-survey";
 import AclGraphTopic, { AclGraphTopicCard } from "./AclGraphTopic";
+import SpecDecTopic, { SpecDecTopicCard } from "./SpecDecTopic";
 import EngineeringTopicWorkbench, { EngineeringTopicCard } from "./EngineeringTopicWorkbench";
 
 export type Entry = {
@@ -76,6 +77,8 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
       {topic ? (
         topic.id === "aclgraph" ? (
           <AclGraphTopic topic={topic} />
+        ) : topic.id === "speculative-decoding" ? (
+          <SpecDecTopic topic={topic} />
         ) : topic.academicPaper && (view !== "report" || !topic.report) ? (
           <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} />
         ) : index.schemaVersion === 2 && topic.report ? (
@@ -109,6 +112,8 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
             {index.topics.map((row) =>
               row.id === "aclgraph" ? (
                 <AclGraphTopicCard key={row.id} topic={row} />
+              ) : row.id === "speculative-decoding" ? (
+                <SpecDecTopicCard key={row.id} topic={row} />
               ) : row.academicPaper ? (
                 <AcademicPaperCard key={row.id} topic={row} paper={row.academicPaper} />
               ) : row.report && index.schemaVersion === 2 ? (

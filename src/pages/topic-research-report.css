@@ -1097,3 +1097,21 @@
     box-shadow: none;
   }
 }
+
+/* SpecDec's academic reading layer: prose and evidence grouped without cards. */
+.specdec-academic-prose,
+.specdec-academic-introduction p {
+  line-height: 1.92;
+  margin: 0.9rem 0;
+}
+.specdec-academic-introduction {
+  margin: 1rem 0 1.4rem;
+}
+.specdec-evidence-group {
+  margin-top: 1.4rem;
+}
+.specdec-evidence-group-title {
+  margin: 1.2rem 0 0.5rem;
+  font-size: 0.98rem;
+  line-height: 1.8;
+}

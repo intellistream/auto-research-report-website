@@ -79,18 +79,31 @@ def validate_survey(survey, topic, archive=None):
     require(isinstance(survey, dict), "survey: object required")
     require(type(survey.get("schemaVersion")) is int and survey["schemaVersion"] == 1,
             "survey.schemaVersion: expected 1")
-    report, paper = topic.get("report", {}), topic.get("academicPaper", {})
-    for key, target in (("reportVersion", report), ("paperVersion", paper)):
-        value = survey.get(key)
-        require(isinstance(value, str) and VERSION.fullmatch(value), f"{key}: SHA-256 required")
-        require(value == target.get("version"), f"{key}: synthesis belongs to a different version")
+    report, paper = topic.get("report", {}), topic.get("academicPaper") or {}
+    value = survey.get("reportVersion")
+    require(isinstance(value, str) and VERSION.fullmatch(value), "reportVersion: SHA-256 required")
+    require(value == report.get("version"), "reportVersion: synthesis belongs to a different version")
+    if paper:
+        value = survey.get("paperVersion")
+        require(isinstance(value, str) and VERSION.fullmatch(value), "paperVersion: SHA-256 required")
+        require(value == paper.get("version"), "paperVersion: synthesis belongs to a different version")
+    else:
+        require("paperVersion" not in survey, "paperVersion: no frozen academic paper exists")
     iso_day(survey.get("reviewedAt"), "reviewedAt")
     text(survey.get("thesis"), "thesis")
+    if "candidateBaseline" in survey:
+        baseline = survey["candidateBaseline"]
+        require(isinstance(baseline, list)
+                and all(isinstance(value, str) and WORK_ID.fullmatch(value) for value in baseline)
+                and len(baseline) == len(set(baseline)),
+                "candidateBaseline: duplicate or malformed work ID")
+        available = {row["workId"] for row in topic.get("entries", [])}
+        require(set(baseline) <= available, "candidateBaseline: original candidate missing")
     references = {row["id"]: row for row in report.get("references", [])}
     evidence = {row["id"]: row for row in report.get("evidenceDetails", [])}
     gaps = {row["id"]: row for row in report.get("gaps", [])}
     anchors = None
-    if archive is not None:
+    if archive is not None and paper:
         parser = Anchors()
         parser.feed(asset_path(archive, paper["assets"]["html"]["path"]).read_text(encoding="utf-8"))
         anchors = parser.ids
@@ -114,12 +127,18 @@ def validate_survey(survey, topic, archive=None):
                 "route.id: use lowercase letters, digits and hyphens")
         require(row["id"] not in route_ids, "duplicate route ID")
         route_ids.add(row["id"])
-        for field in ("title", "problem", "assessment", "limitation", "paperSection", "paperAnchor"):
+        for field in ("title", "problem", "assessment", "limitation"):
             text(row.get(field), f"route.{field}")
-        anchor = row["paperAnchor"]
-        require(not any(ord(c) < 32 or c in '<>"\'`#' for c in anchor), "route.paperAnchor: unsafe anchor")
-        if anchors is not None:
-            require(anchor in anchors, "route.paperAnchor: absent from the bound paper HTML")
+        if paper:
+            for field in ("paperSection", "paperAnchor"):
+                text(row.get(field), f"route.{field}")
+            anchor = row["paperAnchor"]
+            require(not any(ord(c) < 32 or c in '<>"\'\x60#' for c in anchor), "route.paperAnchor: unsafe anchor")
+            if anchors is not None:
+                require(anchor in anchors, "route.paperAnchor: absent from the bound paper HTML")
+        else:
+            require("paperSection" not in row and "paperAnchor" not in row,
+                    "unbound paper anchor cannot be published")
         mechanism = row.get("mechanism")
         require(isinstance(mechanism, list) and bool(mechanism), "route.mechanism: text array required")
         for item in mechanism:
@@ -130,8 +149,12 @@ def validate_survey(survey, topic, archive=None):
     require(isinstance(update, dict), "update: object required")
     text(update.get("summary"), "update.summary")
     previous = update.get("previousRevision")
-    require(type(previous) is int and 0 <= previous < report.get("revision", 0),
-            "update.previousRevision: must precede the current report revision")
+    if previous is None:
+        require(report.get("revision") == 1 and not report.get("previousVersion"),
+                "update.previousRevision: required after first revision")
+    else:
+        require(type(previous) is int and 0 <= previous < report.get("revision", 0),
+                "update.previousRevision: must precede the current report revision")
     if archive is not None and report.get("previousVersion"):
         old = json.loads(asset_path(archive, f"topic-reports/{topic['id']}/{report['previousVersion']}/report.json").read_text(encoding="utf-8"))
         require(previous == old["revision"], "update.previousRevision: not the predecessor revision")
@@ -181,11 +204,11 @@ def validate_survey(survey, topic, archive=None):
 def historical_binding(survey, topic, archive):
     """Validate an inactive guide against its original frozen evidence."""
     bound = deepcopy(topic)
-    report_version, paper_version = survey["reportVersion"], survey["paperVersion"]
+    report_version, paper_version = survey["reportVersion"], survey.get("paperVersion")
     if report_version != topic.get("report", {}).get("version"):
         path = f"topic-reports/{topic['id']}/{report_version}/report.json"
         bound["report"] = json.loads(asset_path(archive, path).read_text(encoding="utf-8"))
-    if paper_version != topic.get("academicPaper", {}).get("version"):
+    if paper_version is not None and paper_version != (topic.get("academicPaper") or {}).get("version"):
         folder = f"topic-papers/{topic['id']}/{paper_version}"
         manifest = json.loads(asset_path(archive, f"{folder}/manifest.json").read_text(encoding="utf-8"))
         require(manifest.get("topicId") == topic["id"] and manifest.get("version") == paper_version,
@@ -209,13 +232,15 @@ def import_survey(source, index_path, topic_id="aclgraph", *, check=False):
     if check and "survey" not in topic and isinstance(survey, dict):
         # A new evidence version can ship using the report-derived reader while
         # its concise guide is being reviewed. Never publish the stale guide.
-        hashes_valid = all(isinstance(survey.get(key), str) and VERSION.fullmatch(survey[key])
-                           for key in ("reportVersion", "paperVersion"))
+        hashes_valid = (isinstance(survey.get("reportVersion"), str)
+                        and VERSION.fullmatch(survey["reportVersion"])
+                        and (survey.get("paperVersion") is None or
+                             isinstance(survey["paperVersion"], str) and VERSION.fullmatch(survey["paperVersion"])))
         current_report = topic.get("report", {}).get("version")
         require(isinstance(current_report, str) and VERSION.fullmatch(current_report),
                 "current report: SHA-256 required")
         stale = hashes_valid and (survey["reportVersion"] != current_report
-                                 or survey["paperVersion"] != topic.get("academicPaper", {}).get("version"))
+                                 or survey.get("paperVersion") != (topic.get("academicPaper") or {}).get("version"))
         if stale:
             historical_binding(survey, topic, index_path.parent)
             return PENDING_REVIEW

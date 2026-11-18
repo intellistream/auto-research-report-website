@@ -205,8 +205,8 @@ describe("frozen ACLGraph contract", () => {
       expect(html).toContain("审查限制与未复现范围");
     }
   });
-  it("preserves published PR lists, filters and daily links for the two other topics", () => {
-    for (const id of ["kv-cache", "speculative-decoding"]) {
+  it("preserves PR filters and daily links for the KV engineering workbench", () => {
+    for (const id of ["kv-cache"]) {
       const topic = actualIndex.topics.find((item) => item.id === id) as unknown as Topic;
       expect(topic.report).toBeUndefined();
       const html = render(`/topics/${id}`, topic);
@@ -223,6 +223,11 @@ describe("frozen ACLGraph contract", () => {
       expect(filtered).toContain(`version=${selected.version}`);
       expect(filtered).toContain(renderToStaticMarkup(<>{selected.title}</>));
     }
+    const spec = actualIndex.topics.find((item) => item.id === "speculative-decoding") as unknown as Topic;
+    expect(spec.report?.sections).toHaveLength(8);
+    const specHtml = render("/topics/speculative-decoding", spec);
+    expect(specHtml).toContain("一次 Target 前向");
+    expect(specHtml).toContain("view=report");
     const directory = render("/topics", { ...topic, report: undefined });
     expect(directory).toContain("ACL Graph");
   });
