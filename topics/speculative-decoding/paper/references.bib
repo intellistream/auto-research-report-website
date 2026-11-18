@@ -27,38 +27,6 @@
   note = {arXiv v1, first submitted 2023-02-02, reviewed 2026-11-18}
 }
 
-@misc{codesign,
-  author = {Zhao, Kaikai and Liu, Zhaoxiang and Jiang, Che and Chen, Ping and Wang, Xin and Tian, Kai and Wang, Ning and Wang, Yuru and Shen, Yi and Yan, Jiangze and Hua, Minjie and Zhang, Wenjing and Wang, Xiang and Wang, Kai and Zhang, Kaiyan and Sun, Youbang and Ding, Ning and Lian, Shiguo and Zhou, Bowen},
-  title = {From Draft-Then-Verify to Systems Co-Design: A Survey of Speculative Decoding for Autoregressive Large Language Models},
-  year = {2026},
-  doi = {10.20944/preprints202608.0746.v1},
-  url = {https://www.preprints.org/manuscript/202608.0746/v1},
-  note = {Preprints.org v1, submitted 2026-08-10, posted 2026-08-11, full text reviewed 2026-11-18}
-}
-
-@article{codesign-ieee,
-  author = {Zhao, Kaikai and Liu, Zhaoxiang and Jiang, Che and Chen, Ping and Wang, Xin and Tian, Kai and Wang, Ning and Wang, Yuru and Shen, Yi and Yan, Jiangze and Hua, Minjie and Zhang, Wenjing and Wang, Xiang and Wang, Kai and Zhang, Kaiyan and Sun, Youbang and Ding, Ning and Lian, Shiguo and Zhou, Bowen},
-  title = {From Draft-Then-Verify to Systems Co-Design: A Survey of Speculative Decoding for Autoregressive Large Language Models},
-  journal = {IEEE Access},
-  volume = {14},
-  pages = {153987--154013},
-  year = {2026},
-  doi = {10.1109/ACCESS.2026.3739598},
-  url = {https://ieeexplore.ieee.org/abstract/document/11719495},
-  note = {Published 2026-10-06; bibliographic record and abstract reviewed 2026-11-18, same study as preprint}
-}
-
-@article{optimal,
-  author = {Ji, Yuyang and Xu, Wenjian and Qian, Xiaohong and Zhang, Lei and Wan, Jian},
-  title = {Towards Optimal Speculative Decoding: A Comprehensive Survey on Optimizations and Future Directions},
-  journal = {ACM Computing Surveys},
-  volume = {59},
-  number = {1},
-  year = {2026},
-  doi = {10.1145/3846171},
-  note = {Bibliographic record and public abstract reviewed 2026-11-18}
-}
-
 
 @inproceedings{specinfer,
   author = {Miao, Xupeng and Oliaro, Gabriele and Zhang, Zhihao and Cheng, Xinhao and Wang, Zeyu and Zhang, Zhengxin and Wong, Rae Ying Yee and Zhu, Alan and Yang, Lijie and Shi, Xiaoxiang and Shi, Chunan and Chen, Zhuoming and Arfeen, Daiyaan and Abhyankar, Reyna and Jia, Zhihao},
@@ -446,4 +414,211 @@
   year = {2026},
   url = {https://github.com/intellistream/auto-research-report-website/blob/b830bc4d74b3c2928e9f0c900c04c4b476555ebc/topics/speculative-decoding/survey.json},
   note = {Discovery index only; revision b830bc4 includes the source and evidence ledgers and the implementation audit; reviewed 2026-11-18}
+}
+
+@inproceedings{xia,
+  author = {Xia, Heming and Ge, Tao and Wang, Peiyi and Chen, Si-Qing and Wei, Furu and Sui, Zhifang},
+  title = {{Speculative Decoding: Exploiting Speculative Execution for Accelerating Seq2seq Generation}},
+  year = {2023},
+  url = {https://aclanthology.org/2023.findings-emnlp.257/},
+  note = {Published §§3–4; reviewed 2026-11-18},
+  booktitle = {Findings of EMNLP},
+  doi = {10.18653/v1/2023.findings-emnlp.257}
+}
+
+@inproceedings{layerskip,
+  author = {Elhoushi, Mostafa and Shrivastava, Akshat and Liskovich, Diana and others},
+  title = {{LayerSkip: Enabling Early Exit Inference and Self-Speculative Decoding}},
+  year = {2024},
+  url = {https://aclanthology.org/2024.acl-long.681/},
+  note = {Published §§4–6; reviewed 2026-11-18},
+  booktitle = {ACL},
+  doi = {10.18653/v1/2024.acl-long.681}
+}
+
+@misc{kangaroo,
+  author = {Liu, Fangcheng and Tang, Yehui and Liu, Zhenhua and Ni, Yunsheng and Han, Kai and Wang, Yunhe},
+  title = {{Kangaroo: Lossless Self-Speculative Decoding via Double Early Exiting}},
+  year = {2024},
+  url = {https://arxiv.org/abs/2404.18911v1},
+  note = {arXiv v1, §§3–4; reviewed 2026-11-18}
+}
+
+@misc{triforce,
+  author = {Sun, Hanshi and Chen, Zhuoming and Yang, Xinyu and Tian, Yuandong and Chen, Beidi},
+  title = {{TriForce: Lossless Acceleration of Long Sequence Generation with Hierarchical Speculative Decoding}},
+  year = {2024},
+  url = {https://arxiv.org/abs/2404.11912v1},
+  note = {Author manuscript v1, §§3–5; reviewed 2026-11-18}
+}
+
+@inproceedings{lookahead,
+  author = {Fu, Yichao and Bailis, Peter and Stoica, Ion and Zhang, Hao},
+  title = {{Break the Sequential Dependency of LLM Inference Using Lookahead Decoding}},
+  year = {2024},
+  url = {https://arxiv.org/abs/2402.02057v1},
+  note = {Author manuscript v1, generation and verification branches; reviewed 2026-11-18},
+  booktitle = {ICML}
+}
+
+@inproceedings{distillspec,
+  author = {Zhou, Yongchao and Lyu, Kaifeng and Rawat, Ankit Singh and Menon, Aditya Krishna and Rostamizadeh, Afshin and Kumar, Sanjiv and Kagy, Jean-François and Agarwal, Rishabh},
+  title = {{DistillSpec: Improving Speculative Decoding via Knowledge Distillation}},
+  year = {2024},
+  url = {https://arxiv.org/abs/2310.08461v1},
+  note = {Author manuscript v1, §§4–5; reviewed 2026-11-18},
+  booktitle = {ICLR}
+}
+
+@misc{hydra,
+  author = {Ankner, Zachary and Parthasarathy, Rishab and Nrusimha, Aniruddha and Rinard, Christopher and Ragan-Kelley, Jonathan and Brandon, William},
+  title = {{Hydra: Sequentially-Dependent Draft Heads for Medusa Decoding}},
+  year = {2024},
+  url = {https://arxiv.org/abs/2402.05109v1},
+  note = {arXiv v1, §§2–3 and §5; reviewed 2026-11-18}
+}
+
+@misc{redrafter,
+  author = {Zhang, Aonan and Wang, Chong and Wang, Yi and Zhang, Xuanyu and Cheng, Yunfei},
+  title = {{Recurrent Drafter for Fast Speculative Decoding in Large Language Models}},
+  year = {2024},
+  url = {https://arxiv.org/abs/2403.09919v1},
+  note = {arXiv v1, §2 and §3.3; reviewed 2026-11-18}
+}
+
+@misc{sequoia,
+  author = {Chen, Zhuoming and May, Avner and Svirschevski, Ruslan and Huang, Yuhsun and Ryabinin, Max and Jia, Zhihao and Chen, Beidi},
+  title = {{Sequoia: Scalable, Robust, and Hardware-aware Speculative Decoding}},
+  year = {2024},
+  url = {https://arxiv.org/abs/2402.12374v1},
+  note = {Author manuscript v1, §3, dynamic programming, verification and hardware model; reviewed 2026-11-18}
+}
+
+@misc{specexec,
+  author = {Svirschevski, Ruslan and May, Avner and Chen, Zhuoming and Chen, Beidi and Jia, Zhihao and Ryabinin, Max},
+  title = {{SpecExec: Massively Parallel Speculative Decoding for Interactive LLM Inference on Consumer Devices}},
+  year = {2024},
+  url = {https://arxiv.org/abs/2406.02532v1},
+  note = {arXiv v1, §§2–5; reviewed 2026-11-18}
+}
+
+@misc{spectr,
+  author = {Sun, Ziteng and Suresh, Ananda Theertha and Ro, Jae Hun and Beirami, Ahmad and Jain, Himanshu and Yu, Felix},
+  title = {{SpecTr: Fast Speculative Decoding via Optimal Transport}},
+  year = {2023},
+  url = {https://arxiv.org/abs/2310.15141v1},
+  note = {arXiv v1, algorithms and multi-candidate coupling; reviewed 2026-11-18}
+}
+
+@inproceedings{disco,
+  author = {Mamou, Jonathan and Pereg, Oren and Korat, Daniel and Berchansky, Moshe and Timor, Nadav and Wasserblat, Moshe and Schwartz, Roy},
+  title = {{Dynamic Speculation Lookahead Accelerates Speculative Decoding of Large Language Models}},
+  year = {2024},
+  url = {https://proceedings.mlr.press/v262/mamou24a.html},
+  note = {PMLR 262, pp. 456–467; reviewed 2026-11-18},
+  booktitle = {NeurIPS ENLSP Workshop}
+}
+
+@misc{dcut,
+  author = {Liu, Tianyu and Shen, Yuhao and Cen, Rui and Shi, Junhan and Zhang, Jiebin and Qin, Guangshuo and Liu, Hong and Liu, Song and Yu, Guanghua and Zhu, Jianchen},
+  title = {{D-cut: Adaptive Verification Depth Pruning for Batched Speculative Decoding}},
+  year = {2026},
+  url = {https://arxiv.org/abs/2607.14647v1},
+  note = {arXiv v1, §3 and experiments; reviewed 2026-11-18}
+}
+
+@inproceedings{evict,
+  author = {Pan, Lehan and Tao, Ziyang and Wang, Xiao and Zhao, Zhimeng and Wang, Meng and Zhang, Yanyong},
+  title = {{Making Every Verified Token Count: Adaptive Verification for MoE Speculative Decoding}},
+  year = {2026},
+  url = {https://aclanthology.org/2026.findings-emnlp.380/},
+  note = {Published version, §§3–4; reviewed 2026-11-18},
+  booktitle = {Findings of EMNLP},
+  doi = {10.18653/2026.findings-emnlp.380}
+}
+
+@misc{replayssm,
+  author = {Liou, Ze-Wei and Nover, Harris and Naik, Amey and Skliar, Andrii and Shovkun, Igor and Shahaf, Ido and Dao, Tri},
+  title = {{ReplaySSM: Cache SSM Inputs, Not State}},
+  year = {2026},
+  url = {https://arxiv.org/abs/2610.13778v1},
+  note = {arXiv v1, mechanism and experimental versions; reviewed 2026-11-18}
+}
+
+@misc{replayssm-blog,
+  author = {Liou, Ze-Wei and Dao, Tri},
+  title = {{ReplaySSM: Cache SSM Inputs, Not State}},
+  year = {2026},
+  url = {https://dao-lab.ai/blog/2026/replayssm/},
+  note = {Original technical note, June 15, cached speculative decode and flush; reviewed 2026-11-18}
+}
+
+@inproceedings{pagedattention,
+  author = {Kwon, Woosuk and Li, Zhuohan and Zhuang, Siyuan and Sheng, Ying and Zheng, Lianmin and Yu, Cody Hao and Gonzalez, Joseph E. and Zhang, Hao and Stoica, Ion},
+  title = {{Efficient Memory Management for Large Language Model Serving with PagedAttention}},
+  year = {2023},
+  url = {https://arxiv.org/abs/2309.06180v1},
+  note = {Author manuscript v1, logical and physical block maps; reviewed 2026-11-18},
+  booktitle = {SOSP}
+}
+
+@misc{flashinfer,
+  author = {Ye, Zihao and Chen, Lequn and Lai, Ruihang and Lin, Wuwei and Zhang, Yineng and Wang, Stephanie and Chen, Tianqi and Kasikci, Baris and Grover, Vinod and Krishnamurthy, Arvind and Ceze, Luis},
+  title = {{FlashInfer: Efficient and Customizable Attention Engine for LLM Inference Serving}},
+  year = {2025},
+  url = {https://arxiv.org/abs/2501.01005v1},
+  note = {Author manuscript v1, attention and dynamic serving shapes; reviewed 2026-11-18}
+}
+
+@misc{smartspec,
+  author = {Liu, Xiaoxuan and Daniel, Cade and Hu, Langxiang and Kwon, Woosuk and Li, Zhuohan and Mo, Xiangxi and Cheung, Alvin and Deng, Zhijie and Stoica, Ion and Zhang, Hao},
+  title = {{Optimizing Speculative Decoding for Serving Large Language Models Using Goodput}},
+  year = {2024},
+  url = {https://arxiv.org/abs/2406.14066v1},
+  note = {SmartSpec-era arXiv v1, §§3–5; later revisions use a different system name; reviewed 2026-11-18}
+}
+
+@inproceedings{adaserve,
+  author = {Li, Zikun and Chen, Zhuofu and Delacourt, Remi and others},
+  title = {{AdaServe: Accelerating Multi-SLO LLM Serving with SLO-Customized Speculative Decoding}},
+  year = {2026},
+  url = {https://www.cs.cmu.edu/~zhihaoj2/papers/AdaServe_EuroSys26.pdf},
+  note = {Published author copy, problem definition, algorithms and serving evaluation; reviewed 2026-11-18},
+  booktitle = {EuroSys},
+  doi = {10.1145/3767295.3769315}
+}
+
+@inproceedings{distserve,
+  author = {Zhong, Yinmin and Liu, Shengyu and Chen, Junda and Hu, Jianbo and Zhu, Yibo and Liu, Xuanzhe and Jin, Xin and Zhang, Hao},
+  title = {{DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving}},
+  year = {2024},
+  url = {https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin},
+  note = {Published PDF, SLO and serving resource definitions; reviewed 2026-11-18},
+  booktitle = {OSDI}
+}
+
+@misc{energy,
+  author = {Ma, Bole and Afzal, Ayesha and Eitzinger, Jan and Koestler, Harald and Wellein, Gerhard},
+  title = {{Only Accepted Tokens Count: An Energy Accounting of Speculative Decoding Under Latency Targets}},
+  year = {2026},
+  url = {https://arxiv.org/abs/2610.40287v1},
+  note = {arXiv v1, measurement and batching sensitivity; reviewed 2026-11-18}
+}
+
+@inproceedings{pipespec,
+  author = {McDanel, Bradley and Zhang, Sai Qian and Hu, Yunhai and Liu, Zining},
+  title = {{PipeSpec: Breaking Stage Dependencies in Hierarchical LLM Decoding}},
+  year = {2025},
+  url = {https://aclanthology.org/2025.findings-acl.669/},
+  note = {Published §§3–4; asynchronous verification and rollback; reviewed 2026-11-18},
+  booktitle = {Findings of ACL},
+  doi = {10.18653/v1/2025.findings-acl.669}
+}
+
+@misc{ssd,
+  author = {Kumar, Tanishq and Dao, Tri and May, Avner},
+  title = {{Speculative Speculative Decoding}},
+  year = {2026},
+  url = {https://arxiv.org/abs/2603.03251v1},
+  note = {arXiv v1, speculation cache and Saguaro implementation; reviewed 2026-11-18}
 }
