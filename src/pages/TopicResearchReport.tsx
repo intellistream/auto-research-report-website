@@ -42,7 +42,7 @@ function EvidenceDetails({ report }: { report: ResearchReport }) {
       <table><caption>{evidence.comparison}：条件、结果与证据边界</caption><tbody>{([
         ["机制", evidence.mechanism], ["证据层级", evidence.level], ["环境", evidence.environment],
         ["测试版本", evidence.revision], ["工作量", evidence.workload], ["结果", evidence.result],
-        ["负面结果或失败", evidence.negativeEvidence ?? "原来源未单列"],
+        ...(evidence.negativeEvidence ? [["负面结果或失败", evidence.negativeEvidence]] as const : []),
         ["限制", evidence.limitation], ["核验范围", evidence.verification],
         ...(evidence.sourceHead ? [["PR Head", evidence.sourceHead]] as const : []),
         ...(evidence.observedAt ? [["状态观察日", evidence.observedAt]] as const : []),
