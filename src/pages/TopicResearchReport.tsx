@@ -271,21 +271,27 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
     const frame = requestAnimationFrame(() => revealTopicPart(document, part, window.matchMedia("(prefers-reduced-motion: reduce)").matches));
     return () => cancelAnimationFrame(frame);
   }, [part, mode]);
+  const isSpec = topic.id === "speculative-decoding";
+  const sectionTitle = (section: ResearchReport["sections"][number]) =>
+    isSpec ? displaySpecDecChapterTitle(section.id, section.title) : section.title;
   const papers = report.references.filter((reference) => reference.kind === "paper").length;
   const prs = report.references.filter((reference) => reference.kind === "pr").length;
   const toc = [
-    { id: "survey-abstract", title: "摘要与研究问题" }, { id: "survey-methods", title: "范围与研究方法" }, { id: "survey-taxonomy", title: "技术路线与权衡" },
-    ...(topic.id !== "speculative-decoding" && report.evidenceDetails?.length ? [{ id: "survey-evidence", title: "局部工程证据对照" }] : []),
-    ...report.sections.map((section, index) => ({ id: `survey-section-${index}`, title: section.title })),
-    { id: "survey-gaps", title: "待验证问题" },
-    ...(topic.id === "speculative-decoding" && report.evidenceDetails?.length ? [{ id: "survey-evidence", title: "完整 PR 证据记录" }] : []), { id: "survey-limitations", title: "局限与证据边界" },
+    { id: "survey-abstract", title: "摘要与研究问题" },
+    { id: "survey-methods", title: "范围与研究方法" },
+    { id: "survey-taxonomy", title: "技术路线与权衡" },
+    ...(report.evidenceDetails?.length ? [{ id: "survey-evidence", title: "局部工程证据对照" }] : []),
+    ...report.sections.map((section, index) => ({ id: `survey-section-${index}`, title: sectionTitle(section) })),
+    { id: "survey-gaps", title: "未解问题与未来方向" },
+    { id: "survey-limitations", title: "局限与证据边界" },
     ...(report.reviewSummary ? [{ id: "survey-review", title: "独立审查摘要" }] : []),
-    { id: "survey-references", title: "参考文献" }, { id: "survey-evolution", title: "版本与持续研究" },
+    { id: "survey-references", title: "参考文献" },
+    { id: "survey-evolution", title: "版本与持续研究" },
     embedded ? { id: "survey-pr-trends", title: "PR 与趋势" } : { id: "survey-appendix", title: "取材证据附录" },
   ];
   const uses = (id: string) => [
     ...report.taxonomy.flatMap((row, index) => row.sourceIds.includes(id) ? [{ id: `survey-route-${index}`, title: `路线 ${index + 1}` }] : []),
-    ...report.sections.flatMap((section, index) => section.sourceIds.includes(id) ? [{ id: `survey-section-${index}`, title: section.title }] : []),
+    ...report.sections.flatMap((section, index) => section.sourceIds.includes(id) ? [{ id: `survey-section-${index}`, title: sectionTitle(section) }] : []),
     ...report.gaps.flatMap((gap, index) => gap.sourceIds.includes(id) ? [{ id: `survey-gap-${gap.id}`, title: `G${index + 1} ${gap.title}` }] : []),
     ...(report.evidenceDetails ?? []).flatMap((evidence) => evidence.sourceIds.includes(id) ? [{ id: `survey-evidence-${evidence.id}`, title: evidence.comparison }] : []),
   ];
@@ -314,11 +320,40 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
   const body = (
     <div className="survey-layout"><nav className="survey-toc" aria-label="专题报告目录"><span>本报告</span>{toc.map((part, index) => <ReportJump key={part.id} id={part.id} aria-current={query.get("part") === part.id ? "location" : undefined}><small>{String(index + 1).padStart(2, "0")}</small>{part.title}</ReportJump>)}<div className="survey-toc-note">可按研究问题阅读，引用编号可定位到对应来源。</div></nav><article id="survey-paper" tabIndex={-1} className="survey-paper" aria-label="动态报告正文">
       {embedded && <h2>{report.title}</h2>}
-      <section id="survey-abstract" tabIndex={-1} className="survey-abstract"><div className="survey-kicker">OVERVIEW</div><h2>摘要</h2><p>{report.abstract}</p><div className="survey-questions"><h3>这份报告回答什么</h3>{report.centralQuestion && <p className="survey-central-question"><strong>中心问题：</strong>{report.centralQuestion}</p>}<ol>{report.researchQuestions.map((question, index) => <li key={question}><span>RQ{index + 1}</span>{question}</li>)}</ol></div></section>
-      <details id="survey-methods" className="survey-details" tabIndex={-1}><summary><span>研究范围与方法</span><small>查看检索、纳排标准与证据分级</small></summary><Methodology report={report} /><div className="survey-evidence-guide"><h3>如何使用这些来源</h3><ul><li>官方接口、固定版本文档与固定提交源码：解释对应版本的机制与约束。</li><li>原始系统论文：提供分析背景，其 GPU 结果不作为 Ascend 实测。</li><li>工程 PR 是一手公开记录；日报是二级整理。原文核查范围、历史日期与测试条件见每条来源说明。</li><li>综述方法来源：说明组织与更新原则，不提供性能证明。</li></ul></div><p className="survey-evidence-note">各项工程证据的取材层级以来源标注为准，区分一手原文、固定版本资料与二手日报分析。不同设备、负载和测试口径下的结果不能直接合并为统一加速比。</p></details>
-      <section id="survey-taxonomy" tabIndex={-1}><div className="survey-kicker">TECHNICAL LANDSCAPE</div><h2>技术路线与关键权衡</h2><p className="survey-muted">围绕核心问题比较解决路径、适用条件和代价。</p><div className="survey-table-wrap" role="region" aria-label="技术路线比较，可横向滚动" tabIndex={0}><table className="survey-taxonomy"><caption>技术路线按问题、路径与代价比较</caption><thead><tr><th>核心技术问题</th><th>解决路径</th><th>边界与代价</th></tr></thead><tbody>{report.taxonomy.map((row, index) => <tr key={index} id={`survey-route-${index}`} tabIndex={-1}><th scope="row"><span className="survey-route-number">{String(index + 1).padStart(2, "0")}</span>{row.problem}</th><td>{row.approach}<Citations ids={row.sourceIds} references={report.references} /></td><td>{row.tradeoff}</td></tr>)}</tbody></table></div>
+      <section id="survey-abstract" tabIndex={-1} className="survey-abstract">
+        <div className="survey-kicker">OVERVIEW</div><h2>摘要</h2><p>{report.abstract}</p>
+        <div className="survey-questions">
+          <h3>{isSpec ? "研究问题" : "这份报告回答什么"}</h3>
+          {isSpec && <p className="specdec-academic-prose">推测解码的系统优化以保持目标模型输出与内部状态合法性为前提。本文先界定正确性，再考察候选生成和验证预算如何改变真实计算成本，最后讨论这些局部变化能否转化为可归因的服务性能收益。以下四个问题依此递进。</p>}
+          {report.centralQuestion && <p className="survey-central-question"><strong>中心问题：</strong>{report.centralQuestion}</p>}
+          <ol>{report.researchQuestions.map((question, index) => <li key={question}>
+            <span>RQ{index + 1}</span>
+            {isSpec ? question.replace(/^RQ\d+（([^）]+)）：\s*/, "$1：") : question}
+          </li>)}</ol>
+        </div>
+      </section>
+      <details id="survey-methods" className="survey-details" tabIndex={-1}>
+        <summary><span>范围与研究方法</span><small>检索范围、纳排标准与证据分级</small></summary>
+        {isSpec && <div className="specdec-academic-introduction">
+          {specDecMethodContext.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
+          <p>当前网站候选索引共 {topic.entries.length} 条，其中冻结研究版基于 {topic.survey?.candidateBaseline?.length ?? 105} 条历史候选；其后新增条目仅作为待核线索。原版深入审查的 {report.evidenceDetails?.length ?? 0} 项代表性记录并未自动扩展为同等规模的独立复现。</p>
+        </div>}
+        <Methodology report={report} />
+        <div className="survey-evidence-guide"><h3>证据层级与适用边界</h3><ul>
+          <li>官方接口、固定版本文档与源码用于界定相应版本的机制、接口和支持条件。</li>
+          <li>原始论文解释理论、算法和作者提出的机制；其设备性能数字不能移作其他平台的测量。</li>
+          <li>一手工程 PR 记录有条件的实现与作者测试，日报属于二级整理；两者都不等同于本专题独立运行的实验。</li>
+          <li>研究假设须与既有结果、尚缺证据和可证伪实验区分，未经验证的适配不能描述为已支持。</li>
+        </ul></div>
+        <p className="survey-evidence-note">性能与正确性应分别评价：任务数、局部内核耗时、客户端吞吐、逐 token 输出和混合状态一致性分别对应不同证据；跨版本、后端及接受轨迹的差值不能简单相减归因。</p>
+      </details>
+      <section id="survey-taxonomy" tabIndex={-1}><div className="survey-kicker">TECHNICAL LANDSCAPE</div>
+        <h2>{isSpec ? "技术路线与权衡" : "技术路线与关键权衡"}</h2>
+        {isSpec
+          ? <div className="specdec-academic-introduction">{specDecTaxonomyContext.map(paragraph => <p key={paragraph}>{paragraph}</p>)}</div>
+          : <p className="survey-muted">围绕核心问题比较解决路径、适用条件和代价。</p>}<div className="survey-table-wrap" role="region" aria-label="技术路线比较，可横向滚动" tabIndex={0}><table className="survey-taxonomy"><caption>技术路线按问题、路径与代价比较</caption><thead><tr><th>核心技术问题</th><th>解决路径</th><th>边界与代价</th></tr></thead><tbody>{report.taxonomy.map((row, index) => <tr key={index} id={`survey-route-${index}`} tabIndex={-1}><th scope="row"><span className="survey-route-number">{String(index + 1).padStart(2, "0")}</span>{isSpec ? specDecTaxonomyTitles[index] ?? row.problem : row.problem}</th><td>{row.approach}<Citations ids={row.sourceIds} references={report.references} /></td><td>{row.tradeoff}</td></tr>)}</tbody></table></div>
         {!!report.bottleneckMigration?.length && <>
-          <h3>历史演进：解决一个依赖，又出现哪些新成本？</h3>
+          <h3>{isSpec ? "技术演进与瓶颈迁移" : "历史演进：解决一个依赖，又出现哪些新成本？"}</h3>
           <p className="survey-muted">这里展示的是瓶颈转移，而不是算法优劣排行榜。每一行均可回溯论文或原始 PR。</p>
           <div className="survey-table-wrap" role="region" aria-label="瓶颈迁移比较" tabIndex={0}>
             <table className="survey-taxonomy"><thead><tr><th>历史瓶颈</th><th>方法与机制</th><th>新瓶颈或代价</th></tr></thead><tbody>
@@ -329,15 +364,15 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
           </div>
         </>}
       </section>
-      {topic.id !== "speculative-decoding" && <EvidenceDetails report={report} />}
-      {report.sections.map((section, index) => <details key={`${mode}-${section.id}`} open={mode === "full"} id={`survey-section-${index}`} tabIndex={-1} className="survey-body-section"><summary><span className="survey-kicker">ANALYSIS {String(index + 1).padStart(2, "0")}</span><h2>{section.title}</h2>{mode === "brief" && <span className="survey-section-lead">{sectionLead(section.paragraphs[0] ?? "")}<span>展开分析</span></span>}</summary>{section.paragraphs.map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}{section.subsections?.map((subsection) => <section className="survey-analytical-subsection" key={subsection.title}>
-        <h3>{subsection.title}</h3>
+      <EvidenceDetails report={report} topicId={topic.id} />
+      {report.sections.map((section, index) => <details key={`${mode}-${section.id}`} open={mode === "full"} id={`survey-section-${index}`} tabIndex={-1} className="survey-body-section"><summary><span className="survey-kicker">{isSpec ? "章节" : "ANALYSIS"} {String(index + 1).padStart(2, "0")}</span><h2>{sectionTitle(section)}</h2>{mode === "brief" && <span className="survey-section-lead">{sectionLead(section.paragraphs[0] ?? "")}<span>展开分析</span></span>}</summary>{section.paragraphs.map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}{section.subsections?.map((subsection, subsectionIndex) => <section className="survey-analytical-subsection" key={subsection.title}>
+        <h3>{isSpec ? displaySpecDecSubsectionTitle(section.id, subsectionIndex, subsection.title) : subsection.title}</h3>
         {subsection.paragraphs.map((paragraph, i) => <p key={i}>{paragraph}</p>)}
         <div className="survey-section-sources"><span>小节依据</span><Citations ids={subsection.sourceIds} references={report.references} /></div>
       </section>)}
       {section.conclusion && <p className="survey-chapter-conclusion"><strong>本章综合判断：</strong>{section.conclusion}</p>}
       <div className="survey-section-sources"><span>本章来源</span><Citations ids={section.sourceIds} references={report.references} /></div></details>)}
-      <section id="survey-gaps" tabIndex={-1}><div className="survey-kicker">RESEARCH AGENDA</div><h2>{topic.id === "speculative-decoding" ? "Research Gaps 与可证伪实验协议" : "未解问题与未来方向"}</h2><p className="survey-muted">以下问题由本报告的证据推导，按可验证的研究假设呈现。证据覆盖不足不等于全领域尚无人解决；验证路径是后续研究方案。</p><div className="survey-gap-list">{report.gaps.map((gap, index) => <div className="survey-gap" key={gap.id} id={`survey-gap-${gap.id}`} tabIndex={-1}><header><span className="survey-gap-number">G{index + 1}</span><h3>{gap.title}</h3><span className={`survey-gap-status ${gap.status === "resolved" ? "resolved" : ""}`}>{gap.researchType === "evaluation-method" ? "统一评估方法" : gap.researchType === "mechanism-gap" ? "机制衔接缺口" : gapStatus[gap.status] ?? "待研究"}</span></header><dl><dt>观察与证据边界</dt><dd>{gap.observation}<Citations ids={gap.sourceIds} references={report.references} /></dd><dt>{gap.status === "hypothesis" ? "待验证假设" : "待回答的问题"}</dt><dd>{gap.question}</dd><dt>如何验证（方案）</dt><dd>{gap.validation}</dd>
+      <section id="survey-gaps" tabIndex={-1}><div className="survey-kicker">RESEARCH AGENDA</div><h2>未解问题与未来方向</h2><p className="survey-muted">以下问题由本报告的证据推导，按可验证的研究假设呈现。证据覆盖不足不等于全领域尚无人解决；验证路径是后续研究方案。</p><div className="survey-gap-list">{report.gaps.map((gap, index) => <div className="survey-gap" key={gap.id} id={`survey-gap-${gap.id}`} tabIndex={-1}><header><span className="survey-gap-number">G{index + 1}</span><h3>{gap.title}</h3><span className={`survey-gap-status ${gap.status === "resolved" ? "resolved" : ""}`}>{gap.researchType === "evaluation-method" ? "统一评估方法" : gap.researchType === "mechanism-gap" ? "机制衔接缺口" : gapStatus[gap.status] ?? "待研究"}</span></header><dl><dt>观察与证据边界</dt><dd>{gap.observation}<Citations ids={gap.sourceIds} references={report.references} /></dd><dt>{gap.status === "hypothesis" ? "待验证假设" : "待回答的问题"}</dt><dd>{gap.question}</dd><dt>如何验证（方案）</dt><dd>{gap.validation}</dd>
 {gap.strongestKnown && <><dt>已有方法</dt><dd>{gap.strongestKnown}</dd></>}
 {gap.hypothesis && <><dt>精确假设</dt><dd>{gap.hypothesis}</dd></>}
 {gap.strongBaseline && <><dt>强基线</dt><dd>{gap.strongBaseline}</dd></>}
@@ -345,7 +380,6 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
 {gap.metrics && <><dt>观测指标</dt><dd>{gap.metrics}</dd></>}
 {gap.falsification && <><dt>证伪条件</dt><dd>{gap.falsification}</dd></>}
 </dl></div>)}</div></section>
-      {topic.id === "speculative-decoding" && <EvidenceDetails report={report} />}
       <section id="survey-limitations" tabIndex={-1} className="survey-limitations"><h2>局限与证据边界</h2><ul>{report.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul></section>
       <IndependentReview report={report} />
       <section id="survey-references" tabIndex={-1}><div className="survey-kicker">REFERENCES</div><h2>参考文献与工程来源</h2><ol className="survey-references">{report.references.map((reference, index) => {
