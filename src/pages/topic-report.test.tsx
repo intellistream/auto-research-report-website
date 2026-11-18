@@ -202,24 +202,53 @@ describe("frozen ACLGraph contract", () => {
       expect(html).toContain("审查限制与未复现范围");
     }
   });
-  it("preserves published PR lists, filters and daily links for the two other topics", () => {
-    for (const id of ["kv-cache", "speculative-decoding"]) {
-      const topic = actualIndex.topics.find((item) => item.id === id) as unknown as Topic;
-      expect(topic.report).toBeUndefined();
-      const html = render(`/topics/${id}`, topic);
-      expect(html).toContain("专题收录 PR");
-      expect(html).toContain("查看日报正文");
-      expect(html).not.toContain("综述准备中");
-      expect(html).not.toContain("<iframe");
-      expect(html.match(/class="topic-card"/g)).toHaveLength(topic.entries.length);
-      const selected = topic.entries[0];
-      const filtered = render(`/topics/${id}?repo=${selected.repository}&label=${selected.label}`, topic);
-      const expected = topic.entries.filter((entry) => entry.repository === selected.repository && entry.label === selected.label);
-      expect(filtered.match(/class="topic-card"/g)).toHaveLength(expected.length);
-      expect(filtered).toContain(`section=${selected.number}`);
-      expect(filtered).toContain(`version=${selected.version}`);
-      expect(filtered).toContain(renderToStaticMarkup(<>{selected.title}</>));
-    }
+  it("keeps KV Cache legacy PR listing and filtering unchanged", () => {
+    const other = actualIndex.topics.find((item) => item.id === "kv-cache") as unknown as Topic;
+    const html = render("/topics/kv-cache", other);
+    expect(html).toContain("专题收录 PR");
+    expect(html).toContain("查看日报正文");
+    expect(html.match(/class="topic-card"/g)).toHaveLength(other.entries.length);
+    const first = other.entries[0];
+    const filtered = render(`/topics/kv-cache?repo=${first.repository}&label=${first.label}`, other);
+    const expected = other.entries.filter(item => item.repository === first.repository && item.label === first.label);
+    expect(filtered.match(/class="topic-card"/g)).toHaveLength(expected.length);
+    expect(filtered).toContain(`version=${first.version}`);
+  });
+  it("renders SpecDec guide, survey and living report with only three navigation links", () => {
+    const spec = actualIndex.topics.find(item => item.id === "speculative-decoding") as unknown as Topic;
+    expect(spec.entries).toHaveLength(105);
+    expect(spec.counts.total).toBe(105);
+    expect(spec.counts.byRepository).toEqual({ vllm: 68, "vllm-ascend": 37 });
+    expect(spec.report?.revision).toBe(1);
+    expect(spec.report?.previousVersion).toBeNull();
+    expect(spec.report?.version).toBe("e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d");
+    expect(spec.report?.evidenceDetails).toBeUndefined();
+    const guide = render("/topics/speculative-decoding", spec);
+    expect(guide).toContain("一次 Target 前向，能确认几个 token");
+    expect(guide).toContain("Lookup");
+    expect(guide).toContain("EAGLE / MTP");
+    expect(guide).toContain("DFlash / DSpark");
+    expect(guide).toContain("view=report&amp;part=survey-gaps");
+    expect(guide).not.toContain("PR 与趋势</a>");
+    const paper = render("/topics/speculative-decoding?view=paper", spec);
+    expect(paper).toContain("技术路线与待验证问题");
+    expect(paper).toContain("面向大语言模型推理的推测解码技术综述");
+    expect(paper).toContain("4 Target 验证");
+    expect(paper).toContain("8 研究问题");
+    expect(paper).toContain("参考文献与原始工程来源");
+    expect(paper).not.toContain("下载同版 PDF");
+    const living = render("/topics/speculative-decoding?view=report", spec);
+    expect(living).toContain("候选生成、验证预算与合法状态的系统协同");
+    expect(living).toContain("技术路线与关键权衡");
+    expect(living).toContain("Research Gaps");
+    expect(living).toContain("PR 与趋势");
+    expect(living).toContain("105");
+    expect(living).not.toContain("局部工程证据对照");
+    expect(living).not.toContain("7 项证据详情");
+    expect(living).not.toContain("下载本版 PDF");
+    const legacy = render("/topics/speculative-decoding?view=evidence", spec);
+    expect(legacy).toContain("PR 与趋势");
+    expect(legacy).toContain("105");
     const directory = render("/topics", { ...topic, report: undefined });
     expect(directory).toContain("ACL Graph");
   });
