@@ -80,3 +80,21 @@
 .acl-topic .survey-analytical-subsection p{line-height:1.95}
 .acl-topic .survey-chapter-conclusion{margin:1.5rem 0 .75rem;padding:.85rem 0;border-top:1px solid #cbd8ce;font-weight:400;line-height:1.85}
 .acl-topic .survey-taxonomy caption{font-size:.8rem;text-align:left;margin:.45rem 0;color:#52725c}
+
+/* SpecDec reader scaffolding: history, causal chain and source-bound conclusions. */
+.specdec-history,.specdec-cross-layer{margin:1.2rem 0 2rem}
+.specdec-history ol{list-style:none;padding:0;margin:1.15rem 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.85rem}
+.specdec-history li{border:1px solid #dce8df;border-radius:.55rem;padding:1rem 1.1rem;background:#f9fcfa}
+.specdec-history li h3{margin:.1rem 0 .55rem;font-size:1rem}
+.specdec-history li p{margin:0 0 .5rem;font-size:.88rem}
+.specdec-cross-layer{padding:1rem 1.25rem;border:1px solid #c8ded1;border-radius:.6rem;background:#f7fbf8}
+.specdec-cross-layer ol{padding-left:1.4rem;line-height:1.9}
+.specdec-cross-layer li{margin:.65rem 0}
+.specdec-map-judgment{padding-top:.9rem;border-top:1px solid #dce7df;font-size:.84rem;line-height:1.75}
+.specdec-map-judgment strong{color:#24583d}
+.specdec-map-judgment details{margin:.6rem 0}
+.specdec-map-judgment .specdec-citation{display:flex;flex-wrap:wrap;gap:.3rem}
+.specdec-guide-reading{margin:1.5rem 0;padding:1rem 1.35rem;border:1px solid #d6e6dc;border-radius:.7rem;background:#fff}
+.specdec-guide-reading ol{padding-left:1.4rem;line-height:1.85}
+.specdec-guide-reading li{margin:.6rem 0}
+@media(max-width:680px){.specdec-history ol{grid-template-columns:1fr}.specdec-cross-layer{padding:.85rem}}

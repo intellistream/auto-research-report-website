@@ -3,7 +3,16 @@ import { ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import { specDecSurvey } from "./specdec-survey-content";
+import { readingSurvey } from "./topic-survey";
 import "./specdec.css";
+
+// These stable manuscript anchors are distinct from report-bound, revisable syntheses.
+const histories = [
+  { period: "基础：并行候选与精确校验", mechanism: "Blockwise Parallel Decoding 建立多位置提案的早期路径；经典 Speculative Sampling 给出保持 Target 分布的接受和残差补样规则。", sources: ["P1", "P2"] },
+  { period: "候选：提高条件质量", mechanism: "Medusa/SpecInfer 探索多头与树结构；EAGLE/EAGLE-3 和 MTP 强化候选条件信息，却保留 Draft 计算及状态管理问题。", sources: ["P3", "P4", "P5", "P6"] },
+  { period: "并行：减少草稿顺序深度", mechanism: "DFlash、DFLare 和 DSpark 扩展块式并行候选，随后需要重新衡量块内依赖、接受长度与 Verify Query Rows。", sources: ["P7", "P8", "P10"] },
+  { period: "系统：联合 Verify 与合法状态", mechanism: "Adaptive Verification、HybridSpec 与上游 Runtime 工程将焦点推向 Router-aware Cost、Accepted State、Graph 与 Serving 关键路径。", sources: ["D4", "P9", "E2", "E7", "E11"] },
+] as const;
 
 const routes = [
   {
@@ -43,6 +52,9 @@ const routes = [
 export default function SpecDecSurvey({ topic }: { topic: Topic }) {
   const [selected, setSelected] = useState(0);
   const route = routes[selected];
+  const living = readingSurvey(topic);
+  const liveRouteId = ["candidate", "verification", "accepted-state", "runtime"][selected];
+  const liveRoute = living?.routes.find(item => item.id === liveRouteId);
   const references = topic.report?.references ?? [];
   const cited = new Set(specDecSurvey.chapters.flatMap(chapter => chapter.sections.flatMap(section => section.sourceIds)));
   const sources = references.filter(source => cited.has(source.id));
@@ -81,6 +93,12 @@ export default function SpecDecSurvey({ topic }: { topic: Topic }) {
           <ol className="specdec-map-steps">{route.steps.map(step => <li key={step}>{step}</li>)}</ol>
           <p>{route.evidence}</p>
           <div className="specdec-map-question"><strong>研究问题</strong><p>{route.question}</p></div>
+          {liveRoute && <div className="specdec-map-judgment">
+            <strong>工程证据支持的条件性判断</strong>
+            <p>{liveRoute.assessment}</p>{cite(liveRoute.sourceIds)}
+            <details><summary>适用边界与尚未验证之处</summary><p>{liveRoute.limitation}</p></details>
+            <p><Link to={{ search: "view=report&part=survey-taxonomy" }}>进入动态报告，查看证据与持续修订 →</Link></p>
+          </div>}
           <button type="button" onClick={() => jump(`specdec-survey-${route.chapter}`)}>读正文中的机制与权衡 →</button>
         </div>
       </div>
@@ -91,6 +109,23 @@ export default function SpecDecSurvey({ topic }: { topic: Topic }) {
       <p>{specDecSurvey.abstract}</p>
       <p className="specdec-paper-meta">关键词：{specDecSurvey.keywords.join(" · ")}</p>
       <details><summary>研究范围与材料</summary><p>{specDecSurvey.scope}</p></details>
+      <section className="specdec-history" aria-labelledby="specdec-history-heading">
+        <h2 id="specdec-history-heading">历史演进：每一代方法改变了哪项成本？</h2>
+        <p>推测解码不是从一种方法线性升级到另一种方法。下列研究路径并存：一个瓶颈缓解后，额外的验证工作、状态正确性或 Serving 调度成本可能成为新的约束。</p>
+        <ol>{histories.map(item => <li key={item.period}>
+          <h3>{item.period}</h3><p>{item.mechanism}</p>{cite(item.sources)}
+        </li>)}</ol>
+      </section>
+      <section className="specdec-cross-layer" aria-labelledby="specdec-cross-layer-heading">
+        <h2 id="specdec-cross-layer-heading">跨层阅读线索</h2>
+        <p>读完基本机制后，沿三条因果链判断论文和 PR 的真正贡献。不能将不同硬件、版本与测试口径的数据叠加。</p>
+        <ol>
+          <li><strong>Candidate → Verify：</strong>Draft 深度下降或 Acceptance 改善，是否产生更多有效 Token，还是增加 Target Rows？</li>
+          <li><strong>Verify → Accepted State：</strong>采样只接受合法前缀，KV/递归状态与缓存身份能否随之精确恢复？</li>
+          <li><strong>Runtime → Serving：</strong>Graph/Metadata/Sampler 的局部阶段节省，是否真的处于 TTFT、TPOT 或 Goodput 的关键路径？</li>
+        </ol>
+        <p><Link to={{ search: "view=report&part=survey-section-6&read=full" }}>阅读动态报告 §7 的跨层证据综合 →</Link></p>
+      </section>
       <section className="specdec-round-example" aria-labelledby="specdec-k3-heading">
         <h2 id="specdec-k3-heading">一轮 K=3：真正输出了什么？</h2>
         <p>下例是 Greedy 的手工示意：在已确认前缀 P 上，Drafter 连续提议 A、B、C；Target 同时计算各位置分布，顺次给出 A、B、D。</p>

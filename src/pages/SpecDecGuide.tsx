@@ -39,6 +39,16 @@ export default function SpecDecGuide({ topic }: { topic: Topic }) {
       </div>
     </section>
 
+    <section className="specdec-guide-reading" aria-label="建议阅读路径">
+      <h2>从零开始，如何阅读本专题？</h2>
+      <ol>
+        <li><strong>先理解机制。</strong> 在本页区分 Draft、Target、Accepted Prefix 与 Bonus；正确性是后续所有优化的前提。</li>
+        <li><strong>再阅读完整综述。</strong> 从历史方法、条件依赖、验证预算走向 GDN/MoE State 与 Runtime。</li>
+        <li><strong>最后核对工程判断。</strong> 动态报告保留原始 PR 版本、工作负载、负结果和跨层结论，随新证据修订。</li>
+      </ol>
+      <p><Link to={{ search: "view=paper" }}>阅读学术综述全文 →</Link>{" · "}<Link to={{ search: "view=report&read=full" }}>阅读八章动态研究报告 →</Link></p>
+    </section>
+
     <details className="specdec-guide-docs">
       <summary>官方实现与进一步阅读</summary>
       <ul>{official.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer">{source.name} ↗</a></li>)}</ul>
