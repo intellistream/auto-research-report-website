@@ -98,3 +98,10 @@
 .specdec-guide-reading ol{padding-left:1.4rem;line-height:1.85}
 .specdec-guide-reading li{margin:.6rem 0}
 @media(max-width:680px){.specdec-history ol{grid-template-columns:1fr}.specdec-cross-layer{padding:.85rem}}
+
+.specdec-new-candidates{margin:1rem 0;border:1px solid #d7e4da;border-radius:.6rem;padding:.9rem 1.15rem;background:#fff;font-size:.85rem}
+.specdec-new-candidates summary{font-weight:650;cursor:pointer}
+.specdec-new-candidates p{line-height:1.8}
+.specdec-new-candidates ol{padding-left:1.4rem;line-height:1.85}
+.specdec-new-candidates li{margin:.4rem 0}
+.specdec-new-candidates li span{color:#557162}

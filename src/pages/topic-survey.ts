@@ -12,7 +12,7 @@ export type SurveyUpdateEvidence = {
 };
 export type TopicSurvey = {
   schemaVersion: 1; reportVersion: string; paperVersion?: string; reviewedAt: string; thesis: string;
-  routes: SurveyRoute[];
+  routes: SurveyRoute[]; candidateBaseline?: string[];
   update: { summary: string; previousRevision?: number; evidence: SurveyUpdateEvidence[]; nextGapIds: string[] };
   researchAssessment?: { asOf: string; scope: string; summary: string; decisions: {
     gapId: string; decision: string; reason: string; reopenWhen: string; sourceUrls: string[];
@@ -34,6 +34,12 @@ export function validatedSurvey(topic: Topic): TopicSurvey | undefined {
     || !text(survey.thesis) || !text(survey.reviewedAt) || !Array.isArray(survey.routes) || !survey.routes.length
     || !survey.update || !text(survey.update.summary) || !Array.isArray(survey.update.evidence)
     || !strings(survey.update.nextGapIds)) return;
+  if (survey.candidateBaseline) {
+    const baseline = survey.candidateBaseline;
+    const available = new Set(topic.entries.map(item => item.workId));
+    if (!strings(baseline) || baseline.length !== new Set(baseline).size
+      || !baseline.every(id => /^github:vllm-project\/(?:vllm|vllm-ascend)#[1-9][0-9]*$/.test(id) && available.has(id))) return;
+  }
   const sources = new Set(report.references.map((item) => item.id));
   const evidence = new Map((report.evidenceDetails ?? []).map((item) => [item.id, item]));
   const gaps = new Map(report.gaps.map((item) => [item.id, item]));

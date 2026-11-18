@@ -91,6 +91,13 @@ def validate_survey(survey, topic, archive=None):
         require("paperVersion" not in survey, "paperVersion: no frozen academic paper exists")
     iso_day(survey.get("reviewedAt"), "reviewedAt")
     text(survey.get("thesis"), "thesis")
+    if "candidateBaseline" in survey:
+        baseline = survey["candidateBaseline"]
+        require(isinstance(baseline, list) and len(baseline) == len(set(baseline))
+                and all(isinstance(value, str) and WORK_ID.fullmatch(value) for value in baseline),
+                "candidateBaseline: duplicate or malformed work ID")
+        available = {row["workId"] for row in topic.get("entries", [])}
+        require(set(baseline) <= available, "candidateBaseline: original candidate missing")
     references = {row["id"]: row for row in report.get("references", [])}
     evidence = {row["id"]: row for row in report.get("evidenceDetails", [])}
     gaps = {row["id"]: row for row in report.get("gaps", [])}
