@@ -163,7 +163,8 @@ function Archive({ catalog, days }: { catalog: Catalog; days: string[] }) {
 }
 
 function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
-  const { day = days[0] } = useParams();
+  const { day: requestedDay } = useParams();
+  const day = !requestedDay || requestedDay === "latest" ? days[0] : requestedDay;
   const [query] = useSearchParams();
   const record = catalog.days[day];
   const requested = query.get("version") ?? record?.current;
@@ -178,19 +179,21 @@ function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
 }
 
 export default function DocxPreview() {
-  const result = useJson<Catalog>("catalog.json");
+  const { pathname } = useLocation();
+  const topicRoute = /^\/topics(?:\/|$)/.test(pathname);
+  const kvTopicRoute = /^\/topics\/kv-cache\/?$/.test(pathname);
+  const result = useJson<Catalog>(topicRoute ? undefined : "catalog.json");
   const catalog = result?.data;
   const days = useMemo(
     () => catalog?.schemaVersion === 1 ? Object.keys(catalog.days).sort().reverse() : [],
     [catalog],
   );
-  const { pathname } = useLocation();
   const previousPath = useRef(pathname);
   const main = useRef<HTMLElement>(null);
   const reading = pathname.startsWith("/reports/");
   const overview = pathname === "/";
   const flow = useJson<FlowIndex>(overview ? "flow-index.json" : undefined);
-  const topics = useJson<TopicIndex>(pathname.startsWith("/topics") ? "topics.json" : undefined);
+  const topics = useJson<TopicIndex>(topicRoute && !kvTopicRoute ? "topics.json" : undefined);
   useEffect(() => {
     if (previousPath.current === pathname) return;
     previousPath.current = pathname;
@@ -213,7 +216,7 @@ export default function DocxPreview() {
             <NavLink to="/" end>优化总览</NavLink>
             <NavLink to="/reports" end>日报档案</NavLink>
             <NavLink to="/topics">技术专题</NavLink>
-            {days[0] && <Link to={`/reports/${days[0]}`} aria-current={reading ? "page" : undefined}>研报阅读</Link>}
+            <Link to="/reports/latest" aria-current={reading ? "page" : undefined}>研报阅读</Link>
             <NavLink to="/contributors">贡献者</NavLink>
           </nav>
         </div>
@@ -221,6 +224,7 @@ export default function DocxPreview() {
       <div className="docx-workspace">
         <main className={overview ? "docx-main docx-main-wide" : "docx-main"} id="main-content" ref={main} tabIndex={-1}>
           {pathname === "/contributors" ? <Suspense fallback={<p role="status">正在打开贡献者页面…</p>}><Contributors /></Suspense>
+            : topicRoute ? <Suspense fallback={<p role="status">正在打开专题…</p>}><Routes><Route path="/topics/:topicId?" element={<TopicPages index={topics?.data} error={topics?.error} />} /></Routes></Suspense>
             : result?.error ? <p role="alert">{localReports ? "请先导入本地日报。" : "日报目录加载失败。"}{result.error}</p>
             : !catalog ? <p role="status">正在加载日报索引…</p>
             : !days.length ? <p role="alert">索引为空或版本不支持。</p>
@@ -230,7 +234,6 @@ export default function DocxPreview() {
                   <Route path="/" element={<FlowOverview catalog={catalog} days={days} result={flow} />} />
                   <Route path="/reports" element={<Archive catalog={catalog} days={days} />} />
                   <Route path="/reports/:day" element={<Reader catalog={catalog} days={days} />} />
-                  <Route path="/topics/:topicId?" element={<TopicPages index={topics?.data} error={topics?.error} />} />
                   <Route path="*" element={<p>页面不存在。<Link to="/reports">查看历史日报</Link></p>} />
                 </Routes>
               </Suspense>

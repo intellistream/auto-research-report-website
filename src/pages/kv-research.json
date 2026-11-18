@@ -1,0 +1,2869 @@
+{
+  "schemaVersion": 1,
+  "id": "kv-cache",
+  "title": "KV Cache",
+  "description": "围绕缓存复用、表示、容量、放置与调度，研究推理系统怎样管理和使用历史状态。",
+  "asOf": "2026-11-18",
+  "revision": 2,
+  "scope": "推理系统的KV缓存，以及与其前缀复用协调的混合模型状态。",
+  "collectionNote": "独立审阅74条PR候选，纳入55条；论文首批从文献整理选题，另核对公开原论文后形成10篇简介。",
+  "reviewNote": "PR与论文分别记录核对日期、来源版本及范围。论文简介依据原始论文选定章节，性能与适用条件不表示本轮独立复现。",
+  "taxonomy": [
+    {
+      "id": "reuse",
+      "label": "缓存复用与匹配",
+      "question": "哪些历史状态可以安全地继续使用？",
+      "description": "前缀身份、匹配与查找、会话连续性，以及混合状态恢复。",
+      "check": "核对复用边界、命中长度、状态一致性与重算。",
+      "source": "apc-design"
+    },
+    {
+      "id": "representation",
+      "label": "缓存表示、布局与压缩",
+      "question": "怎样降低缓存的存储与访问成本？",
+      "description": "KV数值表示、物理布局、量化压缩，以及直接改善KV读写和访问带宽的机制。",
+      "check": "核对内存、访问成本、格式兼容与质量条件。",
+      "source": "hybrid"
+    },
+    {
+      "id": "lifecycle",
+      "label": "容量与生命周期管理",
+      "question": "缓存何时分配、保留、回收和淘汰？",
+      "description": "KV块分配、引用、预算、回收、失效与淘汰。",
+      "check": "核对容量、抢占、保留范围和重复计算。",
+      "source": "apc-design"
+    },
+    {
+      "id": "movement",
+      "label": "缓存放置与数据传输",
+      "question": "缓存放在哪里，怎样送到计算位置？",
+      "description": "设备、CPU和存储分层，跨实例交接，预取、卸载与回载。",
+      "check": "核对传输量、布局兼容、同步和等待。",
+      "source": "pd"
+    },
+    {
+      "id": "scheduling",
+      "label": "缓存感知调度",
+      "question": "根据缓存和剩余计算，应该先执行谁？",
+      "description": "根据命中、缓存位置、剩余Prefill或缓存压力进行准入、排序和公平性控制。",
+      "check": "核对重算、回载代价、等待分布与抢占。",
+      "source": "sglang"
+    }
+  ],
+  "entries": [
+    {
+      "id": "github:vllm-project/vllm#52921",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "对齐各工作进程的 CPU 卸载 KV 池容量",
+      "summary": "从工作进程实际 KV 存储推导 CPU 卸载块数，并在分配前跨进程取最小值。调度器通过启动 RPC 使用对齐结果，修复不均匀 PP 或推测解码下的越界卸载拷贝。",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "movement"
+      ],
+      "rationale": "直接修改卸载KV池的容量确定、工作进程分配与调度器块号范围，并作用于CPU卸载的数据复制安全。",
+      "originalTitle": "[Bugfix] Align CPU offload pool size across PP/spec-decode workers",
+      "url": "https://github.com/vllm-project/vllm/pull/52921",
+      "createdAt": "2026-08-19T09:34:34Z",
+      "updatedAt": "2026-10-22T00:22:11Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "ab25ae723a24e978abad2dcb33c19d52a4d67919",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-08-19",
+      "sourceVersion": "ab25ae723a24e978abad2dcb33c19d52a4d67919",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-22",
+          "version": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
+          "section": "V1"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#57481",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "图捕获期间为 AITER all-reduce 使用可导出的激活分配",
+      "summary": "在受支持的 ROCm AITER 图捕获中临时关闭 expandable segments，使激活指针可被注册，省去 all-reduce 前的暂存复制。KV 缓存和图捕获之外的分配继续使用原设置。",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "主要改动是图内激活分配和集合通信，原文明确KV缓存配置不受这一分配切换影响。KV容量变化属于图内存开销的间接代价。",
+      "originalTitle": "[ROCm] Capture CUDA graphs with expandable segments off for AITER all-reduce",
+      "url": "https://github.com/vllm-project/vllm/pull/57481",
+      "createdAt": "2026-09-18T03:25:39Z",
+      "updatedAt": "2026-10-22T01:35:00Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "c8ecbfe8eac197c85c4e96ab9b1ce7586ff9d059",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-09-18",
+      "sourceVersion": "c8ecbfe8eac197c85c4e96ab9b1ce7586ff9d059",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-22",
+          "version": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
+          "section": "V2"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#60130",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "统一分配 CPU 卸载 KV 主机缓冲并支持 HugeTLB",
+      "summary": "每个 rank 将 CPU KV 缓存分配为同一主机映射中的视图，按实际块数和所选页大小定容。增加可选 HugeTLB、NUMA 继承及注册边界和生命周期处理。",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "movement"
+      ],
+      "rationale": "直接改变CPU卸载KV池的分配、页组织、注册和资源释放，关联KV在主机层的放置。",
+      "originalTitle": "[KV Offload] SimpleCPUOffload: one host buffer per rank, opt-in HugeTLB pages",
+      "url": "https://github.com/vllm-project/vllm/pull/60130",
+      "createdAt": "2026-10-05T21:35:34Z",
+      "updatedAt": "2026-11-07T07:12:22Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "e5cccbd74027f1f3ca333cc47abe6a3c1a156c94",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-06",
+      "sourceVersion": "e5cccbd74027f1f3ca333cc47abe6a3c1a156c94",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-07",
+          "version": "597ad9bbe3e0811b794d8b7bc71357dfc39ed4831b0cb065973dde97a185d55d",
+          "section": "V2"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#62384",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "PCP 重放中的 KV 写入与前缀续算适配",
+      "summary": "限定关注 PCP decoder replay 的 KV 子改动。对局部 KV 与压缩 latent 做跨 PCP 汇集，以全局 cache_positions 和相应 slot mapping 写入 SWA、压缩 KV 及索引缓存，保持前缀命中续算时的缓存对应关系。",
+      "decision": "included",
+      "primaryTopic": "reuse",
+      "topics": [
+        "reuse",
+        "representation",
+        "movement"
+      ],
+      "rationale": "原始补丁直接修改forward_kv、压缩KV插入及跨PCP写入索引，支持缓存前缀命中后的继续执行。条目范围是KV写入/寻址适配，整体decoder replay吞吐提升涉及其他计算子改动。",
+      "reviewLevel": "pr-code",
+      "originalTitle": "[Feature][PCP] Support decoder-side SWA bounded replay with APC for DeepSeek-V4.1-Flash",
+      "url": "https://github.com/vllm-project/vllm/pull/62384",
+      "createdAt": "2026-10-19T03:13:52Z",
+      "updatedAt": "2026-10-24T02:05:47Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "e5202fe7caa14682ef362b8ee46f41d012055c69",
+      "codeSnapshot": "batch-1-sources/PR_vllm_62384_patch.json",
+      "sourceDay": "2026-10-19",
+      "sourceVersion": "e5202fe7caa14682ef362b8ee46f41d012055c69",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-24",
+          "version": "73d0302412d8b535dcc4acbf829bfa298830d4509d3a357b69fb7cc87c57b778",
+          "section": "V5"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63386",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "GLM 专用 Decode 中的 KV 池视图与写入补齐",
+      "summary": "限定关注专用 Decode 与现有 KV 池之间的适配。新增 FP8 MLA 与索引缓存页视图，跟踪仅部分 TP rank 写入的行，并在通用执行、宽档切换或请求释放前广播补齐相关缓存。",
+      "decision": "included",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation",
+        "movement",
+        "reuse"
+      ],
+      "rationale": "补丁的kv.py直接定位KV/索引页、收集和写回字节，并在释放及通用前向前补齐部分写入状态，涉及KV表示访问、跨rank传输和后续前缀复用。纳入范围限定这些KV子项，整体模型Decode性能来自多种内核与权重改动。",
+      "reviewLevel": "pr-code",
+      "originalTitle": "[Perf][GLM-5.3] GLM-5.3 latency-specialized decode on B200 (CuTe DSL)",
+      "url": "https://github.com/vllm-project/vllm/pull/63386",
+      "createdAt": "2026-10-23T18:05:17Z",
+      "updatedAt": "2026-11-06T20:39:16Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "45a0bf1c13f8cd8368ea2bf042edfd27228f542a",
+      "codeSnapshot": "batch-1-sources/PR_vllm_63386_patch.json",
+      "sourceDay": "2026-10-24",
+      "sourceVersion": "45a0bf1c13f8cd8368ea2bf042edfd27228f542a",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-24",
+          "version": "73d0302412d8b535dcc4acbf829bfa298830d4509d3a357b69fb7cc87c57b778",
+          "section": "V8"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63438",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "用 int32 数组传递新请求的 KV 块编号",
+      "summary": "仅对 MRV2 的 NewRequestData，将发给工作进程的 block_ids 在序列化时转为 int32 数组。调度器和连接器继续持有列表，工作进程复用现有 int32 暂存路径，减少 KV 块表元数据解码和准备开销。",
+      "decision": "included",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation"
+      ],
+      "rationale": "直接优化KV地址映射所需的块编号表示和块表准备，范围明确限定KV块元数据的编码与访问准备。",
+      "originalTitle": "[Perf][MRV2] Pickle new requests' block ids as int32 arrays",
+      "url": "https://github.com/vllm-project/vllm/pull/63438",
+      "createdAt": "2026-10-24T03:22:02Z",
+      "updatedAt": "2026-11-04T03:23:03Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "1e62048065811c8ba643374f274dbffbe27482cf",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-24",
+      "sourceVersion": "1e62048065811c8ba643374f274dbffbe27482cf",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-24",
+          "version": "73d0302412d8b535dcc4acbf829bfa298830d4509d3a357b69fb7cc87c57b778",
+          "section": "V4"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63494",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "FlashInfer Prefill 计划直接使用已有 KV 块表",
+      "summary": "将现有 GPU block-table 行视图传给 FlashInfer 非 DCP Prefill 的 plan，避免从 CSR 页索引重建相同块表。混合 Prefill/Decode 批次显式限定请求终点以保持行对齐。",
+      "decision": "included",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation"
+      ],
+      "rationale": "直接修改KV页地址表进入注意力后端的路径，优化缓存寻址元数据准备，属于KV访问表示层面。",
+      "originalTitle": "[Attention] Reuse block tables in FlashInfer prefill planning",
+      "url": "https://github.com/vllm-project/vllm/pull/63494",
+      "createdAt": "2026-10-24T16:02:18Z",
+      "updatedAt": "2026-10-24T16:02:55Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "9ff6b87b16f87d71957749faa6991a44a5352803",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-25",
+      "sourceVersion": "9ff6b87b16f87d71957749faa6991a44a5352803",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-25",
+          "version": "3739e53f68de43a8d953e0cd52eaf2f16f3802e97f860a85699f8976f13cfc5d",
+          "section": "V5"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63541",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "按序列并行分片定容 MegaMoE 对称缓冲",
+      "summary": "Kimi K3 的 MegaMoE 在序列并行下按每 rank 实际 token 上限分配共享通信缓冲，降低过量预留。改动对象是 MoE 工作区，原文尚无 KV 缓存容量测量。",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "主要机制是MoE通信/计算缓冲定容，没有直接修改KV编码、复用、分配或传输。节约显存可能间接影响KV预算。",
+      "originalTitle": "[Perf][MoE] Size the DeepGEMM MegaMoE symmetric buffer for one sequence-parallel shard",
+      "url": "https://github.com/vllm-project/vllm/pull/63541",
+      "createdAt": "2026-10-25T03:51:34Z",
+      "updatedAt": "2026-10-26T22:14:57Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "2302734555eb4036130540c94865edf536a3f376",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-25",
+      "sourceVersion": "2302734555eb4036130540c94865edf536a3f376",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-25",
+          "version": "3739e53f68de43a8d953e0cd52eaf2f16f3802e97f860a85699f8976f13cfc5d",
+          "section": "V1"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63796",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "为 DCP 下的滑动窗口草稿复制 KV 并调整 NIXL 交接",
+      "summary": "滑动窗口 MLA 草稿 KV 在各 DCP rank 上保留副本，草稿缓存组按 DCP=1 处理。NIXL 从一个 Prefill DCP rank 取复制的草稿缓存，同时继续按 DCP 分片读取目标模型 KV。",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "representation"
+      ],
+      "rationale": "直接改变草稿KV的分片/复制布局和跨P/D读取范围，属于缓存布局与传输交接。",
+      "originalTitle": "[Spec Decode][DCP] DSpark: run sliding-window MLA drafts under DCP",
+      "url": "https://github.com/vllm-project/vllm/pull/63796",
+      "createdAt": "2026-10-26T17:19:04Z",
+      "updatedAt": "2026-11-11T12:33:31Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "2bdd2d108008c42a2ccc174649366ccc354553f1",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-27",
+      "sourceVersion": "2bdd2d108008c42a2ccc174649366ccc354553f1",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-11",
+          "version": "52ea07cd92494d40097ea0308f73407ac1a6998ab6b574700001cb50d68276ad",
+          "section": "V18"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63933",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "一次遍历整理 NIXL 拉取块编号和缓存命中计数",
+      "summary": "在 NIXL 准入回调中合并两次块遍历，同时产生各缓存组的本地已缓存块计数与待拉取块编号。沿用空前缀裁剪、内部空块过滤、DCP 偏移和完整本地命中的空传输规则。",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement"
+      ],
+      "rationale": "直接优化NIXL KV传输准备的块身份与范围整理，生成实际拉取地址所需输入。",
+      "originalTitle": "[Perf][NIXL] Fuse cached-block counting and pull block-ID collection",
+      "url": "https://github.com/vllm-project/vllm/pull/63933",
+      "createdAt": "2026-10-27T04:14:36Z",
+      "updatedAt": "2026-11-10T10:08:07Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "657df176fe9124db902e07aff836fec12637494f",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-27",
+      "sourceVersion": "657df176fe9124db902e07aff836fec12637494f",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-27",
+          "version": "dff5d350da31c9699c00b4471feb9ebec2297215412279a3138fb368c97ddefd",
+          "section": "V7"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#64475",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "按 KV 头连续布局完成 NVFP4 异构 TP 交接",
+      "summary": "以 attention spec 的 kv_head_major_slots 声明页面按 KV 头连续，NIXL 按头注册字节范围并重分片。使 MiniMax-M3.1 的受支持 NVFP4 页面可在不同 TP 的 Prefill 与 Decode 之间传输。",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "representation"
+      ],
+      "rationale": "直接把KV量化页的字节布局语义纳入传输握手、描述符及切片，兼有表示与跨实例传输问题。",
+      "originalTitle": "[MiniMax-M3.1][P/D] NIXL KV-head re-sharding for per-head-contiguous NVFP4 pages",
+      "url": "https://github.com/vllm-project/vllm/pull/64475",
+      "createdAt": "2026-10-29T07:45:40Z",
+      "updatedAt": "2026-11-02T20:31:25Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "8fd9b4bd93ef3862d2ec762aadbef2e1c4d76d48",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-29",
+      "sourceVersion": "8fd9b4bd93ef3862d2ec762aadbef2e1c4d76d48",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-03",
+          "version": "c54f3d816234fdbd6c2eee33d5429efa93239dd93adfdcad56557dcb0e0fa59c",
+          "section": "V10"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#64693",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "MoRI WRITE 按 Prefill 流水段写入对应模型层 KV",
+      "summary": "为 Prefill PP stage 区分传输实例和端口，按模型层名定位 Decode 端地址，各段只写入自身模型层的 KV。Decode 汇齐所有阶段的完成通知后再放行，并处理释放和失败通知。",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "lifecycle"
+      ],
+      "rationale": "直接修正KV跨P/D逐层地址映射、流水并行完成条件及缓存释放协调。",
+      "originalTitle": "[ROCm][MoRIIO] Support PP for prefill instance in PD disaggregated serving with MoRI WRITE mode",
+      "url": "https://github.com/vllm-project/vllm/pull/64693",
+      "createdAt": "2026-10-30T07:45:14Z",
+      "updatedAt": "2026-11-09T14:34:16Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "55bfa8efe95d0f593bc9da0bf27738288e568d97",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-30",
+      "sourceVersion": "55bfa8efe95d0f593bc9da0bf27738288e568d97",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-09",
+          "version": "9de45ccb271e6f43aada611152a196fc9edb7c4c86d50c7b7471263c322bf0f1",
+          "section": "V15"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#64950",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "独立限制首次草稿 Prefill 图捕获上限",
+      "summary": "增加首次草稿 PIECEWISE 捕获 token 上限，大输入继续走已有 eager 路径。目标模型和后续草稿图配置保留各自覆盖范围，内存证据主要测量图池容量。",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "直接改动是推测解码图捕获规划，没有KV存储、缓存复用、块分配或数据传输机制的修改。KV块数变化是图池释放显存后的间接结果。",
+      "originalTitle": "[Spec Decode] Add an independent first-draft graph ceiling",
+      "url": "https://github.com/vllm-project/vllm/pull/64950",
+      "createdAt": "2026-11-01T04:18:13Z",
+      "updatedAt": "2026-11-16T00:09:57Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "98a5c66df4a0dd4a1faa13f0a9dfb0e1ec631fd8",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-01",
+      "sourceVersion": "98a5c66df4a0dd4a1faa13f0a9dfb0e1ec631fd8",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-01",
+          "version": "3bbe73eb44443fec8f8c612d5b876cf1067d107fbd6cd84ef9b533068f08095b",
+          "section": "V17"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#65306",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "为 SM90 的 BF16 Decode 投影增加 skinny GEMM 计划",
+      "summary": "为 GLM-5.3-Flash 在 H100/H200 上的指定投影形状添加 CuTe DSL skinny GEMM 计划，替换这些小行数 GEMM 的 cuBLAS 选择。改动对象包括 KDA/MLA 投影、索引器投影和 LM head 的线性计算。",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "这是投影矩阵乘计算计划优化，没有直接改变KV表示、缓存读写路径、复用或传输；前缀缓存仅出现在运行条件讨论中。",
+      "originalTitle": "[Perf][GLM-5.3-Flash] Add SM90 skinny GEMM plans for the BF16 decode projections",
+      "url": "https://github.com/vllm-project/vllm/pull/65306",
+      "createdAt": "2026-11-03T05:22:31Z",
+      "updatedAt": "2026-11-03T05:53:33Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "e48e346e2bcbb6ef752d431416a6a4544e4454b2",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-03",
+      "sourceVersion": "e48e346e2bcbb6ef752d431416a6a4544e4454b2",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-03",
+          "version": "c54f3d816234fdbd6c2eee33d5429efa93239dd93adfdcad56557dcb0e0fa59c",
+          "section": "V13"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#66361",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "为缓存优先准入增加等待老化约束",
+      "summary": "调度器记录请求接收时间与序号，对缓存重排窗口内达到 max_wait_ms 的请求优先按接收顺序处理。其余请求继续按缓存命中排序，随后仍检查 KV 空间和运行槽位。",
+      "decision": "included",
+      "primaryTopic": "scheduling",
+      "topics": [
+        "scheduling",
+        "reuse"
+      ],
+      "rationale": "直接控制缓存暖请求越过冷请求的排序与公平性，研究对象是利用前缀复用机会时的准入策略。",
+      "originalTitle": "[Core][Scheduler] Add opt-in aging to cache-aware admission",
+      "url": "https://github.com/vllm-project/vllm/pull/66361",
+      "createdAt": "2026-11-08T07:41:47Z",
+      "updatedAt": "2026-11-08T07:42:26Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "376cd0583f5b4f6a74769afb1c8cca0a12da8854",
+      "reviewLevel": "pr-code",
+      "sourceDay": "2026-11-08",
+      "sourceVersion": "376cd0583f5b4f6a74769afb1c8cca0a12da8854",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-08",
+          "version": "2616cb83148e62c716f44d2856b3edec4fafe0b364e75af11e877888b38b98c6",
+          "section": "V4"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#66558",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "把 CPU tier 命中计入缓存感知准入排序",
+      "summary": "通过可选无副作用查询取得设备命中之后的外部完整前缀，每步至多刷新两个请求的估计。FCFS 缓存窗口据此把 CPU tier 中可复用的历史也计入排序，后续加载仍由原流程执行。",
+      "decision": "included",
+      "primaryTopic": "scheduling",
+      "topics": [
+        "scheduling",
+        "reuse",
+        "movement"
+      ],
+      "rationale": "直接以设备和CPU分层KV命中决定准入顺序，兼有前缀复用、外部层读取与回载代价。",
+      "originalTitle": "[Core] Count KV connector hits in cache-aware admission",
+      "url": "https://github.com/vllm-project/vllm/pull/66558",
+      "createdAt": "2026-11-09T11:36:29Z",
+      "updatedAt": "2026-11-09T13:13:20Z",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "6075903ef5e8fff6af54a0d90f822329d8945cad",
+      "reviewLevel": "pr-code",
+      "sourceDay": "2026-11-09",
+      "sourceVersion": "6075903ef5e8fff6af54a0d90f822329d8945cad",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-09",
+          "version": "9de45ccb271e6f43aada611152a196fc9edb7c4c86d50c7b7471263c322bf0f1",
+          "section": "V7"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#66705",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "按已知剩余 Prefill 长度分别排序调度队列",
+      "summary": "独立 shortest_prefill_first 策略在每步排序 running Prefill、KV-holding 和有已知外部命中的等待请求。未知请求保留位置，排序依据是扣除已知可复用缓存后的剩余计算长度。",
+      "decision": "included",
+      "primaryTopic": "scheduling",
+      "topics": [
+        "scheduling",
+        "reuse"
+      ],
+      "rationale": "直接使用外部KV复用信息和已计算token估计剩余Prefill，以改变预算分配顺序及等待公平性。",
+      "originalTitle": "[Core][Scheduler] Add shortest_prefill_first scheduling policy",
+      "url": "https://github.com/vllm-project/vllm/pull/66705",
+      "createdAt": "2026-11-10T03:31:26Z",
+      "updatedAt": "2026-11-11T19:03:16Z",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "b427c8b9594c2c97365cd3af1eae96ef2b39414e",
+      "reviewLevel": "pr-code",
+      "sourceDay": "2026-11-10",
+      "sourceVersion": "b427c8b9594c2c97365cd3af1eae96ef2b39414e",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-10",
+          "version": "8ac42e979894c56fa5bb683356e45b94f85253171975ceae6c36849de5aea5e1",
+          "section": "V5"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#66954",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "图捕获前收缩预热占用的可扩展 KV 物理块",
+      "summary": "在受支持的 SM100 配置下，图捕获前将预热已提交的 KV 物理块缩到单个最长请求的需要，图捕获后恢复正常缓存容量。PR 已关闭并交接到 #66523。",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle"
+      ],
+      "rationale": "直接改变启动阶段KV物理块的提交容量与恢复时序，属于KV池生命周期和容量协调。",
+      "originalTitle": "[Bugfix][KV Cache] Shrink warmup's KV cache to max_model_len before CUDA graph capture on SM100",
+      "url": "https://github.com/vllm-project/vllm/pull/66954",
+      "createdAt": "2026-11-11T04:37:02Z",
+      "updatedAt": "2026-11-12T19:15:00Z",
+      "state": "closed",
+      "merged": false,
+      "draft": false,
+      "headSha": "54c740018b67c73c529c1497bfd40ad39dc816d3",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-11",
+      "sourceVersion": "54c740018b67c73c529c1497bfd40ad39dc816d3",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-11",
+          "version": "52ea07cd92494d40097ea0308f73407ac1a6998ab6b574700001cb50d68276ad",
+          "section": "V2"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19251",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "移除分层池中可能过期的跨请求 KV 命中结果缓存",
+      "summary": "工作进程重新逐请求查询键、租约和 GVA 元数据，调度器在每次前缀查找时重新探测后端可读性。解决 DRAM/SSD 降温回暖或淘汰后，旧命中结论和地址状态被跨请求复用的问题。",
+      "decision": "included",
+      "primaryTopic": "reuse",
+      "topics": [
+        "reuse",
+        "lifecycle"
+      ],
+      "rationale": "直接修正前缀命中判定和缓存状态失效后的复用正确性，与分层KV对象的淘汰/恢复生命周期相关。",
+      "originalTitle": "[BugFix][KV Pool] Remove layerwise RPC result caches and scheduler hit cache",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19251",
+      "createdAt": "2026-10-20T06:20:52Z",
+      "updatedAt": "2026-10-22T10:51:38Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "d1d74953ab624b509ac6ddcf0e6c61472531eb57",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-20",
+      "sourceVersion": "d1d74953ab624b509ac6ddcf0e6c61472531eb57",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-22",
+          "version": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
+          "section": "A4"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19480",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "同步分层 PP 传输实际注册的物理 KV 层数",
+      "summary": "在 layerwise GVA pooling 且 PP>1 时，把传输循环上限同步为注册后实际物理缓存层数。避免多缓存组扩展层数后，保存和加载漏掉尾部物理 KV 层。",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement"
+      ],
+      "rationale": "直接修复分层KV传输的模型层覆盖范围和对应地址，属于跨实例缓存交接完整性。",
+      "originalTitle": "[BugFix][KVTransfer] Sync physical layer count for layerwise PP pooling",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19480",
+      "createdAt": "2026-10-22T08:31:33Z",
+      "updatedAt": "2026-10-22T12:57:42Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "5e5118b9cae78da07fd2b0065c0b6f36a443007e",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-22",
+      "sourceVersion": "5e5118b9cae78da07fd2b0065c0b6f36a443007e",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-22",
+          "version": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
+          "section": "A5"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19719",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "直接生成 MLAPO KV 并融合写回映射 CPU 池",
+      "summary": "新增 MLAPO Direct 输出路径，返回当前 token KV，并由 TP0 将最终 KV 直接写入映射的 CPU 池。复用原算术和现有选择条件，省去外部描述符构造及重复 sparse_copy，保留生产完成和读取依赖。",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "representation"
+      ],
+      "rationale": "直接改变稀疏卸载KV写入CPU池的数据路径和中间结果访问，属于分层缓存搬运及对应KV写入实现。",
+      "originalTitle": "[Feature] Support Direct MLAPO KV outputs and fused CPU writeback for sparse offload",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19719",
+      "createdAt": "2026-10-24T13:51:12Z",
+      "updatedAt": "2026-11-16T03:04:08Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "4400e052efc5c51dca76b360ba11f37b18fabc13",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-24",
+      "sourceVersion": "4400e052efc5c51dca76b360ba11f37b18fabc13",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-24",
+          "version": "73d0302412d8b535dcc4acbf829bfa298830d4509d3a357b69fb7cc87c57b778",
+          "section": "A10"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19869",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "用零复制页视图访问有间隔的 KV 缓存",
+      "summary": "为受支持的 strided paged KV 建立 dense alias，将物理页间空隙表示为不用的行。同步变换 FIA 块表和缓存写入 slot mapping，避免物化连续 K/V 副本。",
+      "decision": "included",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation"
+      ],
+      "rationale": "直接改变KV布局的访问视图和缓存读写寻址，属于缓存表示与访问层面的优化。",
+      "originalTitle": "[Performance][Attention] Add zero-copy views for strided KV cache",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19869",
+      "createdAt": "2026-10-26T12:49:43Z",
+      "updatedAt": "2026-10-27T02:31:07Z",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "000485230e48f493abd769463f72fcea8db26d9f",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-26",
+      "sourceVersion": "000485230e48f493abd769463f72fcea8db26d9f",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-26",
+          "version": "424fe883df6a9e2644172ac227f39ed36d105343925065004b2ee8e45cdde8ca",
+          "section": "A8"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#20369",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "为 GLM KDA RecoverSSM 接入前缀缓存状态恢复",
+      "summary": "允许 GLM KDA RecoverSSM 使用 Mamba cache mode align，准备上游 KDA builder 所需的物理状态索引。复用接受状态恢复与块边界检查点，使命中前缀后从正确循环状态继续。",
+      "decision": "included",
+      "primaryTopic": "reuse",
+      "topics": [
+        "reuse"
+      ],
+      "rationale": "直接接通与KV前缀复用协调的混合循环状态索引与恢复，符合独立专题的混合状态复用范围。",
+      "originalTitle": "[Feature] Enable prefix caching for GLM KDA RecoverSSM",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20369",
+      "createdAt": "2026-10-30T10:09:42Z",
+      "updatedAt": "2026-10-31T02:22:26Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "02fdb550f07074c699f25f0ecd8f094dd637a093",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-30",
+      "sourceVersion": "02fdb550f07074c699f25f0ecd8f094dd637a093",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-30",
+          "version": "c86f9eaed5573862f4741fc2b7e37f1a307f33e3252b2133a5b6c7e1277738ab",
+          "section": "A1"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#20489",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "通过共享 AscendStore 逐层保存和恢复 P/D 缓存",
+      "summary": "新增 LayerwisePoolConnector，Prefill 按完成层写入外部 KV 池，Decode 根据来源身份、布局和并行元数据完整恢复请求。共享前缀查找、块分配和读写能力，并处理保留、取消和清理。",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "reuse",
+        "lifecycle"
+      ],
+      "rationale": "直接提供外部KV池上的P/D交接，并包含共享前缀身份/查找及缓存对象的保留和清理语义。",
+      "originalTitle": "[Feature][PD] Add LayerwisePoolConnector with shared AscendStore I/O",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20489",
+      "createdAt": "2026-10-31T10:14:55Z",
+      "updatedAt": "2026-11-09T06:46:32Z",
+      "state": "closed",
+      "merged": false,
+      "draft": false,
+      "headSha": "34cced27504d3d19b89a434f1fa4c7c7404eb1c1",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-31",
+      "sourceVersion": "34cced27504d3d19b89a434f1fa4c7c7404eb1c1",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-31",
+          "version": "3577813b3ff83b548b215853ae8ed3fa21495ee4c8c7a10ae7b006281029456f",
+          "section": "A8"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#21622",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "为 Mooncake Push 交接适配两端独立 DCP 条带",
+      "summary": "对每个层的已就绪 token 区间与 P/D 两端 DCP 条带求交，再通过各自块表映射传输范围。为每个消费者选择完整的生产端副本组，避免漏传或重复写，支持受限 MLA 拓扑。",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "representation"
+      ],
+      "rationale": "直接改变两端不同DCP分片下的KV传输范围与局部页表映射，涉及并行布局适配和跨实例传输。",
+      "originalTitle": "[Feature] Support bilateral DCP in MooncakePushConnector",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/21622",
+      "createdAt": "2026-11-11T12:57:52Z",
+      "updatedAt": "2026-11-16T13:23:13Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "14eedc2175eb7936511ad1ebbff7b8bb7f22eb5b",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-11",
+      "sourceVersion": "14eedc2175eb7936511ad1ebbff7b8bb7f22eb5b",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-11",
+          "version": "52ea07cd92494d40097ea0308f73407ac1a6998ab6b574700001cb50d68276ad",
+          "section": "A6"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#54625",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "按设备内前缀命中重排准入窗口",
+      "originalTitle": "[Core] Add cache-aware admission ordering",
+      "summary": "在有限等待窗口内优先接纳设备内已有较长前缀的请求，减少冷请求分配块时破坏即将复用的缓存。该机制用于启用前缀缓存的 FCFS 路径。",
+      "url": "https://github.com/vllm-project/vllm/pull/54625",
+      "createdAt": "2026-08-31T20:08:51Z",
+      "updatedAt": "2026-11-04T17:53:04Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "f1b9e5b8900258a3fbc59b39f7cbe0470bb7f27c",
+      "decision": "included",
+      "primaryTopic": "scheduling",
+      "topics": [
+        "scheduling",
+        "reuse"
+      ],
+      "rationale": "原始说明的核心信号是驻留前缀命中，直接改变准入次序，主问题属于缓存感知调度，同时关联前缀复用。",
+      "reviewLevel": "pr-code",
+      "sourceDay": "2026-09-01",
+      "sourceVersion": "f1b9e5b8900258a3fbc59b39f7cbe0470bb7f27c",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-05",
+          "version": "880f2531c1438a6b63f45726ce69485dfb316b41472b716a8405aee2ef13a917",
+          "section": "V4"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#59131",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "按来源组复用压缩 KV 的 Prefill 汇集结果",
+      "originalTitle": "[Perf][DSv4.1] Gather the compressed KV once per KV-source group in prefill",
+      "summary": "将 DeepSeek-V4.1 每个 KV 来源组的解量化历史按输入分块汇集一次，并在共享工作区保留该结果供后续消费层读取。工作区被覆盖时重新汇集，KV 缓存容量与表示本身保持原设置。",
+      "url": "https://github.com/vllm-project/vllm/pull/59131",
+      "createdAt": "2026-09-29T03:51:08Z",
+      "updatedAt": "2026-10-29T17:41:09Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "c4e1c2bebce86990e94efa0cd24e023f3b883386",
+      "decision": "included",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation"
+      ],
+      "rationale": "直接减少相同压缩 KV 历史的重复解量化与读取，按缓存访问路径优化纳入，主要问题是压缩缓存的消费方式。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-09-29",
+      "sourceVersion": "c4e1c2bebce86990e94efa0cd24e023f3b883386",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-30",
+          "version": "c86f9eaed5573862f4741fc2b7e37f1a307f33e3252b2133a5b6c7e1277738ab",
+          "section": "V5"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#60238",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "在 V2 后续流水阶段跳过多模态编码塔加载",
+      "originalTitle": "[Multimodal] Skip encoder towers on later PP stages under V2",
+      "summary": "让 Model Runner V2 的后续 PP 阶段不再构建或加载只在首阶段执行的多模态编码器。主要改动是模型权重与模块的驻留。",
+      "url": "https://github.com/vllm-project/vllm/pull/60238",
+      "createdAt": "2026-10-06T13:52:38Z",
+      "updatedAt": "2026-10-22T14:08:48Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "505b40bfec7a8942060d149cae02dd60fe9ca35f",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "KV 容量只出现在测量背景中，PR 明确说明该场景由首阶段决定 KV 容量，未改变 KV 的存储、匹配、分配或传输机制。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-06",
+      "sourceVersion": "505b40bfec7a8942060d149cae02dd60fe9ca35f",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-22",
+          "version": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
+          "section": "V3"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63102",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "GLM 专用 Decode 中的 FP8 KV 写入融合",
+      "originalTitle": "[Perf][GLM-5.3-Flash] Specialized decode for GB300 TP4",
+      "summary": "专用 Decode 的 DSA 子路径把归一化后的 latent 写入 FP8 KV 缓存，与吸收投影及查询量化协调执行。这里收录 KV 读写子项，整套专用解码的吞吐和延迟收益涉及多种其他算子。",
+      "url": "https://github.com/vllm-project/vllm/pull/63102",
+      "createdAt": "2026-10-22T11:07:38Z",
+      "updatedAt": "2026-11-10T07:08:41Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "4540b2339efa784ad93bd22c37d27e550ba61ec2",
+      "decision": "included",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation"
+      ],
+      "rationale": "原始说明及 dsa_attention.py 补丁明确新增融合 KV 写入路径，包含 slot 检查和 KV 缩放写入。按直接 KV 访问子项纳入，整套模型收益不能归因于此子项。",
+      "reviewLevel": "pr-code",
+      "codeSnapshot": "batch-2-sources/vllm-63102-patch.json",
+      "reviewNote": "静态检查 DSA KV 写入相关生产补丁，未审阅或运行整套专用模型。",
+      "sourceDay": "2026-10-22",
+      "sourceVersion": "4540b2339efa784ad93bd22c37d27e550ba61ec2",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-10",
+          "version": "8ac42e979894c56fa5bb683356e45b94f85253171975ceae6c36849de5aea5e1",
+          "section": "V13"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63401",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "用精确 VRAM 占用为 ROCm 可扩展 KV 缓存定容",
+      "originalTitle": "[Bugfix][ROCm] Size the extensible KV cache from exact VRAM use, not 2 MB-rounded free memory",
+      "summary": "在受支持的独立、未分区 ROCm GPU 上，用设备精确显存使用量修正因 2MB 取整而偏小的 KV 缓存预算。修正保留物理空闲量上界和其他进程占用边界。",
+      "url": "https://github.com/vllm-project/vllm/pull/63401",
+      "createdAt": "2026-10-23T19:43:24Z",
+      "updatedAt": "2026-11-08T20:39:24Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "8129bd0c4922e2aa81ecb627f5bd724569575db6",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle"
+      ],
+      "rationale": "直接改变可扩展 KV 缓存的最终容量规划与预算核算，主问题是容量管理。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-24",
+      "sourceVersion": "8129bd0c4922e2aa81ecb627f5bd724569575db6",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-09",
+          "version": "9de45ccb271e6f43aada611152a196fc9edb7c4c86d50c7b7471263c322bf0f1",
+          "section": "V2"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63441",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "按一次块分配合并 KV 删除事件",
+      "originalTitle": "[Perf][KV Events] Batch BlockRemoved events per allocation",
+      "summary": "在新块分配或显式淘汰时，按 KV 缓存组收集被淘汰块的哈希，再一次发送 BlockRemoved 事件。事件消费者仍需读取完整哈希列表。",
+      "url": "https://github.com/vllm-project/vllm/pull/63441",
+      "createdAt": "2026-10-24T03:36:40Z",
+      "updatedAt": "2026-11-09T06:14:58Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "2ecb5472ea13f13628d5b35cffe947c1a7aceb02",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle"
+      ],
+      "rationale": "直接调整缓存块淘汰事件的构造与生命周期通告，减少每个块的管理开销。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-24",
+      "sourceVersion": "2ecb5472ea13f13628d5b35cffe947c1a7aceb02",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-24",
+          "version": "73d0302412d8b535dcc4acbf829bfa298830d4509d3a357b69fb7cc87c57b778",
+          "section": "V12"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63503",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "按上下文 token 总量平衡 DP 注意力负载",
+      "originalTitle": "[Core] Add context_tokens DP load-balancing policy",
+      "summary": "DP 引擎上报等待和运行请求的上下文 token 数，API 路由把新请求送到 token 总量较少的引擎。主要目标是平衡每轮 Decode 的注意力计算负载。",
+      "url": "https://github.com/vllm-project/vllm/pull/63503",
+      "createdAt": "2026-10-24T17:20:46Z",
+      "updatedAt": "2026-11-03T20:38:17Z",
+      "state": "closed",
+      "merged": false,
+      "draft": false,
+      "headSha": "dc4965d6726017d2e113dc1fc9376496f4605a48",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "排序信号是上下文计算量，未读取缓存命中、位置或可用容量，也未改动 KV 管理。前缀命中率仅为服务对照指标，属于通用 DP 负载均衡。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-25",
+      "sourceVersion": "dc4965d6726017d2e113dc1fc9376496f4605a48",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-25",
+          "version": "3739e53f68de43a8d953e0cd52eaf2f16f3802e97f860a85699f8976f13cfc5d",
+          "section": "V2"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63556",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "为不均衡 MLA Decode 保留 FULL 微批图回放",
+      "originalTitle": "[MRV2] Stage imbalanced MLA decode rows for FULL microbatch graphs",
+      "summary": "将实际输入行、位置、块表和 KV slot 一起暂存到已捕获图的多个区段，执行后恢复逻辑顺序。主要目标是减少因空微批区段导致的图回退。",
+      "url": "https://github.com/vllm-project/vllm/pull/63556",
+      "createdAt": "2026-10-25T08:08:28Z",
+      "updatedAt": "2026-10-28T21:00:24Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "b6660643fbd0514faa08bfcdb7d29bbac1b57ac9",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "KV slot 与块表重排是执行图 staging 的对应关系保障，核心机制为图覆盖与运行时输入重排，未改变 KV 的缓存表示、容量、复用或数据传输策略。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-25",
+      "sourceVersion": "b6660643fbd0514faa08bfcdb7d29bbac1b57ac9",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-25",
+          "version": "3739e53f68de43a8d953e0cd52eaf2f16f3802e97f860a85699f8976f13cfc5d",
+          "section": "V4"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63808",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "优先淘汰已被后续会话状态取代的 Mamba 缓存",
+      "originalTitle": "[Perf][Core] Add mamba_aware_lru GPU prefix-cache eviction policy for hybrid models",
+      "summary": "在混合模型 Mamba align 模式中，请求结束时将已被更深状态取代的旧状态移到空闲队列前端。共享前缀分叉点与其他块继续保持既有保留次序。",
+      "url": "https://github.com/vllm-project/vllm/pull/63808",
+      "createdAt": "2026-10-26T18:14:21Z",
+      "updatedAt": "2026-11-05T08:26:16Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "237b7f56bf6bb5b0c6a5ee268843cfe99d6f0c9a",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "reuse"
+      ],
+      "rationale": "直接改变 GPU 前缀缓存中的混合状态淘汰次序，以保护仍可恢复的会话历史，涉及生命周期管理与前缀状态复用。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-27",
+      "sourceVersion": "237b7f56bf6bb5b0c6a5ee268843cfe99d6f0c9a",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-27",
+          "version": "dff5d350da31c9699c00b4471feb9ebec2297215412279a3138fb368c97ddefd",
+          "section": "V14"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#64296",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "让 KV 连接器声明是否需要提示词块哈希",
+      "originalTitle": "[Perf][P/D] Skip prompt block hashing for KV connectors that don't use it",
+      "summary": "未启用前缀缓存且连接器不使用块哈希时，省去长提示词的块哈希计算。NIXL 和 DecodeBench 可关闭这一步，仍需哈希的连接器与 MultiConnector 组合保留所需计算。",
+      "url": "https://github.com/vllm-project/vllm/pull/64296",
+      "createdAt": "2026-10-28T15:03:39Z",
+      "updatedAt": "2026-11-03T01:39:27Z",
+      "state": "closed",
+      "merged": false,
+      "draft": false,
+      "headSha": "1d51a1c9e8125311253107d62f7435b1a889ad5e",
+      "decision": "included",
+      "primaryTopic": "reuse",
+      "topics": [
+        "reuse",
+        "movement"
+      ],
+      "rationale": "直接调整缓存身份哈希的生成条件，并由 KV 连接器的传输契约决定是否需要该身份信息，关联匹配和跨实例交接。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-28",
+      "sourceVersion": "1d51a1c9e8125311253107d62f7435b1a889ad5e",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-28",
+          "version": "0ab70e4c3e4528253592eaa47fab3a05726bd8d099072ede20c60113497e1785",
+          "section": "V3"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#64611",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "为 DFlash 与 DSpark 草稿 KV 建立独立块池",
+      "originalTitle": "[Core][Spec Decode] Give the DFlash/DSpark drafter's KV its own block pool",
+      "summary": "按草稿滑动窗口层的几何与在途加载上限规划私有 KV 池，调度器按池分别检查准入、预留、复制和释放。NIXL 区域描述携带各池的独立块数与位置。",
+      "url": "https://github.com/vllm-project/vllm/pull/64611",
+      "createdAt": "2026-10-29T22:58:34Z",
+      "updatedAt": "2026-11-04T21:37:06Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "a71d0fb3d873cbb038acf473595659954b133863",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "representation",
+        "movement"
+      ],
+      "rationale": "主要改动是草稿 KV 的独立容量与块生命周期管理，同时直接改变缓存几何及 NIXL 注册描述，三项均有明确实现内容。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-30",
+      "sourceVersion": "a71d0fb3d873cbb038acf473595659954b133863",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-30",
+          "version": "c86f9eaed5573862f4741fc2b7e37f1a307f33e3252b2133a5b6c7e1277738ab",
+          "section": "V11"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#64806",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "按查询行分块限制稀疏索引 logits 临时内存",
+      "originalTitle": "[Bugfix][Attention] Bound SM100 decode indexer logits with query-row chunks",
+      "summary": "当 Decode 索引 logits 超过预算时，把查询行分为对齐的小块，逐块计算分数和 TopK 并写入既有输出。缓存表示和读取对象沿用原路径。",
+      "url": "https://github.com/vllm-project/vllm/pull/64806",
+      "createdAt": "2026-10-30T19:55:11Z",
+      "updatedAt": "2026-11-02T23:48:42Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "86ede9a83b1ccc67701ad86c18b9a8f0ab0c3379",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "主要优化索引 logits 与计算图临时激活的峰值内存，KV 容量增加是释放临时内存后的结果，未引入直接 KV 存储、查找、生命周期或传输机制。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-31",
+      "sourceVersion": "86ede9a83b1ccc67701ad86c18b9a8f0ab0c3379",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-03",
+          "version": "c54f3d816234fdbd6c2eee33d5429efa93239dd93adfdcad56557dcb0e0fa59c",
+          "section": "V15"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#65137",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "恢复可扩展 KV 缓存的同机 NIXL NVLink 路径",
+      "originalTitle": "[Bugfix][KV Connector] Keep same-host NIXL on NVLink with the extensible KV cache",
+      "summary": "在支持且可打开 IMEX 通道时为可扩展 KV 分配请求 FABRIC 句柄，供同机 NIXL 走 NVLink。缺少通道时调整 NIXL 设备缓存的默认可扩展分配选择。",
+      "url": "https://github.com/vllm-project/vllm/pull/65137",
+      "createdAt": "2026-11-02T10:08:37Z",
+      "updatedAt": "2026-11-13T23:01:56Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "4423f5cf7b288fe5265b9472b4ab4952f6d9a4e8",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "lifecycle"
+      ],
+      "rationale": "直接修复 KV 内存分配方式与同机传输句柄的兼容性，核心为缓存数据传输，并涉及可扩展缓存分配配置。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-02",
+      "sourceVersion": "4423f5cf7b288fe5265b9472b4ab4952f6d9a4e8",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-09",
+          "version": "9de45ccb271e6f43aada611152a196fc9edb7c4c86d50c7b7471263c322bf0f1",
+          "section": "V14"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#65831",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "降低 KV 分配、缓存登记与释放的逐块 CPU 成本",
+      "originalTitle": "[Perf][Core] Reduce per-block CPU cost of KV block allocation and caching",
+      "summary": "减少异步 KV 加载开始、提升至运行及结束时的逐块 Python 分配、查找和状态维护开销。采用共享路径处理普通与 P/D 请求的缓存块生命周期。",
+      "url": "https://github.com/vllm-project/vllm/pull/65831",
+      "createdAt": "2026-11-05T06:36:06Z",
+      "updatedAt": "2026-11-06T05:53:20Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "d75039e7cbd8da240fd12c5a3b5ad1823e407cf0",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle"
+      ],
+      "rationale": "直接优化真实 KV 块分配、缓存计数和生命周期状态更新，主问题是块管理开销。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-05",
+      "sourceVersion": "d75039e7cbd8da240fd12c5a3b5ad1823e407cf0",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-06",
+          "version": "7e54975a9bde0080b268ce5c6aadb113ad981d9f5b793cf2740e8a26908a781f",
+          "section": "V2"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#66375",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "分批接收和应用稀疏 NCCL 权重更新",
+      "originalTitle": "[Perf][Bugfix][RL] Fix sparse NCCL update OOM and improve performance",
+      "summary": "按有限批次发送并应用模型权重补丁，约束接收端暂存量并合并广播与分配。主要操作对象是模型权重补丁。",
+      "url": "https://github.com/vllm-project/vllm/pull/66375",
+      "createdAt": "2026-11-08T08:07:31Z",
+      "updatedAt": "2026-11-14T12:46:51Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "9767ff92c66435e7e10f891540b35e5f751105dc",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "KV 缓存只影响默认剩余显存背景，实际改动为权重传输、补丁验证及模型更新，未改变 KV 机制。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-08",
+      "sourceVersion": "9767ff92c66435e7e10f891540b35e5f751105dc",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-08",
+          "version": "2616cb83148e62c716f44d2856b3edec4fafe0b364e75af11e877888b38b98c6",
+          "section": "V2"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#66583",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "在后台准备 CPU KV 卸载层",
+      "originalTitle": "[KV Offload] Set the CPU tier up in the background under async_init",
+      "summary": "启用 async_init 时，工作进程先映射 CPU 区域，后台逐步预触页和锁页，所有 worker 就绪后再启用卸载。失败时保留服务并维持卸载关闭。",
+      "url": "https://github.com/vllm-project/vllm/pull/66583",
+      "createdAt": "2026-11-09T13:42:29Z",
+      "updatedAt": "2026-11-16T19:10:36Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "9c8968611a7692ae89dd3678ae31c3927c6cf1ac",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "lifecycle"
+      ],
+      "rationale": "直接改变 CPU KV 分层存储的初始化、就绪门控和启用时机，属于放置分层与其生命周期管理。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-09",
+      "sourceVersion": "9c8968611a7692ae89dd3678ae31c3927c6cf1ac",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-09",
+          "version": "9de45ccb271e6f43aada611152a196fc9edb7c4c86d50c7b7471263c322bf0f1",
+          "section": "V3"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#66764",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "融合 Muse Spark 草稿归一化与 Markov 采样",
+      "originalTitle": "[Perf][Muse Spark] Fuse DSpark draft norms and Markov sampling on NVIDIA",
+      "summary": "在 NVIDIA SM100 上融合 DSpark 草稿的归一化与 Markov 采样尾部，并保留自适应验证所需输出。FP8 KV 配置中的上下文 KV store 仍沿用未融合路径。",
+      "url": "https://github.com/vllm-project/vllm/pull/66764",
+      "createdAt": "2026-11-10T08:28:47Z",
+      "updatedAt": "2026-11-11T03:23:32Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "86c50e7ef21ac42fa87af292d30cab4ada3b592d",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "原说明明确 FP8 上下文 K/V store 未融合，主要改动为草稿算术与采样。KV 精度和前缀命中仅为验证配置。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-10",
+      "sourceVersion": "86c50e7ef21ac42fa87af292d30cab4ada3b592d",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-10",
+          "version": "8ac42e979894c56fa5bb683356e45b94f85253171975ceae6c36849de5aea5e1",
+          "section": "V19"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#66970",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "以整行区域传输 GQA 的跨层 KV 块",
+      "originalTitle": "[KV Connector][NIXL] Opt-in whole-row regions for GQA caches under block-outermost layouts",
+      "summary": "在受支持的 BLHNC 布局中，可选地把一个块的各层页注册成整行区域，使相邻块能够合并传输描述。接收端检查两端行几何与 KV 头分片的一致性。",
+      "url": "https://github.com/vllm-project/vllm/pull/66970",
+      "createdAt": "2026-11-11T06:08:37Z",
+      "updatedAt": "2026-11-14T04:55:32Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "0b49f6a683dcd6e2ca2a0e970114e609201b68ce",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "representation"
+      ],
+      "rationale": "直接改变 NIXL 眼中的 KV 区域粒度与连续布局匹配，主要减少传输描述，同时关联缓存物理表示的交接约束。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-11",
+      "sourceVersion": "0b49f6a683dcd6e2ca2a0e970114e609201b68ce",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-11",
+          "version": "52ea07cd92494d40097ea0308f73407ac1a6998ab6b574700001cb50d68276ad",
+          "section": "V11"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19264",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "恢复 Gemma 4 V2 的共享 KV 物理池容量",
+      "originalTitle": "[BugFix][Worker] Restore Gemma 4 KV cache capacity on Model Runner V2",
+      "summary": "对受支持的 Gemma 4 稠密全注意力与滑动窗口组，按相等物理页大小重建共享分配，并同步去除私有组分配引起的预算折扣。不同活跃块仍保持独立的 K/V 存储范围。",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19264",
+      "createdAt": "2026-10-20T07:41:07Z",
+      "updatedAt": "2026-10-22T07:38:13Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "58b55edfbfdc3c7ce10388198354a587a8595bbd",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "representation"
+      ],
+      "rationale": "直接修复共享物理页布局和缓存容量规划之间的不一致，涉及容量预算与缓存表示。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-20",
+      "sourceVersion": "58b55edfbfdc3c7ce10388198354a587a8595bbd",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-22",
+          "version": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
+          "section": "A2"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19708",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "用会话亲和路由保留 rank 本地前缀复用机会",
+      "originalTitle": "[Feature][Proxy] Add opt-in prefill session affinity",
+      "summary": "可选地以会话身份和模型名对 Prefill 端点做 rendezvous hashing，让后续轮次回到同一具体端点。移除端点时只重映射受影响会话，命中仍取决于缓存是否保留。",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19708",
+      "createdAt": "2026-10-24T09:26:23Z",
+      "updatedAt": "2026-10-30T02:23:26Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "6c021269699820d87238a499af9a928038830319",
+      "decision": "included",
+      "primaryTopic": "scheduling",
+      "topics": [
+        "scheduling",
+        "reuse"
+      ],
+      "rationale": "路由策略明确服务于 rank 本地前缀缓存复用，直接改变缓存感知的请求放置与准入去向。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-24",
+      "sourceVersion": "6c021269699820d87238a499af9a928038830319",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-24",
+          "version": "73d0302412d8b535dcc4acbf829bfa298830d4509d3a357b69fb7cc87c57b778",
+          "section": "A3"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19755",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "跳过本地 HBM 已命中前缀的外部缓存探测",
+      "originalTitle": "[BugFix][KV Pool] Skip probes for HBM-cached prefixes",
+      "summary": "把本地命中长度传到混合缓存协调器，在生成外部查询键前过滤完整的本地组块。保留部分组块、层复用与卸载尾部的既有探测。",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19755",
+      "createdAt": "2026-10-25T13:29:03Z",
+      "updatedAt": "2026-10-26T10:51:57Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "97da698f6b4f13802bb14c97a9d42273a8cda1f8",
+      "decision": "included",
+      "primaryTopic": "reuse",
+      "topics": [
+        "reuse",
+        "movement"
+      ],
+      "rationale": "直接改变本地与外部分层缓存命中查询的范围，避免不必要的 SSD rewarm 副作用，关联缓存匹配和分层存储访问。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-25",
+      "sourceVersion": "97da698f6b4f13802bb14c97a9d42273a8cda1f8",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-25",
+          "version": "3739e53f68de43a8d953e0cd52eaf2f16f3802e97f860a85699f8976f13cfc5d",
+          "section": "A2"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19875",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "在 A2 与 A3 优先选择融合 GDN Prefill 算子",
+      "originalTitle": "[Performance] Prefer torch_npu chunk GDN prefill on A2/A3",
+      "summary": "满足数据类型与形状约束时优先调用 torch_npu 的融合 GDN 算子，并把序列长度等元数据提前共享。其余情况使用 FLA 或 Triton 回退路径。",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19875",
+      "createdAt": "2026-10-26T14:47:03Z",
+      "updatedAt": "2026-11-12T03:32:29Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "d4c8c2e440f0ee7f1e653aa174524c3b594f6517",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "主要改动为 GDN 计算算子的选择及逐层计算元数据复用，未改变可复用混合状态的缓存、检查点、存储或恢复机制。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-26",
+      "sourceVersion": "d4c8c2e440f0ee7f1e653aa174524c3b594f6517",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-26",
+          "version": "424fe883df6a9e2644172ac227f39ed36d105343925065004b2ee8e45cdde8ca",
+          "section": "A5"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#20370",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "将 PLE 嵌入权重卸载到主机并做 ETP 分片",
+      "originalTitle": "[Feature] Add Qwen3.8-Next PLE host offload and ETP sharding",
+      "summary": "把 Qwen3.8-Next 的 BF16 PLE/ngram 嵌入表保存在注册主机内存，并由 NPU 按索引读取。ETP 对嵌入权重表做跨 rank 分片。",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20370",
+      "createdAt": "2026-10-30T10:17:38Z",
+      "updatedAt": "2026-10-31T06:37:21Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "b5a8a181c68da6ad7e6eb910a1dc0560f3d4b166",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "卸载对象是模型嵌入权重表，KV 容量增加是权重显存释放的结果，属于权重放置与计算输入访问。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-30",
+      "sourceVersion": "b5a8a181c68da6ad7e6eb910a1dc0560f3d4b166",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-30",
+          "version": "c86f9eaed5573862f4741fc2b7e37f1a307f33e3252b2133a5b6c7e1277738ab",
+          "section": "A6"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#20755",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "跨 TP 恢复 Ascend 混合模型的解码历史检查点",
+      "originalTitle": "[Feature][KVTransfer] Enable cross-TP hybrid decode-history reuse on Ascend",
+      "summary": "通过原生缓存视图与 Mooncake Store 在不同 TP 配置间保存、传输并恢复注意力 KV 和同一边界的混合状态。SDK 完成结果、ACK 和块保留共同约束缓存可用性与释放。",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20755",
+      "createdAt": "2026-11-03T07:44:02Z",
+      "updatedAt": "2026-11-17T06:59:46Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "5ffae9a568bf1b9c0dd245f812916a4e5ea93317",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "reuse",
+        "representation",
+        "lifecycle"
+      ],
+      "rationale": "主问题是跨 TP 的 KV/混合状态交接，实际机制同时包括缓存视图映射、检查点一致性及 DMA 未确定时的块生命周期保护。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-03",
+      "sourceVersion": "5ffae9a568bf1b9c0dd245f812916a4e5ea93317",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-03",
+          "version": "c54f3d816234fdbd6c2eee33d5429efa93239dd93adfdcad56557dcb0e0fa59c",
+          "section": "A4"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#56192",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "为 KV 对象存储层接入 RDMA 后端参数",
+      "originalTitle": "[Feature][KV Offload] Add RDMA-capable OBJ tier (#55855)",
+      "summary": "向 NIXL OBJ 层传递加速引擎参数，并按注册上限分段注册 CPU 内存池。实际 RDMA 传输依赖相应厂商插件和类型配置，通用 S3-RDMA 引擎不在所述 NIXL 1.5.2 范围内。",
+      "url": "https://github.com/vllm-project/vllm/pull/56192",
+      "createdAt": "2026-09-10T04:11:25Z",
+      "updatedAt": "2026-11-09T10:45:23Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "5185d96702e04a3771cbcbbde6a445a879a8908e",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement"
+      ],
+      "rationale": "直接改变 KV 卸载对象存储层的传输后端与主机缓冲区注册，归入分层放置和数据传输。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-09-10",
+      "sourceVersion": "5185d96702e04a3771cbcbbde6a445a879a8908e",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-09",
+          "version": "9de45ccb271e6f43aada611152a196fc9edb7c4c86d50c7b7471263c322bf0f1",
+          "section": "V30"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#59774",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "为 AMD GPU 接入 Octave 低比特 KV 缓存",
+      "originalTitle": "[ROCm] Octave KV (`ROCM_OCTAVE`): native 3-bit KV cache backend for AMD GPUs",
+      "summary": "增加使用原生 HIP 内核存取 3/4 位 KV 的 ROCM_OCTAVE 后端，并配套缓存类型、布局和注意力路径。支持范围受 gfx1100/gfx942、头维度与模型配置约束。",
+      "url": "https://github.com/vllm-project/vllm/pull/59774",
+      "createdAt": "2026-10-02T12:31:52Z",
+      "updatedAt": "2026-11-11T20:00:50Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "678cc6e19d26fad082649268969d9eb942897574",
+      "decision": "included",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation"
+      ],
+      "rationale": "核心改动是 KV 编码、低比特物理表示及对应读写内核，直接属于缓存表示与压缩。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-02",
+      "sourceVersion": "678cc6e19d26fad082649268969d9eb942897574",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-26",
+          "version": "424fe883df6a9e2644172ac227f39ed36d105343925065004b2ee8e45cdde8ca",
+          "section": "V5"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#60618",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "融合稀疏索引打分与 Top-k 以减少临时 logits",
+      "originalTitle": "[Perf][Kernel] Single-launch fused scoring+top-k kernel for sparse-indexer prefill, without materializing logits",
+      "summary": "用单次持久 CUDA 内核完成稀疏索引器 prefill 的打分和 Top-k，避免物化完整的行乘键 logits 矩阵。主要减少临时工作区和算子启动。",
+      "url": "https://github.com/vllm-project/vllm/pull/60618",
+      "createdAt": "2026-10-08T11:12:59Z",
+      "updatedAt": "2026-11-03T17:04:26Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "a61a51741fd96487d43464785c88b9c6df5e5d1b",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "PR 说明与索引器接入补丁表明主要机制是打分/选择融合和临时 logits 管理，未改 KV 表示、留存、匹配或传输，按本专题范围排除。",
+      "reviewLevel": "pr-code",
+      "codeSnapshot": "batch-3-sources/vllm-PR60618-patch.json",
+      "sourceDay": "2026-10-08",
+      "sourceVersion": "a61a51741fd96487d43464785c88b9c6df5e5d1b",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-01",
+          "version": "3bbe73eb44443fec8f8c612d5b876cf1067d107fbd6cd84ef9b533068f08095b",
+          "section": "V5"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63306",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "在请求生命周期节点冻结 Python GC 堆",
+      "originalTitle": "[Perf][Core] Freeze GC after scheduling new requests",
+      "summary": "在接收或调度新请求及存在等待请求时冻结 Python 对象，使后续循环垃圾回收减少扫描长期存活的 token 和块引用列表。P/D 等待远端 KV 是其覆盖的引擎场景之一。",
+      "url": "https://github.com/vllm-project/vllm/pull/63306",
+      "createdAt": "2026-10-23T08:39:43Z",
+      "updatedAt": "2026-11-04T06:36:35Z",
+      "state": "closed",
+      "merged": false,
+      "draft": true,
+      "headSha": "6d7c51cc2b64ff6e3f8fdfe2b773c03cb9a74b8a",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "实际改变 Python GC 扫描策略，未改变 KV 块的分配、回收、缓存内容或传输协议，KV 只是造成对象规模的背景。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-23",
+      "sourceVersion": "6d7c51cc2b64ff6e3f8fdfe2b773c03cb9a74b8a",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-23",
+          "version": "9250ef7b7a8db0bde3ca85388a2e3de2ace9c07661ea5cb176bbd0e4acc080d0",
+          "section": "V8"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63431",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "在执行图显存估算中跳过重复验证成本测量",
+      "originalTitle": "[Bugfix][MRV2] Skip adaptive verification cost profiling in the CUDA graph memory-profiling pass",
+      "summary": "CUDA 图的显存估算会使用临时 KV 缓存重复调用捕获，PR 在 profile_only 模式下跳过最终会被丢弃的自适应验证成本曲线测量。",
+      "url": "https://github.com/vllm-project/vllm/pull/63431",
+      "createdAt": "2026-10-24T00:38:16Z",
+      "updatedAt": "2026-10-26T17:59:25Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "c873ee2e92c73e51f877ad6cdc1d93dee8f662af",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "优化对象为推测验证的启动测量流程，PR 明确 KV 缓存大小保持，缺乏独立 KV 管理或表示改动。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-24",
+      "sourceVersion": "c873ee2e92c73e51f877ad6cdc1d93dee8f662af",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-27",
+          "version": "dff5d350da31c9699c00b4471feb9ebec2297215412279a3138fb368c97ddefd",
+          "section": "V1"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63454",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "直接从 int32 token 缓冲区计算前缀缓存哈希",
+      "originalTitle": "[Perf][Core] Add sha256_int32 prefix-cache hash over int32 token buffers",
+      "summary": "新增可选 sha256_int32 算法，原地读取请求 token 缓冲区并组合父哈希及附加身份，减少逐 token 序列化。共享 KV 存储的实例需要使用一致哈希算法。",
+      "url": "https://github.com/vllm-project/vllm/pull/63454",
+      "createdAt": "2026-10-24T05:55:36Z",
+      "updatedAt": "2026-10-25T03:44:53Z",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "b642886168892df5500209cfe48032a7bbb6d43a",
+      "decision": "included",
+      "primaryTopic": "reuse",
+      "topics": [
+        "reuse"
+      ],
+      "rationale": "直接改变前缀缓存的身份计算和匹配路径，属于复用与匹配；int32 是 token 输入表示，未据此归入 KV 量化。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-24",
+      "sourceVersion": "b642886168892df5500209cfe48032a7bbb6d43a",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-24",
+          "version": "73d0302412d8b535dcc4acbf829bfa298830d4509d3a357b69fb7cc87c57b778",
+          "section": "V2"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63527",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "为 Muse Spark 专用解码补齐 FP8 KV 读写",
+      "originalTitle": "[ROCm][Perf][Muse Spark] fp8 KV cache for the specialized decode (draft, stacked on #63246)",
+      "summary": "为专用解码路径增加 e4m3 KV 类型检查、量化写入与带缩放读取，使其可与 FP8 缓存配置共同使用。e5m2 仍被拒绝，部分验证和性能矩阵尚待完成。",
+      "url": "https://github.com/vllm-project/vllm/pull/63527",
+      "createdAt": "2026-10-25T01:06:42Z",
+      "updatedAt": "2026-10-26T07:39:11Z",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "c16b3756e0e4fff00d0ec8f21fad7edea313b4b5",
+      "decision": "included",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation"
+      ],
+      "rationale": "直接实现 KV 量化缓存的读写和类型契约，归入表示与压缩。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-25",
+      "sourceVersion": "c16b3756e0e4fff00d0ec8f21fad7edea313b4b5",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-25",
+          "version": "3739e53f68de43a8d953e0cd52eaf2f16f3802e97f860a85699f8976f13cfc5d",
+          "section": "V14"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63746",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "扩大查询分块以复用同批 KV 加载",
+      "originalTitle": "[Perf][Attention] Larger prefill Q tile for Triton unified attention on sm80/sm89",
+      "summary": "在受支持的 sm80/sm89 Prefill 场景扩大查询 tile，让一次读取的 KV 服务更多查询位置，减少重复读取。形状、掩码、数值类型和后端存在明确门槛。",
+      "url": "https://github.com/vllm-project/vllm/pull/63746",
+      "createdAt": "2026-10-26T12:41:00Z",
+      "updatedAt": "2026-11-07T07:09:48Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "6edca6c98bd8371233a620f57e19f34567b840a1",
+      "decision": "included",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation"
+      ],
+      "rationale": "原文明示机制是减少重复 KV tile 读取，按缓存访问层面纳入 representation。这里复用的是批内加载，未据此标为跨请求前缀复用。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-26",
+      "sourceVersion": "6edca6c98bd8371233a620f57e19f34567b840a1",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-26",
+          "version": "424fe883df6a9e2644172ac227f39ed36d105343925065004b2ee8e45cdde8ca",
+          "section": "V4"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#63851",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "按共同前缀边界协调混合缓存淘汰",
+      "originalTitle": "[Bugfix][Prefix Caching] Keep hybrid evictions on a prefix every KV cache group can hit",
+      "summary": "请求结束后按 token 位置跨 KV 组安排释放顺序，让尾部先被淘汰，并去掉任何组都无法继续恢复的尾块哈希。即时和延迟释放路径采用一致次序。",
+      "url": "https://github.com/vllm-project/vllm/pull/63851",
+      "createdAt": "2026-10-26T23:10:55Z",
+      "updatedAt": "2026-11-13T09:09:48Z",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "c48be694b52c1ddff5ead90afe747cb338044b24",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "reuse"
+      ],
+      "rationale": "直接修改混合 KV 块释放、缓存成员资格和淘汰顺序，目标是保住各组共同可命中的前缀，关联生命周期与复用。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-27",
+      "sourceVersion": "c48be694b52c1ddff5ead90afe747cb338044b24",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-27",
+          "version": "dff5d350da31c9699c00b4471feb9ebec2297215412279a3138fb368c97ddefd",
+          "section": "V15"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#64397",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "按模型层归属从多个 Prefill 流水段拉取 KV",
+      "originalTitle": "[KV Connector][NIXL] Pull KV from pipeline-parallel prefill stages, with the hybrid KV cache manager",
+      "summary": "让 PP=1 的 Decode 端通过 NIXL pull 与各 Prefill 流水段握手，按实际持有的层和缓存组配对区域并分别读取。支持受约束的注意力混合布局。",
+      "url": "https://github.com/vllm-project/vllm/pull/64397",
+      "createdAt": "2026-10-29T02:07:59Z",
+      "updatedAt": "2026-11-03T08:37:47Z",
+      "state": "closed",
+      "merged": false,
+      "draft": false,
+      "headSha": "1d8b1f52f31dc25ccf54803812bfe086b89681b2",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement"
+      ],
+      "rationale": "核心为跨实例、跨流水段 KV 地址配对与传输拓扑支持，属于数据交接。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-29",
+      "sourceVersion": "1d8b1f52f31dc25ccf54803812bfe086b89681b2",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-29",
+          "version": "565a8ea2166d849b6bfa1178e8612e9747c3d51206f21b5f0156cb6b83d07b85",
+          "section": "V9"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#64612",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "允许 DFlash 草稿沿用 FP8 KV 配置",
+      "originalTitle": "[GLM5.3 Perf] Switching dlfash fp8 kv cache draft model, 2.85 GB memory saved per rank",
+      "summary": "将 dflash 加入草稿缓存类型覆盖逻辑的例外，避免把其未显式指定的 KV 类型强制改回 auto，使其沿用相应模型路径的缓存配置。",
+      "url": "https://github.com/vllm-project/vllm/pull/64612",
+      "createdAt": "2026-10-29T23:16:22Z",
+      "updatedAt": "2026-10-30T15:22:14Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "a9c94596e848d85df29205f031f7b683e229ed7e",
+      "decision": "included",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation"
+      ],
+      "rationale": "已核对 config.py 的单行补丁，直接改变草稿 KV dtype 的选择规则，属于缓存表示配置。",
+      "reviewLevel": "pr-code",
+      "codeSnapshot": "batch-3-sources/vllm-PR64612-patch.json",
+      "sourceDay": "2026-10-30",
+      "sourceVersion": "a9c94596e848d85df29205f031f7b683e229ed7e",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-30",
+          "version": "c86f9eaed5573862f4741fc2b7e37f1a307f33e3252b2133a5b6c7e1277738ab",
+          "section": "V10"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#64841",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "减少分块 prompt-logprobs 的临时输出内存",
+      "originalTitle": "[ModelRunner V2] Reduce peak memory of chunked prompt logprobs",
+      "summary": "把分块 logprobs 结果直接写入最终预分配输出，并以 int32 返回 token ID，减少输出拼接时的重复持有。其动机包含给 KV 预算留出更多显存。",
+      "url": "https://github.com/vllm-project/vllm/pull/64841",
+      "createdAt": "2026-10-31T01:22:29Z",
+      "updatedAt": "2026-10-31T18:59:01Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "9ae59d18e1d310a1215873dc85e7e2b3007f38e4",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "改动对象是 logits/logprobs 的临时结果与输出表示，KV 可用容量变化是间接后果，未改变 KV 缓存机制。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-31",
+      "sourceVersion": "9ae59d18e1d310a1215873dc85e7e2b3007f38e4",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-31",
+          "version": "3577813b3ff83b548b215853ae8ed3fa21495ee4c8c7a10ae7b006281029456f",
+          "section": "V6"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#65217",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "让 Prefill 端仅生成草稿上下文 KV",
+      "originalTitle": "[Spec Decode][MRV2] Add prefill_context_kv_only for P/D prefill instances",
+      "summary": "增加显式 prefill_context_kv_only 配置，使 P/D Prefill 端停止草稿调度、lookahead KV 预留和草稿图捕获，同时保持 Decode 端依赖的上下文 KV 与状态尺寸。",
+      "url": "https://github.com/vllm-project/vllm/pull/65217",
+      "createdAt": "2026-11-02T19:14:57Z",
+      "updatedAt": "2026-11-10T17:01:37Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "5018312c8e5f306dff276fc14d5f1b1c607d6eed",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "movement"
+      ],
+      "rationale": "直接改变 P 端所需缓存的预留与生成范围，并维持交付 D 端的上下文 KV 契约，关联容量生命周期和 P/D 交接。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-03",
+      "sourceVersion": "5018312c8e5f306dff276fc14d5f1b1c607d6eed",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-11",
+          "version": "52ea07cd92494d40097ea0308f73407ac1a6998ab6b574700001cb50d68276ad",
+          "section": "V17"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#65888",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "把 HiSparse 导入缓存批量提升到设备驻留页",
+      "originalTitle": "[HiSparse] Alternative to #55398: promote P/D imports into GPU pages without NIXL changes",
+      "summary": "P/D 导入先进入原有主机层。导入完成且设备池空闲块高于转换水位时，再按步批量复制到新的 GPU 驻留页，以沿用 NIXL 网络传输路径。",
+      "url": "https://github.com/vllm-project/vllm/pull/65888",
+      "createdAt": "2026-11-05T10:09:31Z",
+      "updatedAt": "2026-11-09T22:39:17Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "d1fba6bb75195a5b2d9c3a324a4088cf875cb1e0",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "lifecycle"
+      ],
+      "rationale": "直接管理主机到设备的 KV 回载与驻留页转换，并依照空闲块水位决定提升，关联传输和容量管理。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-05",
+      "sourceVersion": "d1fba6bb75195a5b2d9c3a324a4088cf875cb1e0",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-10",
+          "version": "8ac42e979894c56fa5bb683356e45b94f85253171975ceae6c36849de5aea5e1",
+          "section": "V11"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#66549",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "把 ShardQ token 分片扩展到归一化和 A 投影",
+      "originalTitle": "[Perf][GLM-5.3] Extend ShardQ token sharding to norms and A projections",
+      "summary": "让残差、归一化及复制的 A 投影保持 token 分片，在已有 TP 注意力前汇集较紧凑的投影结果。主要减少重复计算与激活通信。",
+      "url": "https://github.com/vllm-project/vllm/pull/66549",
+      "createdAt": "2026-11-09T11:08:11Z",
+      "updatedAt": "2026-11-11T11:50:16Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "f364d0440c0b2e4b20f5d7b10f33217a1618790d",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "PR 明确每 token KV 存储与缓存所有权保持。优化对象为激活分片、归一化/投影和通信负载，缓存容量改善为图内存减少的间接效果。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-09",
+      "sourceVersion": "f364d0440c0b2e4b20f5d7b10f33217a1618790d",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-09",
+          "version": "9de45ccb271e6f43aada611152a196fc9edb7c4c86d50c7b7471263c322bf0f1",
+          "section": "V10"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#66595",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "将混合状态的已接受 token 提交延后至下一次验证",
+      "originalTitle": "[KDA][Spec Decode] RecoverSSM: replay the accepted tokens in the next verify",
+      "summary": "RecoverSSM 将待提交计数保存在请求槽位，下次验证先回放已接受 token；跨缓存块边界或请求离开运行器时提前折入检查点，保证可复用块保存已提交状态。",
+      "url": "https://github.com/vllm-project/vllm/pull/66595",
+      "createdAt": "2026-11-09T15:05:39Z",
+      "updatedAt": "2026-11-13T05:09:25Z",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "cdced7fb9741c8eca9661c56883ea9828b90fcd3",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "reuse"
+      ],
+      "rationale": "直接改变与 KV 前缀复用协调的混合状态提交、请求离开时清理及块边界检查点生命周期，关联状态复用正确性。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-09",
+      "sourceVersion": "cdced7fb9741c8eca9661c56883ea9828b90fcd3",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-09",
+          "version": "9de45ccb271e6f43aada611152a196fc9edb7c4c86d50c7b7471263c322bf0f1",
+          "section": "V25"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#66795",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "修复 NIXL push 提交阻塞与在途 KV 块过早释放",
+      "originalTitle": "[Bugfix][NIXL] Push: stop WRITE submission stalls and early block release; lock the NIXL agent",
+      "summary": "调整 push 线程池配置、启用 NIXL agent 锁，并在 WRITE 提交或传输在途时保留租约及请求块。当前描述说明 pull 断连修复已另拆为其他 PR。",
+      "url": "https://github.com/vllm-project/vllm/pull/66795",
+      "createdAt": "2026-11-10T10:59:08Z",
+      "updatedAt": "2026-11-17T05:50:51Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "e098ca96bdbb47d060dec73f862c6a632295d39f",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "lifecycle"
+      ],
+      "rationale": "直接修改 KV 传输的线程同步与在途块释放条件，同时属于传输正确性和缓存块生命周期。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-10",
+      "sourceVersion": "e098ca96bdbb47d060dec73f862c6a632295d39f",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-10",
+          "version": "8ac42e979894c56fa5bb683356e45b94f85253171975ceae6c36849de5aea5e1",
+          "section": "V12"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#67048",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "用共同分片布局支持互不整除 TP 的 KV 共享",
+      "originalTitle": "[KV Connector] Support KV Sharing across Non-Divisible Tensor Parallel Sizes",
+      "summary": "把两端 TP 大小同时纳入 Store TP 的最小公倍数计算，使 TP4/TP3 等实例在相容格式和命名空间下共享缓存，并支持前缀复用和 Decode 写回。",
+      "url": "https://github.com/vllm-project/vllm/pull/67048",
+      "createdAt": "2026-11-11T15:21:18Z",
+      "updatedAt": "2026-11-13T05:03:49Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "8dd88cba0add79fdb9f33c6f9a5c84d61f230cd2",
+      "decision": "included",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "representation",
+        "reuse"
+      ],
+      "rationale": "直接扩展跨实例 KV 分片映射和共同 Store 布局，服务不同 TP 配置下的缓存共享与前缀命中，关联传输、布局和复用。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-11",
+      "sourceVersion": "8dd88cba0add79fdb9f33c6f9a5c84d61f230cd2",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-11",
+          "version": "52ea07cd92494d40097ea0308f73407ac1a6998ab6b574700001cb50d68276ad",
+          "section": "V12"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19457",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "保留 GLM-Next 共享池的物理 KV 容量预算",
+      "originalTitle": "[BugFix] Preserve GLM-Next shared-pool KV budget",
+      "summary": "把已有共享池预算豁免扩展到 glm5_next 缓存规格，避免已按物理共享规划的容量再次受到逐层折扣，修复 MRV1 长上下文启动容量不足。",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19457",
+      "createdAt": "2026-10-22T07:29:36Z",
+      "updatedAt": "2026-10-22T13:16:54Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "921f111de01683d6446c3b0ee7005e8c0963326d",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle"
+      ],
+      "rationale": "直接修正 KV 物理容量预算与准入检查，缓存几何和 SFA 分类保持，归入容量管理。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-22",
+      "sourceVersion": "921f111de01683d6446c3b0ee7005e8c0963326d",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-22",
+          "version": "369171ed0c326917e92af1d652d49a23936f8bfc4cb4b70e4c57c3e92dd67c9b",
+          "section": "A3"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19714",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "把细粒度前缀恢复扩展到稀疏混合缓存与 Store",
+      "originalTitle": "[Feature][KV Cache] Extend fine-grained prefix reuse to sparse hybrid caches",
+      "summary": "让支持的缓存组在物理页内部恢复共同检查点，并通过 AscendStore 保存和装载实际状态边界。异步保存保留源块直到全部 worker 完成，且恢复依赖匹配的核心与连接器版本。",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19714",
+      "createdAt": "2026-10-24T10:18:26Z",
+      "updatedAt": "2026-11-05T07:59:07Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "4c97a8171388b1819979e7b980087467a9251437",
+      "decision": "included",
+      "primaryTopic": "reuse",
+      "topics": [
+        "reuse",
+        "movement",
+        "lifecycle"
+      ],
+      "rationale": "核心为细粒度前缀匹配与状态恢复，同时直接调整外部 Store 的保存/装载和源块保留生命周期。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-24",
+      "sourceVersion": "4c97a8171388b1819979e7b980087467a9251437",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-24",
+          "version": "73d0302412d8b535dcc4acbf829bfa298830d4509d3a357b69fb7cc87c57b778",
+          "section": "A4"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19868",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "在 Ascend 接入共享动态流水线 Prefill 运行时",
+      "originalTitle": "[Feature][MRV2] Integrate shared dynamic PP prefill runtime on Ascend",
+      "summary": "加载相邻层副本并按批次改变流水线层边界，利用设备反馈和有限激活快照调整两段 Prefill 的执行分工。该初始范围不支持前缀缓存或 KV 连接器。",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19868",
+      "createdAt": "2026-10-26T12:30:20Z",
+      "updatedAt": "2026-11-12T03:32:27Z",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "bd9224271864bea497e03f8c81493eac030b86f8",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "核心为模型层负载与激活流水线调度，PR 明确历史 KV 复制未实现且前缀缓存/连接器不支持，KV 只作为预算背景。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-26",
+      "sourceVersion": "bd9224271864bea497e03f8c81493eac030b86f8",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-26",
+          "version": "424fe883df6a9e2644172ac227f39ed36d105343925065004b2ee8e45cdde8ca",
+          "section": "A6"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19884",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "根据本地 KV 命中把会话追加 Prefill 路由到 Decode",
+      "originalTitle": "[Feature] Decoder Append-Prefill for Agentic Scenario Prefiller Offloading",
+      "summary": "代理按会话绑定 Decode 实例和 DP rank，调度器检查实际本地前缀，命中时在 Decode 端补算新增输入。无可用前缀时在输出前退回常规 Prefill 和 P/D 路径。",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19884",
+      "createdAt": "2026-10-27T01:28:19Z",
+      "updatedAt": "2026-11-17T08:48:43Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "003989ac5f0e54847020d43a36a4a439fbfdddf3",
+      "decision": "included",
+      "primaryTopic": "scheduling",
+      "topics": [
+        "scheduling",
+        "reuse"
+      ],
+      "rationale": "使用真实本地 KV 命中决定计算放置与准入，直接关联缓存感知路由和会话前缀复用。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-10-27",
+      "sourceVersion": "003989ac5f0e54847020d43a36a4a439fbfdddf3",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-27",
+          "version": "dff5d350da31c9699c00b4471feb9ebec2297215412279a3138fb368c97ddefd",
+          "section": "A2"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#20474",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "按缓存边界分流优化混合状态检查点提交",
+      "originalTitle": "[Performance] Optimize KDA RecoverSSM aligned state commit",
+      "summary": "把需要边界快照与普通提交的请求分到不同设备路径，并按受支持形状选择普通或分组头状态写回内核。优化与 KV 前缀复用协调的 RecoverSSM 提交访问，保留边界状态语义。",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20474",
+      "createdAt": "2026-10-31T09:08:12Z",
+      "updatedAt": "2026-11-01T07:12:22Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "d294bbc2f331d31ac1daabdde59719139b4178b1",
+      "decision": "included",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation",
+        "reuse"
+      ],
+      "rationale": "已核对提交计划与内核补丁，改动直接作用于可恢复混合检查点的读写访问路径，限定在与 KV 前缀复用协调的状态提交层面。",
+      "reviewLevel": "pr-code",
+      "codeSnapshot": "batch-3-sources/vllm-ascend-PR20474-patch.json",
+      "sourceDay": "2026-10-31",
+      "sourceVersion": "d294bbc2f331d31ac1daabdde59719139b4178b1",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-10-31",
+          "version": "3577813b3ff83b548b215853ae8ed3fa21495ee4c8c7a10ae7b006281029456f",
+          "section": "A11"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#20873",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "预接 chunk KDA 的内核内 Q/K 归一化开关",
+      "originalTitle": "[Performance] Prepare in-kernel Q/K L2 normalization support for chunk KDA",
+      "summary": "为共享包装层预接 Q/K L2 归一化能力，GLM 与 Kimi 当前仍默认使用外部归一化，后续依赖包整合后再启用新路径。",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20873",
+      "createdAt": "2026-11-04T04:01:34Z",
+      "updatedAt": "2026-11-17T06:28:36Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "1b31324a47285a924a19dc87e6b6004f5c50cd3b",
+      "decision": "excluded",
+      "primaryTopic": null,
+      "topics": [],
+      "rationale": "主要改动是归一化算子接口与计算融合准备，当前 VK 缓存写回契约保持，未引入独立 KV 缓存机制。",
+      "reviewLevel": "pr-description",
+      "sourceDay": "2026-11-04",
+      "sourceVersion": "1b31324a47285a924a19dc87e6b6004f5c50cd3b",
+      "checkedAt": "2026-11-17",
+      "dailyReferences": [
+        {
+          "day": "2026-11-09",
+          "version": "9de45ccb271e6f43aada611152a196fc9edb7c4c86d50c7b7471263c322bf0f1",
+          "section": "A2"
+        }
+      ]
+    },
+    {
+      "id": "github:vllm-project/vllm#66523",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "图捕获前释放预热提交的 KV 物理块",
+      "originalTitle": "[Bugfix] Extensible KV cache: release warmup's blocks before CUDA graph capture",
+      "summary": "可扩展 KV 缓存的预热块挤占 CUDA 图捕获显存；在预热测量后调用 commit(1, shrink=True)，仅保留 null block，图捕获后再由 extend_kv_cache 按测量恢复容量。#66954 的关闭说明明确将该修复交接到本 PR：#66954 已关闭且未合入，本 PR 已合入；两者原先保留的块数不同，不能混作同一实现。",
+      "url": "https://github.com/vllm-project/vllm/pull/66523",
+      "createdAt": "2026-11-09T09:22:44Z",
+      "updatedAt": "2026-11-12T05:30:57Z",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "19dcc38f6befa839e955717d9dd24af6021a4c21",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle"
+      ],
+      "rationale": "直接改变启动阶段 KV 物理块的提交、释放与恢复，属于 KV 容量与生命周期。#66954 正文明确交接到本 PR，分别保留两条 PR 的关闭及合入状态。",
+      "reviewLevel": "pr-description",
+      "dailyReferences": [],
+      "sourceDay": "2026-11-09",
+      "sourceVersion": "19dcc38f6befa839e955717d9dd24af6021a4c21",
+      "checkedAt": "2026-11-17"
+    },
+    {
+      "id": "paper:arxiv:2309.06180v1",
+      "kind": "paper",
+      "title": "PagedAttention：按块管理与共享 KV",
+      "originalTitle": "Efficient Memory Management for Large Language Model Serving with PagedAttention",
+      "summary": "以按需分块分配和块表映射减少 KV 显存碎片，并在序列间共享已有缓存。",
+      "url": "https://arxiv.org/abs/2309.06180v1",
+      "sourceDay": "2023-09-12",
+      "sourceVersion": "arXiv:2309.06180v1",
+      "decision": "included",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "representation",
+        "reuse"
+      ],
+      "rationale": "原论文直接研究 KV 内存分配、逻辑块与物理块映射及跨序列共享，保留生命周期、表示和复用三个主题。",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "pagedattention",
+        "shortName": "PagedAttention",
+        "venue": "SOSP 2023",
+        "year": 2023,
+        "order": 1,
+        "problem": "每个请求的 KV 持续增长，按最大长度预留连续显存会产生碎片，也妨碍不同序列共享。",
+        "method": "把 KV 划成固定大小的块，按需分配物理显存并用块表索引；共享块用引用计数和写时复制保护。",
+        "boundary": "块过小会影响访问效率，块过大又增加碎片并降低共享机会；分页本身不会减少每个 token 的 KV 数值量。",
+        "readingScope": "核对摘要、§4.1–4.4 的分页、分配与共享，以及 §7.1–7.2 的内核开销和块大小条件；未运行作者代码或独立实验。",
+        "sources": [
+          {
+            "label": "原论文 §4 分页与共享",
+            "url": "https://arxiv.org/pdf/2309.06180v1"
+          },
+          {
+            "label": "原论文元数据与版本",
+            "url": "https://arxiv.org/abs/2309.06180v1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2312.07104v2",
+      "kind": "paper",
+      "title": "SGLang：用基数树复用共享前缀",
+      "originalTitle": "SGLang: Efficient Execution of Structured Language Model Programs",
+      "summary": "RadixAttention 自动维护 token 前缀与 KV 的对应关系，并让缓存保留和请求排序共同服务于复用。",
+      "url": "https://arxiv.org/html/2312.07104v2#S3",
+      "sourceDay": "2024-06-06",
+      "sourceVersion": "arXiv:2312.07104v2",
+      "decision": "included",
+      "primaryTopic": "reuse",
+      "topics": [
+        "reuse",
+        "scheduling",
+        "lifecycle"
+      ],
+      "rationale": "提供自动多级前缀复用及缓存与调度协同的系统方法，适合连接 reuse 与 scheduling。",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "sglang",
+        "shortName": "SGLang / RadixAttention",
+        "venue": "NeurIPS 2024",
+        "year": 2024,
+        "order": 2,
+        "problem": "模型程序多次调用或多个请求有相同前缀，结束后丢弃 KV 会导致下一次重复预填充。",
+        "method": "用基数树匹配和保留前缀 KV，优先淘汰无活动请求引用的最久未用叶节点，并让匹配前缀更长的请求先运行。",
+        "boundary": "只直接复用匹配的 token 前缀。论文讨论贪心排序可能造成饥饿，公平调度仍需额外设计。",
+        "readingScope": "沿用既有 arXiv v2；核对摘要、§3 RadixAttention、附录 A.3 的离线条件与在线讨论、§8 的公平性后续工作。未审计当前实现或复现实验。",
+        "sources": [
+          {
+            "label": "原论文相关章节",
+            "url": "https://arxiv.org/html/2312.07104v2#S3"
+          },
+          {
+            "label": "元数据与版本",
+            "url": "https://arxiv.org/abs/2312.07104v2"
+          },
+          {
+            "label": "会议信息",
+            "url": "https://proceedings.neurips.cc/paper_files/paper/2024/hash/724be4472168f31ba1c9ac630f15dec8-Abstract-Conference.html"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2311.04934v2",
+      "originalTitle": "Prompt Cache: Modular Attention Reuse for Low-Latency Inference",
+      "url": "https://arxiv.org/html/2311.04934v2",
+      "sourceDay": "2024-04-25",
+      "sourceVersion": "arXiv:2311.04934v2",
+      "primaryTopic": "reuse",
+      "topics": [
+        "reuse"
+      ],
+      "rationale": "提供超出严格共享前缀的模块化复用方法，可用于比较复用粒度与正确性条件。",
+      "title": "Prompt Cache：按模块预先缓存提示",
+      "summary": "显式定义可复用模块和位置，将模块 KV 预计算；新请求组装已有缓存并补算新增内容。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "prompt-cache",
+        "shortName": "Prompt Cache",
+        "venue": "MLSys 2024",
+        "year": 2024,
+        "order": 3,
+        "problem": "多请求重复出现系统提示、模板和文档，反复预填充会增加首 token 延迟；直接复用还受位置编码约束。",
+        "method": "先用模块描述标明参数槽和位置，再预计算模块 KV；新请求取出缓存，只补算新增文本及参数。",
+        "boundary": "独立编码会屏蔽模块间注意力，语义依赖可能影响质量；可用联合编码缓解，代价是额外缓存。主要降低首 token 延迟。",
+        "readingScope": "核对摘要、§3–4 的模块、位置与缓存推理，以及 §5.3–5.5、§6 的质量、内存和后续工作讨论；未审计代码或复现实验。",
+        "sources": [
+          {
+            "label": "原论文相关章节",
+            "url": "https://arxiv.org/html/2311.04934v2"
+          },
+          {
+            "label": "元数据与版本",
+            "url": "https://arxiv.org/abs/2311.04934v2"
+          },
+          {
+            "label": "会议信息",
+            "url": "https://proceedings.mlsys.org/paper_files/paper/2024/hash/a66caa1703fe34705a4368c3014c1966-Abstract-Conference.html"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2402.05099v2",
+      "originalTitle": "Hydragen: High-Throughput LLM Inference with Shared Prefixes",
+      "url": "https://arxiv.org/html/2402.05099v2",
+      "sourceDay": "2024-05-13",
+      "sourceVersion": "arXiv:2402.05099v2",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation",
+        "reuse"
+      ],
+      "rationale": "直接减少共享前缀 KV 的重复读取，并以跨序列合批提高注意力访问和计算效率，纳入表示/访问及复用主题。",
+      "title": "Hydragen：合批计算共享前缀注意力",
+      "summary": "把共享前缀和独有后缀的注意力分开计算，让多请求合批读取前缀 KV，再归一化合并结果。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "hydragen",
+        "shortName": "Hydragen",
+        "venue": "ES-FoMo-II Workshop at ICML 2024",
+        "year": 2024,
+        "order": 4,
+        "problem": "共享前缀即使只存一份 KV，逐序列计算 attention 仍会重复读取相同数据，并执行低效的矩阵向量乘法。",
+        "method": "把前缀与后缀的注意力分开计算，多序列合批处理共享前缀，再按正确的归一化权重合并结果。",
+        "boundary": "更适合注意力是主要解码瓶颈、共享前缀长、批次大且独占后缀短的场景。论文原型需指定共享位置，在线自动发现与调度尚待集成。",
+        "readingScope": "核对摘要、§2.4、§3.1–3.5 与 §5。Workshop 层级依据作者发表列表；OpenReview 论坛受验证页限制。未审计代码或复现实验。",
+        "sources": [
+          {
+            "label": "原论文相关章节",
+            "url": "https://arxiv.org/html/2402.05099v2"
+          },
+          {
+            "label": "元数据与版本",
+            "url": "https://arxiv.org/abs/2402.05099v2"
+          },
+          {
+            "label": "作者发表列表中的 Workshop 信息",
+            "url": "https://danfu.org/"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2306.14048v3",
+      "title": "H₂O：按重要性选择保留哪些 KV",
+      "originalTitle": "H₂O: Heavy-Hitter Oracle for Efficient Generative Inference of Large Language Models",
+      "url": "https://arxiv.org/abs/2306.14048v3",
+      "sourceDay": "2023-12-18",
+      "sourceVersion": "arXiv:2306.14048v3",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "representation"
+      ],
+      "rationale": "主要问题是有限预算下保留和淘汰哪些 token 的 KV；同时通过稀疏保留减少存储与注意力访问。",
+      "summary": "累计已观察到的注意力分数，在有限预算内保留近期 token 和高分 token，淘汰其余 KV。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "h2o",
+        "shortName": "H₂O",
+        "venue": "NeurIPS 2023",
+        "year": 2023,
+        "order": 5,
+        "problem": "长序列与大批次使 KV 占用持续增长，固定只保留最近状态又可能丢掉后续生成依赖的信息。",
+        "method": "逐步累计已观察到的注意力分数，在预算内共同保留近期 token 与高分的 heavy-hitter token，淘汰其余 KV。",
+        "boundary": "20% 是论文的实验预算配置。淘汰会丢失对应历史，精度表现取决于任务，不能保证任意负载都无损。",
+        "readingScope": "核对摘要、§4.1–4.2 的策略与理论条件、§5 的预算和实验设定及附录 B.2 讨论；未独立实验。",
+        "sources": [
+          {
+            "label": "原论文方法与边界",
+            "url": "https://arxiv.org/html/2306.14048v3"
+          },
+          {
+            "label": "会议正式条目",
+            "url": "https://proceedings.neurips.cc/paper_files/paper/2023/hash/6ceefa7b15572587b78ecfcebb2827f8-Abstract-Conference.html"
+          },
+          {
+            "label": "原论文元数据与版本",
+            "url": "https://arxiv.org/abs/2306.14048v3"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2309.17453v4",
+      "title": "StreamingLLM：保留初始状态与最近窗口",
+      "originalTitle": "Efficient Streaming Language Models with Attention Sinks",
+      "url": "https://arxiv.org/abs/2309.17453v4",
+      "sourceDay": "2024-04-07",
+      "sourceVersion": "arXiv:2309.17453v4",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "representation"
+      ],
+      "rationale": "主要机制决定持续流式生成中保留哪些 KV；固定保留初始 sink 与最近窗口，构成有界的稀疏缓存。",
+      "summary": "保留少量初始 attention sink token 与最近窗口，用有界 KV 持续处理输入流。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "streamingllm",
+        "shortName": "StreamingLLM",
+        "venue": "ICLR 2024",
+        "year": 2024,
+        "order": 6,
+        "problem": "只滑动保留最近 KV 时，初始 attention sink 被移除会破坏注意力分布；保留全部历史又使缓存随流持续增长。",
+        "method": "保留少量序列开头 token 的 KV 与最近窗口，并按缓存中的连续位置处理位置编码，让缓存容量保持有界。",
+        "boundary": "长时间处理输入流不等于记住所有历史；缓存以外的信息不可访问，不适合强依赖远期历史的问答与总结。",
+        "readingScope": "原笔记引用 v3，本次核对 v4 的摘要、§3.1–3.2、§4.1 及附录 A/C 的应用和上下文限制；未独立实验。",
+        "sources": [
+          {
+            "label": "原论文方法与边界",
+            "url": "https://arxiv.org/html/2309.17453v4"
+          },
+          {
+            "label": "会议正式条目",
+            "url": "https://proceedings.iclr.cc/paper_files/paper/2024/hash/5e5fd18f863cbe6d8ae392a93fd271c9-Abstract-Conference.html"
+          },
+          {
+            "label": "原论文元数据与版本",
+            "url": "https://arxiv.org/abs/2309.17453v4"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2402.02750v2",
+      "title": "KIVI：分别量化 Key 与 Value",
+      "originalTitle": "KIVI: A Tuning-Free Asymmetric 2bit Quantization for KV Cache",
+      "url": "https://arxiv.org/abs/2402.02750v2",
+      "sourceDay": "2024-07-25",
+      "sourceVersion": "arXiv:2402.02750v2",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation"
+      ],
+      "rationale": "保留token条目并降低KV数值精度，核心是不同量化维度和低位数据结构，而非按重要性删除token。",
+      "summary": "Key 按通道、Value 按 token 量化，并用全精度残留缓存接收新状态，降低 KV 的存储与读取成本。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "kivi",
+        "shortName": "KIVI",
+        "venue": "ICML 2024",
+        "year": 2024,
+        "order": 7,
+        "problem": "长上下文和大批次的 KV 存储与读取开销较高；Key 与 Value 同用一种低位量化维度时误差可能明显扩大。",
+        "method": "Key 按通道分组、Value 按 token 分组量化；新增状态先留在全精度残留缓存，再逐步转为低位表示。",
+        "boundary": "2bit 指量化部分，仍有全精度残留缓存和量化参数。质量与效率还取决于模型、分组、残留长度及内核。",
+        "readingScope": "原笔记仅有题名和待阅读标记；本次另读摘要、§3.1–3.3、§4.1–4.2 的配置与消融条件、§5 的路线对比。未独立实验。",
+        "sources": [
+          {
+            "label": "原论文方法与边界",
+            "url": "https://arxiv.org/html/2402.02750v2"
+          },
+          {
+            "label": "会议正式条目",
+            "url": "https://proceedings.mlr.press/v235/liu24bz.html"
+          },
+          {
+            "label": "原论文元数据与版本",
+            "url": "https://arxiv.org/abs/2402.02750v2"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2410.05004v1",
+      "originalTitle": "Fast State Restoration in LLM Serving with HCache",
+      "url": "https://arxiv.org/abs/2410.05004v1",
+      "sourceDay": "2024-10-07",
+      "sourceVersion": "arXiv:2410.05004v1",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "representation",
+        "reuse"
+      ],
+      "rationale": "直接研究分层存储中的状态恢复，可与只传 KV 的方法比较，并联系跨请求历史复用。",
+      "title": "HCache：用隐藏态恢复 KV",
+      "summary": "保存逐层输入隐藏态，恢复时重建 Key/Value，并把传输与投影计算流水重叠。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "hcache",
+        "shortName": "HCache",
+        "venue": "EuroSys 2025",
+        "year": 2025,
+        "order": 8,
+        "problem": "GPU 放不下可复用历史 KV 时，从 token 重算耗算力，直接回读 KV 耗带宽。",
+        "method": "保存逐层输入隐藏态，恢复时读回隐藏态并投影生成 Key/Value；再按层搭配重算或 KV 回读，平衡计算与传输。",
+        "boundary": "论文直接支持多头注意力（MHA）；不能把隐藏态体积减半的分析直接用于分组/多查询注意力（GQA/MQA）。低秩隐藏态扩展超出该论文范围。",
+        "readingScope": "核对 arXiv v1 摘要、§3.1–3.2、§4.1、§4.2 存储格式及 §7 的 MQA/GQA 适用讨论；正式会议 PDF 用于书目信息核对。未独立实验。",
+        "sources": [
+          {
+            "label": "原论文相关章节",
+            "url": "https://arxiv.org/html/2410.05004v1"
+          },
+          {
+            "label": "EuroSys 正式论文",
+            "url": "https://chenyoumin1993.github.io/papers/eurosys25-hcache.pdf"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2411.17089v2",
+      "originalTitle": "KVPR: Efficient LLM Inference with I/O-Aware KV Cache Partial Recomputation",
+      "url": "https://arxiv.org/abs/2411.17089v2",
+      "sourceDay": "2025-06-04",
+      "sourceVersion": "arXiv:2411.17089v2",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "representation"
+      ],
+      "rationale": "研究回读与重算怎样分工，可对比分层恢复方案；切分由计算/带宽与输入决定，不能用固定比例概括。",
+      "title": "KVPR：一部分重算，一部分传输",
+      "summary": "把 KV 的恢复分给计算与传输两条路径，依据硬件和输入选择切分，并用异步执行减小等待。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "kvpr",
+        "shortName": "KVPR",
+        "venue": "Findings of ACL 2025",
+        "year": 2025,
+        "order": 9,
+        "problem": "KV 卸载到 CPU 后，PCIe 回读可能长于 GPU 计算，普通重叠仍留下等待。",
+        "method": "根据硬件测量与输入选择切分点：GPU 从部分输入激活重建 KV，同时回读其余 KV，再合并执行注意力。",
+        "boundary": "启动时的硬件测量假定运行条件稳定；论文覆盖单 GPU 或数据并行，未覆盖模型/张量并行和磁盘/网络回读。",
+        "readingScope": "核对 arXiv v2 与 Findings of ACL 正式论文摘要、§3.1–3.3 和 §7 限制。未审计代码切分范围或复现实验。",
+        "sources": [
+          {
+            "label": "Findings of ACL 正式条目",
+            "url": "https://aclanthology.org/2025.findings-acl.997/"
+          },
+          {
+            "label": "正式论文方法与限制",
+            "url": "https://aclanthology.org/2025.findings-acl.997.pdf"
+          },
+          {
+            "label": "所引用的 arXiv 版本",
+            "url": "https://arxiv.org/abs/2411.17089v2"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2510.09665v1",
+      "originalTitle": "LMCache: An Efficient KV Cache Layer for Enterprise-Scale LLM Inference",
+      "url": "https://arxiv.org/abs/2510.09665v1",
+      "sourceDay": "2025-10-08",
+      "sourceVersion": "arXiv:2510.09665v1",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "reuse",
+        "lifecycle"
+      ],
+      "rationale": "同时连接分层移动、前缀复用和缓存生命周期，可用作独立 KV 专题的系统案例。",
+      "title": "LMCache：把 KV 管理扩展到引擎之外",
+      "summary": "用统一 KV 层连接推理引擎与多级存储，结合块聚合、分层预取和缓存控制接口支持共享。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "lmcache",
+        "shortName": "LMCache",
+        "venue": "arXiv 2025",
+        "year": 2025,
+        "order": 10,
+        "problem": "跨请求复用和 预填充/解码分离（P/D）需要把 KV 移出 GPU，但分页小张量传输、重复拷贝及引擎接口变化妨碍高效共享。",
+        "method": "把分散页面聚成较大块，流水预取并减少重复拷贝；通过连接器交接缓存，通过控制接口定位、保留和迁移 KV。",
+        "boundary": "具体能力受引擎与版本支持约束；动态卸载要权衡副本冗余和分配等待。当前项目文档中的后续功能需另行核对。",
+        "readingScope": "机制以 arXiv v1 的 §3–5、§8.3–8.4 为依据；另对照 v2 和现行文档，不将新功能回填为旧论文已验证能力。未核实会议录用或复现实验。",
+        "sources": [
+          {
+            "label": "所引用的 v1 原论文",
+            "url": "https://arxiv.org/html/2510.09665v1"
+          },
+          {
+            "label": "元数据与版本历史",
+            "url": "https://arxiv.org/abs/2510.09665"
+          }
+        ]
+      }
+    }
+  ]
+}

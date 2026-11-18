@@ -205,8 +205,8 @@ describe("frozen ACLGraph contract", () => {
       expect(html).toContain("审查限制与未复现范围");
     }
   });
-  it("preserves published PR lists, filters and daily links for the two other topics", () => {
-    for (const id of ["kv-cache", "speculative-decoding"]) {
+  it("preserves published PR lists, filters and daily links for speculative decoding", () => {
+    for (const id of ["speculative-decoding"]) {
       const topic = actualIndex.topics.find((item) => item.id === id) as unknown as Topic;
       expect(topic.report).toBeUndefined();
       const html = render(`/topics/${id}`, topic);
@@ -214,11 +214,12 @@ describe("frozen ACLGraph contract", () => {
       expect(html).toContain("查看日报正文");
       expect(html).not.toContain("综述准备中");
       expect(html).not.toContain("<iframe");
-      expect(html.match(/class="topic-card"/g)).toHaveLength(topic.entries.length);
+      const rowClass = /class="topic-card"/g;
+      expect(html.match(rowClass)).toHaveLength(topic.entries.length);
       const selected = topic.entries[0];
       const filtered = render(`/topics/${id}?repo=${selected.repository}&label=${selected.label}`, topic);
       const expected = topic.entries.filter((entry) => entry.repository === selected.repository && entry.label === selected.label);
-      expect(filtered.match(/class="topic-card"/g)).toHaveLength(expected.length);
+      expect(filtered.match(rowClass)).toHaveLength(expected.length);
       expect(filtered).toContain(`section=${selected.number}`);
       expect(filtered).toContain(`version=${selected.version}`);
       expect(filtered).toContain(renderToStaticMarkup(<>{selected.title}</>));

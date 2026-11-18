@@ -7,6 +7,7 @@ import TopicAcademicPaper, { AcademicPaperCard } from "./TopicAcademicPaper";
 import type { AcademicPaper } from "./academic-paper";
 import type { TopicSurvey } from "./topic-survey";
 import AclGraphTopic, { AclGraphTopicCard } from "./AclGraphTopic";
+import KvCacheTopic, { KvCacheTopicCard } from "./KvCacheTopic";
 
 export type Entry = {
   workId: string;
@@ -107,6 +108,30 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
   const { topicId } = useParams();
   const [query] = useSearchParams();
   const view = query.get("view");
+  if (topicId === "kv-cache") return <div className="topic-page"><KvCacheTopic /></div>;
+  if (!topicId) {
+    const archiveTopics = index && [1, 2].includes(index.schemaVersion) && Array.isArray(index.topics)
+      ? index.topics.filter((row) => row.id !== "kv-cache") : [];
+    return <div className="topic-page">
+      <header className="topic-heading">
+        <h1>技术专题</h1>
+        <p>综合论文与工程证据，理解核心技术问题、解决路径与尚待验证的研究方向。</p>
+      </header>
+      <ul className="topic-directory">
+        <KvCacheTopicCard />
+        {archiveTopics.map((row) => row.id === "aclgraph" ? <AclGraphTopicCard key={row.id} />
+          : row.academicPaper ? <AcademicPaperCard key={row.id} topic={row} paper={row.academicPaper} />
+          : row.report && index?.schemaVersion === 2 ? <TopicReportCard key={row.id} topic={row} report={row.report} />
+          : <li key={row.id} className="topic-card">
+              <h2><Link to={`/topics/${row.id}`}>{row.title} <ArrowUpRight size={17} /></Link></h2>
+              <p>{row.description}</p>
+              <div className="topic-meta"><span>{row.counts.total} 条 PR</span><span>覆盖至 {row.coverage.lastDay}</span></div>
+            </li>)}
+      </ul>
+      {error && <p role="alert">其他专题索引暂不可用。</p>}
+      {!error && !index && <p role="status">正在加载其他专题…</p>}
+    </div>;
+  }
   if (error) return <p role="alert">暂无可用的专题索引。<Link to="/reports">查看日报档案</Link></p>;
   if (!index) return <p role="status">正在加载专题…</p>;
   if (![1, 2].includes(index.schemaVersion) || !Array.isArray(index.topics)) {
@@ -114,35 +139,12 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
   }
   const topic = index.topics.find((row) => row.id === topicId);
   if (topicId && !topic) return <p>没有找到该专题。<Link to="/topics">查看全部专题</Link></p>;
-  return (
-    <div className="topic-page">
-      {topic ? (
-        topic.id === "aclgraph" ? (
-          <AclGraphTopic topic={topic} />
-        ) : topic.academicPaper && (view !== "report" || !topic.report) ? (
-          <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} />
-        ) : index.schemaVersion === 2 && topic.report ? (
-          <TopicResearchReport key={topic.report.version} topic={topic} report={topic.report} />
-        ) : (
-          <TopicDetail key={topic.id} topic={topic} />
-        )
-      ) : (
-        <>
-          <header className="topic-heading">
-            <h1>技术专题</h1>
-            <p>综合论文与工程证据，理解核心技术问题、解决路径与尚待验证的研究方向。</p>
-          </header>
-          <ul className="topic-directory">
-            {index.topics.map((row) => row.id === "aclgraph" ? <AclGraphTopicCard key={row.id} /> : row.academicPaper ? <AcademicPaperCard key={row.id} topic={row} paper={row.academicPaper} /> : row.report && index.schemaVersion === 2 ? <TopicReportCard key={row.id} topic={row} report={row.report} /> : (
-              <li key={row.id} className="topic-card">
-                <h2><Link to={`/topics/${row.id}`}>{row.title} <ArrowUpRight size={17} /></Link></h2>
-                <p>{row.description}</p>
-                <div className="topic-meta"><span>{row.counts.total} 条 PR</span><span>覆盖至 {row.coverage.lastDay}</span></div>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </div>
-  );
+  return <div className="topic-page">
+    {topic && (topic.id === "aclgraph" ? <AclGraphTopic topic={topic} />
+      : topic.academicPaper && (view !== "report" || !topic.report)
+        ? <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} />
+      : index.schemaVersion === 2 && topic.report
+        ? <TopicResearchReport key={topic.report.version} topic={topic} report={topic.report} />
+      : <TopicDetail key={topic.id} topic={topic} />)}
+  </div>;
 }
