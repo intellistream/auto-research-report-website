@@ -8,15 +8,15 @@
   "assets": {
     "report.json": {
       "bytes": 88754,
-      "sha256": "3caf479b769ad48ba75abaa3f1242d2e243f556a36762a9bb20f0b9d422f84dd"
+      "sha256": "dc1a96c5f3021b35f61fd8d3974df5593c5e063e6d6ea76b967217992b5586a6"
     },
     "report.md": {
       "bytes": 73390,
-      "sha256": "100cf4a3a73ecf7083a95b404b60986faa7eb6baf3d47a68a498448b43f6e0ed"
+      "sha256": "937cd31cfa6de6e5b0052f95ecd820284e5d11f7020eafbd2c944ca6a25e17db"
     },
     "report.html": {
       "bytes": 89044,
-      "sha256": "4d041e06c795db1f29339373905c40729a3f5692b891934fc1be05d10b7ca78b"
+      "sha256": "dbdcc09d2d3e9cc453c9f1999adbad6d3b7510bdb062f92a9b26119fd1f76def"
     }
   }
 }
