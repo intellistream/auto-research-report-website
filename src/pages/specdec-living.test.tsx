@@ -40,10 +40,10 @@ describe("SpecDec novice-to-research reading contract", () => {
   it("keeps eight substantive chapters in the same nested collapsible reader as ACL", () => {
     const report = render("/topics/speculative-decoding?view=report");
     expect(report).toContain("本章综合判断");
-    expect(report).toContain("历史演进：解决一个依赖");
+    expect(report).toContain("技术演进与瓶颈迁移");
     expect(report).toContain("失败或负对照");
     expect(report).toContain("证伪条件");
-    expect(report).toContain("完整 PR 证据记录");
+    expect(report).toContain("局部工程证据对照");
     expect(report).toContain("PDF 尚未生成");
     expect(report).toContain("8 节正文");
     expect(report).toContain('id="survey-analysis"');
@@ -53,6 +53,31 @@ describe("SpecDec novice-to-research reading contract", () => {
     expect(full).toContain('id="survey-section-0" tabindex="-1"');
     expect(report).toContain("part=survey-section-6");
     expect(report).toContain("part=survey-evidence-E2");
+  });
+
+  it("matches ACL's first four academic sections and preserves Chinese progressive headings", () => {
+    const html = render("/topics/speculative-decoding?view=report&read=full");
+    const directory = html.slice(html.indexOf('class="survey-toc"'), html.indexOf("</nav>", html.indexOf('class="survey-toc"')));
+    const firstFour = [
+      ["survey-abstract", "摘要与研究问题"],
+      ["survey-methods", "范围与研究方法"],
+      ["survey-taxonomy", "技术路线与权衡"],
+      ["survey-evidence", "局部工程证据对照"],
+    ] as const;
+    let previous = -1;
+    for (const [anchor, heading] of firstFour) {
+      const position = directory.indexOf(`part=${anchor}`);
+      expect(position, heading).toBeGreaterThan(previous);
+      expect(directory).toContain(heading);
+      previous = position;
+    }
+    expect(html.indexOf('id="survey-evidence"')).toBeLessThan(html.indexOf('id="survey-section-0"'));
+    expect(html).toContain("候选生成：从历史检索到并行块式草稿");
+    expect(html).toContain("目标验证：从固定长度到动态预算");
+    expect(html).toContain("服务运行时：图执行、调度与容量约束");
+    expect(html).toContain("跨层证据综合：瓶颈迁移与因果边界");
+    expect(html).toContain("自适应验证：预算选择器的执行成本");
+    expect(html).toContain("当前网站候选索引共 125 条");
   });
 
   it("uses ACLGraph's exact two-level disclosure contract in brief and full modes", () => {
@@ -82,7 +107,7 @@ describe("SpecDec novice-to-research reading contract", () => {
     const html = renderToStaticMarkup(<MemoryRouter initialEntries={["/topics/speculative-decoding?view=report"]}>
       <Routes><Route path="/topics/:topicId" element={<TopicPages index={nextIndex} />} /></Routes>
     </MemoryRouter>);
-    expect(html).toContain("新入候选：1 条 PR");
+    expect(html).toContain("新入候选：21 条 PR");
     expect(html).toContain("dynamic speculative verification");
     expect(html).toContain("不代表已确认性能收益");
   });

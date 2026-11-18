@@ -17,11 +17,11 @@ export const specDecSurvey = {
   subtitle: "Speculative Decoding for Large Language Model Inference: Algorithms, Verification, and Serving Systems",
   abstract: "大语言模型的逐 token 解码受条件依赖与权重访存约束。推测解码以较低成本产生候选，通过目标模型的并行验证减少串行前向轮次；但候选接受长度、验证工作量和服务吞吐之间并不存在单调关系。本文从目标分布保持出发，将推测执行划分为候选生成、验证预算、接受采样、状态提交和服务调度五个相互制约的环节。首先比较历史查找、辅助模型、EAGLE/MTP、树形提案与块并行 DFlash/DSpark 的依赖结构，再分析动态验证宽度、Attention 与 MoE 计算形状、图回放、KV/递归状态生命周期对端到端性能的影响。特别讨论 GDN-MoE 混合目标中的 Verify 中间态与合法 Accepted State 之间的区别，并以 HybridSpec 和上游工程实现说明性能优化何以受到正确性合同约束。基于这些机制，本文给出以关键路径和有效输出为中心的分析框架，梳理仍需跨模型、设备和动态负载验证的研究问题。",
   keywords: ["Speculative Decoding", "LLM Serving", "Drafting", "Adaptive Verification", "GDN", "MoE", "Runtime"],
-  scope: "研究对象为推测解码的算法与 Serving Runtime 协同优化。材料覆盖奠基论文、EAGLE-3、DFlash、DSpark、HybridSpec，以及 vLLM、vLLM-Ascend 和 Speculators 的文档与相关实现。网站社区索引保留 105 条已分类 PR；正文按技术问题引用代表实现，而不以 PR 数量推导性能趋势。",
+  scope: "研究对象为推测解码的算法与 Serving Runtime 协同优化。材料覆盖奠基论文、EAGLE-3、DFlash、DSpark、HybridSpec，以及 vLLM、vLLM-Ascend 和 Speculators 的文档与相关实现。网站社区索引持续接收经过分类的工程 PR；正文按技术问题引用已核查的代表实现，新增候选不会自动改变学术结论，也不以 PR 数量推导技术趋势。",
   chapters: [
     {
       id: "motivation",
-      title: "1 引言：从减少 Target 轮次到减少有效输出成本",
+      title: "1 引言：从减少目标模型调用到降低有效输出成本",
       sections: [
         {
           title: "1.1 为什么解码仍存在可利用的并行空间",
@@ -44,10 +44,10 @@ export const specDecSurvey = {
     },
     {
       id: "correctness",
-      title: "2 正确性模型：Target 分布、合法前缀与状态",
+      title: "2 推测采样的正确性：目标分布、合法前缀与状态",
       sections: [
         {
-          title: "2.1 概率接受、拒绝补样与 Greedy",
+          title: "2.1 概率接受、拒绝补样与贪心验证",
           paragraphs: [
             "设 Drafter 在同一已确认前缀下给出分布 q，Target 给出 p，候选 y ~ q。经典概率推测采样以 min(1,p(y)/q(y)) 的概率接受该位置，拒绝后从正残差分布 (p−q)₊ 的归一化形式重采样。逐位置在正确的条件上下文中应用这一规则，可保持 Target 分布；全部候选接受后的额外 Target Token 也必须按相应分布产生。",
             "Greedy 解码采用确定性的目标 Token 判断，正确性表现为与不启用 SpecDec 的目标模型相同的输出前缀。概率路径的相同分布不意味着在不同随机数消费方式下逐字输出相同。任何提前跳过完整验证的 lossy 方法，都应明示其改变了哪条概率或错误保证。",
@@ -69,7 +69,7 @@ export const specDecSurvey = {
     },
     {
       id: "drafting",
-      title: "3 候选生成：顺序深度、模型容量与前缀存活",
+      title: "3 候选生成：依赖结构、草稿质量与执行代价",
       sections: [
         {
           title: "3.1 从无模型提案到辅助模型",
@@ -81,7 +81,7 @@ export const specDecSurvey = {
           sourceIds: ["D1", "P3", "P4"]
         },
         {
-          title: "3.2 EAGLE/MTP：Target 特征引导的自回归草稿",
+          title: "3.2 目标特征引导的自回归草稿与多词元预测",
           paragraphs: [
             "EAGLE 利用 Target 的 Feature 构造对下一位置更有信息量的 Drafter，减少完全独立训练小模型的难度。EAGLE-3 将早期特征预测改为直接 Token Prediction，并用多个层级的 Target Feature 融合以及 Training-Time Test 训练机制改善草稿质量。这是提案端的技术演进，不能简化为单纯加大 Speculative Tokens。",
             "原生 MTP 通常从模型训练时附加的多 Token Prediction 结构提供候选；其 Forward 次数、Feature 接口、KV 保留方式以及 Target 兼容性需要按具体模型实现解释。EAGLE-3 与 MTP 同样可能产生逐步 Draft 序列，但不能假设两者共享训练目标、缓存生命周期或 Backend 支持。",
@@ -90,7 +90,7 @@ export const specDecSurvey = {
           sourceIds: ["P5", "P6", "E1", "D3"]
         },
         {
-          title: "3.3 DFlash/DSpark：块并行预测与受控依赖",
+          title: "3.3 块并行草稿与受控条件依赖",
           paragraphs: [
             "DFlash 使用轻量 Diffusion Drafter，在 Target Hidden States 条件下并行预测一个 Token Block，目标是用较少草稿轮次产生多位置候选。其代价转移为更宽的单次计算，以及块内后段候选与真实前缀之间较弱的依赖。长块不必然带来更长的合法前缀，这也是验证预算需要重新考虑的原因。",
             "DSpark 在块并行 Backbone 上加入低秩 Markov Head，让后续候选受到前一个已采样候选的影响，同时通过 Confidence Head 预测各位置的接受倾向。其位置置信度可供后续预算使用，但 Markov Sampling、Confidence Head 与 KV Cache 都是有成本的组件。",
@@ -102,7 +102,7 @@ export const specDecSurvey = {
     },
     {
       id: "verification",
-      title: "4 Target 验证：动态预算与长度相关成本",
+      title: "4 目标验证：从固定长度到动态预算",
       sections: [
         {
           title: "4.1 每轮输出数量不是唯一目标",
@@ -115,7 +115,7 @@ export const specDecSurvey = {
           sourceIds: ["D1", "D4", "P8"]
         },
         {
-          title: "4.2 Adaptive Verification：把候选位置变成有成本的预算项",
+          title: "4.2 自适应验证：以位置价值与实际成本分配预算",
           paragraphs: [
             "固定 K 把所有请求视为相同。Adaptive Verification 利用每个候选位置的接受概率估计，计算某个后缀位置存活到 Target 的概率，再结合已测量的设备形状成本，在全局 Verify Budget 内为各请求分配不同长度。高置信请求的靠后位置可能比低置信请求的靠前位置更值得计算。",
             "估计器与预算选择器本身不能免费。vLLM #65175 记录了 XPress 未向 Acceptance Estimator 提供信息时错误裁剪的后果；#63421 将预算选择由动态编译转为专门的 Triton Kernel，表明 Host 编译和 Launch 可直接出现在 SpecDec 关键路径。预算策略与实现执行成本需要同时进入评估。",
@@ -124,7 +124,7 @@ export const specDecSurvey = {
           sourceIds: ["D4", "P8", "E2", "E3"]
         },
         {
-          title: "4.3 MoE Router 使 Verification Cost 更依赖实际 Token",
+          title: "4.3 混合专家路由与目标验证成本的内容依赖",
           paragraphs: [
             "对于稀疏 MoE，验证宽度改变的不只是输入矩阵行数，还包括 Token 分配到各 Expert 的负载分布。固定长度成本表可能难以描述不同路由分布下的专家激活、通信与同步开销。对 GDN-MoE Hybrid，额外 Recurrent State 计算进一步改变多 Token Verify 的相对成本。",
             "HybridSpec 论文把 Budget 选择引入 Router 边界：先用较小验证范围运行到可观测 Router 的阶段，再利用已知路由信息决定后续 Token 的验证深度，同时重建合法 Accepted State。这里真正的研究对象是验证决策的位置和可利用信息，而不是普遍增大 Draft Depth。",
@@ -136,10 +136,10 @@ export const specDecSurvey = {
     },
     {
       id: "state",
-      title: "5 Hybrid Model 的合法状态：GDN、KV 与恢复",
+      title: "5 混合模型的合法状态：递归层、缓存与恢复",
       sections: [
         {
-          title: "5.1 Attention KV 与 Recurrent State 的结构差异",
+          title: "5.1 注意力缓存与递归状态的结构差异",
           paragraphs: [
             "Attention KV 通常按 Token Position 保存，验证后的被拒绝部分可以通过 Page/Block 生命周期隔离或释放。GDN、Mamba 和 KDA 层的状态却沿序列递归演进，Sₜ 表示先前全部合法 Token 对未来计算的摘要。若一次 Verify 计算了 Sₜ₊ₖ 而只接受前 a 个 Token，下一轮应从 Sₜ₊ₐ 继续，而不是读取 Sₜ₊ₖ。",
             "这使 Hybrid SpecDec 同时涉及三个历史：Target KV、Drafter KV 与 Recurrent Checkpoint。三者的有效位置和存储布局不一定相同；某些 Drafter KV 会读取 Target Hidden State 的投影，因此无需像普通 Target Sliding Window 那样为全部 Prefill 历史分配页。",
@@ -148,7 +148,7 @@ export const specDecSurvey = {
           sourceIds: ["P9", "E5", "E14"]
         },
         {
-          title: "5.2 Accepted-State Reconstruction 与提交协议",
+          title: "5.2 接受状态重构与提交协议",
           paragraphs: [
             "一种策略是保留合法 Checkpoint，再在采样确定接受位置后重建目标 State；另一种策略是利用验证过程产生的中间表示，在合法前缀处提取或回放所需状态。正确性取决于所有 Recurrent 层是否消费了与最终提交序列完全一致的位置，尤其要审查被拒绝的第一个 Token 和 Bonus Token。",
             "RecoverSSM 类实现将后处理的提交与下一次 Verify 的回放拆开，使部分工作可以延迟或重叠。但 Pending Count、Checkpoint 所在 Block、请求退出和 Preemption 都成为协议组成部分。vLLM #66595 与 Ascend #21430 分别探索延迟回放与 Host D2H Snapshot 提前的不同问题，不能视为同一个实现。",
@@ -160,10 +160,10 @@ export const specDecSurvey = {
     },
     {
       id: "runtime",
-      title: "6 Serving Runtime：Graph、采样与资源共存",
+      title: "6 服务运行时：图执行、采样与资源约束",
       sections: [
         {
-          title: "6.1 多步 Draft Graph 与动态 Verify Shape",
+          title: "6.1 多步草稿图与动态验证形状",
           paragraphs: [
             "SpecDec 试图减少 Target Forward 次数，却往往引入更多小型 Draft/Selection/Sampling Kernel。对设备而言，Host Dispatch、Kernel Launch、图捕获、Shape Specialization 和 Context KV 都是实际成本。即使 Drafter 计算很少，多个 Host Round-trip 也可能主导轮次。",
             "vLLM 的多步 Draft Graph 优化减少 Draft Metadata 重建；Ascend 的 DFlash2 ACL Graph 则把 Backbone、候选选择和 Proposal Cache 更新纳入设备图回放。二者的关键条件不同：能否固定可复用缓冲地址、能否以图内动态值覆盖每轮候选，以及设备 Attention Backend 是否支持相应的捕获与回退。",
@@ -172,7 +172,7 @@ export const specDecSurvey = {
           sourceIds: ["E1", "E8", "E13", "E17"]
         },
         {
-          title: "6.2 Sampling Kernel、内存峰值与动态批次",
+          title: "6.2 采样内核、内存峰值与动态批次",
           paragraphs: [
             "Target 计算出多个位置的 Logits 后，Rejection Sampling 仍需概率比较、重采样和输出位置整理。多个细粒度设备算子串行调用可能在 Host 端累计明显成本；Ascend #20254 将相关 Kernel 纳入 ACL Graph 的尝试，目标正是避免逐 Kernel Host Dispatch。",
             "高并发与较大 K 也会扩大 Target Logits 和 Top-k/Top-p 的中间张量。Ascend #20006 研究将行级排序分块以控制峰值内存，该路径强调正确性与可继续服务，并非自动获得更高 TPS。采样实现必须在精度、RNG 与相同条件概率下保持定义的一致。",
@@ -181,7 +181,7 @@ export const specDecSurvey = {
           sourceIds: ["E9", "E10", "E6"]
         },
         {
-          title: "6.3 KV Residency、Prefix Cache 与 P/D",
+          title: "6.3 缓存驻留、前缀复用与预填充分离",
           paragraphs: [
             "Drafter 与 Target 争用同一设备容量。提高 K 可能增加 Draft KV、Graph Workspace 和 Verify Temporary，同时提高 Preemption 概率。真正的缓存优化应分别计算 Target KV、Drafter KV、Recurrent State 及图工作空间，不能只通过 Token Capacity 对比判断。",
             "Prefill/Decode 分离使这种状态所有权进一步跨实例。目标 Prefix KV 命中、EAGLE/MTP Lookahead 身份和 Hybrid SSM Checkpoint 均可能影响恢复语义。跨 TP 的 State Restore 对 TTFT 有意义，却不能被直接列入单轮 Verify 的加速倍数。",
@@ -193,7 +193,7 @@ export const specDecSurvey = {
     },
     {
       id: "synthesis",
-      title: "7 综合比较：用因果关键路径评价优化",
+      title: "7 跨层综合：以因果关键路径评价优化",
       sections: [
         {
           title: "7.1 不能把接受率、微基准与服务性能混为一谈",
@@ -216,7 +216,7 @@ export const specDecSurvey = {
     },
     {
       id: "open-problems",
-      title: "8 研究问题：从单一方法改进走向可验证的协同优化",
+      title: "8 未解问题与未来方向：可检验的协同优化",
       sections: [
         {
           title: "8.1 验证长度与设备成本联合自适应",
@@ -227,7 +227,7 @@ export const specDecSurvey = {
           sourceIds: ["D4", "P9", "E2", "E3"]
         },
         {
-          title: "8.2 Recurrent State 的通用提交边界",
+          title: "8.2 递归状态的通用提交边界",
           paragraphs: [
             "Hybrid SpecDec 要在 Sampling 已知之后维持 State 合法性，却希望把状态准备和提交从 Host 关键路径移走。一个有价值的统一问题是：Checkpoint、Accepted Prefix、Pending Replay 和缓存世代能否用显式可验证的接口表达，并同时支持 Preemption、Prefix Hit、P/D 和图回放？",
             "验证应覆盖零接受、部分接受、全接受和 Bonus；针对每个 Recurrent 层逐步对照未推测执行的状态，并让请求退出、重入与跨实例恢复在同一测试矩阵中发生。性能实验应以正确性覆盖达到门槛为前置条件。"
@@ -235,7 +235,7 @@ export const specDecSurvey = {
           sourceIds: ["E5", "E7", "E12", "E15", "E18"]
         },
         {
-          title: "8.3 图与内存预算如何约束候选策略",
+          title: "8.3 图执行与内存预算对候选策略的约束",
           paragraphs: [
             "动态 K、不同 Draft 结构与批次成员的变化共同决定 Graph Bucket 数量、Padding、临时 Logits、Draft KV 和 Recurrent State 占用。优化验证长度不能忽视捕获和常驻资源。一个跨层预算问题是是否能同时决策提案长度、图路径与缓存预留。",
             "实验应在等内存预算下回放固定的动态请求轨迹，记录图命中/回退比例、峰值 HBM、Preemption、关键路径和输出 Quality，判断新的联合策略相较现有 Scheduler 是否真正改进。"
@@ -246,7 +246,7 @@ export const specDecSurvey = {
     },
     {
       id: "conclusion",
-      title: "9 结语",
+      title: "9 结论",
       sections: [
         {
           title: "机制闭环比单一速度指标更重要",
