@@ -244,8 +244,8 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
     { id: "survey-abstract", title: "摘要与研究问题" }, { id: "survey-methods", title: "范围与研究方法" }, { id: "survey-taxonomy", title: "技术路线与权衡" },
     ...(topic.id !== "speculative-decoding" && report.evidenceDetails?.length ? [{ id: "survey-evidence", title: "局部工程证据对照" }] : []),
     ...report.sections.map((section, index) => ({ id: `survey-section-${index}`, title: section.title })),
-    ...(topic.id === "speculative-decoding" && report.evidenceDetails?.length ? [{ id: "survey-evidence", title: "完整 PR 证据记录" }] : []),
-    { id: "survey-gaps", title: "待验证问题" }, { id: "survey-limitations", title: "局限与证据边界" },
+    { id: "survey-gaps", title: "待验证问题" },
+    ...(topic.id === "speculative-decoding" && report.evidenceDetails?.length ? [{ id: "survey-evidence", title: "完整 PR 证据记录" }] : []), { id: "survey-limitations", title: "局限与证据边界" },
     ...(report.reviewSummary ? [{ id: "survey-review", title: "独立审查摘要" }] : []),
     { id: "survey-references", title: "参考文献" }, { id: "survey-evolution", title: "版本与持续研究" },
     embedded ? { id: "survey-pr-trends", title: "PR 与趋势" } : { id: "survey-appendix", title: "取材证据附录" },
@@ -304,8 +304,7 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
       </section>)}
       {section.conclusion && <p className="survey-chapter-conclusion"><strong>本章综合判断：</strong>{section.conclusion}</p>}
       <div className="survey-section-sources"><span>本章来源</span><Citations ids={section.sourceIds} references={report.references} /></div></details>)}
-      {topic.id === "speculative-decoding" && <EvidenceDetails report={report} />}
-      <section id="survey-gaps" tabIndex={-1}><div className="survey-kicker">RESEARCH AGENDA</div><h2>未解问题与未来方向</h2><p className="survey-muted">以下问题由本报告的证据推导，按可验证的研究假设呈现。证据覆盖不足不等于全领域尚无人解决；验证路径是后续研究方案。</p><div className="survey-gap-list">{report.gaps.map((gap, index) => <div className="survey-gap" key={gap.id} id={`survey-gap-${gap.id}`} tabIndex={-1}><header><span className="survey-gap-number">G{index + 1}</span><h3>{gap.title}</h3><span className={`survey-gap-status ${gap.status === "resolved" ? "resolved" : ""}`}>{gap.researchType === "evaluation-method" ? "统一评估方法" : gap.researchType === "mechanism-gap" ? "机制衔接缺口" : gapStatus[gap.status] ?? "待研究"}</span></header><dl><dt>观察与证据边界</dt><dd>{gap.observation}<Citations ids={gap.sourceIds} references={report.references} /></dd><dt>{gap.status === "hypothesis" ? "待验证假设" : "待回答的问题"}</dt><dd>{gap.question}</dd><dt>如何验证（方案）</dt><dd>{gap.validation}</dd>
+      <section id="survey-gaps" tabIndex={-1}><div className="survey-kicker">RESEARCH AGENDA</div><h2>{topic.id === "speculative-decoding" ? "Research Gaps 与可证伪实验协议" : "未解问题与未来方向"}</h2><p className="survey-muted">以下问题由本报告的证据推导，按可验证的研究假设呈现。证据覆盖不足不等于全领域尚无人解决；验证路径是后续研究方案。</p><div className="survey-gap-list">{report.gaps.map((gap, index) => <div className="survey-gap" key={gap.id} id={`survey-gap-${gap.id}`} tabIndex={-1}><header><span className="survey-gap-number">G{index + 1}</span><h3>{gap.title}</h3><span className={`survey-gap-status ${gap.status === "resolved" ? "resolved" : ""}`}>{gap.researchType === "evaluation-method" ? "统一评估方法" : gap.researchType === "mechanism-gap" ? "机制衔接缺口" : gapStatus[gap.status] ?? "待研究"}</span></header><dl><dt>观察与证据边界</dt><dd>{gap.observation}<Citations ids={gap.sourceIds} references={report.references} /></dd><dt>{gap.status === "hypothesis" ? "待验证假设" : "待回答的问题"}</dt><dd>{gap.question}</dd><dt>如何验证（方案）</dt><dd>{gap.validation}</dd>
 {gap.strongestKnown && <><dt>已有方法</dt><dd>{gap.strongestKnown}</dd></>}
 {gap.hypothesis && <><dt>精确假设</dt><dd>{gap.hypothesis}</dd></>}
 {gap.strongBaseline && <><dt>强基线</dt><dd>{gap.strongBaseline}</dd></>}
@@ -313,6 +312,7 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
 {gap.metrics && <><dt>观测指标</dt><dd>{gap.metrics}</dd></>}
 {gap.falsification && <><dt>证伪条件</dt><dd>{gap.falsification}</dd></>}
 </dl></div>)}</div></section>
+      {topic.id === "speculative-decoding" && <EvidenceDetails report={report} />}
       <section id="survey-limitations" tabIndex={-1} className="survey-limitations"><h2>局限与证据边界</h2><ul>{report.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul></section>
       <IndependentReview report={report} />
       <section id="survey-references" tabIndex={-1}><div className="survey-kicker">REFERENCES</div><h2>参考文献与工程来源</h2><ol className="survey-references">{report.references.map((reference, index) => {
