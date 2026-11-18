@@ -16,14 +16,44 @@ const sections = [
   { id: "report", label: "动态报告", search: "view=report" },
 ] as const;
 
-export function AclGraphTopicCard() {
-  return <li className="topic-card survey-directory-card">
-    <div className="survey-card-top"><span className="survey-status">技术专题</span></div>
-    <h2><Link to={path}>{title} <ArrowUpRight size={16} aria-hidden="true" /></Link></h2>
-    <p>{subtitle}</p>
-    <div className="acl-topic-card-sections">{sections.map(({ id, label, search }) =>
-      <Link key={id} to={{ pathname: path, search }}>{label}</Link>)}</div>
-  </li>;
+export function AclGraphTopicCard({ topic }: { topic?: Topic }) {
+  const ascendCount = topic?.counts.byRepository["vllm-ascend"] ?? topic?.counts.total ?? 11;
+  return (
+    <li className="topic-directory-card">
+      <div className="survey-card-top">
+        <span className="survey-status">技术专题 · 旗舰综述</span>
+        {topic && (
+          <span className="topic-meta">
+            {topic.counts.total} 条工程证据 · 截至 {topic.coverage.lastDay}
+          </span>
+        )}
+      </div>
+      <h2>
+        <Link to={path}>
+          {title} <ArrowUpRight size={16} aria-hidden="true" />
+        </Link>
+      </h2>
+      <p className="eng-dir-desc">{topic?.description || subtitle}</p>
+      <div className="eng-dir-bar-wrap">
+        <div className="eng-dir-ratio-bar" aria-hidden="true">
+          <span className="bar-ascend" style={{ width: "100%" }} />
+        </div>
+        <div className="eng-dir-counts">
+          <span>
+            <i className="dot-ascend" /> vLLM Ascend <strong>{ascendCount}</strong>
+          </span>
+          <span>含综述稿与动态报告</span>
+        </div>
+      </div>
+      <div className="acl-topic-card-sections">
+        {sections.map(({ id, label, search }) => (
+          <Link key={id} to={{ pathname: path, search }}>
+            {label}
+          </Link>
+        ))}
+      </div>
+    </li>
+  );
 }
 
 export default function AclGraphTopic({ topic }: { topic: Topic }) {
