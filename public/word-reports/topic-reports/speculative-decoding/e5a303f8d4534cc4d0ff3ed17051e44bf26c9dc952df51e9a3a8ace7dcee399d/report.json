@@ -657,5 +657,217 @@
   "pendingEvidence": [],
   "markdownPath": "topic-reports/speculative-decoding/e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d/report.md",
   "htmlPath": "topic-reports/speculative-decoding/e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d/report.html",
-  "manifestPath": "topic-reports/speculative-decoding/e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d/manifest.json"
+  "manifestPath": "topic-reports/speculative-decoding/e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d/manifest.json",
+  "evidenceDetails": [
+    {
+      "id": "E2",
+      "sourceIds": [
+        "E2"
+      ],
+      "comparison": "Adaptive Verification Budget Selector",
+      "mechanism": "将运行期 torch.compile Budget Selection 改为 warmup 单次 JIT 的 Triton Budget Kernel。",
+      "level": "Merged; PR 作者实验与代码变更路径",
+      "environment": "H200 ×1；Qwen3-4B + DSpark block7；GSM8K",
+      "revision": "vLLM #63421；作者注明同 build d561af5df 的交错 E2E",
+      "workload": "128 prompts、K7、并发16、每臂3次；CPU/GPU microbench 各不同",
+      "result": "AV main 4,783→Triton 6,803 output tok/s（median）；#62539 6,756；Host budget 76–90→约15 μs。",
+      "limitation": "主因是中途编译与 Kernel Launch，而非 AV 算法本身变好；对照 #62539 已接近本 PR。",
+      "verification": "阅读 PR 描述、原始对照表、4 个改动文件；未执行 H200 复现。",
+      "negativeEvidence": "动态编译首轮 1.8–4.7 秒/进程（作者记录），但 warmup 能消除这部分。",
+      "sourceHead": "d28c23065300ee5b45dc9504f28a12be222d36bf",
+      "observedAt": "2026-11-18",
+      "sourceFile": "vllm/v1/worker/gpu/spec_decode/adaptive_verification.py",
+      "sourceCommitUrl": "https://github.com/vllm-project/vllm/pull/63421",
+      "provenance": "PR 作者数据 + PR 描述/变更文件静态检查；非本地运行"
+    },
+    {
+      "id": "E3",
+      "sourceIds": [
+        "E3"
+      ],
+      "comparison": "XPress Acceptance Estimator",
+      "mechanism": "XPress 将最后一次 Jacobi Refinement 的 Draft Logits 交给在线 Acceptance Estimator；修正未初始化 Confidence Buffer 引发的误裁剪。",
+      "level": "Merged; PR 作者真实 Workload 与测试",
+      "environment": "H100 ×1；Qwen3-8B + XPress b16；K15；Greedy",
+      "revision": "vLLM #65175；作者列明 baseline f9db1756e9",
+      "workload": "SPEED-Bench throughput_1K；并发1/8/32/64/128；30秒×3 trials；Prefix Cache off",
+      "result": "并发32: AV off 4,468，旧 AV 2,227，修复 AV 5,389 tok/s；并发1: AV off 408、修复 AV 375，仍有 8% 左右损失。",
+      "limitation": "修的是 Estimator 输入连接；修复后并非所有并发都优于 AV off，不能外推到其他 Drafter。",
+      "verification": "阅读 PR 说明、性能表及 6 个改动文件；未运行 H100。",
+      "negativeEvidence": "旧实现 Acceptance Length≈1；主线测试 1 failed，PR 新测试 2 passed（作者报告）。",
+      "sourceHead": "9132bccd77919c7ee3ac9f3bd4d709767797464e",
+      "observedAt": "2026-11-18",
+      "sourceFile": "vllm/v1/worker/gpu/spec_decode/xpress/speculator.py",
+      "sourceCommitUrl": "https://github.com/vllm-project/vllm/pull/65175",
+      "provenance": "PR 作者数据 + PR 描述/变更文件静态检查；非本地运行"
+    },
+    {
+      "id": "E5",
+      "sourceIds": [
+        "E5"
+      ],
+      "comparison": "Lookahead Block Hash 与 Prefix Cache",
+      "mechanism": "EAGLE/EAGLE3/MTP 块末 Draft KV 依赖后一 Token；Hash 纳入 Lookahead Token，避免 Local Prefix Cache 命中时强制丢弃尾块。",
+      "level": "Merged; PR 作者 Unit、Hash Microbench；E2E 部分继承此前联合 PR",
+      "environment": "GB200 node；Hybrid Mamba/GDN、EAGLE/MTP；本地 Prefix Cache",
+      "revision": "vLLM #61589；叠加相关 #50897 的旧轮次数据",
+      "workload": "Hash CPU 基准随机 32K/128K tokens、B16/128/1024、15轮交错；PR 特定 E2E 本次未重跑",
+      "result": "B16、32K text Hash 3.166→3.566ms（+12.6% CPU）；B128 +5.0%；联合旧 PR Qwen3.6-27B prefix hit 72.7→85.0%，但不是本拆分 PR 重跑。",
+      "limitation": "命中长度改善有 CPU Hash 代价，且 KV Connector 路径维持旧 Hash；跨进程 Cache 协议需协同升级。",
+      "verification": "阅读 PR 说明和 27 项改动路径；未确认拆分后独立 E2E 复现。",
+      "negativeEvidence": "PR 明确排除一组 CLI e2e test；历史合并数据不能当成分拆 PR 独立证明。",
+      "sourceHead": "9cc08bfe366e8ad3ac9fe7d53a64dd3847041a38",
+      "observedAt": "2026-11-18",
+      "sourceFile": "vllm/v1/core/block_pool.py",
+      "sourceCommitUrl": "https://github.com/vllm-project/vllm/pull/61589",
+      "provenance": "PR 作者数据 + PR 描述/变更文件静态检查；非本地运行"
+    },
+    {
+      "id": "E7",
+      "sourceIds": [
+        "E7"
+      ],
+      "comparison": "RecoverSSM Deferred Replay",
+      "mechanism": "将已接受 Token 的 KDA State Replay 延后至下一次 Verify；Sampling 后记录 Pending Count，请求离开 Runner 时 Fold。",
+      "level": "Open, not merged; PR 作者 Unit + 指定环境测量",
+      "environment": "GB200 node；GLM-5.3-Flash；TP4、MTP5、FP32 KDA State、Prefix Cache",
+      "revision": "vLLM #66595；作者以相同树关闭 Deferral 为基线",
+      "workload": "随机输入/输出 1024/1024、Synthetic AL3.61；并发16/128；每行1次",
+      "result": "并发128 9,275→9,780 output tok/s（+5.4%）；并发16 3,158→3,183（+0.8%）；KDA batch1 0.371→0.383ms（局部退化）。",
+      "limitation": "仅单次对照；另有 GLM stock RecoverSSM 本地接线；并非直接已合入功能或跨模型收益。",
+      "verification": "阅读 PR 概述、单元测试/基准/限制；文件路径已检查；无 GB200 独立运行。",
+      "negativeEvidence": "PR 记载主线同样存在 56 个 specialized 测试失败；Streaming Session 第二轮状态历史与新请求不完全一致。",
+      "sourceHead": "cdced7fb9741c8eca9661c56883ea9828b90fcd3",
+      "observedAt": "2026-11-18",
+      "sourceFile": "vllm/v1/worker/gpu/model_states/recoverssm.py",
+      "sourceCommitUrl": "https://github.com/vllm-project/vllm/pull/66595",
+      "provenance": "PR 作者数据 + PR 描述/变更文件静态检查；非本地运行"
+    },
+    {
+      "id": "E1",
+      "sourceIds": [
+        "E1"
+      ],
+      "comparison": "ROCm Multi-step Draft Graph",
+      "mechanism": "ROCm AITER Unified Attention Metadata 使用持久 Buffer 视图，启用 Fused Multi-step Draft Decode，避免每个 Draft Step 重新构建 Host Metadata。",
+      "level": "Merged; PR 作者分层 Microbench 与 Serving A/B",
+      "environment": "MI355X ROCm/AITER；Llama-3.1-8B EAGLE3；k3/7",
+      "revision": "vLLM #63096；作者注明 main 124501da 等多轮基线",
+      "workload": "K3 Batch1/8/32：1151 calls×4轮（首轮舍弃）；服务并发1/8/32，3轮中位；Synthetic Acceptance",
+      "result": "K3 Draft Loop B1 571→463μs；服务 C32 27,741→27,572 tok/s（−0.6%），作者归为服务器间波动；C1 +0.1%。",
+      "limitation": "后端限定 ROCM_AITER_UNIFIED_ATTN；被减少的是 Draft Loop Host 空泡，不意味着 Target LM Head 与 Serving Critical Path 同步变短。",
+      "verification": "阅读 PR 的机制、独立 Draft 与 Serving 对照和2文件 patch；无 MI355X 独立测试。",
+      "negativeEvidence": "gpt-oss-20b 另一路在 k≥5 的 Greedy 偏差是既有基线问题；作者没有宣称 E2E 提速。",
+      "sourceHead": "11090e9315ca1c74d962feb90f3d4fd0e00e9cd8",
+      "observedAt": "2026-11-18",
+      "sourceFile": "vllm/v1/attention/backends/rocm_aiter_unified_attn.py",
+      "sourceCommitUrl": "https://github.com/vllm-project/vllm/pull/63096",
+      "provenance": "PR 作者数据 + PR 描述/变更文件静态检查；非本地运行"
+    },
+    {
+      "id": "E8",
+      "sourceIds": [
+        "E8"
+      ],
+      "comparison": "Ascend DFlash2 Full ACLGraph",
+      "mechanism": "将 DFlash2 Backbone、Candidate Selector、Proposal Cache Update 纳入 MRV2 Full ACLGraph，同时修复非因果 SWA 的 FIA Band Mask。",
+      "level": "Merged; PR 作者跨日 Eager / Graph 对照",
+      "environment": "4×Ascend 910B4；Qwen3.8-27B-W8A8；TP4；K7；vLLM 0.32.0 + Ascend dev3176",
+      "revision": "Ascend #19512；eager 2026-10-30，graph 2026-10-31",
+      "workload": "五类场景，两轮/部署，累计 384 请求；temperature0、seed42，warmup 排除",
+      "result": "8K→8K C8，TPOT 21.739→10.838ms、输出 351.62→705.38 tok/s；Acceptance 49.39%→94.04%。",
+      "limitation": "对照含 PR 代码、FIA 行为及两日部署差异；接受率本身大幅变化，不能将整个 TPS 提升归因图回放；不代表 910B2 兼容。",
+      "verification": "阅读 PR 完整实验表及 speculator/FIA 相关变更路径；未复现 910B4。",
+      "negativeEvidence": "GSM8K 类场景 Acceptance 75.50→72.03%，并非所有工作量都改善接受率。",
+      "sourceHead": "2d4a2e00348ad29650da959f6603a20e90934479",
+      "observedAt": "2026-11-18",
+      "sourceFile": "vllm_ascend/worker/v2/spec_decode/dflash2/speculator.py",
+      "sourceCommitUrl": "https://github.com/vllm-project/vllm-ascend/pull/19512",
+      "provenance": "PR 作者数据 + PR 描述/变更文件静态检查；非本地运行"
+    },
+    {
+      "id": "E9",
+      "sourceIds": [
+        "E9"
+      ],
+      "comparison": "Rejection Sampling ACLGraph",
+      "mechanism": "用单次 ACLGraph Replay 运行四个 Rejection Kernel，编译期固定 Launch Shape，复用输入 Buffer；不支持的 Sampling Mode 回退 Eager。",
+      "level": "Open, not merged; PR 作者 Host Profiler + 一次 Serving 对照",
+      "environment": "Ascend 910B；DSpark K5、TP8；设备端 110–170μs",
+      "revision": "Ascend #20254；仅提交中的 Patch 路线",
+      "workload": "150 请求、7.5M 输入/52.5K 输出 Token、并发6；工作量一致、但 RNG 接受轨迹变化",
+      "result": "Sampler Host 1.98→0.53ms/轮；E2E Output TPS 174.95→181.60（+3.8%），Verify Rounds 26,795→26,095；每轮 11.20→11.08ms。",
+      "limitation": "更高 Acceptance Length 1.96→2.01 改变了 Verify 次数；E2E 的 3.8% 不全由 Kernel Graph 导致；部分模式仍 Eager。",
+      "verification": "阅读 PR 的 Kernel/Graph 改动、Profiler 和 Serving 表；无独立 NPU 实测。",
+      "negativeEvidence": "Median TPOT 26.78→26.95ms 基本未改善；P99 TTFT 变化不能由这个 PR 单独归因。",
+      "sourceHead": "fe58a4cf1c89190bffe5f43b8d7220bfb875d31a",
+      "observedAt": "2026-11-18",
+      "sourceFile": "vllm_ascend/worker/v2/spec_decode/rejection_sampler_utils.py",
+      "sourceCommitUrl": "https://github.com/vllm-project/vllm-ascend/pull/20254",
+      "provenance": "PR 作者数据 + PR 描述/变更文件静态检查；非本地运行"
+    },
+    {
+      "id": "E12",
+      "sourceIds": [
+        "E12"
+      ],
+      "comparison": "RecoverSSM D2H 与 Commit Overlap",
+      "mechanism": "将 num_computed_tokens D2H Snapshot 提前至 Postprocess State Commit，缩小 CPU Sequence Length 更新的等待集合。",
+      "level": "Open, not merged; PR 作者 A5 单环境报告",
+      "environment": "Ascend A5；Qwen3.x GDN Hybrid + MTP；MRV2",
+      "revision": "Ascend #21430；基线描述在 PR，缺独立试验矩阵",
+      "workload": "并发72；主要观察 Decode 稳态、Draft 后空泡和 GPQA；重复次数未披露",
+      "result": "作者报告每步约 40ms Idle Gap 消失，Decode TPS 约24→30；GPQA 88.89（缺配对细节）。",
+      "limitation": "必须证明 Scheduled Cached Reqs 与新加入 Slot 的写集互不覆盖；原 PR 的因果归因依赖此生命周期约束。",
+      "verification": "阅读 PR 的 D2H 时序解释及 model_runner 改动文件；无实际 A5 trace 或独立复验。",
+      "negativeEvidence": "未披露样本方差和完整对照环境；PR 尚在开放，不是已稳定部署功能。",
+      "sourceHead": "a0c28fd17a3bda74d3d2d5e431be28245b068ddf",
+      "observedAt": "2026-11-18",
+      "sourceFile": "vllm_ascend/worker/v2/model_runner.py",
+      "sourceCommitUrl": "https://github.com/vllm-project/vllm-ascend/pull/21430",
+      "provenance": "PR 作者数据 + PR 描述/变更文件静态检查；非本地运行"
+    },
+    {
+      "id": "E11",
+      "sourceIds": [
+        "E11"
+      ],
+      "comparison": "GDN Mixed-batch Metadata Fusion",
+      "mechanism": "合并 GDN Host Metadata 的索引、分区、填充和共享 Conv Output 清理，单次 Triton Launch；Metadata 仍在 Graph 外。",
+      "level": "Merged; PR 作者 Accuracy + Metadata/Serving 分层对照",
+      "environment": "Ascend950DT；GLM-5.3-Flash；TP8+EP、MTP3、FULL_DECODE_ONLY",
+      "revision": "Ascend #19954；固定 vLLM 关联提交见原文",
+      "workload": "Meta 16请求单卡合成场景；另 x8 实测并发10/32/64，每指标三轮；26/26 Exact Metadata 对照",
+      "result": "C32 Metadata 2.289→0.952ms（−58.42%）；对应无 Profile Decode TPS 2,876.00→2,881.35（+0.19%）；26/26 元数据精确一致。",
+      "limitation": "Metadata 阶段不等于完整 Step 关键路径；C32/C64 的 TPS 变化极小且作者明确不宣称统计显著性。",
+      "verification": "阅读 PR 的 Layout、Kernel 文件、精确性与对照表；无独立 950DT 运行。",
+      "negativeEvidence": "异步重叠/其他开销稀释局部节省；部分 Cache/Layout/Capture 回退原实现。",
+      "sourceHead": "d40d2a64c656f7d86a996b23793ceaeb0f9ab3b0",
+      "observedAt": "2026-11-18",
+      "sourceFile": "vllm_ascend/ops/gdn_attn_builder.py",
+      "sourceCommitUrl": "https://github.com/vllm-project/vllm-ascend/pull/19954",
+      "provenance": "PR 作者数据 + PR 描述/变更文件静态检查；非本地运行"
+    },
+    {
+      "id": "E17",
+      "sourceIds": [
+        "E17"
+      ],
+      "comparison": "Fixed-width Spec Varlen Graph",
+      "mechanism": "使 Fixed-width Spec 在 Mixed Query Length 下复用 Varlen Decode Graph；cached 1-token extension 不再误判为 Prefill。",
+      "level": "Closed, not merged; PR 作者合成吞吐与 Graph Profile",
+      "environment": "4×Rubin；DeepSeek-V4.1-Flash；DP/EP4，DSpark K5；ISL131072/OSL1024",
+      "revision": "vLLM #64915；作者区分 Published PR 与本地未 Push 后续 Patch",
+      "workload": "并发256；7min warmup+5min benchmark；Synthetic AL3.51，Dummy KV；无真实 Token 正确性测试",
+      "result": "DeepGEMM output 20,862→39,943 tok/s；FlashInfer 14,910→39,567，但旧 FlashInfer Warmup 不稳；Graph Coverage 改善。",
+      "limitation": "利用 Synthetic Acceptance 和 Dummy KV，无法支持真实输出质量；且 PR 关闭未合入，不属于 main 已发布支持矩阵。",
+      "verification": "阅读 PR Graph 机制、实验表与未发布补丁说明；无 Rubin 独立复现。",
+      "negativeEvidence": "FlashInfer baseline 未达到 5% Warmup Stability；真实 KV 的 Capacity Guard 未在该 PR 完整验证。",
+      "sourceHead": "6f1891fb42992181a413bc6c4276889f4d3008f8",
+      "observedAt": "2026-11-18",
+      "sourceFile": "vllm/v1/worker/gpu/model_runner.py",
+      "sourceCommitUrl": "https://github.com/vllm-project/vllm/pull/64915",
+      "provenance": "PR 作者数据 + PR 描述/变更文件静态检查；非本地运行"
+    }
+  ]
 }
