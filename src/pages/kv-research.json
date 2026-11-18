@@ -4,9 +4,9 @@
   "title": "KV Cache",
   "description": "围绕缓存复用、表示、容量、放置与调度，研究推理系统怎样管理和使用历史状态。",
   "asOf": "2026-11-18",
-  "revision": 2,
+  "revision": 3,
   "scope": "推理系统的KV缓存，以及与其前缀复用协调的混合模型状态。",
-  "collectionNote": "独立审阅74条PR候选，纳入55条；论文首批从文献整理选题，另核对公开原论文后形成10篇简介。",
+  "collectionNote": "独立审阅74条PR候选，纳入55条；从文献整理选题并核对公开原论文后形成24篇简介，其中14篇为笔记增补，包含1篇综述。",
   "reviewNote": "PR与论文分别记录核对日期、来源版本及范围。论文简介依据原始论文选定章节，性能与适用条件不表示本轮独立复现。",
   "taxonomy": [
     {
@@ -2864,6 +2864,626 @@
           }
         ]
       }
+    },
+    {
+      "id": "paper:usenix:fast26-liu-yang",
+      "title": "CacheSlide：在位置变化时复用固定片段 KV",
+      "originalTitle": "CacheSlide: Unlocking Cross Position-Aware KV Cache Reuse for Accelerating LLM Serving",
+      "summary": "用任务适配的 CCPE 对齐复用片段；首层比较重算与缓存 KV，后续选择部分 token 重算并加权融合，再用 SLIDE 重叠加载和更新、减少碎片回写。",
+      "url": "https://www.usenix.org/system/files/fast26-liu-yang.pdf",
+      "sourceDay": null,
+      "sourceMonth": "2026-02",
+      "sourceVersion": "FAST 2026 proceedings, pp. 83–99",
+      "primaryTopic": "reuse",
+      "topics": [
+        "reuse",
+        "representation",
+        "movement"
+      ],
+      "rationale": "核心是相对顺序不变时的跨位置 KV 复用；位置编码与部分重算属于表示/访问条件，SLIDE 进一步处理加载、回写和 SSD spill。",
+      "paper": {
+        "shortName": "CacheSlide",
+        "venue": "FAST 2026",
+        "year": 2026,
+        "problem": "Agent 提示中的固定片段保持相对顺序，但会因动态内容而改变绝对位置；直接复用 KV 可能产生位置与上下文偏差。",
+        "method": "用任务适配的 CCPE 对齐复用片段；首层比较重算与缓存 KV，后续选择部分 token 重算并加权融合，再用 SLIDE 重叠加载和更新、减少碎片回写。",
+        "boundary": "依赖任务模板和 CoPE 适配训练；部分重算的质量受比例与阈值影响，不能保证任意片段重排或任意模型都无损复用。",
+        "readingScope": "核对摘要、4.1 工作流、4.2 CCPE 与任务适配、4.3 WCA、Algorithm 2 及 token 选择、4.4 SLIDE 机制（实现细节节选）、5.1 的硬件、模型适配与基线条件、5.5 的比例/阈值权衡；官方记录仅确认发表月份，未核实精确日期。未核对全部图表、证明或实现，未进行独立实验。",
+        "sources": [
+          {
+            "label": "官方题名、作者、场所、年份、月份和页码",
+            "url": "https://www.usenix.org/conference/fast26/presentation/liu-yang"
+          },
+          {
+            "label": "正式论文摘要、方法和条件；封面会议日期",
+            "url": "https://www.usenix.org/system/files/fast26-liu-yang.pdf"
+          }
+        ],
+        "slug": "cacheslide",
+        "order": 11,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
+    },
+    {
+      "id": "paper:arxiv:2605.18825v1",
+      "title": "SAECache：按复用价值淘汰前缀缓存块",
+      "originalTitle": "Not All Tokens Are Worth Caching: Learning Semantic-Aware Eviction for LLM Prefix Caches",
+      "summary": "把 KV 块分入低复用、模板、聊天和 Agent 队列，结合复用时间与 token 类型评分，并根据命中和淘汰后再访问反馈在线调整权重。",
+      "url": "https://arxiv.org/html/2605.18825v1",
+      "sourceDay": "2026-05-12",
+      "sourceVersion": "arXiv:2605.18825v1",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "reuse"
+      ],
+      "rationale": "直接决定共享前缀缓存块的保留和淘汰，以改善后续请求的 KV 命中；不属于当前请求的 token 稀疏化，也不改变 KV 数值精度。",
+      "paper": {
+        "shortName": "SAECache",
+        "venue": "arXiv 2026",
+        "year": 2026,
+        "problem": "共享前缀缓存的容量有限；只看最近使用时间，会忽略模板、会话和 token 类型之间不同的后续复用价值。",
+        "method": "把 KV 块分入低复用、模板、聊天和 Agent 队列，结合复用时间与 token 类型评分，并根据命中和淘汰后再访问反馈在线调整权重。",
+        "boundary": "命中率提高不保证首 token 延迟下降；单轮为主时，队列维护与会话预测开销可能超过收益。本文淘汰的是跨请求缓存块，并非剪除当前序列 token。",
+        "readingScope": "核对摘要、2.3–2.4 的类型复用观察与固定参数问题、3.1 队列路由、局部评分、权重、3.2 会话预测器、4、4.1 的集成、负载与 TTFT 回退、附录 B 的 token 权重更新反馈段落、附录 E 的在线 timing 估计段落、论文 checklist 中的限制说明（仅用于交叉定位）；未核对全部图表、证明或实现，未进行独立实验。",
+        "sources": [
+          {
+            "label": "原始题名、作者、v1 日期",
+            "url": "https://arxiv.org/abs/2605.18825"
+          },
+          {
+            "label": "方法、淘汰粒度、作者报告的限制",
+            "url": "https://arxiv.org/html/2605.18825v1"
+          }
+        ],
+        "slug": "saecache",
+        "order": 12,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
+    },
+    {
+      "id": "paper:arxiv:2305.17118v2",
+      "title": "Scissorhands：按历史重要性与近期窗口淘汰KV",
+      "originalTitle": "Scissorhands: Exploiting the Persistence of Importance Hypothesis for LLM KV Cache Compression at Test Time",
+      "summary": "利用历史窗口中的注意力记录判断重要性，保护近期token，在缓存超预算时批量删除较不重要的KV。",
+      "url": "https://arxiv.org/html/2305.17118v2",
+      "sourceDay": "2023-08-28",
+      "sourceVersion": "arXiv:2305.17118v2",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "representation"
+      ],
+      "rationale": "主要决定预算内保留、淘汰哪些token的KV，同时从序列维度压缩缓存。",
+      "paper": {
+        "shortName": "Scissorhands",
+        "venue": "NeurIPS 2023",
+        "year": 2023,
+        "problem": "完整历史KV随序列增长，挤占可用于批处理的显存；简单淘汰可能丢失生成依赖的信息。",
+        "method": "基于重要性持久假设，在历史窗口中统计低注意力次数，保护近期token；超预算时按记录批量淘汰，并按层、头分配预算。",
+        "boundary": "这是有条件的近似保留，不能保证未来所需KV都留下；压缩时额外注意力计算有开销，也可持续维护计数作折中。质量取决于模型、任务与预算。",
+        "readingScope": "核对摘要与第3.2节重要性持久假设，及第3节定理3.1附近的简化设定、第4节算法1、算法2、第4.1节历史窗口、近期保护、压缩开销与层/头预算、第4.2节理论分析开头的简化模型与假设（未复核证明）、第5节实验设置及相关结果、误差解释、第6节讨论与限制；未完整复核证明、审计实现或独立复现实验。",
+        "sources": [
+          {
+            "label": "固定版本的方法与条件",
+            "url": "https://arxiv.org/html/2305.17118v2"
+          },
+          {
+            "label": "原始元数据与版本日期",
+            "url": "https://arxiv.org/abs/2305.17118v2"
+          },
+          {
+            "label": "正式会议记录",
+            "url": "https://proceedings.neurips.cc/paper_files/paper/2023/hash/a452a7c6c463e4ae8fbdc614c6e983e6-Abstract-Conference.html"
+          }
+        ],
+        "slug": "scissorhands",
+        "order": 13,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
+    },
+    {
+      "id": "paper:arxiv:2408.03675v1",
+      "title": "NACL：代理token评分与分头随机保留",
+      "originalTitle": "NACL: A General and Effective KV Cache Eviction Framework for LLMs at Inference Time",
+      "summary": "在预填充时用代理token的注意力评分选择KV，再通过不同层、头的概率采样扩大保留信息的覆盖。",
+      "url": "https://arxiv.org/html/2408.03675v1",
+      "sourceDay": "2024-08-07",
+      "sourceVersion": "arXiv:2408.03675v1",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "representation"
+      ],
+      "rationale": "核心是长上下文中按任务相关信号与随机性选择KV保留集合，属于淘汰与序列维度压缩。",
+      "paper": {
+        "shortName": "NACL",
+        "venue": "ACL 2024",
+        "year": 2024,
+        "problem": "累积全部历史或仅当前token的注意力可能偏向特定位置，影响长文本中的KV淘汰决策。",
+        "method": "选取任务相关的proxy tokens（常在末尾用户问题中），结合高分保留与按分布随机采样；主要在编码阶段统一选择，生成阶段按间隔继续淘汰。",
+        "boundary": "代理token主要依经验选择，预算与随机采样影响保留结果；作者未广泛验证更多大模型和超长文本，不能视为任意任务无损。",
+        "readingScope": "核对摘要与第4节注意力统计偏置的相关分析、第5.1节Proxy-Tokens Eviction、第5.2节Random Eviction及算法1的Encoding和Generation两部分、第6.3节代理token预算、随机策略及分头策略消融、Limitations、附录A.3代理token位置与用户问题未知时的选择；未完整复核证明、审计实现或独立复现实验。",
+        "sources": [
+          {
+            "label": "固定版本的方法与条件",
+            "url": "https://arxiv.org/html/2408.03675v1"
+          },
+          {
+            "label": "原始元数据与版本日期",
+            "url": "https://arxiv.org/abs/2408.03675v1"
+          },
+          {
+            "label": "正式会议记录",
+            "url": "https://aclanthology.org/2024.acl-long.428/"
+          }
+        ],
+        "slug": "nacl",
+        "order": 14,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
+    },
+    {
+      "id": "paper:arxiv:2303.06865v2",
+      "title": "FlexGen：三级存储中的KV放置与卸载",
+      "originalTitle": "FlexGen: High-Throughput Generative Inference of Large Language Models with a Single GPU",
+      "summary": "在GPU、CPU和磁盘的容量约束下搜索KV放置策略，用块式执行与传输重叠支撑延迟容忍的批推理。",
+      "url": "https://arxiv.org/html/2303.06865v2",
+      "sourceDay": "2023-06-12",
+      "sourceVersion": "arXiv:2303.06865v2",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement"
+      ],
+      "rationale": "限定收录KV在GPU、CPU与磁盘间的放置、传输及计算委派；不把整套权重卸载研究全部纳入KV结论。",
+      "paper": {
+        "shortName": "FlexGen",
+        "venue": "ICML 2023",
+        "year": 2023,
+        "problem": "GPU容量有限时，KV与其他张量共同限制批次，简单卸载又可能被主存或磁盘传输拖慢。",
+        "method": "以GPU/CPU/磁盘容量和带宽建模，联合搜索KV放置比例与批次；重叠搬运和计算，部分配置在CPU上执行关联注意力以少搬KV。",
+        "boundary": "面向可容忍延迟的批处理，批吞吐提升不能等同在线低延迟；依赖主存容量、I/O带宽与配置，策略搜索也可能需人工调整。",
+        "readingScope": "核对摘要与第1节throughput-oriented generative inference的任务范围、第4.1节三级存储的问题设定、第4.2节块式执行、Tensor placement与Computation delegation相关部分、第4.3节成本模型、容量约束、KV放置比例与策略搜索限制、第5节量化对CPU委派的配置影响、第6节硬件、工作负载、度量说明及第6.1节相关卸载结果解释；未完整复核证明、审计实现或独立复现实验。",
+        "sources": [
+          {
+            "label": "固定版本的方法与条件",
+            "url": "https://arxiv.org/html/2303.06865v2"
+          },
+          {
+            "label": "原始元数据与版本日期",
+            "url": "https://arxiv.org/abs/2303.06865v2"
+          },
+          {
+            "label": "正式会议记录",
+            "url": "https://proceedings.mlr.press/v202/sheng23a.html"
+          }
+        ],
+        "slug": "flexgen",
+        "order": 15,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
+    },
+    {
+      "id": "paper:arxiv:2410.00428v3",
+      "title": "LayerKV：逐层放置KV并协调预填充准入",
+      "originalTitle": "LayerKV: Optimizing Large Language Model Serving with Layer-wise KV Cache Management",
+      "summary": "以层为单位管理GPU与CPU中的KV，释放预填充容量；调度器按现有解码的时延余量决定可插入的预填充。",
+      "url": "https://arxiv.org/html/2410.00428v3",
+      "sourceDay": "2024-10-09",
+      "sourceVersion": "arXiv:2410.00428v3",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "lifecycle",
+        "scheduling"
+      ],
+      "rationale": "以层为粒度分配、卸载和回载KV，释放GPU块，并以解码时延目标协调新请求的预填充准入。",
+      "paper": {
+        "shortName": "LayerKV",
+        "venue": "arXiv 2024",
+        "year": 2024,
+        "problem": "长提示需要较多GPU KV块，新请求因此排队；提早插入预填充又可能增加正在解码请求的每token延迟。",
+        "method": "逐层分配、异步卸载与回载KV，并重叠传输和计算；结合缓存可用量与解码时延目标选择预填充请求数量。",
+        "boundary": "依赖PCIe带宽、通信重叠及预测估计；首token延迟降低不等于吞吐提高，作者高负载实验中出现小幅吞吐下降。",
+        "readingScope": "核对摘要与第2节KV块不足导致排队的动机、第3节设计与第3.1节SLO-aware Scheduler、算法1、第3.1.1节逐层KV块分配、保留层数与容量预测、第3节PCIe竞争讨论、第4节实现的tensor分配、CUDA stream、CPU线程与逐层回载、第5.1节实验设置、第5.2.1—5.2.4节上下文长度、并行、到达率与SLO相关结果及吞吐边界；未完整复核证明、审计实现或独立复现实验。",
+        "sources": [
+          {
+            "label": "固定版本的方法与条件",
+            "url": "https://arxiv.org/html/2410.00428v3"
+          },
+          {
+            "label": "原始元数据与版本日期",
+            "url": "https://arxiv.org/abs/2410.00428v3"
+          }
+        ],
+        "slug": "layerkv",
+        "order": 16,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
+    },
+    {
+      "id": "paper:arxiv:2605.18071v1",
+      "title": "KVDrive：按注意力行为协调多层 KV 存储",
+      "originalTitle": "KVDrive: A Holistic Multi-Tier KV Cache Management System for Long-Context LLM Inference",
+      "summary": "按注意力局部性维护 GPU 中的关键 KV，并协调选择、回读、计算及 HBM–DRAM–SSD 数据移动。",
+      "url": "https://arxiv.org/html/2605.18071v1",
+      "sourceDay": "2026-05-18",
+      "sourceVersion": "arXiv:2605.18071v1",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "lifecycle"
+      ],
+      "rationale": "以 HBM–DRAM–SSD 中的 KV 放置与稀疏回读为主，窗口预算和前瞻淘汰关联生命周期；I/O 流水顺序不单独归入请求调度。",
+      "paper": {
+        "shortName": "KVDrive",
+        "venue": "PACMMOD 4(3) · SIGMOD 2026",
+        "year": 2026,
+        "problem": "长上下文与大批次使 KV 超出 GPU 和主存；反复回读关键条目又让解码受数据移动限制。",
+        "method": "以近期解码步的关键条目构成缓存窗口，配合前瞻淘汰与层/头预算分配；拆开选择、回读、计算并重叠执行。预填充重要性信号指导分层放置，SSD 顺序布局、memmap 与固定 pinned 缓冲协调稀疏回读。",
+        "boundary": "解码采用动态稀疏注意力，不能据个别基准的精度结果推成全注意力严格等价。窗口和流水参数依赖离线或预运行调优；多模态与分层混合精度仍列为未来工作。本轮未复现实验。",
+        "readingScope": "核对Abstract and §1 Introduction、§4 System Overview、§5.1 Sliding Window w/ Lookahead Eviction (opening/window budgeting)、§5.2 2D Window Scaling (offline allocation)、§6.1 SFC Disaggregation、§6.2 Pipeline Optimization (micro-batch tuning)、§7.1 Importance-Guided Warm-Up、§7.3 Parallel Sparse Synchronization (block fetching, staging and coordination)、§8 Implementation、§9.1 Experimental Setup、§11 Future Work；发表身份另据机构官方记录，未逐页比对出版社版本；未审计代码或独立复现。",
+        "sources": [
+          {
+            "label": "固定版本的方法与条件",
+            "url": "https://arxiv.org/html/2605.18071v1"
+          },
+          {
+            "label": "原始元数据与版本历史",
+            "url": "https://arxiv.org/abs/2605.18071v1"
+          },
+          {
+            "label": "机构官方发表记录",
+            "url": "https://researchportal.hkust.edu.hk/en/publications/kvdrive-a-holistic-multi-tier-kv-cache-management-system-for-long/"
+          }
+        ],
+        "slug": "kvdrive",
+        "order": 17,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
+    },
+    {
+      "id": "paper:arxiv:2605.03375v1",
+      "title": "Tutti：用 GPU 驱动 SSD KV 回读",
+      "originalTitle": "Tutti: Making SSD-Backed KV Cache Practical for Long-Context LLM Serving",
+      "summary": "CPU 准备对象与 I/O 元数据，GPU 发出并完成 SSD 请求，再按层空隙安排读写。",
+      "url": "https://arxiv.org/html/2605.03375v1",
+      "sourceDay": "2026-05-05",
+      "sourceVersion": "arXiv:2605.03375v1",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "representation"
+      ],
+      "rationale": "核心是 SSD–GPU 数据与控制路径；KV 对象粒度、Tensor-Stripe 与 P2P 映射是直接相关布局/访问路径。I/O kernel 调度已在方法里说明，不据此扩大为请求准入/公平调度。",
+      "paper": {
+        "shortName": "Tutti",
+        "venue": "arXiv 2026",
+        "year": 2026,
+        "problem": "SSD 中的 KV 回读受到小块随机 I/O 和 CPU 逐次发起请求限制，GPU 可能等待存储。",
+        "method": "对象池和 P2P 映射对齐引擎 KV 块；GPU io_uring 执行异步请求，以独立 SM 资源处理 I/O。离线 slack 表指导层间读写，优先回读、延后写入，减少计算与存储争用。",
+        "boundary": "CPU 仍管理映射并提交 I/O kernel。调度依赖特定模型/部署的离线表，不能推成任意动态批次下均零等待；跨机远端路径仍经 CPU 暂存且未优化。本轮未复现实验。",
+        "readingScope": "核对Abstract and §1 Introduction、§2.4 Challenges of GPU-centric Storage for KV Cache、§3.1 GPU-Centric Object Store、§3.2 GPU io_uring、§3.3 Slack-Aware I/O Scheduler、§3.4 Tutti Implementation, including multi-GPU and multi-node scope、§4 Evaluation: environment and baselines、§4.2.5 Comparison of Layerwise Async Pipelining、§5 Conclusion and Future Work；未审计代码或独立复现。",
+        "sources": [
+          {
+            "label": "固定版本的方法与条件",
+            "url": "https://arxiv.org/html/2605.03375v1"
+          },
+          {
+            "label": "原始元数据与版本历史",
+            "url": "https://arxiv.org/abs/2605.03375v1"
+          }
+        ],
+        "slug": "tutti",
+        "order": 18,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
+    },
+    {
+      "id": "paper:arxiv:2604.25080v2",
+      "title": "CacheFlow：联合规划重算与 KV 加载",
+      "originalTitle": "CacheFlow: Efficient LLM Serving via Automated 3D-Parallel KV Cache Restoration",
+      "summary": "在 token、层和设备维度分配重算与回读，用面向整批请求的动态规划协调恢复。",
+      "url": "https://arxiv.org/html/2604.25080v2",
+      "sourceDay": "2026-09-26",
+      "sourceVersion": "arXiv:2604.25080v2",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "scheduling"
+      ],
+      "rationale": "主体是外存加载与重算恢复的组合；batch-aware planner 联合分配整批请求在共享计算与 I/O 资源上的恢复工作。",
+      "paper": {
+        "shortName": "CacheFlow",
+        "venue": "arXiv 2026",
+        "year": 2026,
+        "problem": "逐请求独立决定重算或加载，忽略 token/层成本差异与整批请求对算力、I/O 的竞争。",
+        "method": "在 token–层空间规划阶梯式重算边界，其余状态从外部加载。保存分片边界激活，使各 GPU 独立恢复；整批 DP 平衡累计重算与传输，并用在线延迟样本更新成本。",
+        "boundary": "设备并行需要额外保存边界激活。近最优分析依赖同构层块、精确可加成本、计算与加载独立等模型假设，不能推成任意部署最优；较长新后缀还会改变首 token 关键路径。本轮未复现。",
+        "readingScope": "核对v2 Abstract and §1 Introduction、v2 §3.1 3D Restoration Parallelism、v2 §3.2 Batch-Aware Planning over the Token–Layer Space, including joint batch planning and online cost profiles、v2 §4.1 Experimental Setup (models/workloads opening)、v2 Reproducibility statement、v2 Appendix A.1 Overview, Model and assumptions, Long suffixes、v2 Appendix A.2 Setup、v1 title, abstract and section outline for version comparison、2023 PagedAttention metadata for identity separation；采用 v2 整批动态规划，不混用笔记旧题名所对应的 v1 双指针；未审计代码或独立复现。",
+        "sources": [
+          {
+            "label": "固定版本的方法与条件",
+            "url": "https://arxiv.org/html/2604.25080v2"
+          },
+          {
+            "label": "原始元数据与版本历史",
+            "url": "https://arxiv.org/abs/2604.25080v2"
+          }
+        ],
+        "slug": "cacheflow",
+        "order": 19,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
+    },
+    {
+      "id": "paper:arxiv:2401.09670v3",
+      "title": "DistServe：分离 Prefill 与 Decode 并交接 KV",
+      "originalTitle": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
+      "summary": "把预填充和解码放在不同 GPU，围绕 KV 交接带宽选择并行、资源数量和部署位置。",
+      "url": "https://arxiv.org/html/2401.09670v3",
+      "sourceDay": "2024-06-06",
+      "sourceVersion": "arXiv:2401.09670v3",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement"
+      ],
+      "rationale": "本条聚焦 P/D 分离下的 KV 状态交接与网络感知放置；保留其系统部署条件，不把全部通用资源配置扩成 KV 专属算法。",
+      "paper": {
+        "slug": "distserve",
+        "shortName": "DistServe",
+        "venue": "OSDI 2024",
+        "year": 2024,
+        "problem": "预填充与解码在同一 GPU 上会互相干扰；拆开后又必须付出跨阶段 KV 传输的时间。",
+        "method": "以同时满足首 token 和后续 token 延迟目标的 goodput 为目标，分别选择两阶段的并行和资源数量，并按网络带宽安排实例放置与 KV 交接。",
+        "boundary": "需要多 GPU 与相应互联，KV 传输并非免费；跨节点带宽不足时须约束放置、利用节点内高速互联。不能把该系统收益直接当作单卡缓存优化。",
+        "readingScope": "核对摘要、§3.3 的 KV 传输实际问题、§4 的放置算法概述及 §4.1、§4.3 的相关段落；会议身份据 USENIX 官方记录，未逐页比对正式版或独立复现。",
+        "sources": [
+          {
+            "label": "固定预印本的方法与部署条件",
+            "url": "https://arxiv.org/html/2401.09670v3"
+          },
+          {
+            "label": "原始版本历史",
+            "url": "https://arxiv.org/abs/2401.09670v3"
+          },
+          {
+            "label": "OSDI 2024 正式会议记录",
+            "url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+          }
+        ],
+        "order": 20,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
+    },
+    {
+      "id": "paper:arxiv:2512.14142v1",
+      "title": "Astraea：在 Agent 等待期间保留、丢弃或换出 KV",
+      "originalTitle": "Astraea: A State-Aware Scheduling Engine for LLM-Powered Agents",
+      "summary": "按工具等待时间和显存压力，选择保留、重算或换出暂停任务的 KV，并配合状态感知调度。",
+      "url": "https://arxiv.org/html/2512.14142v1",
+      "sourceDay": "2025-12-16",
+      "sourceVersion": "arXiv:2512.14142v1",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "movement",
+        "scheduling"
+      ],
+      "rationale": "直接决定工具等待期间 KV 的驻留、释放与换出，并与 Agent 任务的排队及片段级抢占协调。",
+      "paper": {
+        "slug": "astraea",
+        "shortName": "Astraea",
+        "venue": "arXiv 2025",
+        "year": 2025,
+        "problem": "Agent 等待外部工具时，暂停任务的 KV 仍占显存；全部保留、丢弃或换出都会产生不同代价。",
+        "method": "低显存压力时保留；高压力时比较等待占用、批量重算和双向换出的 memory-time waste，再选择代价较小的策略。多级反馈队列协调 LLM 片段与工具调用。",
+        "boundary": "代价估计依赖等待与计算时间。评估中的生成长度采用数据集真值 oracle，工具耗时使用类别均值，且提高了长工具等待任务比例；不代表预测有误时仍有相同收益。",
+        "readingScope": "核对摘要、§4.2–4.4 的状态感知调度与 KV 策略，以及 §5.1 的预测、负载构造和实验条件；未复核全部实验、实现或运行独立模型。",
+        "sources": [
+          {
+            "label": "原论文机制与评估条件",
+            "url": "https://arxiv.org/html/2512.14142v1"
+          },
+          {
+            "label": "原始元数据与固定版本",
+            "url": "https://arxiv.org/abs/2512.14142v1"
+          }
+        ],
+        "order": 21,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
+    },
+    {
+      "id": "paper:arxiv:2502.04677v3",
+      "title": "k-LPM：在前缀复用与请求等待间折中",
+      "originalTitle": "LLM Query Scheduling with Prefix Reuse and Latency Constraints",
+      "summary": "k-LPM 每轮先处理最早到达的请求，再做 k−1 次前缀命中优先选择，用周期性保留的 FCFS 步骤平衡复用与等待。",
+      "url": "https://arxiv.org/html/2502.04677v3",
+      "sourceDay": "2026-01-01",
+      "sourceVersion": "arXiv:2502.04677v3",
+      "primaryTopic": "scheduling",
+      "topics": [
+        "scheduling",
+        "reuse"
+      ],
+      "rationale": "直接研究前缀 KV 复用条件下请求的执行顺序以及 TTFT；不是 token 剪枝、精度压缩或缓存块淘汰算法。",
+      "paper": {
+        "shortName": "k-LPM",
+        "venue": "NeurIPS 2025",
+        "year": 2025,
+        "problem": "FCFS 可能错失共享前缀，单纯优先前缀命中又可能让不匹配请求长期等待；缓存命中率与尾部首 token 延迟并不一致。",
+        "method": "k-LPM 每轮先处理最早到达的请求，再做 k−1 次前缀命中优先选择，用周期性保留的 FCFS 步骤平衡复用与等待。",
+        "boundary": "理论依赖预填充主导、简化缓存和特定树状随机到达模型；不是任意在线流量的延迟达标保证。真实到达模式、批次与缓存容量仍需实测。",
+        "readingScope": "核对摘要、2、2.1 的计算模型及缓存简化、3 的复杂性结论与部分证明定位（未完整复核归约）、4 的 Algorithm 1、4.1 的数据生成模型、4.2 的定理条件及讨论（未完整审阅附录证明）、5.1 的实验讨论、6 Future work、NeurIPS 正式 PDF 的 Algorithm 1 对照；笔记标记待读，本简介重新依据原文整理；算法按明确伪代码计数。未核对全部图表、证明或实现，未进行独立实验。",
+        "sources": [
+          {
+            "label": "原始题名、作者与版本历史",
+            "url": "https://arxiv.org/abs/2502.04677"
+          },
+          {
+            "label": "固定审读版本的方法与限制",
+            "url": "https://arxiv.org/html/2502.04677v3"
+          },
+          {
+            "label": "NeurIPS 2025 主会元数据",
+            "url": "https://papers.nips.cc/paper_files/paper/2025/hash/878bbdf6227315995c207561211ddb53-Abstract-Conference.html"
+          },
+          {
+            "label": "正式版本 Algorithm 1 交叉核对",
+            "url": "https://papers.nips.cc/paper_files/paper/2025/file/878bbdf6227315995c207561211ddb53-Paper-Conference.pdf"
+          }
+        ],
+        "slug": "k-lpm",
+        "order": 22,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
+    },
+    {
+      "id": "paper:arxiv:2504.14775v2",
+      "title": "gLLM：根据 KV 空闲率控制预填充速率",
+      "originalTitle": "gLLM: Global Balanced Pipeline Parallelism System for Distributed LLM Serving with Token Throttling",
+      "summary": "在流水并行中依据排队 token 与 KV 空闲率调整预填充批量，预留解码空间，平衡各微批计算。",
+      "url": "https://arxiv.org/html/2504.14775v2",
+      "sourceDay": "2025-05-28",
+      "sourceVersion": "arXiv:2504.14775v2",
+      "primaryTopic": "scheduling",
+      "topics": [
+        "scheduling",
+        "lifecycle"
+      ],
+      "rationale": "预填充准入直接读取 KV 空闲率并设置余量阈值，避免新预填充挤出正在解码请求的 KV；因此区别于只按固定 token 预算合批。",
+      "paper": {
+        "slug": "gllm",
+        "shortName": "gLLM",
+        "venue": "arXiv 2025",
+        "year": 2025,
+        "problem": "流水并行微批计算不均衡；过快接入预填充还会耗尽 KV 空间，使解码请求被抢占并重算。",
+        "method": "按待预填充 token 数和 KV 空闲率调节预填充批量，低于空闲阈值则暂停；把解码 token 分摊到微批，配合异步流水运行时。",
+        "boundary": "平滑预填充可能增加首 token 等待，迭代数、批量上下限和 KV 阈值需要权衡。作者单 GPU 配置中吞吐略低，收益不能脱离模型、负载与流水并行规模。",
+        "readingScope": "核对摘要、§3.1 的 KV 空闲率与阈值、§3.2 的解码分摊、§3.3 运行时，以及 §4.1、§4.3、§4.4、§4.6 的条件与参数敏感性；仅确认所读 arXiv 版本，未独立复现。",
+        "sources": [
+          {
+            "label": "原论文调度机制与参数条件",
+            "url": "https://arxiv.org/html/2504.14775v2"
+          },
+          {
+            "label": "原始元数据与固定版本",
+            "url": "https://arxiv.org/abs/2504.14775v2"
+          }
+        ],
+        "order": 23,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
+    },
+    {
+      "id": "paper:arxiv:2603.20397v1",
+      "title": "KV Cache 综述：比较缓存优化的几类取舍",
+      "originalTitle": "KV Cache Optimization Strategies for Scalable and Efficient LLM Inference",
+      "summary": "综述淘汰、压缩、混合存储、注意力变体及组合方法，作为查找原始工作的阅读入口。",
+      "url": "https://arxiv.org/html/2603.20397v1",
+      "sourceDay": "2026-03-20",
+      "sourceVersion": "arXiv:2603.20397v1",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation",
+        "lifecycle",
+        "movement"
+      ],
+      "rationale": "这是跨方法综述，关联表示压缩、淘汰和分层存储；主主题只用于本专题检索，不代表论文提出单一表示算法或采用本站分类。",
+      "paper": {
+        "slug": "kv-cache-survey",
+        "shortName": "KV Cache 综述",
+        "format": "survey",
+        "venue": "arXiv 2026",
+        "year": 2026,
+        "problem": "缓存优化同时涉及容量、带宽、质量和硬件，阅读单项工作时不易看清方法之间的取舍。",
+        "method": "按淘汰、压缩、混合存储、注意力机制与组合方法整理已有研究，并从长上下文、多轮交互和硬件条件讨论应用场景。",
+        "boundary": "综述表中的性能来自不同论文，不能直接作为统一基准排名；场景建议属于作者归纳，具体机制与条件仍须回到原论文核对。这不是新增缓存算法或本轮实验。",
+        "readingScope": "笔记仅有题名与空提纲，本简介另据原文摘要、§2.4 分类、§3.3–3.5 的相关节选、§4 比较表和 §5 场景讨论整理；未逐一核实全部被引论文，不采纳跨论文性能排名。",
+        "sources": [
+          {
+            "label": "综述原文与比较范围",
+            "url": "https://arxiv.org/html/2603.20397v1"
+          },
+          {
+            "label": "原始元数据与固定版本",
+            "url": "https://arxiv.org/abs/2603.20397v1"
+          }
+        ],
+        "order": 24,
+        "collection": "notes-supplement"
+      },
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": []
     }
   ]
 }

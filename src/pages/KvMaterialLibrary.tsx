@@ -1,7 +1,7 @@
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
-  filterResearch, kvResearch, researchReviewLabels, researchTimeline, researchTopicFilter,
+  filterResearch, kvResearch, researchReviewLabels, researchTimeline, researchTopicFilter, researchSourceDate,
   type DailyReference, type ResearchEntry,
 } from "./kv-research";
 import study from "./kv-cache-study.json";
@@ -28,7 +28,7 @@ function MaterialCard({ entry }: { entry: ResearchEntry }) {
   return <li className="kv-material-card" data-material-id={entry.id}>
     <div className="kv-material-meta">
       <span>{entry.kind === "pr" ? `${community} #${entry.id.split("#")[1]}` : "论文"}</span>
-      <span>{entry.kind === "pr" ? "创建于" : "版本日期"} <time dateTime={entry.sourceDay}>{entry.sourceDay}</time></span>
+      <span>{entry.kind === "pr" ? "创建于" : entry.sourceDay ? "版本日期" : "发表月份"} <time dateTime={researchSourceDate(entry)}>{researchSourceDate(entry)}</time></span>
       {entry.kind === "pr" && <span className="kv-pr-status">{status}</span>}
     </div>
     <h3><a href={entry.url} target="_blank" rel="noreferrer">{entry.title} <ArrowUpRight size={14} aria-hidden="true" /></a></h3>

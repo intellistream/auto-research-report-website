@@ -8,6 +8,8 @@ export type PaperReading = {
   venue: string;
   year: number;
   order: number;
+  collection?: "notes-supplement";
+  format?: "survey";
   problem: string;
   method: string;
   boundary: string;
@@ -22,7 +24,8 @@ export type ResearchEntry = {
   originalTitle?: string;
   summary: string;
   url: string;
-  sourceDay: string;
+  sourceDay: string | null;
+  sourceMonth?: string;
   sourceVersion?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -81,6 +84,10 @@ export function researchTopicFilter(query: URLSearchParams): string {
   return query.get("topic") ?? legacyTopics[query.get("label") ?? ""] ?? "";
 }
 
+export function researchSourceDate(entry: ResearchEntry): string {
+  return entry.sourceDay ?? entry.sourceMonth ?? "";
+}
+
 export function filterResearch(entries: ResearchEntry[], query: URLSearchParams): ResearchEntry[] {
   const topic = researchTopicFilter(query);
   const kind = query.get("kind") ?? "";
@@ -92,15 +99,15 @@ export function filterResearch(entries: ResearchEntry[], query: URLSearchParams)
     (!topic || entry.topics.includes(topic as ResearchTopicId)) &&
     (!kind || entry.kind === kind) &&
     (!repository || entry.repository === repository) &&
-    (!month || entry.sourceDay.startsWith(month)))
-    .sort((left, right) => right.sourceDay.localeCompare(left.sourceDay) || left.id.localeCompare(right.id));
+    (!month || researchSourceDate(entry).startsWith(month)))
+    .sort((left, right) => researchSourceDate(right).localeCompare(researchSourceDate(left)) || left.id.localeCompare(right.id));
 }
 
 export function researchTimeline(entries: ResearchEntry[]) {
   const months = new Map<string, number>();
   const unique = new Map(entries.map((entry) => [entry.id, entry]));
   for (const entry of unique.values()) {
-    if (entry.kind !== "pr" || entry.decision !== "included") continue;
+    if (entry.kind !== "pr" || entry.decision !== "included" || !entry.sourceDay) continue;
     const month = entry.sourceDay.slice(0, 7);
     months.set(month, (months.get(month) ?? 0) + 1);
   }
@@ -124,9 +131,11 @@ export function filterPapers(entries: ResearchEntry[], query: URLSearchParams): 
   const scope = new URLSearchParams({ kind: "paper" });
   const topic = researchTopicFilter(query);
   if (topic) scope.set("topic", topic);
+  const collection = query.get("collection") ?? "";
   const term = (query.get("q") ?? "").normalize("NFKC").trim().toLocaleLowerCase();
   return filterResearch(entries, scope)
     .filter((entry): entry is PaperEntry => entry.kind === "paper" && !!entry.paper)
+    .filter((entry) => !collection || entry.paper.collection === collection)
     .filter((entry) => !term || [entry.title, entry.originalTitle, entry.summary, entry.paper.shortName,
       entry.paper.problem, entry.paper.method, entry.paper.boundary].join(" ").normalize("NFKC").toLocaleLowerCase().includes(term))
     .sort((left, right) => left.paper.order - right.paper.order || left.id.localeCompare(right.id));

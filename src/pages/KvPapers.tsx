@@ -1,23 +1,24 @@
 import { ArrowUpRight } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
-import { filterPapers, kvResearch, paperViewQuery, researchTopicFilter, type PaperEntry } from "./kv-research";
+import { filterPapers, kvResearch, paperViewQuery, researchSourceDate, researchTopicFilter, type PaperEntry } from "./kv-research";
 import { safeTopicSource } from "./topic-report";
 import "./kv-papers.css";
 
 function PaperCard({ entry }: { entry: PaperEntry }) {
   const { paper } = entry;
+  const [query] = useSearchParams();
   const source = safeTopicSource(entry.url);
   return <li className="kv-reading-card" id={`kv-paper-${paper.slug}`} data-paper-id={entry.id} tabIndex={-1}>
-    <div className="kv-reading-meta"><span>{paper.venue}</span><span>{entry.sourceVersion}</span></div>
+    <div className="kv-reading-meta"><span>{paper.venue}</span><span>{entry.sourceVersion}</span>{paper.collection === "notes-supplement" && <span className="kv-paper-badge">笔记增补</span>}{paper.format === "survey" && <span className="kv-paper-badge">综述</span>}</div>
     <h3>{entry.title}</h3>
     <p className="kv-reading-original" lang="en">{entry.originalTitle}</p>
     <div className="kv-material-topics" aria-label="论文关联研究问题">{entry.topics.map((id) =>
-      <Link key={id} className={id === entry.primaryTopic ? "primary" : ""} to={{ search: `view=papers&topic=${id}` }}>
+      <Link key={id} className={id === entry.primaryTopic ? "primary" : ""} to={{ search: `view=papers&topic=${id}${query.get("collection") === "notes-supplement" ? "&collection=notes-supplement" : ""}` }}>
         {kvResearch.taxonomy.find((topic) => topic.id === id)?.label}
       </Link>)}</div>
     <dl className="kv-reading-fields">
       <div><dt>解决什么</dt><dd>{paper.problem}</dd></div>
-      <div><dt>核心方法</dt><dd>{paper.method}</dd></div>
+      <div><dt>{paper.format === "survey" ? "综述内容" : "核心方法"}</dt><dd>{paper.method}</dd></div>
       <div><dt>适用与代价</dt><dd>{paper.boundary}</dd></div>
     </dl>
     <div className="kv-reading-links">
@@ -26,7 +27,7 @@ function PaperCard({ entry }: { entry: PaperEntry }) {
     </div>
     <details className="kv-reading-basis"><summary>原文核对范围</summary>
       <p>{paper.readingScope}</p>
-      <p>版本日期 <time dateTime={entry.sourceDay}>{entry.sourceDay}</time> · 核对于 {entry.checkedAt}</p>
+      <p>{entry.sourceDay ? "版本日期" : "发表月份"} <time dateTime={researchSourceDate(entry)}>{researchSourceDate(entry)}</time> · 核对于 {entry.checkedAt}</p>
       <ul>{paper.sources.map((item) => {
         const url = safeTopicSource(item.url);
         return url ? <li key={item.url}><a href={url} target="_blank" rel="noreferrer">{item.label} <ArrowUpRight size={12} aria-hidden="true" /></a></li> : null;
@@ -48,16 +49,19 @@ export default function KvPapers() {
   }
   return <article className="kv-study kv-papers">
     <header className="kv-study-intro">
-      <p className="kv-direction">论文阅读 · 首批 {all.length} 篇</p>
+      <p className="kv-direction">论文阅读 · {all.length} 篇</p>
       <h2>从论文理解 KV Cache</h2>
-      <p>先看缓存怎样分配与复用，再看容量不足时怎样压缩、淘汰和恢复。每篇简述问题、方法与适用条件，可直接打开原文。</p>
-      <p className="kv-muted">首批选题来自文献整理，简介经公开原论文核对。以下为阅读归纳，尚未进行独立实验。</p>
+      <p>先看缓存怎样分配与复用，再看容量不足时怎样压缩、淘汰和恢复，以及多阶段推理怎样放置与调度 KV。每篇简述问题、方法与适用条件，可直接打开原文。</p>
+      <p className="kv-muted">选题来自文献整理，简介经公开原论文核对。可筛选“笔记增补”查看新增材料。以下为阅读归纳，尚未进行独立实验。</p>
       <p className="kv-reading-start">建议先读 <Link to={{ search: "view=papers&part=kv-paper-pagedattention" }}>PagedAttention</Link> 和 <Link to={{ search: "view=papers&part=kv-paper-sglang" }}>SGLang</Link>，理解分页管理与前缀复用，再按研究问题选择。</p>
     </header>
     <div className="topic-filters kv-paper-filters" role="search" aria-label="检索 KV 论文">
       <label>研究问题<select aria-label="论文研究问题" value={researchTopicFilter(query)} onChange={(event) => filter("topic", event.target.value)}>
         <option value="">全部问题</option>
         {kvResearch.taxonomy.map((topic) => <option key={topic.id} value={topic.id}>{topic.label}</option>)}
+      </select></label>
+      <label>收录范围<select aria-label="论文收录范围" value={query.get("collection") ?? ""} onChange={(event) => filter("collection", event.target.value)}>
+        <option value="">全部论文</option><option value="notes-supplement">笔记增补</option>
       </select></label>
       <label className="kv-paper-search"><span>检索论文</span><input type="search" value={query.get("q") ?? ""} placeholder="论文名或关键词" onChange={(event) => filter("q", event.target.value)} /></label>
       <button type="button" onClick={() => setQuery({ view: "papers" }, { replace: true })}>清除筛选</button>
