@@ -2,9 +2,10 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Download, FileText, GitP
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { Topic } from "./TopicPages";
-import { safeTopicSource, loadFrozenVersion, revealTopicPart, reportOverview, sectionLead, type FrozenVersion, type Reference, type ResearchReport } from "./topic-report";
+import { safeTopicSource, loadFrozenVersion, revealTopicPart, reportOverview, sectionLead, type EvidenceDetail, type FrozenVersion, type Reference, type ResearchReport } from "./topic-report";
 import { EvidenceList, EvidenceTimeline } from "./TopicEvidence";
 import { readingSurvey } from "./topic-survey";
+import { displaySpecDecChapterTitle, displaySpecDecSubsectionTitle, specDecTaxonomyTitles, specDecMethodContext, specDecTaxonomyContext, specDecEvidenceContext, specDecEvidenceGroups, specDecEvidenceTitles } from "./specdec-report-editorial";
 import "./topic-research-report.css";
 import "./topic-report-update.css";
 
@@ -32,25 +33,57 @@ function Methodology({ report }: { report: ResearchReport }) {
   return <><dl className="survey-methods"><dt>综述类型</dt><dd>{methods.type}</dd><dt>检索截止</dt><dd>{methods.searchDate}</dd><dt>研究范围</dt><dd>{methods.scope}</dd><dt>检索策略</dt><dd>{methods.searchStrategy}</dd><dt>综合方法</dt><dd>{methods.synthesis}</dd></dl><div className="survey-criteria"><div><h3>纳入标准</h3><ul>{methods.inclusionCriteria.map((text) => <li key={text}>{text}</li>)}</ul></div><div><h3>排除标准</h3><ul>{methods.exclusionCriteria.map((text) => <li key={text}>{text}</li>)}</ul></div></div></>;
 }
 
-function EvidenceDetails({ report }: { report: ResearchReport }) {
-  if (!report.evidenceDetails?.length) return null;
+function EvidenceCard({ evidence, references, chineseTitle }: {
+  evidence: EvidenceDetail; references: Reference[]; chineseTitle?: string;
+}) {
+  const title = chineseTitle ?? evidence.comparison;
+  return <details id={`survey-evidence-${evidence.id}`} tabIndex={-1} className="survey-evidence-detail">
+    <summary><h3>{title}</h3><span>{evidence.level}</span></summary>
+    <table><caption>{title}：对照条件、作者报告与证据边界</caption><tbody>{([
+      ["机制", evidence.mechanism], ["证据层级", evidence.level], ["环境", evidence.environment],
+      ["测试版本", evidence.revision], ["工作量", evidence.workload], ["结果", evidence.result],
+      ["限制", evidence.limitation], ["核验范围", evidence.verification],
+      ["失败或负对照", evidence.negativeEvidence], ["原始 head SHA", evidence.sourceHead],
+      ["原始变更文件", evidence.sourceFile], ["核验日期", evidence.observedAt],
+      ["证据来源性质", evidence.provenance],
+    ] as const).filter(([, value]) => Boolean(value)).map(([label, value]) => <tr key={label}>
+      <th scope="row">{label}</th><td>{value}</td>
+    </tr>)}
+      {evidence.sourceCommitUrl && safeTopicSource(evidence.sourceCommitUrl) && <tr>
+        <th scope="row">原始 PR 与核查入口</th>
+        <td><a href={safeTopicSource(evidence.sourceCommitUrl)} target="_blank" rel="noreferrer">查看 PR 原文与代码变更</a></td>
+      </tr>}
+      <tr><th scope="row">来源</th><td><Citations ids={evidence.sourceIds} references={references} /></td></tr>
+    </tbody></table>
+  </details>;
+}
+
+function EvidenceDetails({ report, topicId }: { report: ResearchReport; topicId: string }) {
+  const evidence = report.evidenceDetails ?? [];
+  if (!evidence.length) return null;
+  const spec = topicId === "speculative-decoding";
+  const groupedIds = new Set(specDecEvidenceGroups.flatMap(group => [...group.ids]));
+  const other = evidence.filter(item => !groupedIds.has(item.id));
+  const groups: { title: string; rows: EvidenceDetail[] }[] = [
+    ...specDecEvidenceGroups.map(group => ({
+      title: group.title,
+      rows: group.ids.flatMap(id => evidence.filter(item => item.id === id)),
+    })),
+    ...(other.length ? [{ title: "其他有条件的工程对照", rows: other }] : []),
+  ];
   return <details id="survey-evidence" tabIndex={-1} className="survey-details survey-evidence-details">
-    <summary><span>局部工程证据对照</span><small>{report.evidenceDetails.length} 类测量与验证 · 展开核对版本、工作量和限制</small></summary>
-    <p className="survey-muted">以下按比较对象分别保留研究稿中的原始条件。后端切换、即时执行与图回放、历史计划共享属于不同对照，不能拼接成统一加速比。</p>
-    {report.evidenceDetails.map((evidence) => <details key={evidence.id} id={`survey-evidence-${evidence.id}`} tabIndex={-1} className="survey-evidence-detail">
-      <summary><h3>{evidence.comparison}</h3><span>{evidence.level}</span></summary>
-      <table><caption>{evidence.comparison}：条件、结果与证据边界</caption><tbody>{([
-        ["机制", evidence.mechanism], ["证据层级", evidence.level], ["环境", evidence.environment],
-        ["测试版本", evidence.revision], ["工作量", evidence.workload], ["结果", evidence.result],
-        ["限制", evidence.limitation], ["核验范围", evidence.verification],
-        ["失败或负对照", evidence.negativeEvidence], ["原始 head SHA", evidence.sourceHead],
-        ["原始变更文件", evidence.sourceFile], ["核验日期", evidence.observedAt],
-        ["证据来源性质", evidence.provenance],
-      ] as const).filter(([, value]) => Boolean(value)).map(([label, value]) => <tr key={label}><th scope="row">{label}</th><td>{value}</td></tr>)}
-      {evidence.sourceCommitUrl && safeTopicSource(evidence.sourceCommitUrl) && <tr><th scope="row">原始 PR 与核查入口</th>
-        <td><a href={safeTopicSource(evidence.sourceCommitUrl)} target="_blank" rel="noreferrer">查看 PR 原文与代码变更</a></td></tr>}
-      <tr><th scope="row">来源</th><td><Citations ids={evidence.sourceIds} references={report.references} /></td></tr></tbody></table>
-    </details>)}
+    <summary><span>局部工程证据对照</span><small>{evidence.length} 项代表性记录 · 展开核对机制、版本、工作量和局限</small></summary>
+    {spec ? <>
+      {specDecEvidenceContext.map(paragraph => <p key={paragraph} className="specdec-academic-prose">{paragraph}</p>)}
+      {groups.filter(group => group.rows.length).map(group => <section key={group.title} className="specdec-evidence-group" aria-label={group.title}>
+        <p className="specdec-evidence-group-title"><strong>{group.title}</strong></p>
+        {group.rows.map(item => <EvidenceCard key={item.id} evidence={item} references={report.references}
+          chineseTitle={specDecEvidenceTitles[item.id]} />)}
+      </section>)}
+    </> : <>
+      <p className="survey-muted">以下按比较对象分别保留研究稿中的原始条件。后端切换、即时执行与图回放、历史计划共享属于不同对照，不能拼接成统一加速比。</p>
+      {evidence.map(item => <EvidenceCard key={item.id} evidence={item} references={report.references} />)}
+    </>}
   </details>;
 }
 
