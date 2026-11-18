@@ -53,5 +53,3 @@
 .acl-topic .survey-title-row h2 { margin: 0; font-size: clamp(1.35rem, 3vw, 1.9rem); line-height: 1.5; }
 .acl-topic .survey-title-row { flex-wrap: wrap; }
 .acl-topic .survey-downloads { flex-wrap: wrap; }
-.acl-topic-evidence #survey-appendix { margin-top: 1.8rem; scroll-margin-top: .75rem; }
-.acl-topic-evidence .topic-evidence-row a { overflow-wrap: anywhere; }

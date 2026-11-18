@@ -53,8 +53,11 @@ describe("living topic report", () => {
     expect(html).not.toContain("日报工程分析");
     expect(html).not.toContain(`href="${archiveBase}topic-reports/aclgraph/${version}/report.pdf"`);
     expect(html).toContain("正在核验冻结版本");
-    expect(html).toContain('<details open="" id="survey-section-0"');
-    expect(html).not.toContain('id="survey-appendix"');
+    expect(html).toContain('id="survey-analysis" tabindex="-1"');
+    expect(html).not.toContain('id="survey-analysis" tabindex="-1" open=""');
+    expect(html).not.toContain('<details open="" id="survey-section-0"');
+    expect(html).toContain('id="survey-pr-trends" tabindex="-1"');
+    expect(html).not.toContain('id="survey-pr-trends" tabindex="-1" open=""');
   });
   it("uses shareable router destinations and provides a route back from each cited source", () => {
     const html = render("/topics/aclgraph?read=brief&repo=vllm-ascend");
@@ -110,18 +113,19 @@ describe("living topic report", () => {
     expect(old).not.toContain('id="survey-review"');
     expect(old).not.toContain('id="survey-evidence"');
   });
-  it("serves the PR and trends section and keeps the old appendix link working", () => {
-    for (const path of ["/topics/aclgraph?view=evidence", "/topics/aclgraph?view=report&part=survey-appendix"]) {
+  it("includes PR trends in the report for current and legacy links", () => {
+    for (const path of ["/topics/aclgraph?view=report", "/topics/aclgraph?view=evidence", "/topics/aclgraph?view=report&part=survey-appendix"]) {
       const html = render(path);
       expect(html).toContain('id="survey-appendix"');
       expect(html).toContain("工程证据的持续积累");
       expect(html).toContain("日报原文");
       expect(html).toContain(entry.url);
-      expect(html).not.toContain(report.abstract);
+      expect(html).toContain(report.abstract);
     }
     const filtered = render("/topics/aclgraph?view=evidence&repo=vllm");
     expect(filtered).toContain("当前筛选下没有取材条目");
-    expect(filtered).not.toContain(entry.url);
+    expect(filtered).not.toContain('class="topic-evidence-row"');
+    expect(filtered).toContain('id="survey-ref-E1"');
   });
   it("deduplicates PRs in progress counts and distinguishes cited work from pending evidence", () => {
     expect(evidenceTimeline({ ...topic, entries: [entry, entry, { ...entry, workId: "github:vllm-project/vllm-ascend#2", day: "2026-11-13" }] }, report)).toEqual([
@@ -168,6 +172,11 @@ describe("frozen ACLGraph contract", () => {
     expect(html).toContain("二级日报记录");
     expect(html).toContain("待验证假设");
     expect(html).toContain("验证路径是后续研究方案");
+    expect(html.indexOf("证据怎样改变判断")).toBeLessThan(html.indexOf('id="survey-paper"'));
+    expect(html).toContain("复核 4 条已有来源");
+    expect(html).toContain("7 项证据详情");
+    expect(html).toContain("计划共享的服务差值区间含零");
+    expect(html).toContain('id="survey-evolution" tabindex="-1"');
   });
   it("renders all seven published evidence records and the full independent review in both reading modes", () => {
     expect(frozen.revision).toBeGreaterThanOrEqual(3);
@@ -176,7 +185,7 @@ describe("frozen ACLGraph contract", () => {
     const review = frozen.reviewSummary!;
     expect(review.type).toBe("independent-review");
     expect(review.provider).toBe("OpenCode Go");
-    for (const path of ["/topics/aclgraph?view=report", "/topics/aclgraph?read=brief"]) {
+    for (const path of ["/topics/aclgraph?view=report&read=full", "/topics/aclgraph?read=brief"]) {
       const html = render(path, actual);
       expect(html.match(/class="survey-evidence-detail"/g)).toHaveLength(7);
       for (const evidence of frozen.evidenceDetails!) {
@@ -193,57 +202,26 @@ describe("frozen ACLGraph contract", () => {
       expect(html).toContain("审查限制与未复现范围");
     }
   });
-  it("preserves the original community PR evidence and daily links across both topics", () => {
+  it("preserves published PR lists, filters and daily links for the two other topics", () => {
     for (const id of ["kv-cache", "speculative-decoding"]) {
-      const current = actualIndex.topics.find((item) => item.id === id) as unknown as Topic;
-      const isSpec = id === "speculative-decoding";
-      const route = isSpec ? "?view=evidence" : "";
-      const html = render(`/topics/${id}${route}`, current);
-      expect(html).toContain(isSpec ? "PR 与趋势" : "专题收录 PR");
-      expect(html).toContain(isSpec ? "日报原文" : "查看日报正文");
+      const topic = actualIndex.topics.find((item) => item.id === id) as unknown as Topic;
+      expect(topic.report).toBeUndefined();
+      const html = render(`/topics/${id}`, topic);
+      expect(html).toContain("专题收录 PR");
+      expect(html).toContain("查看日报正文");
+      expect(html).not.toContain("综述准备中");
       expect(html).not.toContain("<iframe");
-      const cls = isSpec ? /class="topic-evidence-row"/g : /class="topic-card"/g;
-      expect(html.match(cls)).toHaveLength(current.entries.length);
-      const selected = current.entries[0];
-      const filtered = render(`/topics/${id}?${isSpec ? "view=evidence&" : ""}repo=${selected.repository}&label=${selected.label}`, current);
-      const expected = current.entries.filter((entry) =>
-        entry.repository === selected.repository && entry.label === selected.label);
-      expect(filtered.match(cls)).toHaveLength(expected.length);
+      expect(html.match(/class="topic-card"/g)).toHaveLength(topic.entries.length);
+      const selected = topic.entries[0];
+      const filtered = render(`/topics/${id}?repo=${selected.repository}&label=${selected.label}`, topic);
+      const expected = topic.entries.filter((entry) => entry.repository === selected.repository && entry.label === selected.label);
+      expect(filtered.match(/class="topic-card"/g)).toHaveLength(expected.length);
       expect(filtered).toContain(`section=${selected.number}`);
       expect(filtered).toContain(`version=${selected.version}`);
       expect(filtered).toContain(renderToStaticMarkup(<>{selected.title}</>));
     }
     const directory = render("/topics", { ...topic, report: undefined });
     expect(directory).toContain("ACL Graph");
-  });
-  it("renders SpecDec guide, living report and 105 source leads as distinct views", () => {
-    const spec = actualIndex.topics.find((item) => item.id === "speculative-decoding") as unknown as Topic;
-    expect(spec.entries).toHaveLength(105);
-    expect(spec.counts.total).toBe(105);
-    expect(spec.report?.synthesizedWorkIds).toHaveLength(18);
-    const guide = render("/topics/speculative-decoding", spec);
-    expect(guide).toContain("从候选生成到有效提交");
-    expect(guide).toContain("一次 Speculative Round");
-    expect(guide).toContain("https://github.com/vllm-project/vllm/pull/66595");
-    expect(guide).toContain("https://proceedings.mlr.press/v202/leviathan23a.html");
-    expect(guide).toContain("view=evidence");
-    expect(guide).not.toContain("下载本版 PDF");
-    const evidence = render("/topics/speculative-decoding?view=evidence", spec);
-    expect(evidence).toContain("完整保留社区原先分类的 105 条 PR");
-    expect(evidence).toContain("日报原文");
-    expect(evidence).toContain("工程证据的持续积累");
-    expect(evidence.match(/class="topic-evidence-row"/g)).toHaveLength(105);
-    expect(evidence).not.toContain("从候选生成到有效提交");
-    const living = render("/topics/speculative-decoding?view=report", spec);
-    expect(living).toContain("从候选生成到可验证的系统加速");
-    expect(living).toContain("技术路线与关键权衡");
-    expect(living).toContain("Research Gaps");
-    expect(living).toContain("局部工程证据对照");
-    expect(living).toContain("PDF 尚未生成");
-    expect(living).not.toContain("href=\"javascript:");
-    expect(living).toContain("vLLM #64915");
-    const reportVersion = spec.report!.version;
-    expect(reportVersion).toMatch(/^[a-f0-9]{64}$/);
   });
   it("unlocks only artifact paths checked for the same frozen metadata", async () => {
     const request = mockRequest();

@@ -2,7 +2,7 @@
 
 只读展示社区每日研究报告（`auto-research-report` 的产物）。本仓库只包含前端与已发布的数据快照，不包含采集、分析、组稿或模型调用代码。
 
-负责人：曹哲 / @xmdhb。对应 issue #45、#51—#53。当前是只读网站与显式报告导入，不代表三组设计评审、生产接入或发布验收已完成。
+负责人：Changwu Li / @Li-changwu。对应 issue #45、#51—#53。当前是只读网站与显式报告导入，不代表三组设计评审、生产接入或发布验收已完成。
 
 ## 启动
 
@@ -18,6 +18,12 @@ npm run dev
 `npm test` 验证版本、日期、正文、身份、图覆盖、安全链接、产物哈希和运行身份；`npm run build` 执行 TypeScript 检查及静态构建。静态结果在 `dist/`，用 `npm run preview` 预览，不能双击 `index.html` 代替 HTTP 服务。使用 HashRouter，刷新与深链接无需额外的服务器回退配置。
 
 ## 页面
+
+### 贡献者
+
+首页主导航的“贡献者”进入 `/#/contributors`，展示曹哲（xmdhb）、Changwu Li（Li-changwu）和 ruicheng（KimmoZAG）的介绍与 GitHub 主页。姓名、头像和个人签名来自公开 GitHub 资料；项目贡献介绍依据本仓库 README 与提交记录。三位当前均未在 GitHub 公开资料中填写独立个人网站。
+
+展示资料维护在 `src/pages/Contributors.tsx`，后续可在此补充经本人提供的简介和个人主页。页面按需加载，不依赖日报目录成功加载或运行时 GitHub API 请求。
 
 ### 首页累计方向分布
 
@@ -149,7 +155,7 @@ npm run build
 
 ## 技术专题
 
-导航「技术专题」读取 `public/word-reports/topics.json`。ACL Graph 技术专题提供四个并列分区：导引（默认入口）、综述（`?view=paper`，含同版 PDF、HTML、LaTeX、BibTeX、Markdown 与源码 ZIP）、动态报告（`?view=report`，含版本记录）、PR 与趋势（`?view=evidence`，含趋势图和可筛选 PR 索引）。旧动态报告的取材附录深链接仍可打开 PR 索引。KV Cache 和推测解码沿用原有 PR 索引、筛选与日报回溯入口。
+导航「技术专题」读取 `public/word-reports/topics.json`。ACL Graph 技术专题提供导引（默认入口）、综述（`?view=paper`，含同版 PDF、HTML、LaTeX、BibTeX、Markdown 与源码 ZIP）和动态报告（`?view=report`）。动态报告可展开 PR 趋势、可筛选的 PR 索引、具体分析和版本记录。旧 `?view=evidence` 链接转到动态报告的 PR 与趋势，旧取材附录链接继续定位到 PR 索引。KV Cache 和推测解码沿用原有 PR 索引、筛选与日报回溯入口。
 
 技术专题从后端独立构建。取材复用此仓库的日报归档，论文及原始 PR 核验进入专题研究稿。后端 `build-topic-reports` 写入冻结的 `topic-reports/<id>/<version>/`，然后更新 `topics.json`。上游使用 `topics/README.md` 中的命令构建；站点提交索引及新增版本目录后，现有 Pages 构建即可发布。发布前执行 `python -X utf8 -m unittest discover -s scripts`、`npm test` 和 `npm run build`，覆盖索引、历史链、资产 SHA-256 及页面路由。
 
