@@ -241,9 +241,11 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
   const papers = report.references.filter((reference) => reference.kind === "paper").length;
   const prs = report.references.filter((reference) => reference.kind === "pr").length;
   const toc = [
-    { id: "survey-abstract", title: "摘要与研究问题" }, { id: "survey-methods", title: "范围与研究方法" }, { id: "survey-taxonomy", title: "技术路线与权衡" },
+    { id: "survey-abstract", title: "摘要与研究问题" }, { id: "survey-methods", title: "范围与研究方法" },
+    ...(topic.id !== "speculative-decoding" ? [{ id: "survey-taxonomy", title: "技术路线与权衡" }] : []),
     ...(topic.id !== "speculative-decoding" && report.evidenceDetails?.length ? [{ id: "survey-evidence", title: "局部工程证据对照" }] : []),
     ...report.sections.map((section, index) => ({ id: `survey-section-${index}`, title: section.title })),
+    ...(topic.id === "speculative-decoding" ? [{ id: "survey-taxonomy", title: "技术方法比较" }] : []),
     { id: "survey-gaps", title: "待验证问题" },
     ...(topic.id === "speculative-decoding" && report.evidenceDetails?.length ? [{ id: "survey-evidence", title: "完整 PR 证据记录" }] : []), { id: "survey-limitations", title: "局限与证据边界" },
     ...(report.reviewSummary ? [{ id: "survey-review", title: "独立审查摘要" }] : []),
@@ -278,11 +280,7 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
     <button type="button" aria-pressed={mode === "full"} onClick={() => changeMode("full")}><BookOpen size={14} aria-hidden="true" />精读全文</button>
     <button type="button" aria-pressed={mode === "brief"} onClick={() => changeMode("brief")}><Sparkles size={14} aria-hidden="true" />快速阅读</button>
   </div>;
-  const body = (
-    <div className="survey-layout"><nav className="survey-toc" aria-label="专题报告目录"><span>本报告</span>{toc.map((part, index) => <ReportJump key={part.id} id={part.id} aria-current={query.get("part") === part.id ? "location" : undefined}><small>{String(index + 1).padStart(2, "0")}</small>{part.title}</ReportJump>)}<div className="survey-toc-note">可按研究问题阅读，引用编号可定位到对应来源。</div></nav><article id="survey-paper" tabIndex={-1} className="survey-paper" aria-label="动态报告正文">
-      {embedded && <h2>{report.title}</h2>}
-      <section id="survey-abstract" tabIndex={-1} className="survey-abstract"><div className="survey-kicker">OVERVIEW</div><h2>摘要</h2><p>{report.abstract}</p><div className="survey-questions"><h3>这份报告回答什么</h3>{report.centralQuestion && <p className="survey-central-question"><strong>中心问题：</strong>{report.centralQuestion}</p>}<ol>{report.researchQuestions.map((question, index) => <li key={question}><span>RQ{index + 1}</span>{question}</li>)}</ol></div></section>
-      <details id="survey-methods" className="survey-details" tabIndex={-1}><summary><span>研究范围与方法</span><small>查看检索、纳排标准与证据分级</small></summary><Methodology report={report} /><div className="survey-evidence-guide"><h3>如何使用这些来源</h3><ul><li>官方接口、固定版本文档与固定提交源码：解释对应版本的机制与约束。</li><li>原始系统论文：提供分析背景，其 GPU 结果不作为 Ascend 实测。</li><li>工程 PR 是一手公开记录；日报是二级整理。原文核查范围、历史日期与测试条件见每条来源说明。</li><li>综述方法来源：说明组织与更新原则，不提供性能证明。</li></ul></div><p className="survey-evidence-note">各项工程证据的取材层级以来源标注为准，区分一手原文、固定版本资料与二手日报分析。不同设备、负载和测试口径下的结果不能直接合并为统一加速比。</p></details>
+  const techLandscape = (
       <section id="survey-taxonomy" tabIndex={-1}><div className="survey-kicker">TECHNICAL LANDSCAPE</div><h2>技术路线与关键权衡</h2><p className="survey-muted">围绕核心问题比较解决路径、适用条件和代价。</p><div className="survey-table-wrap" role="region" aria-label="技术路线比较，可横向滚动" tabIndex={0}><table className="survey-taxonomy"><caption>技术路线按问题、路径与代价比较</caption><thead><tr><th>核心技术问题</th><th>解决路径</th><th>边界与代价</th></tr></thead><tbody>{report.taxonomy.map((row, index) => <tr key={index} id={`survey-route-${index}`} tabIndex={-1}><th scope="row"><span className="survey-route-number">{String(index + 1).padStart(2, "0")}</span>{row.problem}</th><td>{row.approach}<Citations ids={row.sourceIds} references={report.references} /></td><td>{row.tradeoff}</td></tr>)}</tbody></table></div>
         {!!report.bottleneckMigration?.length && <>
           <h3>历史演进：解决一个依赖，又出现哪些新成本？</h3>
@@ -296,14 +294,43 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
           </div>
         </>}
       </section>
+  );
+  const body = (
+    <div className="survey-layout"><nav className="survey-toc" aria-label="专题报告目录"><span>本报告</span>{toc.map((part, index) => <ReportJump key={part.id} id={part.id} aria-current={query.get("part") === part.id ? "location" : undefined}><small>{String(index + 1).padStart(2, "0")}</small>{part.title}</ReportJump>)}<div className="survey-toc-note">可按研究问题阅读，引用编号可定位到对应来源。</div></nav><article id="survey-paper" tabIndex={-1} className="survey-paper" aria-label="动态报告正文">
+      {embedded && <h2>{report.title}</h2>}
+      <section id="survey-abstract" tabIndex={-1} className="survey-abstract"><div className="survey-kicker">OVERVIEW</div><h2>摘要</h2><p>{report.abstract}</p><div className="survey-questions"><h3>这份报告回答什么</h3>{report.centralQuestion && <p className="survey-central-question"><strong>中心问题：</strong>{report.centralQuestion}</p>}<ol>{report.researchQuestions.map((question, index) => <li key={question}><span>RQ{index + 1}</span>{question}</li>)}</ol></div></section>
+      {topic.id === "speculative-decoding" ? <section id="survey-methods" tabIndex={-1} className="specdec-report-methods">
+        <h2>检索与综合方法</h2><Methodology report={report} />
+        <p>本文是一份选择性的、按问题组织的持续演进叙述性综述，不是穷尽检索的系统综述。固定提交源码用于分析具体实现职责，论文用于解释算法及其适用前提；公开 PR 的实验数据保留原作者口径、运行条件和局限。日报新增条目先作为候选，不自动成为经审查的研究证据。</p>
+      </section> :       <details id="survey-methods" className="survey-details" tabIndex={-1}><summary><span>研究范围与方法</span><small>查看检索、纳排标准与证据分级</small></summary><Methodology report={report} /><div className="survey-evidence-guide"><h3>如何使用这些来源</h3><ul><li>官方接口、固定版本文档与固定提交源码：解释对应版本的机制与约束。</li><li>原始系统论文：提供分析背景，其 GPU 结果不作为 Ascend 实测。</li><li>工程 PR 是一手公开记录；日报是二级整理。原文核查范围、历史日期与测试条件见每条来源说明。</li><li>综述方法来源：说明组织与更新原则，不提供性能证明。</li></ul></div><p className="survey-evidence-note">各项工程证据的取材层级以来源标注为准，区分一手原文、固定版本资料与二手日报分析。不同设备、负载和测试口径下的结果不能直接合并为统一加速比。</p></details>}
+      {topic.id !== "speculative-decoding" && techLandscape}
       {topic.id !== "speculative-decoding" && <EvidenceDetails report={report} />}
-      {report.sections.map((section, index) => <details key={`${mode}-${section.id}`} open={mode === "full"} id={`survey-section-${index}`} tabIndex={-1} className="survey-body-section"><summary><span className="survey-kicker">ANALYSIS {String(index + 1).padStart(2, "0")}</span><h2>{section.title}</h2>{mode === "brief" && <span className="survey-section-lead">{sectionLead(section.paragraphs[0] ?? "")}<span>展开分析</span></span>}</summary>{section.paragraphs.map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}{section.subsections?.map((subsection) => <section className="survey-analytical-subsection" key={subsection.title}>
-        <h3>{subsection.title}</h3>
-        {subsection.paragraphs.map((paragraph, i) => <p key={i}>{paragraph}</p>)}
-        <div className="survey-section-sources"><span>小节依据</span><Citations ids={subsection.sourceIds} references={report.references} /></div>
-      </section>)}
-      {section.conclusion && <p className="survey-chapter-conclusion"><strong>本章综合判断：</strong>{section.conclusion}</p>}
-      <div className="survey-section-sources"><span>本章来源</span><Citations ids={section.sourceIds} references={report.references} /></div></details>)}
+      {report.sections.map((section, index) => {
+        const heading = <>
+          <span className="survey-kicker">ANALYSIS {String(index + 1).padStart(2, "0")}</span>
+          <h2>{section.title}</h2>
+          {mode === "brief" && <span className="survey-section-lead">{sectionLead(section.paragraphs[0] ?? "")}<span>展开分析</span></span>}
+        </>;
+        const chapterText = <>
+          {section.paragraphs.map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}
+          {section.subsections?.map((subsection) => <section className="survey-analytical-subsection" key={subsection.title}>
+            <h3>{subsection.title}</h3>
+            {subsection.paragraphs.map((paragraph, i) => <p key={i}>{paragraph}</p>)}
+            <div className="survey-section-sources"><span>本节依据</span><Citations ids={subsection.sourceIds} references={report.references} /></div>
+          </section>)}
+          {section.conclusion && <p className="survey-chapter-conclusion"><strong>综合判断：</strong>{section.conclusion}</p>}
+          <div className="survey-section-sources"><span>本章依据</span><Citations ids={section.sourceIds} references={report.references} /></div>
+        </>;
+        if (topic.id === "speculative-decoding" && mode === "full") {
+          return <section key={section.id} id={`survey-section-${index}`} tabIndex={-1} className="survey-body-section specdec-article-section">
+            <header>{heading}</header>{chapterText}
+          </section>;
+        }
+        return <details key={`${mode}-${section.id}`} open={mode === "full"} id={`survey-section-${index}`} tabIndex={-1} className="survey-body-section">
+          <summary>{heading}</summary>{chapterText}
+        </details>;
+      })}
+      {topic.id === "speculative-decoding" && techLandscape}
       <section id="survey-gaps" tabIndex={-1}><div className="survey-kicker">RESEARCH AGENDA</div><h2>{topic.id === "speculative-decoding" ? "Research Gaps 与可证伪实验协议" : "未解问题与未来方向"}</h2><p className="survey-muted">以下问题由本报告的证据推导，按可验证的研究假设呈现。证据覆盖不足不等于全领域尚无人解决；验证路径是后续研究方案。</p><div className="survey-gap-list">{report.gaps.map((gap, index) => <div className="survey-gap" key={gap.id} id={`survey-gap-${gap.id}`} tabIndex={-1}><header><span className="survey-gap-number">G{index + 1}</span><h3>{gap.title}</h3><span className={`survey-gap-status ${gap.status === "resolved" ? "resolved" : ""}`}>{gap.researchType === "evaluation-method" ? "统一评估方法" : gap.researchType === "mechanism-gap" ? "机制衔接缺口" : gapStatus[gap.status] ?? "待研究"}</span></header><dl><dt>观察与证据边界</dt><dd>{gap.observation}<Citations ids={gap.sourceIds} references={report.references} /></dd><dt>{gap.status === "hypothesis" ? "待验证假设" : "待回答的问题"}</dt><dd>{gap.question}</dd><dt>如何验证（方案）</dt><dd>{gap.validation}</dd>
 {gap.strongestKnown && <><dt>已有方法</dt><dd>{gap.strongestKnown}</dd></>}
 {gap.hypothesis && <><dt>精确假设</dt><dd>{gap.hypothesis}</dd></>}
@@ -349,7 +376,14 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
         {downloads}
       </header>
       {current?.error && <p className="survey-artifact-note" role="status">{current.error}</p>}
-      <ReportUpdateOverview report={report} topic={topic} />
+      {topic.id === "speculative-decoding" && <>
+        <div className="specdec-report-primary">
+          <div className="survey-toolbar">{modeSwitch}</div>
+          {body}
+        </div>
+        <ReportUpdateOverview report={report} topic={topic} />
+      </>}
+      {topic.id !== "speculative-decoding" && <ReportUpdateOverview report={report} topic={topic} />}
       <details className="report-brief-disclosure report-pr-trends" id="survey-pr-trends" tabIndex={-1}>
         <summary>PR 与趋势 <span>每日收录与 {topic.entries.length} 条 PR 线索</span></summary>
         <div className="report-brief-disclosure-content">
@@ -361,13 +395,13 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
           </section>
         </div>
       </details>
-      <details className="report-brief-disclosure" id="survey-analysis" tabIndex={-1} open={analysisOpen} onToggle={(event) => setAnalysisOpen(event.currentTarget.open)}>
+      {topic.id !== "speculative-decoding" && <details className="report-brief-disclosure" id="survey-analysis" tabIndex={-1} open={analysisOpen} onToggle={(event) => setAnalysisOpen(event.currentTarget.open)}>
         <summary>具体分析 <span>{report.sections.length} 节正文、证据与引用</span></summary>
         <div className="report-brief-disclosure-content">
           <div className="survey-toolbar">{modeSwitch}</div>
           {body}
         </div>
-      </details>
+      </details>}
       <details className="report-brief-disclosure" id="survey-evolution" tabIndex={-1} onToggle={(event) => {
         if (event.currentTarget.open) setHistoryRequested(true);
       }}>
