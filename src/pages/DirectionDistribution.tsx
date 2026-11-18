@@ -52,7 +52,7 @@ function Ring({ stats, label }: { stats: Distribution; label: string }) {
               transform="rotate(-90 80 80)"
             >
               <title>
-                {label} · {d.label}：{d.count} 个（{percent(d.share)}）
+                {`${label} · ${d.label}：${d.count} 个（${percent(d.share)}）`}
               </title>
             </circle>
           ))}
@@ -177,6 +177,14 @@ export default function DirectionDistribution({
                       <td key={group.key}>
                         <b>{percent(row.share)}</b>
                         <small>{row.count} 个 PR</small>
+                        <span className="distribution-inline-bar" aria-hidden="true">
+                          <i
+                            style={{
+                              width: `${Math.min(100, Math.max(0, row.share ?? 0))}%`,
+                              background: direction.color,
+                            }}
+                          />
+                        </span>
                       </td>
                     );
                   })}
