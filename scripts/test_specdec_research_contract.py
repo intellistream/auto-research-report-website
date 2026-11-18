@@ -82,8 +82,25 @@ class SpecDecResearchContract(unittest.TestCase):
             for field in ("strongestKnown", "hypothesis", "strongBaseline", "controls",
                           "metrics", "falsification"):
                 self.assertTrue(gap[field].strip(), (gap["id"], field))
-        self.assertIn("worked-round", {x["id"] for x in self.report["sections"]})
-        self.assertIn("fixed-source-contract", {x["id"] for x in self.report["sections"]})
+        self.assertEqual(len(self.report["researchQuestions"]), 4)
+        self.assertTrue(self.report.get("centralQuestion"))
+        self.assertEqual([s["id"] for s in self.report["sections"]],
+                         ["spec-contract", "effective-cost", "candidate-methods",
+                          "target-verification", "hybrid-state", "serving-runtime",
+                          "cross-layer-evidence", "research-outlook"])
+        self.assertEqual(len(self.report["bottleneckMigration"]), 4)
+        self.assertEqual(len(self.report["conclusions"]), 4)
+        self.assertTrue(all(s["subsections"] and s["conclusion"] for s in self.report["sections"]))
+        self.assertTrue(all(gap.get("researchType") and gap.get("shortSummary") for gap in self.report["gaps"]))
+        self.assertEqual(self.report["gaps"][4]["researchType"], "evaluation-method")
+        self.assertEqual(len({part["title"] for sec in self.report["sections"] for part in sec["subsections"]}),
+                         sum(len(sec["subsections"]) for sec in self.report["sections"]))
+        for sec in self.report["sections"]:
+            for part in sec["subsections"]:
+                self.assertTrue(set(part["sourceIds"]).issubset(ids))
+                self.assertTrue(set(part["sourceIds"]).issubset(set(sec["sourceIds"])))
+        for row in [*self.report["bottleneckMigration"], *self.report["conclusions"]]:
+            self.assertTrue(set(row["sourceIds"]).issubset(ids))
 
     def test_frozen_html_markdown_json_match_manifest(self) -> None:
         self.assertEqual(set(self.manifest["assets"]), {"report.json", "report.md", "report.html"})
@@ -94,6 +111,11 @@ class SpecDecResearchContract(unittest.TestCase):
         markdown = (FOLDER / "report.md").read_text(encoding="utf-8")
         html = (FOLDER / "report.html").read_text(encoding="utf-8")
         self.assertIn("K=3", markdown)
+        self.assertIn("## 7. 跨层证据综合", markdown)
+        self.assertIn("### 3.4 块并行", markdown)
+        self.assertIn("附录 D：Research Gaps", markdown)
+        self.assertIn("chapter-8", html)
+        self.assertLess(html.index('id="chapter-1"'), html.index('id="appendix-a"'))
         self.assertIn("source-ledger.json", html)
         self.assertIn("implementation-audit.md", markdown)
         for row in self.cards["records"]:
