@@ -9,6 +9,7 @@ export type PaperReading = {
   year: number;
   order: number;
   collection?: "notes-supplement";
+  recommendedReason?: string;
   format?: "survey";
   problem: string;
   method: string;
@@ -117,6 +118,13 @@ export function researchTimeline(entries: ResearchEntry[]) {
 
 export type PaperEntry = ResearchEntry & { kind: "paper"; paper: PaperReading };
 
+export type PaperCollection = "" | "recommended" | "notes-supplement";
+
+export function paperCollectionFilter(query: URLSearchParams): PaperCollection {
+  const value = query.get("collection");
+  return value === "recommended" || value === "notes-supplement" ? value : "";
+}
+
 // Paper reading shares the material inventory, with its own search and topic scope.
 export function paperViewQuery(query: URLSearchParams): URLSearchParams {
   const next = new URLSearchParams(query);
@@ -131,11 +139,14 @@ export function filterPapers(entries: ResearchEntry[], query: URLSearchParams): 
   const scope = new URLSearchParams({ kind: "paper" });
   const topic = researchTopicFilter(query);
   if (topic) scope.set("topic", topic);
-  const collection = query.get("collection") ?? "";
+  const collection = paperCollectionFilter(query);
   const term = (query.get("q") ?? "").normalize("NFKC").trim().toLocaleLowerCase();
   return filterResearch(entries, scope)
     .filter((entry): entry is PaperEntry => entry.kind === "paper" && !!entry.paper)
-    .filter((entry) => !collection || entry.paper.collection === collection)
+    .filter(({ paper }) => {
+      if (collection === "recommended") return Boolean(paper.recommendedReason);
+      return !collection || paper.collection === collection;
+    })
     .filter((entry) => !term || [entry.title, entry.originalTitle, entry.summary, entry.paper.shortName,
       entry.paper.problem, entry.paper.method, entry.paper.boundary].join(" ").normalize("NFKC").toLocaleLowerCase().includes(term))
     .sort((left, right) => left.paper.order - right.paper.order || left.id.localeCompare(right.id));

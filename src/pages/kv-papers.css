@@ -1,4 +1,25 @@
-.kv-reading-start { padding-top: .65rem; border-top: 1px solid #d4e3d9; }
+.kv-papers > .kv-paper-recommendations {
+  margin: 0 0 1.2rem;
+  padding: clamp(1rem, 2vw, 1.35rem);
+  border: 1px solid #cbded2;
+  border-left: 4px solid #3b7e5c;
+  border-radius: .7rem;
+  background: #eef5ef;
+}
+.kv-paper-recommendations h3 { margin-bottom: .25rem; }
+.kv-paper-recommendations .kv-action { align-self: center; font-size: .87rem; }
+.kv-paper-recommendation-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .65rem 1rem;
+  list-style: none;
+  margin: .85rem 0 0;
+  padding: 0;
+}
+.kv-paper-recommendation-list li { border-top: 1px solid #cbded2; padding: .6rem 0 .25rem; }
+.kv-paper-recommendation-list a { font-weight: 700; overflow-wrap: anywhere; }
+.kv-paper-recommendation-list p { margin: .15rem 0 0; color: #365446; font-size: .9rem; }
+.kv-paper-reading-tip { margin: .6rem 0; color: #365446; font-size: .88rem; }
 .kv-paper-filters { padding: 1rem; margin: 1.2rem 0 1.5rem; border: 1px solid #d4e3d9; border-radius: .65rem; background: #f4f8f5; }
 .kv-paper-filters label { min-width: 0; max-width: 100%; }
 .kv-paper-search { flex: 1 1 16rem; }
@@ -34,3 +55,5 @@
   .kv-paper-filters select, .kv-paper-search input { flex: 1; }
   .kv-paper-search { flex-basis: 100%; }
 }
+@media (max-width: 900px) { .kv-paper-recommendation-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 510px) { .kv-paper-recommendation-list { grid-template-columns: minmax(0, 1fr); } }

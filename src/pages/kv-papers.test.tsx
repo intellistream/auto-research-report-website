@@ -78,7 +78,7 @@ describe("KV paper reading", () => {
     expect(get("kvpr").paper.venue).toBe("Findings of ACL 2025");
     expect(get("hydragen").paper.venue).toContain("Workshop");
     expect(get("lmcache").paper.venue).toBe("arXiv 2025");
-    expect(get("kivi").paper.readingScope).toContain("待阅读标记");
+    expect(get("kivi").paper.readingScope).toContain("§3.1–3.3");
     expect(get("streamingllm").paper.boundary).toContain("缓存以外的信息不可访问");
     expect(get("hcache").paper.boundary).toContain("GQA/MQA");
     expect(get("h2o").paper.boundary).toContain("实验预算配置");
@@ -118,7 +118,7 @@ describe("KV paper reading", () => {
     const survey = render("/topics/kv-cache?view=papers&q=KV+Cache+综述");
     expect(survey.match(/class="kv-reading-card"/g)).toHaveLength(1);
     expect(survey).toContain("<dt>综述内容</dt>");
-    expect(survey).toContain("不能直接作为统一基准排名");
+    expect(survey).toContain("先统一评估条件");
   });
 
   it("retains consequential method and evidence boundaries in the supplement", () => {
@@ -126,11 +126,38 @@ describe("KV paper reading", () => {
     expect(get("kvdrive").paper.boundary).toContain("动态稀疏注意力");
     expect(get("nacl").paper.method).toContain("生成阶段按间隔继续淘汰");
     expect(get("cacheflow").sourceVersion).toBe("arXiv:2604.25080v2");
-    expect(get("cacheflow").paper.method).toContain("整批 DP");
-    expect(get("astraea").paper.boundary).toContain("真值 oracle");
+    expect(get("cacheflow").paper.method).toContain("整批动态规划");
+    expect(get("astraea").paper.boundary).toContain("数据集里的实际生成长度");
     expect(get("k-lpm").paper.method).toContain("k−1");
     expect(get("k-lpm").paper.venue).toBe("NeurIPS 2025");
     expect(get("k-lpm").sourceDay).toBe("2026-01-01");
     for (const slug of ["kvdrive", "tutti"]) expect(get(slug).topics).not.toContain("scheduling");
+  });
+
+  it("shows an ordered reading guide with working links on the paper landing page", () => {
+    const html = render("/topics/kv-cache?view=papers");
+    const guide = html.match(/<section class="kv-paper-recommendations".*?<\/section>/)?.[0];
+    expect(guide).toBeDefined();
+    expect(guide).toContain('view=papers&amp;collection=recommended');
+    expect([...guide!.matchAll(/part=kv-paper-([a-z0-9-]+)"/g)].map((match) => match[1]))
+      .toEqual(["pagedattention", "sglang", "h2o", "kivi", "distserve", "k-lpm"]);
+    for (const [, slug] of guide!.matchAll(/part=kv-paper-([a-z0-9-]+)"/g)) {
+      expect(html).toContain(`id="kv-paper-${slug}"`);
+    }
+  });
+
+  it("keeps recommendations within the selected topic and keyword scope", () => {
+    const filtered = render("/topics/kv-cache?view=papers&collection=recommended");
+    expect(filtered.match(/class="kv-reading-card"/g)).toHaveLength(6);
+    expect(filtered).not.toContain('class="kv-paper-recommendations"');
+    const query = new URLSearchParams({ collection: "recommended", topic: "scheduling", q: "Ｋ－ＬＰＭ" });
+    expect(filterPapers(kvResearch.entries, query).map((entry) => entry.paper.slug)).toEqual(["k-lpm"]);
+    expect(paperViewQuery(query).get("collection")).toBe("recommended");
+    const html = render("/topics/kv-cache?view=papers&collection=recommended&topic=scheduling");
+    expect(html).toContain("topic=reuse&amp;collection=recommended");
+    expect(html).not.toContain('id="kv-paper-layerkv"');
+    expect(html).not.toContain('id="kv-paper-kivi"');
+    expect(html).toContain('id="kv-paper-k-lpm"');
+    expect(html).toContain('class="kv-paper-reading-tip"');
   });
 });
