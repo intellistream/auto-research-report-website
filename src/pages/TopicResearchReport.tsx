@@ -142,7 +142,7 @@ function ReportUpdateOverview({ report, topicId }: { report: ResearchReport; top
   return <>
     <div className="report-brief-overview">
       <section className="report-brief-card report-brief-current">
-        <h3>本次更新</h3>
+        <h3>{report.revision === 1 && !report.previousVersion ? "研究起点" : "本次更新"}</h3>
         {(added > 0 || changed > 0 || evidenceCount > 0) && <ul className="report-brief-counts">
           {added > 0 && <li>新增 {added} 条来源</li>}
           {changed > 0 && <li>{update ? "复核" : "更新"} {changed} 条已有来源</li>}
@@ -160,7 +160,7 @@ function ReportUpdateOverview({ report, topicId }: { report: ResearchReport; top
     </div>
 
     <section className="report-brief-evidence">
-      <h3>证据怎样改变判断</h3>
+      <h3>{update ? "证据怎样改变判断" : "主要技术路径"}</h3>
       {update ? <div className="report-brief-evidence-grid">
         {update.evidence.map((item) => (
           <article key={item.source}>
@@ -169,8 +169,14 @@ function ReportUpdateOverview({ report, topicId }: { report: ResearchReport; top
             {item.links.map(({ id, label }) => <ReportJump key={id} id={`survey-evidence-${id}`}>{label} →</ReportJump>)}
           </article>
         ))}
-      </div> : <div className="report-brief-card">
-        <p>本版未单列证据对判断的影响。<ReportJump id={evidenceCount ? "survey-evidence" : "survey-references"}>查看{evidenceCount ? "证据详情" : "参考来源"}</ReportJump></p>
+      </div> : <div className="report-brief-evidence-grid">
+        {report.taxonomy.slice(0, 3).map((route, index) => (
+          <article key={index}>
+            <header><h4>{route.problem}</h4></header>
+            <p>{route.approach}</p>
+            <ReportJump id="survey-taxonomy">技术权衡与来源 →</ReportJump>
+          </article>
+        ))}
       </div>}
     </section>
   </>;
