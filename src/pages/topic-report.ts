@@ -7,6 +7,8 @@ export type Reference = {
 export type EvidenceDetail = {
   id: string; sourceIds: string[]; comparison: string; mechanism: string; level: string;
   environment: string; revision: string; workload: string; result: string; limitation: string; verification: string;
+  negativeEvidence?: string; sourceHead?: string; observedAt?: string; sourceFile?: string;
+  sourceCommitUrl?: string; provenance?: string;
 };
 export type ReviewSummary = {
   date: string; provider: string; model: string; type: "independent-review"; summary: string; limitations: string[];
@@ -17,7 +19,8 @@ export type ResearchReport = {
     inclusionCriteria: string[]; exclusionCriteria: string[]; synthesis: string } | string[];
   sections: { id: string; title: string; paragraphs: string[]; sourceIds: string[] }[];
   taxonomy: { problem: string; approach: string; tradeoff: string; sourceIds: string[] }[];
-  gaps: { id: string; title: string; observation: string; question: string; validation: string; sourceIds: string[]; status: string }[];
+  gaps: { id: string; title: string; observation: string; question: string; validation: string; sourceIds: string[]; status: string;
+    strongestKnown?: string; hypothesis?: string; strongBaseline?: string; controls?: string; metrics?: string; falsification?: string }[];
   references: Reference[]; limitations: string[]; changelog: { date: string; summary: string }[];
   version: string; revision: number; asOf: string; status: string; previousVersion?: string | null;
   synthesizedWorkIds?: string[]; pendingEvidence?: Entry[];
