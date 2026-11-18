@@ -75,7 +75,8 @@ describe("independent KV research library", () => {
     for (const entry of kvResearch.entries) {
       expect(entry.url.startsWith("https://")).toBe(true);
       expect(entry.rationale.length).toBeGreaterThan(5);
-      expect(entry.sourceDay).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      if (entry.kind === "pr" || entry.sourceDay) expect(entry.sourceDay).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      else expect(entry.sourceMonth).toMatch(/^\d{4}-\d{2}$/);
       if (entry.decision === "included") {
         expect(entry.topics.length).toBeGreaterThan(0);
         expect(new Set(entry.topics).size).toBe(entry.topics.length);
@@ -140,5 +141,13 @@ describe("independent KV research library", () => {
     expect(html).toContain("日报可作为引用记录");
     expect(html).not.toContain("专题初筛线索");
     expect(html).toContain("<dd>4</dd>");
+  });
+
+  it("filters and sorts month-precision paper dates without adding them to PR trends", () => {
+    const monthPaper: ResearchEntry = { ...paper, id: "paper:month-only", sourceDay: null, sourceMonth: "2026-02" };
+    const rows = [paper, monthPaper, pr, monthPaper];
+    expect(filterResearch(rows, new URLSearchParams()).map((entry) => entry.id)).toEqual([pr.id, monthPaper.id, paper.id]);
+    expect(filterResearch(rows, new URLSearchParams({ month: "2026-02" }))).toEqual([monthPaper]);
+    expect(researchTimeline(rows)).toEqual([{ month: "2026-03", count: 1 }]);
   });
 });
