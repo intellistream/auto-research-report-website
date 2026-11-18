@@ -44,6 +44,10 @@ describe("SpecDec novice-to-research reading contract", () => {
     expect(report).toContain("失败或负对照");
     expect(report).toContain("证伪条件");
     expect(report).toContain("局部工程证据对照");
+    expect(report).not.toContain("specdec-research-assets");
+    expect(report).not.toContain("105 条 PR 候选账本");
+    expect(report).not.toContain("10 条核心 PR 核验记录");
+    expect(report).not.toContain("固定源码与支持矩阵");
     expect(report).toContain("PDF 尚未生成");
     expect(report).toContain("8 节正文");
     expect(report).toContain('id="survey-analysis"');
