@@ -192,9 +192,9 @@
           ]
         },
         {
-          "title": "3.4 块并行：DFlash、DFLare、DSpark 与 DFlash2 运行时",
+          "title": "3.4 块并行：DFlash、DFlare、DSpark 与 DFlash2 运行时",
           "paragraphs": [
-            "DFlash 让轻量块扩散 Drafter 在较少序列步骤里并行预测一个 Token Block，利用 Target 特征条件化非因果块内计算。代价是块后部的依赖与 Target 自回归条件存在差异，可能拉低连续前缀存活率。DFLare 针对 DFlash 条件信息集中且每层输入相似的瓶颈，引入层级 Target 特征融合；这一改动重构条件容量而非取消 Verify 成本。",
+            "DFlash 让轻量块扩散 Drafter 在较少序列步骤里并行预测一个 Token Block，利用 Target 特征条件化非因果块内计算。代价是块后部的依赖与 Target 自回归条件存在差异，可能拉低连续前缀存活率。DFlare 针对 DFlash 条件信息集中且每层输入相似的瓶颈，引入层级 Target 特征融合；这一改动重构条件容量而非取消 Verify 成本。",
             "DSpark 通过 Markov/Confidence 结构向并行提案补入局部序列依赖，并可为后续 Verification Budget 提供位置置信度。DFlash2 则在工程侧包含 Candidate Selector、Proposal Cache 和非因果滑窗 Attention 路径；Ascend #19512 使其在特定 MRV2 配置中执行 Full ACLGraph，属于部署执行证据，不能仅凭图的收益推导 DFlash2 算法优于其他 Drafter。",
             "相较串行 EAGLE/MTP，块并行试图减少 Draft 深度，却使 Target 验证宽度、位置置信度与非因果前态缓存更重要。这正是下一章从固定 K 转向自适应 Budget 的直接动因。"
           ],
@@ -633,7 +633,7 @@
   "taxonomy": [
     {
       "problem": "Candidate Generation：候选如何形成条件依赖",
-      "approach": "历史检索/独立 Draft Model；EAGLE/MTP 的序列化特征提案；Medusa/SpecInfer 的多分支树；DFlash、DFLare、DSpark 的块并行/弱序列依赖",
+      "approach": "历史检索/独立 Draft Model；EAGLE/MTP 的序列化特征提案；Medusa/SpecInfer 的多分支树；DFlash、DFlare、DSpark 的块并行/弱序列依赖",
       "tradeoff": "关键比较变量是 Draft Forward 深度、候选存活率、训练成本、Proposal Tree Size、额外权重/KV 与更新历史的难度；并存方法各适用不同重复程度与模型结构。",
       "sourceIds": [
         "P1",
@@ -945,7 +945,7 @@
     {
       "id": "P10",
       "kind": "paper",
-      "title": "DFLare",
+      "title": "DFlare: Scaling Up Draft Capacity for Block Diffusion Speculative Decoding",
       "url": "https://aclanthology.org/2026.emnlp-main.1503/",
       "year": 2026,
       "evidenceLevel": "原始论文（作者报告）",
