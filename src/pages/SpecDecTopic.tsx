@@ -55,8 +55,14 @@ export default function SpecDecTopic({ topic }: { topic: Topic }) {
     </nav>
     {section === "guide" && <SpecDecGuide topic={topic} />}
     {section === "paper" && <SpecDecSurvey topic={topic} />}
-    {section === "report" && (topic.report
-      ? <TopicResearchReport key={topic.report.version} topic={topic} report={topic.report} embedded />
-      : <p>动态报告准备中。</p>)}
+    {section === "report" && (topic.report ? <>
+      <aside className="specdec-research-assets" aria-label="研究来源与固定实现">
+        <strong>研究资料</strong>
+        <a target="_blank" rel="noreferrer" href={`${import.meta.env.BASE_URL}word-reports/topic-reports/${topic.id}/${topic.report.version}/source-ledger.json`}>105 条 PR 候选账本 ↗</a>
+        <a target="_blank" rel="noreferrer" href={`${import.meta.env.BASE_URL}word-reports/topic-reports/${topic.id}/${topic.report.version}/evidence-ledger.json`}>10 条核心 PR 核验记录 ↗</a>
+        <a target="_blank" rel="noreferrer" href={`${import.meta.env.BASE_URL}word-reports/topic-reports/${topic.id}/${topic.report.version}/implementation-audit.md`}>固定源码与支持矩阵 ↗</a>
+      </aside>
+      <TopicResearchReport key={topic.report.version} topic={topic} report={topic.report} embedded />
+    </> : <p>动态报告准备中。</p>)}
   </div>;
 }
