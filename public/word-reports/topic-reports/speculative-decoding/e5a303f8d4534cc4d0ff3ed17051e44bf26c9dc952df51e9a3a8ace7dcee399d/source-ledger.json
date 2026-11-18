@@ -19,7 +19,8 @@
       "GDN"
     ],
     "policy": "105 preclassified entries are retained without deleting or changing their community labels. The daily digest is a discovery layer, not proof of mechanism or measured benefit. Only ten PR descriptions and their changed-file paths have been checked; the other 95 PR statuses and source heads remain unknown.",
-    "screening": "The research classification is assigned only to checked PRs; unreviewed entries explicitly remain not-yet-reviewed."
+    "screening": "The research classification is assigned only to checked PRs; unreviewed entries explicitly remain not-yet-reviewed.",
+    "researchFramework": "R2 editorial organization: distribution and state contract → cost model → Candidate → Verify → Hybrid State → Runtime → cross-layer synthesis → research gaps; 105 candidates unchanged and ten detailed PR cases."
   },
   "counts": {
     "total": 105,
@@ -39,7 +40,7 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "execution-contract"
+        "candidate-methods"
       ]
     },
     {
@@ -59,7 +60,7 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "draft-techniques"
+        "candidate-methods"
       ]
     },
     {
@@ -70,10 +71,10 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "correctness-and-cost",
-        "execution-contract",
-        "verification-budget",
-        "research-perspective"
+        "effective-cost",
+        "target-verification",
+        "cross-layer-evidence",
+        "research-outlook"
       ]
     },
     {
@@ -96,10 +97,12 @@
         "checkedAt": "2026-11-18"
       },
       "usedInSections": [
-        "worked-round",
-        "correctness-and-cost",
-        "fixed-source-contract",
-        "capability-boundaries"
+        "spec-contract",
+        "candidate-methods",
+        "hybrid-state",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ]
     },
     {
@@ -113,10 +116,11 @@
         "checkedAt": "2026-11-18"
       },
       "usedInSections": [
-        "worked-round",
-        "correctness-and-cost",
-        "fixed-source-contract",
-        "capability-boundaries"
+        "spec-contract",
+        "hybrid-state",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ]
     },
     {
@@ -127,8 +131,9 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "worked-round",
-        "execution-contract"
+        "spec-contract",
+        "effective-cost",
+        "candidate-methods"
       ]
     },
     {
@@ -139,9 +144,12 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "worked-round",
-        "correctness-and-cost",
-        "execution-contract"
+        "spec-contract",
+        "effective-cost",
+        "candidate-methods",
+        "target-verification",
+        "hybrid-state",
+        "research-outlook"
       ]
     },
     {
@@ -151,7 +159,11 @@
       "url": "https://proceedings.mlr.press/v235/cai24b.html",
       "workId": null,
       "sourceIdentity": null,
-      "usedInSections": []
+      "usedInSections": [
+        "spec-contract",
+        "candidate-methods",
+        "cross-layer-evidence"
+      ]
     },
     {
       "id": "P4",
@@ -161,7 +173,10 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "correctness-and-cost"
+        "spec-contract",
+        "effective-cost",
+        "candidate-methods",
+        "target-verification"
       ]
     },
     {
@@ -172,8 +187,8 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "draft-techniques",
-        "engineering-evolution"
+        "candidate-methods",
+        "cross-layer-evidence"
       ]
     },
     {
@@ -184,8 +199,8 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "draft-techniques",
-        "engineering-evolution"
+        "candidate-methods",
+        "cross-layer-evidence"
       ]
     },
     {
@@ -196,8 +211,8 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "draft-techniques",
-        "engineering-evolution"
+        "candidate-methods",
+        "cross-layer-evidence"
       ]
     },
     {
@@ -208,10 +223,9 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "draft-techniques",
-        "verification-budget",
-        "engineering-evolution",
-        "research-perspective"
+        "candidate-methods",
+        "target-verification",
+        "cross-layer-evidence"
       ]
     },
     {
@@ -222,9 +236,11 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "verification-budget",
-        "state-correctness",
-        "research-perspective"
+        "spec-contract",
+        "target-verification",
+        "hybrid-state",
+        "cross-layer-evidence",
+        "research-outlook"
       ]
     },
     {
@@ -234,7 +250,9 @@
       "url": "https://aclanthology.org/2026.emnlp-main.1503/",
       "workId": null,
       "sourceIdentity": null,
-      "usedInSections": []
+      "usedInSections": [
+        "candidate-methods"
+      ]
     },
     {
       "id": "E1",
@@ -244,11 +262,11 @@
       "workId": "github:vllm-project/vllm#63096",
       "sourceIdentity": "11090e9315ca1c74d962feb90f3d4fd0e00e9cd8",
       "usedInSections": [
-        "correctness-and-cost",
-        "draft-techniques",
-        "runtime-cost",
-        "engineering-evolution",
-        "capability-boundaries"
+        "effective-cost",
+        "candidate-methods",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ]
     },
     {
@@ -259,11 +277,11 @@
       "workId": "github:vllm-project/vllm#63421",
       "sourceIdentity": "d28c23065300ee5b45dc9504f28a12be222d36bf",
       "usedInSections": [
-        "correctness-and-cost",
-        "fixed-source-contract",
-        "verification-budget",
-        "engineering-evolution",
-        "capability-boundaries"
+        "effective-cost",
+        "target-verification",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ]
     },
     {
@@ -274,9 +292,9 @@
       "workId": "github:vllm-project/vllm#65175",
       "sourceIdentity": "9132bccd77919c7ee3ac9f3bd4d709767797464e",
       "usedInSections": [
-        "fixed-source-contract",
-        "verification-budget",
-        "engineering-evolution"
+        "target-verification",
+        "cross-layer-evidence",
+        "research-outlook"
       ]
     },
     {
@@ -286,9 +304,7 @@
       "url": "https://github.com/vllm-project/vllm/pull/63801",
       "workId": "github:vllm-project/vllm#63801",
       "sourceIdentity": null,
-      "usedInSections": [
-        "runtime-cost"
-      ]
+      "usedInSections": []
     },
     {
       "id": "E5",
@@ -298,9 +314,10 @@
       "workId": "github:vllm-project/vllm#61589",
       "sourceIdentity": "9cc08bfe366e8ad3ac9fe7d53a64dd3847041a38",
       "usedInSections": [
-        "state-correctness",
-        "engineering-evolution",
-        "research-perspective"
+        "hybrid-state",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ]
     },
     {
@@ -311,7 +328,7 @@
       "workId": "github:vllm-project/vllm#62784",
       "sourceIdentity": null,
       "usedInSections": [
-        "runtime-cost"
+        "serving-runtime"
       ]
     },
     {
@@ -322,10 +339,11 @@
       "workId": "github:vllm-project/vllm#66595",
       "sourceIdentity": "cdced7fb9741c8eca9661c56883ea9828b90fcd3",
       "usedInSections": [
-        "worked-round",
-        "state-correctness",
-        "research-perspective",
-        "capability-boundaries"
+        "spec-contract",
+        "target-verification",
+        "hybrid-state",
+        "cross-layer-evidence",
+        "research-outlook"
       ]
     },
     {
@@ -336,9 +354,10 @@
       "workId": "github:vllm-project/vllm-ascend#19512",
       "sourceIdentity": "2d4a2e00348ad29650da959f6603a20e90934479",
       "usedInSections": [
-        "fixed-source-contract",
-        "runtime-cost",
-        "capability-boundaries"
+        "effective-cost",
+        "candidate-methods",
+        "serving-runtime",
+        "cross-layer-evidence"
       ]
     },
     {
@@ -349,8 +368,10 @@
       "workId": "github:vllm-project/vllm-ascend#20254",
       "sourceIdentity": "fe58a4cf1c89190bffe5f43b8d7220bfb875d31a",
       "usedInSections": [
-        "runtime-cost",
-        "capability-boundaries"
+        "effective-cost",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ]
     },
     {
@@ -361,7 +382,7 @@
       "workId": "github:vllm-project/vllm-ascend#20006",
       "sourceIdentity": null,
       "usedInSections": [
-        "runtime-cost"
+        "serving-runtime"
       ]
     },
     {
@@ -372,9 +393,11 @@
       "workId": "github:vllm-project/vllm-ascend#19954",
       "sourceIdentity": "d40d2a64c656f7d86a996b23793ceaeb0f9ab3b0",
       "usedInSections": [
-        "state-correctness",
-        "engineering-evolution",
-        "capability-boundaries"
+        "effective-cost",
+        "hybrid-state",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ]
     },
     {
@@ -385,10 +408,11 @@
       "workId": "github:vllm-project/vllm-ascend#21430",
       "sourceIdentity": "a0c28fd17a3bda74d3d2d5e431be28245b068ddf",
       "usedInSections": [
-        "fixed-source-contract",
-        "state-correctness",
-        "engineering-evolution",
-        "capability-boundaries"
+        "target-verification",
+        "hybrid-state",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ]
     },
     {
@@ -398,7 +422,9 @@
       "url": "https://github.com/vllm-project/vllm-ascend/pull/20279",
       "workId": "github:vllm-project/vllm-ascend#20279",
       "sourceIdentity": null,
-      "usedInSections": []
+      "usedInSections": [
+        "serving-runtime"
+      ]
     },
     {
       "id": "E14",
@@ -408,8 +434,8 @@
       "workId": "github:vllm-project/vllm#64109",
       "sourceIdentity": null,
       "usedInSections": [
-        "runtime-cost",
-        "research-perspective"
+        "serving-runtime",
+        "research-outlook"
       ]
     },
     {
@@ -420,8 +446,8 @@
       "workId": "github:vllm-project/vllm-ascend#20755",
       "sourceIdentity": null,
       "usedInSections": [
-        "state-correctness",
-        "runtime-cost"
+        "hybrid-state",
+        "serving-runtime"
       ]
     },
     {
@@ -441,9 +467,11 @@
       "workId": "github:vllm-project/vllm#64915",
       "sourceIdentity": "6f1891fb42992181a413bc6c4276889f4d3008f8",
       "usedInSections": [
-        "runtime-cost",
-        "research-perspective",
-        "capability-boundaries"
+        "effective-cost",
+        "target-verification",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ]
     },
     {
@@ -454,7 +482,7 @@
       "workId": "github:vllm-project/vllm-ascend#20345",
       "sourceIdentity": null,
       "usedInSections": [
-        "state-correctness"
+        "hybrid-state"
       ]
     },
     {
@@ -768,10 +796,11 @@
       "headCommit": "a0c28fd17a3bda74d3d2d5e431be28245b068ddf",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
-        "fixed-source-contract",
-        "state-correctness",
-        "engineering-evolution",
-        "capability-boundaries"
+        "target-verification",
+        "hybrid-state",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ],
       "originalPrTitle": "[Performance][ModelRunner] Issue num_computed_tokens D2H before RecoverSSM commit in MRV2 postprocessing"
     },
@@ -845,11 +874,11 @@
       "headCommit": "11090e9315ca1c74d962feb90f3d4fd0e00e9cd8",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
-        "correctness-and-cost",
-        "draft-techniques",
-        "runtime-cost",
-        "engineering-evolution",
-        "capability-boundaries"
+        "effective-cost",
+        "candidate-methods",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ],
       "originalPrTitle": "[ROCm][Spec Decode] Enable fused multi-step draft decode for ROCM_AITER_UNIFIED_ATTN"
     },
@@ -872,10 +901,11 @@
       "headCommit": "cdced7fb9741c8eca9661c56883ea9828b90fcd3",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
-        "worked-round",
-        "state-correctness",
-        "research-perspective",
-        "capability-boundaries"
+        "spec-contract",
+        "target-verification",
+        "hybrid-state",
+        "cross-layer-evidence",
+        "research-outlook"
       ],
       "originalPrTitle": "[KDA][Spec Decode] RecoverSSM: replay the accepted tokens in the next verify"
     },
@@ -1080,9 +1110,7 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": [
-        "runtime-cost"
-      ],
+      "usedInSections": [],
       "originalPrTitle": null
     },
     {
@@ -1117,8 +1145,8 @@
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
       "usedInSections": [
-        "state-correctness",
-        "runtime-cost"
+        "hybrid-state",
+        "serving-runtime"
       ],
       "originalPrTitle": null
     },
@@ -1175,9 +1203,10 @@
       "headCommit": "2d4a2e00348ad29650da959f6603a20e90934479",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
-        "fixed-source-contract",
-        "runtime-cost",
-        "capability-boundaries"
+        "effective-cost",
+        "candidate-methods",
+        "serving-runtime",
+        "cross-layer-evidence"
       ],
       "originalPrTitle": "[Feature][SpecDecode] Enable DFlash2 full ACL graph drafting on MRV2"
     },
@@ -1234,9 +1263,9 @@
       "headCommit": "9132bccd77919c7ee3ac9f3bd4d709767797464e",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
-        "fixed-source-contract",
-        "verification-budget",
-        "engineering-evolution"
+        "target-verification",
+        "cross-layer-evidence",
+        "research-outlook"
       ],
       "originalPrTitle": "[Spec Decode] Support XPress + Acceptance Estimator"
     },
@@ -1395,9 +1424,11 @@
       "headCommit": "6f1891fb42992181a413bc6c4276889f4d3008f8",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
-        "runtime-cost",
-        "research-perspective",
-        "capability-boundaries"
+        "effective-cost",
+        "target-verification",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ],
       "originalPrTitle": "[Perf][MRV2] Enable varlen decode graphs for fixed-width speculation"
     },
@@ -1501,7 +1532,7 @@
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
       "usedInSections": [
-        "state-correctness"
+        "hybrid-state"
       ],
       "originalPrTitle": null
     },
@@ -1575,8 +1606,10 @@
       "headCommit": "fe58a4cf1c89190bffe5f43b8d7220bfb875d31a",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
-        "runtime-cost",
-        "capability-boundaries"
+        "effective-cost",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ],
       "originalPrTitle": "[Performance] replay rejection sampling kernels from one ACL graph"
     },
@@ -1594,7 +1627,9 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": [],
+      "usedInSections": [
+        "serving-runtime"
+      ],
       "originalPrTitle": null
     },
     {
@@ -1629,7 +1664,7 @@
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
       "usedInSections": [
-        "runtime-cost"
+        "serving-runtime"
       ],
       "originalPrTitle": null
     },
@@ -1682,8 +1717,8 @@
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
       "usedInSections": [
-        "runtime-cost",
-        "research-perspective"
+        "serving-runtime",
+        "research-outlook"
       ],
       "originalPrTitle": null
     },
@@ -1723,9 +1758,11 @@
       "headCommit": "d40d2a64c656f7d86a996b23793ceaeb0f9ab3b0",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
-        "state-correctness",
-        "engineering-evolution",
-        "capability-boundaries"
+        "effective-cost",
+        "hybrid-state",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ],
       "originalPrTitle": "[Performance] Fuse GDN metadata construction for mixed batches"
     },
@@ -1850,11 +1887,11 @@
       "headCommit": "d28c23065300ee5b45dc9504f28a12be222d36bf",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
-        "correctness-and-cost",
-        "fixed-source-contract",
-        "verification-budget",
-        "engineering-evolution",
-        "capability-boundaries"
+        "effective-cost",
+        "target-verification",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ],
       "originalPrTitle": "[Spec Decode] Replace torch.compile'd AV draft-budget selection with a Triton kernel"
     },
@@ -1877,9 +1914,10 @@
       "headCommit": "9cc08bfe366e8ad3ac9fe7d53a64dd3847041a38",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
-        "state-correctness",
-        "engineering-evolution",
-        "research-perspective"
+        "hybrid-state",
+        "serving-runtime",
+        "cross-layer-evidence",
+        "research-outlook"
       ],
       "originalPrTitle": "[Core][Spec Decode] Lookahead block hashes for EAGLE prefix caching"
     },
@@ -2255,7 +2293,7 @@
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
       "usedInSections": [
-        "runtime-cost"
+        "serving-runtime"
       ],
       "originalPrTitle": null
     },
