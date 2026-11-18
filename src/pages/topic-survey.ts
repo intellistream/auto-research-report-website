@@ -29,8 +29,8 @@ export function validatedSurvey(topic: Topic): TopicSurvey | undefined {
   const report = topic.report;
   const survey = topic.survey;
   if (!report || !survey || survey.schemaVersion !== 1 || !hash(survey.reportVersion)
-    || survey.reportVersion !== report.version || !hash(survey.paperVersion)
-    || survey.paperVersion !== topic.academicPaper?.version
+    || survey.reportVersion !== report.version
+    || (topic.academicPaper ? !hash(survey.paperVersion) || survey.paperVersion !== topic.academicPaper.version : survey.paperVersion !== undefined)
     || !text(survey.thesis) || !text(survey.reviewedAt) || !Array.isArray(survey.routes) || !survey.routes.length
     || !survey.update || !text(survey.update.summary) || !Array.isArray(survey.update.evidence)
     || !strings(survey.update.nextGapIds)) return;
