@@ -1,6 +1,6 @@
 # Speculative Decoding：候选生成、验证预算与合法状态的系统协同
 
-**学术结构重写稿（编辑中的 R2）** · 站点资产仍使用初始 R1 / revision 1 / version `e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d` · 资料截止 2026-11-17
+**学术结构重写稿（编辑中的 R2）** · 站点资产仍使用初始 R1 / revision 1 / version `e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d` · 资料截止 2026-11-18
 
 ## 摘要
 
