@@ -4,6 +4,9 @@ export default defineConfig(({ mode, command, isPreview }) => {
   const localReports = mode === "docx" && command === "serve" && !isPreview;
   const pipelinePreview = mode === "pipeline" && command === "serve" && !isPreview;
   const env = loadEnv(mode, ".", "");
+  const researchProxy = env.RESEARCH_API_PROXY
+    ? { "/api/research": { target: env.RESEARCH_API_PROXY, changeOrigin: true } }
+    : undefined;
   if (pipelinePreview && !env.VITE_DAILY_REPORTS_DIR) {
     throw new Error("Set VITE_DAILY_REPORTS_DIR to the pipeline import --output directory.");
   }
@@ -12,7 +15,7 @@ export default defineConfig(({ mode, command, isPreview }) => {
     base: localReports || pipelinePreview ? "/" : env.VITE_BASE_PATH || "/",
     publicDir: pipelinePreview ? env.VITE_DAILY_REPORTS_DIR : localReports ? "../work/docx-preview" : "public",
     plugins: [react()],
-    server: { port: 5173, strictPort: true },
-    preview: { port: 5173, strictPort: true },
+    server: { port: 5173, strictPort: true, proxy: researchProxy },
+    preview: { port: 5173, strictPort: true, proxy: researchProxy },
   };
 });
