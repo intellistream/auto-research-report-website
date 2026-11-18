@@ -93,8 +93,9 @@ def validate_survey(survey, topic, archive=None):
     text(survey.get("thesis"), "thesis")
     if "candidateBaseline" in survey:
         baseline = survey["candidateBaseline"]
-        require(isinstance(baseline, list) and len(baseline) == len(set(baseline))
-                and all(isinstance(value, str) and WORK_ID.fullmatch(value) for value in baseline),
+        require(isinstance(baseline, list)
+                and all(isinstance(value, str) and WORK_ID.fullmatch(value) for value in baseline)
+                and len(baseline) == len(set(baseline)),
                 "candidateBaseline: duplicate or malformed work ID")
         available = {row["workId"] for row in topic.get("entries", [])}
         require(set(baseline) <= available, "candidateBaseline: original candidate missing")

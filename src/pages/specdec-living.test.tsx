@@ -51,6 +51,21 @@ describe("SpecDec novice-to-research reading contract", () => {
     expect(report).toContain("part=survey-evidence-E2");
   });
 
+  it("surfaces PRs added after the frozen candidate baseline without promoting them", () => {
+    const incoming = { ...spec.entries[0], workId: "github:vllm-project/vllm#999999",
+      title: "New PR: dynamic speculative verification", url: "https://github.com/vllm-project/vllm/pull/999999",
+      day: "2026-11-19" };
+    const next = { ...spec, entries: [...spec.entries, incoming] };
+    const nextIndex = { ...index, topics: index.topics.map(item => item.id === spec.id ? next : item) };
+    expect(validatedSurvey(next)).toBeDefined();
+    const html = renderToStaticMarkup(<MemoryRouter initialEntries={["/topics/speculative-decoding?view=report"]}>
+      <Routes><Route path="/topics/:topicId" element={<TopicPages index={nextIndex} />} /></Routes>
+    </MemoryRouter>);
+    expect(html).toContain("新入候选：1 条 PR");
+    expect(html).toContain("dynamic speculative verification");
+    expect(html).toContain("不代表已确认性能收益");
+  });
+
   it("permits condensed reading and excludes stale editorial evidence", () => {
     const brief = render("/topics/speculative-decoding?view=report&read=brief");
     expect(brief).toContain("快速阅读");
