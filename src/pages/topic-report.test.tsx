@@ -254,7 +254,12 @@ describe("frozen ACLGraph contract", () => {
     expect(living).toContain("Research Gaps");
     expect(living).toContain("PR 与趋势");
     expect(living).toContain("105");
-    expect(living).toContain("附录 A：核心 PR 证据与归因边界");
+    expect(living).toContain("局部工程证据对照");
+    expect(living).toContain("Research Gaps 与验证路径");
+    expect(living).not.toContain("附录 A：");
+    expect(living).not.toContain("附录 D：");
+    expect(living.indexOf('id="survey-evidence"')).toBeLessThan(living.indexOf('id="survey-section-0"'));
+    expect(living.indexOf('id="survey-section-7"')).toBeLessThan(living.indexOf('id="survey-gaps"'));
     expect(living).toContain("10 条核心 PR 核验记录");
     expect(living).toContain("source-ledger.json");
     expect(living).toContain("implementation-audit.md");
