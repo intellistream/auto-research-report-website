@@ -491,7 +491,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#61498",
@@ -507,7 +508,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#66865",
@@ -523,7 +525,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#65217",
@@ -539,7 +542,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#21209",
@@ -555,7 +559,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#62769",
@@ -571,7 +576,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#67034",
@@ -587,7 +593,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#21435",
@@ -603,7 +610,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#61942",
@@ -619,7 +627,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63102",
@@ -635,7 +644,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#66652",
@@ -651,7 +661,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#18053",
@@ -667,7 +678,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#21403",
@@ -683,7 +695,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#66612",
@@ -699,7 +712,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#20566",
@@ -715,7 +729,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#21444",
@@ -731,7 +746,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#21430",
@@ -756,7 +772,8 @@
         "state-correctness",
         "engineering-evolution",
         "capability-boundaries"
-      ]
+      ],
+      "originalPrTitle": "[Performance][ModelRunner] Issue num_computed_tokens D2H before RecoverSSM commit in MRV2 postprocessing"
     },
     {
       "workId": "github:vllm-project/vllm#66764",
@@ -772,7 +789,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#18236",
@@ -788,7 +806,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#66485",
@@ -804,7 +823,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63096",
@@ -830,7 +850,8 @@
         "runtime-cost",
         "engineering-evolution",
         "capability-boundaries"
-      ]
+      ],
+      "originalPrTitle": "[ROCm][Spec Decode] Enable fused multi-step draft decode for ROCM_AITER_UNIFIED_ATTN"
     },
     {
       "workId": "github:vllm-project/vllm#66595",
@@ -855,7 +876,8 @@
         "state-correctness",
         "research-perspective",
         "capability-boundaries"
-      ]
+      ],
+      "originalPrTitle": "[KDA][Spec Decode] RecoverSSM: replay the accepted tokens in the next verify"
     },
     {
       "workId": "github:vllm-project/vllm-ascend#21281",
@@ -871,7 +893,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#66324",
@@ -887,7 +910,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#65463",
@@ -903,7 +927,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#65874",
@@ -919,7 +944,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#64829",
@@ -935,7 +961,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#60895",
@@ -951,7 +978,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#21075",
@@ -967,7 +995,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#65553",
@@ -983,7 +1012,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#65619",
@@ -999,7 +1029,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63921",
@@ -1015,7 +1046,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#64916",
@@ -1031,7 +1063,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63801",
@@ -1049,7 +1082,8 @@
       "reviewLevel": "daily-report-index-only",
       "usedInSections": [
         "runtime-cost"
-      ]
+      ],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#65488",
@@ -1065,7 +1099,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#20755",
@@ -1084,7 +1119,8 @@
       "usedInSections": [
         "state-correctness",
         "runtime-cost"
-      ]
+      ],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#20820",
@@ -1100,7 +1136,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#65421",
@@ -1116,7 +1153,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#19512",
@@ -1140,7 +1178,8 @@
         "fixed-source-contract",
         "runtime-cost",
         "capability-boundaries"
-      ]
+      ],
+      "originalPrTitle": "[Feature][SpecDecode] Enable DFlash2 full ACL graph drafting on MRV2"
     },
     {
       "workId": "github:vllm-project/vllm#64442",
@@ -1156,7 +1195,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#61435",
@@ -1172,7 +1212,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#65175",
@@ -1196,7 +1237,8 @@
         "fixed-source-contract",
         "verification-budget",
         "engineering-evolution"
-      ]
+      ],
+      "originalPrTitle": "[Spec Decode] Support XPress + Acceptance Estimator"
     },
     {
       "workId": "github:vllm-project/vllm#65182",
@@ -1212,7 +1254,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63971",
@@ -1228,7 +1271,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#64659",
@@ -1244,7 +1288,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#17147",
@@ -1260,7 +1305,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#65103",
@@ -1276,7 +1322,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#64898",
@@ -1292,7 +1339,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#64948",
@@ -1308,7 +1356,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#64950",
@@ -1324,7 +1373,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#64915",
@@ -1348,7 +1398,8 @@
         "runtime-cost",
         "research-perspective",
         "capability-boundaries"
-      ]
+      ],
+      "originalPrTitle": "[Perf][MRV2] Enable varlen decode graphs for fixed-width speculation"
     },
     {
       "workId": "github:vllm-project/vllm-ascend#20489",
@@ -1364,7 +1415,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#64852",
@@ -1380,7 +1432,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#64828",
@@ -1396,7 +1449,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#57770",
@@ -1412,7 +1466,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63886",
@@ -1428,7 +1483,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#20345",
@@ -1446,7 +1502,8 @@
       "reviewLevel": "daily-report-index-only",
       "usedInSections": [
         "state-correctness"
-      ]
+      ],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#20344",
@@ -1462,7 +1519,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#64612",
@@ -1478,7 +1536,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#20194",
@@ -1494,7 +1553,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#20254",
@@ -1517,7 +1577,8 @@
       "usedInSections": [
         "runtime-cost",
         "capability-boundaries"
-      ]
+      ],
+      "originalPrTitle": "[Performance] replay rejection sampling kernels from one ACL graph"
     },
     {
       "workId": "github:vllm-project/vllm-ascend#20279",
@@ -1533,7 +1594,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#60229",
@@ -1549,7 +1611,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#20006",
@@ -1567,7 +1630,8 @@
       "reviewLevel": "daily-report-index-only",
       "usedInSections": [
         "runtime-cost"
-      ]
+      ],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63819",
@@ -1583,7 +1647,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#20060",
@@ -1599,7 +1664,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#64109",
@@ -1618,7 +1684,8 @@
       "usedInSections": [
         "runtime-cost",
         "research-perspective"
-      ]
+      ],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63431",
@@ -1634,7 +1701,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#19954",
@@ -1658,7 +1726,8 @@
         "state-correctness",
         "engineering-evolution",
         "capability-boundaries"
-      ]
+      ],
+      "originalPrTitle": "[Performance] Fuse GDN metadata construction for mixed batches"
     },
     {
       "workId": "github:vllm-project/vllm-ascend#19911",
@@ -1674,7 +1743,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#19971",
@@ -1690,7 +1760,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63101",
@@ -1706,7 +1777,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#19898",
@@ -1722,7 +1794,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63554",
@@ -1738,7 +1811,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#64033",
@@ -1754,7 +1828,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63421",
@@ -1780,7 +1855,8 @@
         "verification-budget",
         "engineering-evolution",
         "capability-boundaries"
-      ]
+      ],
+      "originalPrTitle": "[Spec Decode] Replace torch.compile'd AV draft-budget selection with a Triton kernel"
     },
     {
       "workId": "github:vllm-project/vllm#61589",
@@ -1804,7 +1880,8 @@
         "state-correctness",
         "engineering-evolution",
         "research-perspective"
-      ]
+      ],
+      "originalPrTitle": "[Core][Spec Decode] Lookahead block hashes for EAGLE prefix caching"
     },
     {
       "workId": "github:vllm-project/vllm-ascend#19868",
@@ -1820,7 +1897,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#19851",
@@ -1836,7 +1914,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#19869",
@@ -1852,7 +1931,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#59774",
@@ -1868,7 +1948,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63638",
@@ -1884,7 +1965,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#62091",
@@ -1900,7 +1982,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#19840",
@@ -1916,7 +1999,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63710",
@@ -1932,7 +2016,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63568",
@@ -1948,7 +2033,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63528",
@@ -1964,7 +2050,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63527",
@@ -1980,7 +2067,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#19724",
@@ -1996,7 +2084,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#19753",
@@ -2012,7 +2101,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63532",
@@ -2028,7 +2118,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#19682",
@@ -2044,7 +2135,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63444",
@@ -2060,7 +2152,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63440",
@@ -2076,7 +2169,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#19550",
@@ -2092,7 +2186,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63245",
@@ -2108,7 +2203,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#63219",
@@ -2124,7 +2220,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#61855",
@@ -2140,7 +2237,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#62784",
@@ -2158,7 +2256,8 @@
       "reviewLevel": "daily-report-index-only",
       "usedInSections": [
         "runtime-cost"
-      ]
+      ],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#52921",
@@ -2174,7 +2273,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#18931",
@@ -2190,7 +2290,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#62101",
@@ -2206,7 +2307,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#60532",
@@ -2222,7 +2324,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm#62994",
@@ -2238,7 +2341,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     },
     {
       "workId": "github:vllm-project/vllm-ascend#18717",
@@ -2254,7 +2358,8 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [],
+      "originalPrTitle": null
     }
   ]
 }
