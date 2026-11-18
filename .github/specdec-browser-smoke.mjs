@@ -13,7 +13,8 @@ async function inspect(label, hash, width, height, verify) {
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
-  page.on("console", msg => { if (msg.type() === "error") errors.push("console: " + msg.text()); });
+  page.on("console", msg => { if (msg.type() === "error") errors.push("console: " + msg.text() + " @ " + msg.location().url); });
+  page.on("response", response => { if (response.status() >= 400) errors.push("HTTP " + response.status() + " " + response.url()); });
   const url = root + "#" + hash;
   await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForSelector(".acl-topic", { timeout: 15000 });
@@ -39,11 +40,12 @@ async function inspect(label, hash, width, height, verify) {
       snapshot: location.hash,
     };
   });
+  console.log("RESOURCE DIAGNOSTICS", JSON.stringify({label, errors}));
+  await page.screenshot({ path: `${directory}/${label}.png`, animations: "disabled" });
   assert.equal(errors.length, 0, label + ": browser console/page exceptions " + errors.join("; "));
   assert.ok(probe.overflow <= 8, label + ": horizontal document overflow " + probe.overflow);
   assert.ok(probe.contentWidth <= width + 3, label + ": topic container wider than viewport");
   await verify(page, probe);
-  await page.screenshot({ path: `${directory}/${label}.png`, animations: "disabled" });
   records.push({ label, url, ...probe });
   console.log("BROWSER CHECK", JSON.stringify(records.at(-1)));
   await context.close();
