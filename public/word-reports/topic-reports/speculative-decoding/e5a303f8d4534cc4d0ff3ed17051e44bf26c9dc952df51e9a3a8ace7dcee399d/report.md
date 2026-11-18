@@ -45,7 +45,7 @@
 
 | 机制维度 | 主要路线 | 权衡与条件 | 来源 |
 |---|---|---|---|
-| Candidate Generation：候选如何形成条件依赖 | 历史检索/独立 Draft Model；EAGLE/MTP 的序列化特征提案；Medusa/SpecInfer 的多分支树；DFlash、DFLare、DSpark 的块并行/弱序列依赖 | 关键比较变量是 Draft Forward 深度、候选存活率、训练成本、Proposal Tree Size、额外权重/KV 与更新历史的难度；并存方法各适用不同重复程度与模型结构。 | [[P1]](#ref-P1) [[P3]](#ref-P3) [[P4]](#ref-P4) [[P5]](#ref-P5) [[P6]](#ref-P6) [[P7]](#ref-P7) [[P8]](#ref-P8) [[P10]](#ref-P10) [[D3]](#ref-D3) |
+| Candidate Generation：候选如何形成条件依赖 | 历史检索/独立 Draft Model；EAGLE/MTP 的序列化特征提案；Medusa/SpecInfer 的多分支树；DFlash、DFlare、DSpark 的块并行/弱序列依赖 | 关键比较变量是 Draft Forward 深度、候选存活率、训练成本、Proposal Tree Size、额外权重/KV 与更新历史的难度；并存方法各适用不同重复程度与模型结构。 | [[P1]](#ref-P1) [[P3]](#ref-P3) [[P4]](#ref-P4) [[P5]](#ref-P5) [[P6]](#ref-P6) [[P7]](#ref-P7) [[P8]](#ref-P8) [[P10]](#ref-P10) [[D3]](#ref-D3) |
 | Verification & Acceptance：验证哪些位置 | 顺序/树式目标验证；Fixed K、存活概率驱动的 Adaptive Verification、含 Router/Expert 代价的 Target-aware Budget；Greedy 与精确分布采样分离 | Verify Rows、Attention/MoE Kernel Shape、Sampler、预算选择器开销和正确性必须合算；更高 Acceptance Rate 未必对应更低每 Token 服务时延。 | [[P2]](#ref-P2) [[P4]](#ref-P4) [[D4]](#ref-D4) [[P8]](#ref-P8) [[P9]](#ref-P9) [[E2]](#ref-E2) [[E3]](#ref-E3) |
 | State：已确认输出与设备历史何时一致 | Token/Pending/Bonus；Attention KV 与递归 GDN/Mamba/KDA；RecoverSSM、Lookahead Hash、跨生命周期 Checkpoint 与 Commit | 多位置 Verify 的临时状态不能被错误当成 Accepted State；Prefix/Preemption/P-D 与异步事件改变所有权、有效范围和恢复路径。 | [[P2]](#ref-P2) [[P9]](#ref-P9) [[E5]](#ref-E5) [[E7]](#ref-E7) [[E12]](#ref-E12) [[E15]](#ref-E15) |
 | Serving Runtime：关键路径和可复用资源如何协调 | Scheduler、Speculator、Target/Sampler、模型图与 Sampling Graph、可变形状 Bucket、Draft/Target KV 与 SSM/Graph 工作空间 | Host Launch、异步重叠、Padding、显存与长尾请求共同影响 TPOT/ITL、Output TPS 与 Goodput；某个单核/局部阶段更快不足以作服务结论。 | [[D6]](#ref-D6) [[D7]](#ref-D7) [[E1]](#ref-E1) [[E8]](#ref-E8) [[E9]](#ref-E9) [[E11]](#ref-E11) [[E14]](#ref-E14) [[E17]](#ref-E17) |
@@ -151,9 +151,9 @@ Medusa 通过多个预测头提出不同未来位置的候选并形成验证树�
 
 *来源：[[P3]](#ref-P3) [[P4]](#ref-P4) [[P2]](#ref-P2)*
 
-### 3.4 块并行：DFlash、DFLare、DSpark 与 DFlash2 运行时
+### 3.4 块并行：DFlash、DFlare、DSpark 与 DFlash2 运行时
 
-DFlash 让轻量块扩散 Drafter 在较少序列步骤里并行预测一个 Token Block，利用 Target 特征条件化非因果块内计算。代价是块后部的依赖与 Target 自回归条件存在差异，可能拉低连续前缀存活率。DFLare 针对 DFlash 条件信息集中且每层输入相似的瓶颈，引入层级 Target 特征融合；这一改动重构条件容量而非取消 Verify 成本。
+DFlash 让轻量块扩散 Drafter 在较少序列步骤里并行预测一个 Token Block，利用 Target 特征条件化非因果块内计算。代价是块后部的依赖与 Target 自回归条件存在差异，可能拉低连续前缀存活率。DFlare 针对 DFlash 条件信息集中且每层输入相似的瓶颈，引入层级 Target 特征融合；这一改动重构条件容量而非取消 Verify 成本。
 
 DSpark 通过 Markov/Confidence 结构向并行提案补入局部序列依赖，并可为后续 Verification Budget 提供位置置信度。DFlash2 则在工程侧包含 Candidate Selector、Proposal Cache 和非因果滑窗 Attention 路径；Ascend #19512 使其在特定 MRV2 配置中执行 Full ACLGraph，属于部署执行证据，不能仅凭图的收益推导 DFlash2 算法优于其他 Drafter。
 
@@ -702,7 +702,7 @@ R1 原始版本已由 Git commit [83330844d152](https://github.com/intellistream
 - <a id="ref-P7"></a> **[P7]** [DFlash](https://proceedings.mlr.press/v306/chen26bv.html) — 原始论文（作者报告）；并行块式扩散 Drafter。
 - <a id="ref-P8"></a> **[P8]** [DSpark](https://arxiv.org/abs/2607.05147) — 原始论文（作者报告）；半自回归 Draft 与置信度调度。
 - <a id="ref-P9"></a> **[P9]** [HybridSpec](https://arxiv.org/abs/2611.04055) — 原始论文（作者报告）；GDN-MoE Target-aware Budget 与状态回放；2026-11 预印本。
-- <a id="ref-P10"></a> **[P10]** [DFLare](https://aclanthology.org/2026.emnlp-main.1503/) — 原始论文（作者报告）；增强块式 Draft 层间条件表达。
+- <a id="ref-P10"></a> **[P10]** [DFlare: Scaling Up Draft Capacity for Block Diffusion Speculative Decoding](https://aclanthology.org/2026.emnlp-main.1503/) — 原始论文（作者报告）；增强块式 Draft 层间条件表达。
 - <a id="ref-E1"></a> **[E1]** [ROCm AITER Multi-step Draft Graph](https://github.com/vllm-project/vllm/pull/63096) — 原始 PR（截至 2026-11-17 已合入）；作者隔离 Draft Loop 有收益，但 E2E 变化接近噪声。
 - <a id="ref-E2"></a> **[E2]** [Adaptive Budget Triton Kernel](https://github.com/vllm-project/vllm/pull/63421) — 原始 PR（截至 2026-11-17 已合入）；预算计算本身的 JIT 与 Host Launch 是执行成本。
 - <a id="ref-E3"></a> **[E3]** [XPress Acceptance Estimator](https://github.com/vllm-project/vllm/pull/65175) — 原始 PR（截至 2026-11-17 已合入）；修正置信度未传递造成的 AV 错误裁剪。
