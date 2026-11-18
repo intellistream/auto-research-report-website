@@ -7,16 +7,16 @@
   "status": "research-draft",
   "assets": {
     "report.json": {
-      "bytes": 61525,
-      "sha256": "b752e5e0e8c09be3bbc6a3aa3bad27fca7000f41bbceb71deb64a146a41470a9"
+      "bytes": 88754,
+      "sha256": "3caf479b769ad48ba75abaa3f1242d2e243f556a36762a9bb20f0b9d422f84dd"
     },
     "report.md": {
-      "bytes": 50007,
-      "sha256": "885446810b87c22df9c51c96cf4fd8f1ccaa0b56ba3206de179749df824d027b"
+      "bytes": 73390,
+      "sha256": "100cf4a3a73ecf7083a95b404b60986faa7eb6baf3d47a68a498448b43f6e0ed"
     },
     "report.html": {
-      "bytes": 59524,
-      "sha256": "7ce44487f87b726a07d23734849deef4751f41381c8a28be351c1a2096e8f10d"
+      "bytes": 89044,
+      "sha256": "4d041e06c795db1f29339373905c40729a3f5692b891934fc1be05d10b7ca78b"
     }
   }
 }
