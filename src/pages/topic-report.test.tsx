@@ -222,7 +222,10 @@ describe("frozen ACLGraph contract", () => {
     expect(spec.report?.revision).toBe(1);
     expect(spec.report?.previousVersion).toBeNull();
     expect(spec.report?.version).toBe("e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d");
-    expect(spec.report?.evidenceDetails).toBeUndefined();
+    expect(spec.report?.evidenceDetails).toHaveLength(10);
+    expect(spec.report?.sections.some(section => section.id === "worked-round")).toBe(true);
+    expect(spec.report?.sections.some(section => section.id === "fixed-source-contract")).toBe(true);
+    expect(spec.report?.gaps.every(gap => !!gap.falsification && !!gap.strongBaseline)).toBe(true);
     const guide = render("/topics/speculative-decoding", spec);
     expect(guide).toContain("一次 Target 前向，能确认几个 token");
     expect(guide).toContain("Lookup");
@@ -243,8 +246,14 @@ describe("frozen ACLGraph contract", () => {
     expect(living).toContain("Research Gaps");
     expect(living).toContain("PR 与趋势");
     expect(living).toContain("105");
-    expect(living).not.toContain("局部工程证据对照");
-    expect(living).not.toContain("7 项证据详情");
+    expect(living).toContain("局部工程证据对照");
+    expect(living).toContain("10 条核心 PR 核验记录");
+    expect(living).toContain("source-ledger.json");
+    expect(living).toContain("implementation-audit.md");
+    expect(living).toContain("负面结果或失败");
+    expect(living).toContain("证伪条件");
+    expect(living).toContain("xpress");
+    expect(living).toContain("10 项证据详情");
     expect(living).not.toContain("下载本版 PDF");
     const legacy = render("/topics/speculative-decoding?view=evidence", spec);
     expect(legacy).toContain("PR 与趋势");
