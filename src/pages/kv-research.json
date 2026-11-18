@@ -3,11 +3,11 @@
   "id": "kv-cache",
   "title": "KV Cache",
   "description": "围绕缓存复用、表示、容量、放置与调度，研究推理系统怎样管理和使用历史状态。",
-  "asOf": "2026-11-17",
-  "revision": 1,
+  "asOf": "2026-11-18",
+  "revision": 2,
   "scope": "推理系统的KV缓存，以及与其前缀复用协调的混合模型状态。",
-  "collectionNote": "本轮从73条既有线索回溯原始PR，按技术机制重新裁定，并直接补充关联PR与基础论文。",
-  "reviewNote": "材料归属依据原始PR说明与论文相关部分，选定机制补看代码。每条材料记录审阅层级与纳入理由。",
+  "collectionNote": "独立审阅74条PR候选，纳入55条；论文首批从文献整理选题，另核对公开原论文后形成10篇简介。",
+  "reviewNote": "PR与论文分别记录核对日期、来源版本及范围。论文简介依据原始论文选定章节，性能与适用条件不表示本轮独立复现。",
   "taxonomy": [
     {
       "id": "reuse",
@@ -2428,9 +2428,9 @@
     {
       "id": "paper:arxiv:2309.06180v1",
       "kind": "paper",
-      "title": "PagedAttention 的分块管理与缓存共享",
+      "title": "PagedAttention：按块管理与共享 KV",
       "originalTitle": "Efficient Memory Management for Large Language Model Serving with PagedAttention",
-      "summary": "以分块管理与共享降低KV存储碎片和重复占用，支撑更大的服务批次。",
+      "summary": "以按需分块分配和块表映射减少 KV 显存碎片，并在序列间共享已有缓存。",
       "url": "https://arxiv.org/abs/2309.06180v1",
       "sourceDay": "2023-09-12",
       "sourceVersion": "arXiv:2309.06180v1",
@@ -2441,17 +2441,38 @@
         "representation",
         "reuse"
       ],
-      "rationale": "研究对象直接为KV缓存内存管理、分块与共享，纳入生命周期、表示和复用主题。",
-      "reviewLevel": "paper-abstract",
-      "checkedAt": "2026-11-17",
-      "dailyReferences": []
+      "rationale": "原论文直接研究 KV 内存分配、逻辑块与物理块映射及跨序列共享，保留生命周期、表示和复用三个主题。",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "pagedattention",
+        "shortName": "PagedAttention",
+        "venue": "SOSP 2023",
+        "year": 2023,
+        "order": 1,
+        "problem": "每个请求的 KV 持续增长，按最大长度预留连续显存会产生碎片，也妨碍不同序列共享。",
+        "method": "把 KV 划成固定大小的块，按需分配物理显存并用块表索引；共享块用引用计数和写时复制保护。",
+        "boundary": "块过小会影响访问效率，块过大又增加碎片并降低共享机会；分页本身不会减少每个 token 的 KV 数值量。",
+        "readingScope": "核对摘要、§4.1–4.4 的分页、分配与共享，以及 §7.1–7.2 的内核开销和块大小条件；未运行作者代码或独立实验。",
+        "sources": [
+          {
+            "label": "原论文 §4 分页与共享",
+            "url": "https://arxiv.org/pdf/2309.06180v1"
+          },
+          {
+            "label": "原论文元数据与版本",
+            "url": "https://arxiv.org/abs/2309.06180v1"
+          }
+        ]
+      }
     },
     {
       "id": "paper:arxiv:2312.07104v2",
       "kind": "paper",
-      "title": "RadixAttention 的前缀复用与缓存感知调度",
+      "title": "SGLang：用基数树复用共享前缀",
       "originalTitle": "SGLang: Efficient Execution of Structured Language Model Programs",
-      "summary": "原论文第3节用基数树维护可复用KV，结合LRU和最长共享前缀优先调度，并讨论贪心策略的饥饿问题。",
+      "summary": "RadixAttention 自动维护 token 前缀与 KV 的对应关系，并让缓存保留和请求排序共同服务于复用。",
       "url": "https://arxiv.org/html/2312.07104v2#S3",
       "sourceDay": "2024-06-06",
       "sourceVersion": "arXiv:2312.07104v2",
@@ -2462,10 +2483,387 @@
         "scheduling",
         "lifecycle"
       ],
-      "rationale": "纳入论文的RadixAttention与缓存感知调度部分，依据第3节讨论复用、淘汰和调度的联系。",
+      "rationale": "提供自动多级前缀复用及缓存与调度协同的系统方法，适合连接 reuse 与 scheduling。",
       "reviewLevel": "paper-section",
-      "checkedAt": "2026-11-17",
-      "dailyReferences": []
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "sglang",
+        "shortName": "SGLang / RadixAttention",
+        "venue": "NeurIPS 2024",
+        "year": 2024,
+        "order": 2,
+        "problem": "模型程序多次调用或多个请求有相同前缀，结束后丢弃 KV 会导致下一次重复预填充。",
+        "method": "用基数树匹配和保留前缀 KV，优先淘汰无活动请求引用的最久未用叶节点，并让匹配前缀更长的请求先运行。",
+        "boundary": "只直接复用匹配的 token 前缀。论文讨论贪心排序可能造成饥饿，公平调度仍需额外设计。",
+        "readingScope": "沿用既有 arXiv v2；核对摘要、§3 RadixAttention、附录 A.3 的离线条件与在线讨论、§8 的公平性后续工作。未审计当前实现或复现实验。",
+        "sources": [
+          {
+            "label": "原论文相关章节",
+            "url": "https://arxiv.org/html/2312.07104v2#S3"
+          },
+          {
+            "label": "元数据与版本",
+            "url": "https://arxiv.org/abs/2312.07104v2"
+          },
+          {
+            "label": "会议信息",
+            "url": "https://proceedings.neurips.cc/paper_files/paper/2024/hash/724be4472168f31ba1c9ac630f15dec8-Abstract-Conference.html"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2311.04934v2",
+      "originalTitle": "Prompt Cache: Modular Attention Reuse for Low-Latency Inference",
+      "url": "https://arxiv.org/html/2311.04934v2",
+      "sourceDay": "2024-04-25",
+      "sourceVersion": "arXiv:2311.04934v2",
+      "primaryTopic": "reuse",
+      "topics": [
+        "reuse"
+      ],
+      "rationale": "提供超出严格共享前缀的模块化复用方法，可用于比较复用粒度与正确性条件。",
+      "title": "Prompt Cache：按模块预先缓存提示",
+      "summary": "显式定义可复用模块和位置，将模块 KV 预计算；新请求组装已有缓存并补算新增内容。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "prompt-cache",
+        "shortName": "Prompt Cache",
+        "venue": "MLSys 2024",
+        "year": 2024,
+        "order": 3,
+        "problem": "多请求重复出现系统提示、模板和文档，反复预填充会增加首 token 延迟；直接复用还受位置编码约束。",
+        "method": "先用模块描述标明参数槽和位置，再预计算模块 KV；新请求取出缓存，只补算新增文本及参数。",
+        "boundary": "独立编码会屏蔽模块间注意力，语义依赖可能影响质量；可用联合编码缓解，代价是额外缓存。主要降低首 token 延迟。",
+        "readingScope": "核对摘要、§3–4 的模块、位置与缓存推理，以及 §5.3–5.5、§6 的质量、内存和后续工作讨论；未审计代码或复现实验。",
+        "sources": [
+          {
+            "label": "原论文相关章节",
+            "url": "https://arxiv.org/html/2311.04934v2"
+          },
+          {
+            "label": "元数据与版本",
+            "url": "https://arxiv.org/abs/2311.04934v2"
+          },
+          {
+            "label": "会议信息",
+            "url": "https://proceedings.mlsys.org/paper_files/paper/2024/hash/a66caa1703fe34705a4368c3014c1966-Abstract-Conference.html"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2402.05099v2",
+      "originalTitle": "Hydragen: High-Throughput LLM Inference with Shared Prefixes",
+      "url": "https://arxiv.org/html/2402.05099v2",
+      "sourceDay": "2024-05-13",
+      "sourceVersion": "arXiv:2402.05099v2",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation",
+        "reuse"
+      ],
+      "rationale": "直接减少共享前缀 KV 的重复读取，并以跨序列合批提高注意力访问和计算效率，纳入表示/访问及复用主题。",
+      "title": "Hydragen：合批计算共享前缀注意力",
+      "summary": "把共享前缀和独有后缀的注意力分开计算，让多请求合批读取前缀 KV，再归一化合并结果。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "hydragen",
+        "shortName": "Hydragen",
+        "venue": "ES-FoMo-II Workshop at ICML 2024",
+        "year": 2024,
+        "order": 4,
+        "problem": "共享前缀即使只存一份 KV，逐序列计算 attention 仍会重复读取相同数据，并执行低效的矩阵向量乘法。",
+        "method": "把前缀与后缀的注意力分开计算，多序列合批处理共享前缀，再按正确的归一化权重合并结果。",
+        "boundary": "更适合注意力是主要解码瓶颈、共享前缀长、批次大且独占后缀短的场景。论文原型需指定共享位置，在线自动发现与调度尚待集成。",
+        "readingScope": "核对摘要、§2.4、§3.1–3.5 与 §5。Workshop 层级依据作者发表列表；OpenReview 论坛受验证页限制。未审计代码或复现实验。",
+        "sources": [
+          {
+            "label": "原论文相关章节",
+            "url": "https://arxiv.org/html/2402.05099v2"
+          },
+          {
+            "label": "元数据与版本",
+            "url": "https://arxiv.org/abs/2402.05099v2"
+          },
+          {
+            "label": "作者发表列表中的 Workshop 信息",
+            "url": "https://danfu.org/"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2306.14048v3",
+      "title": "H₂O：按重要性选择保留哪些 KV",
+      "originalTitle": "H₂O: Heavy-Hitter Oracle for Efficient Generative Inference of Large Language Models",
+      "url": "https://arxiv.org/abs/2306.14048v3",
+      "sourceDay": "2023-12-18",
+      "sourceVersion": "arXiv:2306.14048v3",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "representation"
+      ],
+      "rationale": "主要问题是有限预算下保留和淘汰哪些 token 的 KV；同时通过稀疏保留减少存储与注意力访问。",
+      "summary": "累计已观察到的注意力分数，在有限预算内保留近期 token 和高分 token，淘汰其余 KV。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "h2o",
+        "shortName": "H₂O",
+        "venue": "NeurIPS 2023",
+        "year": 2023,
+        "order": 5,
+        "problem": "长序列与大批次使 KV 占用持续增长，固定只保留最近状态又可能丢掉后续生成依赖的信息。",
+        "method": "逐步累计已观察到的注意力分数，在预算内共同保留近期 token 与高分的 heavy-hitter token，淘汰其余 KV。",
+        "boundary": "20% 是论文的实验预算配置。淘汰会丢失对应历史，精度表现取决于任务，不能保证任意负载都无损。",
+        "readingScope": "核对摘要、§4.1–4.2 的策略与理论条件、§5 的预算和实验设定及附录 B.2 讨论；未独立实验。",
+        "sources": [
+          {
+            "label": "原论文方法与边界",
+            "url": "https://arxiv.org/html/2306.14048v3"
+          },
+          {
+            "label": "会议正式条目",
+            "url": "https://proceedings.neurips.cc/paper_files/paper/2023/hash/6ceefa7b15572587b78ecfcebb2827f8-Abstract-Conference.html"
+          },
+          {
+            "label": "原论文元数据与版本",
+            "url": "https://arxiv.org/abs/2306.14048v3"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2309.17453v4",
+      "title": "StreamingLLM：保留初始状态与最近窗口",
+      "originalTitle": "Efficient Streaming Language Models with Attention Sinks",
+      "url": "https://arxiv.org/abs/2309.17453v4",
+      "sourceDay": "2024-04-07",
+      "sourceVersion": "arXiv:2309.17453v4",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "representation"
+      ],
+      "rationale": "主要机制决定持续流式生成中保留哪些 KV；固定保留初始 sink 与最近窗口，构成有界的稀疏缓存。",
+      "summary": "保留少量初始 attention sink token 与最近窗口，用有界 KV 持续处理输入流。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "streamingllm",
+        "shortName": "StreamingLLM",
+        "venue": "ICLR 2024",
+        "year": 2024,
+        "order": 6,
+        "problem": "只滑动保留最近 KV 时，初始 attention sink 被移除会破坏注意力分布；保留全部历史又使缓存随流持续增长。",
+        "method": "保留少量序列开头 token 的 KV 与最近窗口，并按缓存中的连续位置处理位置编码，让缓存容量保持有界。",
+        "boundary": "长时间处理输入流不等于记住所有历史；缓存以外的信息不可访问，不适合强依赖远期历史的问答与总结。",
+        "readingScope": "原笔记引用 v3，本次核对 v4 的摘要、§3.1–3.2、§4.1 及附录 A/C 的应用和上下文限制；未独立实验。",
+        "sources": [
+          {
+            "label": "原论文方法与边界",
+            "url": "https://arxiv.org/html/2309.17453v4"
+          },
+          {
+            "label": "会议正式条目",
+            "url": "https://proceedings.iclr.cc/paper_files/paper/2024/hash/5e5fd18f863cbe6d8ae392a93fd271c9-Abstract-Conference.html"
+          },
+          {
+            "label": "原论文元数据与版本",
+            "url": "https://arxiv.org/abs/2309.17453v4"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2402.02750v2",
+      "title": "KIVI：分别量化 Key 与 Value",
+      "originalTitle": "KIVI: A Tuning-Free Asymmetric 2bit Quantization for KV Cache",
+      "url": "https://arxiv.org/abs/2402.02750v2",
+      "sourceDay": "2024-07-25",
+      "sourceVersion": "arXiv:2402.02750v2",
+      "primaryTopic": "representation",
+      "topics": [
+        "representation"
+      ],
+      "rationale": "保留token条目并降低KV数值精度，核心是不同量化维度和低位数据结构，而非按重要性删除token。",
+      "summary": "Key 按通道、Value 按 token 量化，并用全精度残留缓存接收新状态，降低 KV 的存储与读取成本。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "kivi",
+        "shortName": "KIVI",
+        "venue": "ICML 2024",
+        "year": 2024,
+        "order": 7,
+        "problem": "长上下文和大批次的 KV 存储与读取开销较高；Key 与 Value 同用一种低位量化维度时误差可能明显扩大。",
+        "method": "Key 按通道分组、Value 按 token 分组量化；新增状态先留在全精度残留缓存，再逐步转为低位表示。",
+        "boundary": "2bit 指量化部分，仍有全精度残留缓存和量化参数。质量与效率还取决于模型、分组、残留长度及内核。",
+        "readingScope": "原笔记仅有题名和待阅读标记；本次另读摘要、§3.1–3.3、§4.1–4.2 的配置与消融条件、§5 的路线对比。未独立实验。",
+        "sources": [
+          {
+            "label": "原论文方法与边界",
+            "url": "https://arxiv.org/html/2402.02750v2"
+          },
+          {
+            "label": "会议正式条目",
+            "url": "https://proceedings.mlr.press/v235/liu24bz.html"
+          },
+          {
+            "label": "原论文元数据与版本",
+            "url": "https://arxiv.org/abs/2402.02750v2"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2410.05004v1",
+      "originalTitle": "Fast State Restoration in LLM Serving with HCache",
+      "url": "https://arxiv.org/abs/2410.05004v1",
+      "sourceDay": "2024-10-07",
+      "sourceVersion": "arXiv:2410.05004v1",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "representation",
+        "reuse"
+      ],
+      "rationale": "直接研究分层存储中的状态恢复，可与只传 KV 的方法比较，并联系跨请求历史复用。",
+      "title": "HCache：用隐藏态恢复 KV",
+      "summary": "保存逐层输入隐藏态，恢复时重建 Key/Value，并把传输与投影计算流水重叠。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "hcache",
+        "shortName": "HCache",
+        "venue": "EuroSys 2025",
+        "year": 2025,
+        "order": 8,
+        "problem": "GPU 放不下可复用历史 KV 时，从 token 重算耗算力，直接回读 KV 耗带宽。",
+        "method": "保存逐层输入隐藏态，恢复时读回隐藏态并投影生成 Key/Value；再按层搭配重算或 KV 回读，平衡计算与传输。",
+        "boundary": "论文直接支持多头注意力（MHA）；不能把隐藏态体积减半的分析直接用于分组/多查询注意力（GQA/MQA）。低秩隐藏态扩展超出该论文范围。",
+        "readingScope": "核对 arXiv v1 摘要、§3.1–3.2、§4.1、§4.2 存储格式及 §7 的 MQA/GQA 适用讨论；正式会议 PDF 用于书目信息核对。未独立实验。",
+        "sources": [
+          {
+            "label": "原论文相关章节",
+            "url": "https://arxiv.org/html/2410.05004v1"
+          },
+          {
+            "label": "EuroSys 正式论文",
+            "url": "https://chenyoumin1993.github.io/papers/eurosys25-hcache.pdf"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2411.17089v2",
+      "originalTitle": "KVPR: Efficient LLM Inference with I/O-Aware KV Cache Partial Recomputation",
+      "url": "https://arxiv.org/abs/2411.17089v2",
+      "sourceDay": "2025-06-04",
+      "sourceVersion": "arXiv:2411.17089v2",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "representation"
+      ],
+      "rationale": "研究回读与重算怎样分工，可对比分层恢复方案；切分由计算/带宽与输入决定，不能用固定比例概括。",
+      "title": "KVPR：一部分重算，一部分传输",
+      "summary": "把 KV 的恢复分给计算与传输两条路径，依据硬件和输入选择切分，并用异步执行减小等待。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "kvpr",
+        "shortName": "KVPR",
+        "venue": "Findings of ACL 2025",
+        "year": 2025,
+        "order": 9,
+        "problem": "KV 卸载到 CPU 后，PCIe 回读可能长于 GPU 计算，普通重叠仍留下等待。",
+        "method": "根据硬件测量与输入选择切分点：GPU 从部分输入激活重建 KV，同时回读其余 KV，再合并执行注意力。",
+        "boundary": "启动时的硬件测量假定运行条件稳定；论文覆盖单 GPU 或数据并行，未覆盖模型/张量并行和磁盘/网络回读。",
+        "readingScope": "核对 arXiv v2 与 Findings of ACL 正式论文摘要、§3.1–3.3 和 §7 限制。未审计代码切分范围或复现实验。",
+        "sources": [
+          {
+            "label": "Findings of ACL 正式条目",
+            "url": "https://aclanthology.org/2025.findings-acl.997/"
+          },
+          {
+            "label": "正式论文方法与限制",
+            "url": "https://aclanthology.org/2025.findings-acl.997.pdf"
+          },
+          {
+            "label": "所引用的 arXiv 版本",
+            "url": "https://arxiv.org/abs/2411.17089v2"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paper:arxiv:2510.09665v1",
+      "originalTitle": "LMCache: An Efficient KV Cache Layer for Enterprise-Scale LLM Inference",
+      "url": "https://arxiv.org/abs/2510.09665v1",
+      "sourceDay": "2025-10-08",
+      "sourceVersion": "arXiv:2510.09665v1",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "reuse",
+        "lifecycle"
+      ],
+      "rationale": "同时连接分层移动、前缀复用和缓存生命周期，可用作独立 KV 专题的系统案例。",
+      "title": "LMCache：把 KV 管理扩展到引擎之外",
+      "summary": "用统一 KV 层连接推理引擎与多级存储，结合块聚合、分层预取和缓存控制接口支持共享。",
+      "kind": "paper",
+      "decision": "included",
+      "reviewLevel": "paper-section",
+      "checkedAt": "2026-11-18",
+      "dailyReferences": [],
+      "paper": {
+        "slug": "lmcache",
+        "shortName": "LMCache",
+        "venue": "arXiv 2025",
+        "year": 2025,
+        "order": 10,
+        "problem": "跨请求复用和 预填充/解码分离（P/D）需要把 KV 移出 GPU，但分页小张量传输、重复拷贝及引擎接口变化妨碍高效共享。",
+        "method": "把分散页面聚成较大块，流水预取并减少重复拷贝；通过连接器交接缓存，通过控制接口定位、保留和迁移 KV。",
+        "boundary": "具体能力受引擎与版本支持约束；动态卸载要权衡副本冗余和分配等待。当前项目文档中的后续功能需另行核对。",
+        "readingScope": "机制以 arXiv v1 的 §3–5、§8.3–8.4 为依据；另对照 v2 和现行文档，不将新功能回填为旧论文已验证能力。未核实会议录用或复现实验。",
+        "sources": [
+          {
+            "label": "所引用的 v1 原论文",
+            "url": "https://arxiv.org/html/2510.09665v1"
+          },
+          {
+            "label": "元数据与版本历史",
+            "url": "https://arxiv.org/abs/2510.09665"
+          }
+        ]
+      }
     }
   ]
 }

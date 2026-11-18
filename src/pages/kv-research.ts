@@ -2,6 +2,18 @@ import data from "./kv-research.json";
 
 export type ResearchTopicId = "reuse" | "representation" | "lifecycle" | "movement" | "scheduling";
 export type DailyReference = { day: string; version: string; section: string };
+export type PaperReading = {
+  slug: string;
+  shortName: string;
+  venue: string;
+  year: number;
+  order: number;
+  problem: string;
+  method: string;
+  boundary: string;
+  readingScope: string;
+  sources: { label: string; url: string }[];
+};
 export type ResearchEntry = {
   id: string;
   kind: "pr" | "paper";
@@ -25,6 +37,7 @@ export type ResearchEntry = {
   reviewLevel: "pr-description" | "pr-code" | "paper-abstract" | "paper-section" | "pending";
   checkedAt: string;
   dailyReferences?: DailyReference[];
+  paper?: PaperReading;
 };
 export type ResearchLibrary = {
   schemaVersion: 1;
@@ -93,4 +106,28 @@ export function researchTimeline(entries: ResearchEntry[]) {
   }
   return [...months].sort(([left], [right]) => left.localeCompare(right))
     .map(([month, count]) => ({ month, count }));
+}
+
+export type PaperEntry = ResearchEntry & { kind: "paper"; paper: PaperReading };
+
+// Paper reading shares the material inventory, with its own search and topic scope.
+export function paperViewQuery(query: URLSearchParams): URLSearchParams {
+  const next = new URLSearchParams(query);
+  const topic = researchTopicFilter(query);
+  for (const key of ["repo", "month", "kind", "label"]) next.delete(key);
+  if (topic) next.set("topic", topic);
+  next.set("view", "papers");
+  return next;
+}
+
+export function filterPapers(entries: ResearchEntry[], query: URLSearchParams): PaperEntry[] {
+  const scope = new URLSearchParams({ kind: "paper" });
+  const topic = researchTopicFilter(query);
+  if (topic) scope.set("topic", topic);
+  const term = (query.get("q") ?? "").normalize("NFKC").trim().toLocaleLowerCase();
+  return filterResearch(entries, scope)
+    .filter((entry): entry is PaperEntry => entry.kind === "paper" && !!entry.paper)
+    .filter((entry) => !term || [entry.title, entry.originalTitle, entry.summary, entry.paper.shortName,
+      entry.paper.problem, entry.paper.method, entry.paper.boundary].join(" ").normalize("NFKC").toLocaleLowerCase().includes(term))
+    .sort((left, right) => left.paper.order - right.paper.order || left.id.localeCompare(right.id));
 }

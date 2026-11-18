@@ -42,6 +42,7 @@ function MaterialCard({ entry }: { entry: ResearchEntry }) {
     </div>
     <div className="kv-material-links">
       <a href={entry.url} target="_blank" rel="noreferrer">{entry.kind === "pr" ? "原始 PR" : "原始论文"} <ArrowUpRight size={12} aria-hidden="true" /></a>
+      {entry.paper && <Link to={{ search: `view=papers&part=kv-paper-${entry.paper.slug}` }}>阅读简介 <ArrowRight size={12} aria-hidden="true" /></Link>}
       {compared && <Link to={{ search: `view=compare&part=kv-pr-${entry.id.split("#")[1]}` }}>专题方法对比 <ArrowRight size={12} aria-hidden="true" /></Link>}
       <span>{researchReviewLabels[entry.reviewLevel]}</span>
     </div>

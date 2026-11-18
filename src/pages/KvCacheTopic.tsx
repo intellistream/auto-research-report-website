@@ -2,12 +2,14 @@ import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import KvMaterialLibrary from "./KvMaterialLibrary";
+import KvPapers from "./KvPapers";
 import { KvCacheGuide, KvMethodComparison, KvProgressReport } from "./KvCacheStudy";
-import { filterResearch, kvResearch } from "./kv-research";
+import { filterResearch, kvResearch, paperViewQuery } from "./kv-research";
 import { revealTopicPart } from "./topic-report";
 
 const sections = [
   { id: "guide", label: "导引" },
+  { id: "papers", label: "论文" },
   { id: "compare", label: "方法对比" },
   { id: "report", label: "动态报告" },
   { id: "evidence", label: "PR 与趋势" },
@@ -54,13 +56,15 @@ export default function KvCacheTopic() {
     </header>
     <nav className="kv-topic-nav" aria-label="KV Cache 专题分区">
       {sections.map(({ id, label }) => {
-        const next = new URLSearchParams(query);
+        const next = id === "papers" ? paperViewQuery(query) : new URLSearchParams(query);
+        if (id !== "papers") next.delete("q");
         next.set("view", id);
         next.delete("part");
         return <Link key={id} to={{ search: next.toString() }} aria-current={section === id ? "page" : undefined}>{label}</Link>;
       })}
     </nav>
     {section === "guide" && <KvCacheGuide />}
+    {section === "papers" && <KvPapers />}
     {section === "compare" && <KvMethodComparison />}
     {section === "report" && <KvProgressReport />}
     {section === "evidence" && <KvMaterialLibrary />}

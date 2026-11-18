@@ -100,7 +100,7 @@ describe("independent KV research library", () => {
 
   it("serves direct papers with their own dates and source links", () => {
     const html = render("/topics/kv-cache?view=evidence&kind=paper");
-    expect(html.match(/class="kv-material-card"/g)).toHaveLength(2);
+    expect(html.match(/class="kv-material-card"/g)).toHaveLength(kvResearch.entries.filter((entry) => entry.kind === "paper" && entry.decision === "included").length);
     expect(html).toContain("原始论文");
     expect(html).toContain("2023-09-12");
     expect(html).toContain("2312.07104v2");

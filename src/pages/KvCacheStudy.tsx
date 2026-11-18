@@ -141,9 +141,10 @@ export function KvProgressReport() {
     <header className="kv-study-intro"><p className="kv-direction">动态报告 · 专题研究</p><h2>{study.focus}</h2><p>{study.summary}</p><p className="kv-muted">更新于 {study.asOf} · 修订 {study.revision} · 当前聚焦前缀感知调度</p></header>
     <dl className="kv-review-summary">
       <div><dt>纳入 PR</dt><dd>{prs.length}</dd></div>
-      <div><dt>纳入论文</dt><dd>{papers.length}</dd></div>
+      <div><dt>纳入论文</dt><dd><Link to={{ search: "view=papers" }}>{papers.length}</Link></dd></div>
       <div><dt>深入方法对比</dt><dd>{study.methods.length}</dd></div>
     </dl>
+    <p className="kv-muted">论文材料更新于 {kvResearch.asOf}，可在<Link to={{ search: "view=papers" }}>论文板块</Link>阅读简介与原文。</p>
     <p className="kv-muted">本轮审阅 {reviewed} 条 PR 候选，依据原始说明与选定补丁核对归属，其中 {excluded} 条记录为未纳入。深入对比的四条 PR 均有说明与代码依据。</p>
     <p className="kv-muted">{study.scope} {study.verification}</p>
     <section aria-labelledby="kv-observations-title"><h3 id="kv-observations-title">本轮材料支持哪些观察？</h3><div className="kv-report-notes">{study.observations.map((observation) => <article key={observation.title}><h4>{observation.title}</h4><p>{observation.body}</p><PRSources numbers={observation.numbers} /></article>)}</div></section>
