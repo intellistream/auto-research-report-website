@@ -110,3 +110,16 @@ export function displaySpecDecChapterTitle(id: string, fallback: string) {
 export function displaySpecDecSubsectionTitle(id: string, index: number, fallback: string) {
   return specDecChapterHeadings[id]?.subsections[index] ?? fallback;
 }
+
+export const specDecEvidenceTitles: Record<string, string> = {
+  E1: "多步草稿图：局部循环与服务收益的差异",
+  E2: "自适应验证：预算选择器的执行成本",
+  E3: "接受概率估计：错误裁剪与条件化收益",
+  E5: "前瞻缓存身份：前缀复用的正确性边界",
+  E7: "递归状态恢复：延迟提交与合法历史",
+  E8: "完整草稿图：跨日对照的归因限制",
+  E9: "拒绝采样图：主机分派与在线收益",
+  E11: "混合批次元数据：局部融合与吞吐差异",
+  E12: "递归状态提交：主机同步与异步重叠",
+  E17: "可变验证长度：图复用与合入边界",
+};
