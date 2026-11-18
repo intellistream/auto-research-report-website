@@ -1,3 +1,4 @@
+import "./style.css";
 import { useEffect, useState, type ReactNode } from "react";
 import Dashboard from "./Dashboard";
 import {

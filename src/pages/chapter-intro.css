@@ -15,5 +15,5 @@
 .chapter-intro a:hover { text-decoration-thickness: 2px; }
 .chapter-intro a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 2px; }
 .chapter-intro-missing { margin: 0 0 14px; font-size: 12px; line-height: 1.8; }
-.map-v2-workbench .chapter-intro { color: #c7eadc; }
+.map-v2-workbench .chapter-intro { color: #244e3e; }
 .map-v2-workbench .chapter-intro a { color: inherit; }

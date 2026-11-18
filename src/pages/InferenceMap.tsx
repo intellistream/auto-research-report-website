@@ -18,15 +18,15 @@ export type IndexedPR = { day: string; version: string; stage: string; number: s
 const stages = ["startup", "scheduling", "prefill", "pd_transfer", "decode", "speculative", "output_return", "resource_reclaim"] as const;
 const main = [
   { key: "scheduling", action: "排队 → 成批" },
-  { key: "prefill", action: "输入 → KV 缓存" },
-  { key: "decode", action: "生成 → 再生成" },
+  { key: "prefill", action: "输入 → KV 与首 token" },
+  { key: "decode", action: "复用 KV → 逐步生成" },
   { key: "output_return", action: "边生成 → 边返回" },
 ] as const;
 const supportArt = {
   startup: { icon: Box, note: "服务启动时" },
   pd_transfer: { icon: Cable, note: "可选 · 从输入到生成" },
   speculative: { icon: Sparkles, note: "可选 · 草稿 → 验证" },
-  resource_reclaim: { icon: Recycle, note: "请求结束后 · 缓存可复用" },
+  resource_reclaim: { icon: Recycle, note: "结束后释放引用 · 缓存按条件复用" },
 } as const;
 
 function isAscend({ workId }: IndexedPR) {
@@ -60,7 +60,7 @@ function PRList({ items }: { items: IndexedPR[] }) {
       <div className="map-v2-detail-heading">
         <label className="map-v2-search">
           <Search size={16} aria-hidden />
-          <input type="search" aria-label="搜索所选环节 PR" placeholder="搜索标题或 PR 编号" value={query}
+          <input type="search" name="pr" autoComplete="off" aria-label="搜索所选环节 PR" placeholder="搜索标题或 PR 编号…" value={query}
             onChange={(event) => { setQuery(event.target.value); setPage(0); }} />
         </label>
       </div>
@@ -140,7 +140,7 @@ export default function InferenceMap({ entries, intros = {}, selection, select, 
       <header className="map-v2-heading">
         <div>
           <h2 id={panel + "-map-title"}>沿着推理流程，查看社区改动</h2>
-          <p>点选环节，看它如何处理请求，再查看该环节的实际 PR。</p>
+          <p>跟随同一条请求，理解每一步的输入、变化与结果，再查看对应的实际 PR。</p>
         </div>
         <div className="map-v2-communities" aria-label="社区图例">
           <span><i className="map-v2-upstream" />vLLM</span>
@@ -150,9 +150,9 @@ export default function InferenceMap({ entries, intros = {}, selection, select, 
       <div className="map-v2-layout" ref={layout}>
         <div className="map-v2-diagram" role="group" aria-label="推理流程与社区改动" aria-describedby={panel + "-flow-description"}>
           <p id={panel + "-flow-description"} className="map-v2-sr-only">
-            服务启动时准备模型。请求依次经过调度、输入处理、循环生成和输出返回。
+            服务启动时准备模型。请求经调度与输入处理开始生成；后续调度、生成与流式返回交替推进。
             P/D 分离时，输入处理经由缓存交接进入循环生成。推测解码是循环生成的可选分支。
-            请求结束后回收资源，保留可供后续请求复用的缓存。
+            请求结束后释放资源引用；符合条件且未被淘汰的缓存可供后续请求复用。
           </p>
           <div className="map-v2-flow">
             {stages.map((stage) => {
@@ -186,6 +186,7 @@ export default function InferenceMap({ entries, intros = {}, selection, select, 
               );
             })}
           </div>
+          <p className="map-v2-flow-note">主线按依赖关系阅读；实际执行中，调度、循环生成与流式返回会交替推进。</p>
           {!!(conflicts || selected === "classification_conflict") && (
             <div className="map-v2-unplaced">
               {stageButton("classification_conflict", <><span>分类不一致</span><strong>{conflicts} PR</strong></>)}
@@ -204,8 +205,8 @@ export default function InferenceMap({ entries, intros = {}, selection, select, 
             {selected && <button type="button" className="map-v2-return"
               onClick={() => document.getElementById(panel + "-" + selected)?.focus()}><ArrowUp size={14} aria-hidden />返回所选环节</button>}
           </header>
-          {selected && selected !== "classification_conflict" && <ChapterIntro chapter={intros[selected]} omitIntroPrefix />}
-          {selected && selected !== "classification_conflict" && <InferenceStageDemo key={selected} stage={selected} />}
+          {selected && selected !== "classification_conflict" && <InferenceStageDemo key={selected} stage={selected} onSelect={choose} />}
+          {selected && selected !== "classification_conflict" && <div className="map-v2-report-context"><ChapterIntro chapter={intros[selected]} omitIntroPrefix /></div>}
           {selected ? (
             <details key={selected + scope} className="map-v2-evidence">
               <summary><List size={16} aria-hidden />查看 {count(selected)} 条实际 PR <ChevronDown size={17} aria-hidden /></summary>

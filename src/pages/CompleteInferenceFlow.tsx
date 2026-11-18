@@ -151,7 +151,6 @@ export default function CompleteInferenceFlow({
     >
       <header className="complete-flow-heading">
         <div>
-          <span className="complete-flow-eyebrow">INFERENCE LIFECYCLE</span>
           <h2 id={id + "-title"}>推理流程全图</h2>
           <p>看清主路径、可选优化与资源复用，再深入查看每个环节。</p>
         </div>

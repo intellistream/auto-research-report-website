@@ -1,0 +1,143 @@
+.acl-survey-map {
+  margin: 1.3rem 0 2rem;
+  color: #20392e;
+}
+.acl-survey-map h3 {
+  margin: 0 0 .65rem;
+  font-size: clamp(1.18rem, 2.5vw, 1.48rem);
+  line-height: 1.4;
+}
+.acl-survey-map-grid {
+  display: grid;
+  grid-template-columns: minmax(13rem, 1fr) minmax(0, 2fr);
+  align-items: stretch;
+  gap: .7rem;
+}
+.acl-survey-route-list {
+  display: grid;
+  align-content: start;
+  gap: .35rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.acl-survey-route-list button {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1px solid #d4e3d9;
+  border-radius: .5rem;
+  background: #fff;
+  padding: .5rem .65rem;
+  text-align: left;
+  color: #1e392d;
+  cursor: pointer;
+}
+.acl-survey-route-list button:hover { background: #f0f6f1; }
+.acl-survey-route-list button[aria-pressed="true"] {
+  border-color: #35815e;
+  background: #e6f3ea;
+  box-shadow: inset 3px 0 #347f5c;
+}
+.acl-survey-route-list strong { display: block; font-size: .89rem; line-height: 1.35; }
+.acl-survey-route-list button span {
+  display: block;
+  margin-top: .18rem;
+  color: #4b6457;
+  font-size: .77rem;
+  line-height: 1.42;
+}
+.acl-survey-route {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: clamp(.8rem, 2.5vw, 1.25rem);
+  border: 1px solid #bcd5c5;
+  border-radius: .65rem;
+  background: #fff;
+}
+.acl-survey-route h4 {
+  margin: 0 0 .65rem;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  line-height: 1.35;
+}
+.acl-survey-label {
+  margin: 0;
+  font-size: .79rem;
+  font-weight: 700;
+  color: #285d44;
+}
+.acl-survey-flow {
+  display: grid;
+  grid-template-columns: repeat(var(--flow-columns, 3), minmax(0, 1fr));
+  gap: 1.15rem;
+  padding: 0;
+  margin: .42rem 0;
+  list-style: none;
+}
+.acl-survey-flow li {
+  position: relative;
+  display: grid;
+  place-content: center;
+  min-height: 2.9rem;
+  padding: .35rem;
+  text-align: center;
+  border-radius: .38rem;
+  background: #e7f3eb;
+  color: #244c3a;
+  font-size: .84rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+.acl-survey-flow li:not(:last-child)::after {
+  content: "→" / "";
+  position: absolute;
+  right: -.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #3f6e58;
+}
+.acl-survey-examples {
+  margin: .45rem 0 .8rem;
+  font-size: .82rem;
+  color: #4b6457;
+}
+.acl-survey-research {
+  border-left: 3px solid #a77731;
+  border-radius: .24rem;
+  padding: .62rem .7rem;
+  background: #faf4e7;
+}
+.acl-survey-research .acl-survey-label { color: #69460f; }
+.acl-survey-research p { margin: .2rem 0 0; line-height: 1.55; }
+.acl-survey-section-link {
+  align-self: flex-start;
+  margin-top: .75rem;
+  color: #1e6245;
+  text-decoration: underline;
+  text-underline-offset: .18em;
+  font-size: .85rem;
+  font-weight: 650;
+}
+@media (max-width: 650px) {
+  .acl-survey-map-grid { grid-template-columns: minmax(0, 1fr); }
+  .acl-survey-route-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .acl-survey-route-list li:last-child { grid-column: 1 / -1; }
+}
+.acl-survey-thesis { max-width: 70ch; margin: .6rem 0; font-size: .98rem; line-height: 1.65; }
+.acl-survey-version { color: #52695d; font-size: .78rem; margin: 0 0 .9rem; }
+.acl-survey-assessment { margin-top: .6rem; }
+.acl-survey-assessment p { margin: .25rem 0 .7rem; line-height: 1.65; }
+.acl-survey-boundary { margin-top: .4rem; border-top: 1px solid #d4e3d9; padding-top: .65rem; }
+.acl-survey-boundary summary { color: #285d44; font-weight: 650; cursor: pointer; }
+.acl-survey-boundary p { font-size: .87rem; line-height: 1.65; }
+.acl-survey-boundary .acl-survey-research { margin: .6rem 0; }
+.acl-survey-boundary a { color: #1e6245; text-decoration: underline; text-underline-offset: .15em; }
+.acl-survey-evidence-links { display: flex; flex-wrap: wrap; gap: .4rem .8rem; margin: .8rem 0; font-size: .83rem; }
+.acl-survey-sources { margin: .75rem 0 0; padding-left: 1.2rem; font-size: .8rem; }
+.acl-survey-sources li { margin: .5rem 0; overflow-wrap: anywhere; }
+.acl-survey-sources small { display: block; color: #52695d; margin-top: .18rem; }
+@media (max-width: 420px) {
+  .acl-survey-flow { grid-template-columns: minmax(0, 1fr); }
+  .acl-survey-flow li:not(:last-child)::after { content: "↓" / ""; left: 50%; right: auto; top: auto; bottom: -1.05rem; transform: translateX(-50%); }
+}

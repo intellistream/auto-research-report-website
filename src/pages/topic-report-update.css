@@ -1,0 +1,111 @@
+.report-brief-heading {
+  margin: 1.25rem 0 .85rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: .6rem 1rem;
+}
+.report-brief-heading h2 { margin: 0 0 .25rem; font-size: clamp(1.4rem, 2.7vw, 1.9rem); }
+.report-brief-heading .survey-meta { margin: 0; font-size: .82rem; }
+.report-brief-heading .survey-downloads { flex-wrap: wrap; gap: .5rem .85rem; }
+.report-brief-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+  gap: .7rem;
+  margin: 0 0 1.1rem;
+}
+.report-brief-card {
+  border: 1px solid #d4e3d9;
+  border-radius: .65rem;
+  padding: .85rem 1rem;
+  background: #fff;
+  min-width: 0;
+}
+.report-brief-card h3, .report-brief-evidence h3 { margin: 0 0 .42rem; font-size: 1.08rem; }
+.report-brief-card p { margin: .4rem 0 0; line-height: 1.6; }
+.report-brief-current { background: #e9f3ec; border-color: #c6ddce; }
+.report-brief-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem .55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.report-brief-counts li {
+  background: #fff;
+  border: 1px solid #c5dbc9;
+  padding: .15rem .4rem;
+  border-radius: .3rem;
+  color: #2a5a42;
+  font-size: .78rem;
+}
+.report-brief-next ul { margin: 0 0 .3rem; padding-left: 1rem; line-height: 1.52; }
+.report-brief-next li + li { margin-top: .2rem; }
+.report-brief-next li a { font-size: .91rem; }
+.report-brief-next > a { font-size: .8rem; }
+.report-brief-overview a, .report-brief-evidence a {
+  color: #205c40;
+  text-decoration: underline;
+  text-underline-offset: .18em;
+}
+.report-brief-evidence { margin-bottom: 1.15rem; }
+.report-brief-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .55rem .7rem;
+}
+.report-brief-evidence article {
+  padding: .65rem .85rem;
+  border: 1px solid #e0ded2;
+  border-left: 3px solid #aa8047;
+  border-radius: .5rem;
+  background: #fff;
+  min-width: 0;
+}
+.report-brief-evidence article header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .55rem; }
+.report-brief-evidence h4 { margin: 0; font-size: .92rem; }
+.report-brief-evidence header span { color: #76501d; font-size: .75rem; }
+.report-brief-evidence article p { margin: .24rem 0 .3rem; font-size: .88rem; line-height: 1.5; }
+.report-brief-evidence article a { font-size: .78rem; }
+.report-brief-evidence article a + a { margin-left: .7rem; }
+.report-brief-disclosure {
+  margin: .65rem 0;
+  border: 1px solid #d4e3d9;
+  background: #fff;
+  border-radius: .55rem;
+  scroll-margin-top: 1rem;
+}
+.report-brief-disclosure > summary {
+  padding: .7rem .9rem;
+  cursor: pointer;
+  color: #284f3b;
+  font-weight: 700;
+}
+.report-brief-disclosure > summary span { margin-left: .65rem; color: #52665a; font-size: .82rem; font-weight: 400; }
+.report-brief-disclosure-content { padding: 0 .85rem .85rem; min-width: 0; }
+.report-brief-disclosure .survey-toolbar { margin: .25rem 0 .85rem; }
+.report-brief-disclosure .survey-paper { max-width: none; }
+.report-pr-trends .survey-trend { margin-top: .3rem; }
+.report-pr-trends #survey-appendix { scroll-margin-top: 1rem; }
+.report-pr-trends #survey-appendix h3 { margin: .75rem 0 .35rem; }
+.report-pr-trends .topic-evidence-row a { overflow-wrap: anywhere; }
+@media (max-width: 650px) {
+  .report-brief-overview, .report-brief-evidence-grid { grid-template-columns: minmax(0, 1fr); }
+  .report-brief-next ul { margin-bottom: .4rem; }
+}
+@media print {
+  .report-brief-heading, .report-brief-overview, .report-brief-evidence { display: none !important; }
+}
+.report-research-assessment { margin: 1rem 0; padding: 1rem 1.1rem; border-left: 3px solid #a77731; border-radius: .4rem; background: #faf4e7; }
+.report-research-assessment h3 { margin: 0 0 .4rem; color: #4e3b18; }
+.report-research-assessment p { margin: .4rem 0; line-height: 1.65; }
+.report-research-assessment small { color: #6a5c40; }
+.report-research-assessment details { margin-top: .7rem; }
+.report-research-assessment summary { cursor: pointer; color: #5f471b; font-weight: 650; }
+.report-research-assessment h4 { margin-bottom: .4rem; }
+.report-pending-questions article + article { border-top: 1px solid #d4e3d9; margin-top: 1rem; padding-top: .5rem; }
+.report-brief-evidence-grid details { font-size: .84rem; margin: .5rem 0; }
+.report-brief-evidence-grid summary { cursor: pointer; color: #285d44; }
+.survey-review-sources { display: flex; flex-wrap: wrap; gap: .5rem .8rem; margin: .5rem 0 .8rem; font-size: .8rem; }

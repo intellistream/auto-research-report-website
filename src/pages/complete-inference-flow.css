@@ -15,14 +15,6 @@
   gap: 14px;
   margin-bottom: 18px;
 }
-.complete-flow-eyebrow {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  color: #698275;
-  font-weight: 650;
-}
 .complete-flow-heading h2 {
   margin: 0 0 5px;
   font-size: clamp(18px, 2vw, 22px);
@@ -42,7 +34,7 @@
   background: #f1f7f3;
   border: 1px solid #e4eee7;
   border-radius: 9px;
-  color: #658274;
+  color: #4e685c;
   font-size: 11px;
   white-space: nowrap;
 }
@@ -63,7 +55,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 9px 18px;
-  color: #6a7d72;
+  color: #55685d;
   font-size: 11px;
 }
 .complete-flow-legend span {
@@ -87,7 +79,7 @@
   display: none;
   align-items: center;
   gap: 5px;
-  color: #73867a;
+  color: #526b5d;
   font-size: 10px;
 }
 .complete-flow-scroll {
@@ -146,7 +138,7 @@
   border-radius: 5px;
   background: #f8fbf9;
   font-size: 10px;
-  color: #738579;
+  color: #526b5d;
   line-height: 1.4;
   pointer-events: none;
 }
@@ -157,22 +149,22 @@
 .complete-flow-draft {
   left: 498px;
   top: 211px;
-  color: #89749d;
+  color: #735b89;
 }
 .complete-flow-verify {
   left: 572px;
   top: 211px;
-  color: #89749d;
+  color: #735b89;
 }
 .complete-flow-end {
   left: 708px;
   top: 505px;
-  color: #947b4d;
+  color: #745c30;
 }
 .complete-flow-reuse {
   left: 72px;
   top: 505px;
-  color: #947b4d;
+  color: #745c30;
 }
 .complete-flow-card {
   position: absolute;
@@ -204,8 +196,7 @@
 }
 .complete-flow-card[aria-pressed="true"] {
   border-color: #398067;
-  box-shadow:
-    0 0 0 1px #398067,
+  box-shadow: 0 0 0 1px #398067,
     0 5px 16px #234c381a;
 }
 .complete-flow-main {
@@ -216,7 +207,7 @@
   align-items: center;
   gap: 7px;
   font-size: 10px;
-  color: #819287;
+  color: #55685d;
   line-height: 1.5;
 }
 .complete-flow-card-top > svg {
@@ -229,7 +220,7 @@
   height: 24px;
   border-radius: 7px;
   background: #edf4ef;
-  color: #4e7c64;
+  color: #3e6b54;
   font-size: 10px;
   font-weight: 700;
 }
@@ -245,7 +236,7 @@
 }
 .complete-flow-card-detail {
   font-size: 10px;
-  color: #778b7d;
+  color: #526b5d;
   line-height: 1.65;
 }
 .complete-flow-card-bottom {
@@ -269,11 +260,11 @@
 }
 .complete-flow-pr-count small {
   font-size: 10px;
-  color: #8a9e8f;
+  color: #586c5f;
 }
 .complete-flow-support-count {
   margin-left: auto;
-  color: #64816f;
+  color: #4c6b59;
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -290,7 +281,7 @@
 }
 .complete-flow-optional .complete-flow-card-top,
 .complete-flow-optional .complete-flow-support-count {
-  color: #9988ad;
+  color: #715f87;
 }
 .complete-flow-resource {
   flex-direction: row;
@@ -319,7 +310,7 @@
   margin-top: 4px;
   font-size: 10px;
   line-height: 1.5;
-  color: #a3926a;
+  color: #74623e;
 }
 .complete-flow-resource .complete-flow-pr-count b {
   font-size: 19px;
@@ -327,11 +318,11 @@
 }
 .complete-flow-resource .complete-flow-pr-count small,
 .complete-flow-resource > svg:last-child {
-  color: #a9966c;
+  color: #74623e;
 }
 .complete-flow-footnote {
   margin: 12px 0 0;
-  color: #788b7f;
+  color: #526b5d;
   font-size: 11px;
   line-height: 1.8;
 }

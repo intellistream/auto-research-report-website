@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { HashRouter } from "react-router-dom";
-import "./style.css";
+import "./base.css";
 const Site = import.meta.env.MODE === "legacy"
   ? lazy(() => import("./App"))
   : lazy(() => import("./pages/DocxPreview"));

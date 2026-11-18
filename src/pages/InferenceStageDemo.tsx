@@ -1,116 +1,133 @@
-import { useEffect, useState } from "react";
-import {
-  ArrowDownToLine, ArrowRight, ArrowUpRight, Check, CircleCheck, Cpu, Database, HardDrive,
-  Layers, ListOrdered, MessageSquare, Pause, Play, Recycle, RotateCcw, Send, Sparkles, X,
-  type LucideIcon,
-} from "lucide-react";
+import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { ArrowLeft, ArrowRight, Check, Database, Layers, Pause, Play, RotateCcw, X } from "lucide-react";
+import { inferenceDemos, type DemoStage, type DemoCell } from "./inference-demo-data";
+import "./inference-demo.css";
 
-type Token = string | { text: string; result: "keep" | "drop" };
-type Frame = { label: string; icon: LucideIcon; tokens: Token[] };
+const stateLabels = { pending: "待就绪", ready: "已有", active: "本步处理", accepted: "已确认", rejected: "不采用", released: "已释放占用", moved: "已进入执行" };
 
-const examples = {
-  startup: [
-    { label: "读取模型权重", icon: HardDrive, tokens: ["权重 ①", "权重 ②", "权重 ③"] },
-    { label: "装入 GPU 显存", icon: Cpu, tokens: ["GPU 0 · 权重 ①②", "GPU 1 · 权重 ③"] },
-    { label: "服务就绪", icon: CircleCheck, tokens: ["开始接收请求"] },
-  ],
-  scheduling: [
-    { label: "请求进入队列", icon: ListOrdered, tokens: ["请求 A", "请求 B", "请求 C"] },
-    { label: "从队列组成一批", icon: Layers, tokens: ["本批：A + B", "仍排队：C"] },
-    { label: "把批次交给 GPU", icon: Cpu, tokens: ["GPU 批次：A + B"] },
-  ],
-  prefill: [
-    { label: "把输入切成 token", icon: Layers, tokens: ["写", "一", "首", "诗"] },
-    { label: "GPU 并行处理输入", icon: Cpu, tokens: ["位置 1", "位置 2", "位置 3", "位置 4"] },
-    { label: "保存每个位置的 KV", icon: Database, tokens: ["KV₁", "KV₂", "KV₃", "KV₄"] },
-  ],
-  pd_transfer: [
-    { label: "Prefill 节点生成 KV", icon: Database, tokens: ["Prefill · KV₁", "Prefill · KV₂"] },
-    { label: "把 KV 发给 Decode 节点", icon: Send, tokens: ["KV₁ →", "KV₂ →"] },
-    { label: "Decode 节点读取 KV", icon: ArrowDownToLine, tokens: ["Decode · KV₁", "Decode · KV₂"] },
-  ],
-  decode: [
-    { label: "读取输入的 KV 缓存", icon: Database, tokens: ["KV₁", "KV₂", "KV₃", "KV₄"] },
-    { label: "生成下一个 token", icon: Cpu, tokens: ["春"] },
-    { label: "带着「春」继续生成", icon: RotateCcw, tokens: ["春", { text: "风", result: "keep" }] },
-  ],
-  speculative: [
-    { label: "草稿模型提出候选", icon: Sparkles, tokens: ["春", "风", "海"] },
-    { label: "主模型验证候选", icon: Cpu, tokens: [
-      { text: "春", result: "keep" }, { text: "风", result: "keep" }, { text: "海", result: "drop" },
-    ] },
-    { label: "接受前两项，补上新 token", icon: CircleCheck, tokens: ["春", "风", { text: "入", result: "keep" }] },
-  ],
-  output_return: [
-    { label: "服务端产生 token", icon: Cpu, tokens: ["春", "风", "入", "梦"] },
-    { label: "逐段发送给客户端", icon: Send, tokens: ["春 →", "风 →", "入 →", "梦 →"] },
-    { label: "客户端边收到边显示", icon: MessageSquare, tokens: ["春风入梦"] },
-  ],
-  resource_reclaim: [
-    { label: "请求结束", icon: CircleCheck, tokens: ["请求占用的 KV", "可复用的前缀 KV"] },
-    { label: "释放该请求的资源", icon: Recycle, tokens: [{ text: "请求占用", result: "drop" }, "空闲空间 ↑"] },
-    { label: "保留可复用的前缀", icon: Database, tokens: [{ text: "前缀 KV", result: "keep" }, "下次命中可直接读"] },
-  ],
-} satisfies Record<string, [Frame, Frame, Frame]>;
-
-export default function InferenceStageDemo({ stage }: { stage: keyof typeof examples }) {
-  const frames: Frame[] = examples[stage];
-  const last = frames.length - 1;
+export default function InferenceStageDemo({ stage, onSelect }: { stage: DemoStage; onSelect?: (stage: DemoStage) => void }) {
+  const scenario = inferenceDemos[stage];
   const [step, setStep] = useState(0);
-  const [playing, setPlaying] = useState(false);
+  const [playback, setPlayback] = useState<"idle" | "playing" | "paused" | "complete">("idle");
+  const [run, setRun] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+  const timeline = useRef({ key: "", remaining: 0 });
+  const root = useRef<HTMLDivElement>(null);
+  const id = useId();
+  const last = scenario.steps.length - 1;
+  const frame = scenario.steps[step];
+  const playing = playback === "playing";
 
   useEffect(() => {
-    if (!playing || step === last) return;
+    if (!playing) return;
+    const key = `${run}:${step}`;
+    if (timeline.current.key !== key) timeline.current = { key, remaining: frame.duration };
+    const clock = timeline.current;
+    const started = performance.now();
     const timer = window.setTimeout(() => {
-      setStep(step + 1);
-      if (step + 1 === last) setPlaying(false);
-    }, 1150);
-    return () => window.clearTimeout(timer);
-  }, [last, playing, step]);
+      if (step === last) setPlayback("complete");
+      else setStep(step + 1);
+    }, clock.remaining);
+    return () => {
+      window.clearTimeout(timer);
+      clock.remaining = Math.max(0, clock.remaining - (performance.now() - started));
+    };
+  }, [frame.duration, last, playing, run, step]);
 
-  function togglePlayback() {
-    if (playing) {
-      setPlaying(false);
-    } else {
-      if (step === last) setStep(0);
-      setPlaying(true);
-    }
+  useEffect(() => {
+    const pause = () => setPlayback(current => current === "playing" ? "paused" : current);
+    const hidden = () => { if (document.hidden) pause(); };
+    document.addEventListener("visibilitychange", hidden);
+    // A demonstration should not finish while the reader is elsewhere on the page.
+    const observer = new IntersectionObserver(([entry]) => { if (!entry.isIntersecting) pause(); });
+    if (root.current) observer.observe(root.current);
+    return () => { observer.disconnect(); document.removeEventListener("visibilitychange", hidden); };
+  }, []);
+
+  function chooseStep(index: number) {
+    setPlayback("idle");
+    setStep(index);
+    setRun(current => current + 1);
   }
 
-  return (
-    <>
-      <div className="map-demo-frames" role="group" aria-label="演示步骤">
-        {frames.map(({ label, icon: Icon, tokens }, index) => (
-          <div className="map-demo-phase" key={label}>
-            <button type="button" className="map-demo-frame" data-state={index === step ? "active" : index < step ? "done" : "pending"}
-              aria-current={index === step ? "step" : undefined} onClick={() => { setPlaying(false); setStep(index); }}>
-              <span className="map-demo-frame-head"><span className="map-demo-number">{index + 1}</span><strong>{label}</strong></span>
-              <span className="map-demo-scene">
-                <Icon size={29} strokeWidth={1.6} aria-hidden />
-                {index <= step ? <span className="map-demo-tokens">
-                  {tokens.map((token) => typeof token === "string"
-                    ? <span className="map-demo-token" key={token}>{token}</span>
-                    : <span className="map-demo-token" key={token.text} data-result={token.result}>
-                      {token.result === "keep" ? <Check size={13} aria-label="保留" /> : <X size={13} aria-label="丢弃" />}
-                      {token.text}
-                    </span>)}
-                </span> : <span className="map-demo-placeholder" aria-hidden />}
-              </span>
-            </button>
-            {index < last && <ArrowRight className="map-demo-arrow" size={20} aria-hidden />}
-          </div>
-        ))}
+  function replay() {
+    setStep(0);
+    setRun(current => current + 1);
+    setPlayback("playing");
+  }
+
+  function togglePlayback() {
+    if (playing) setPlayback("paused");
+    else if (playback === "paused") setPlayback("playing");
+    else if (step === last) replay();
+    else { setRun(current => current + 1); setPlayback("playing"); }
+  }
+
+  function renderCell(cell: DemoCell | undefined, index: number, lane: number) {
+    const previous = scenario.steps[Math.max(0, step - 1)].rows[lane].cells.find(item => item.id === cell?.id);
+    const changed = !!cell && (step === 0 || !previous || previous.state === "pending" || previous.text !== cell.text
+      || (cell.state !== "ready" && previous.state !== cell.state));
+    const parallel = stage === "prefill" && step === 1;
+    return <span key={index} className="flow-demo-slot">
+      <span key={`${run}:${cell?.id}:${cell?.state}`} className="flow-demo-cell"
+        role={cell ? "img" : undefined}
+        data-state={cell?.state ?? "empty"} data-enter={changed && cell?.state !== "pending" ? "true" : undefined}
+        style={{ "--cell-delay": `${parallel ? lane * 60 : (stage === "output_return" ? lane * 160 : 0) + index * 50}ms` } as CSSProperties}
+        aria-label={cell ? `${cell.state === "pending" ? "" : cell.text + "，"}${stateLabels[cell.state]}` : undefined}
+        aria-hidden={!cell ? true : undefined}>
+        {cell?.state === "accepted" && <Check size={13} aria-hidden />}
+        {cell?.state === "rejected" && <X size={13} aria-hidden />}
+        <span>{cell?.state === "pending" ? "—" : cell?.text ?? "\u00a0"}</span>
+      </span>
+    </span>;
+  }
+
+  return <div className="flow-demo" ref={root} data-stage={stage} data-playback={playback}
+    style={{ "--step-duration": `${frame.duration}ms` } as CSSProperties}>
+    <p className="flow-demo-context">{scenario.context}</p>
+    <div className="flow-demo-steps" role="group" aria-label="演示步骤">
+      {scenario.steps.map((item, index) => <button key={item.title} type="button" aria-current={index === step ? "step" : undefined}
+        aria-controls={id + "-scene"} onClick={() => chooseStep(index)} data-state={index === step ? "active" : index < step ? "done" : "pending"}>
+        <span className="flow-demo-number">{index < step ? <Check size={14} aria-label="已查看" /> : index + 1}</span>
+        <span>{item.title}</span>
+        <span className="flow-demo-progress" aria-hidden><i key={`${run}:${index === step}`} /></span>
+      </button>)}
+    </div>
+    <div id={id + "-scene"} className="flow-demo-scene" role="group" aria-label={frame.title}>
+      <div className="flow-demo-board">
+        {scenario.lanes.map((label, lane) => {
+          const slots = Math.max(...scenario.steps.map(item => item.rows[lane].cells.length));
+          const Icon = label.includes("KV") || label.includes("缓存") ? Database : Layers;
+          return <div className="flow-demo-lane" key={label}>
+            <div className="flow-demo-lane-heading"><Icon size={16} aria-hidden /><strong>{label}</strong></div>
+            <div className="flow-demo-cells" style={{ "--slots": slots } as CSSProperties}>
+              {Array.from({ length: slots }, (_, index) => renderCell(frame.rows[lane].cells[index], index, lane))}
+            </div>
+            <span className="flow-demo-lane-status">{frame.rows[lane].status}</span>
+            {lane < 2 && <ArrowRight className="flow-demo-connector" size={18} aria-hidden />}
+          </div>;
+        })}
       </div>
-      <div className="map-demo-controls">
-        <span className="map-v2-sr-only" role="status">第 {step + 1} 步，{frames[step].label}</span>
-        <button type="button" onClick={togglePlayback}>
-          {playing ? <Pause size={15} aria-hidden /> : step === last ? <RotateCcw size={15} aria-hidden /> : <Play size={15} aria-hidden />}
-          {playing ? "暂停" : step === last ? "重播" : "播放演示"}
-        </button>
-        <button type="button" disabled={step === last} onClick={() => { setPlaying(false); setStep(step + 1); }}>
-          下一步 <ArrowUpRight size={15} aria-hidden />
-        </button>
+    </div>
+    <div className="flow-demo-controls">
+      <button type="button" className="flow-demo-play" onClick={togglePlayback}>
+        {playing ? <Pause size={15} aria-hidden /> : step === last && playback !== "paused" ? <RotateCcw size={15} aria-hidden /> : <Play size={15} aria-hidden />}
+        {playing ? "暂停" : playback === "paused" ? "继续" : step === last ? "重播" : "播放"}
+      </button>
+      <div className="flow-demo-seek">
+        <button type="button" aria-label="上一步" title="上一步" disabled={step === 0} onClick={() => chooseStep(step - 1)}><ArrowLeft size={15} aria-hidden /></button>
+        <button type="button" aria-label="下一步" title="下一步" disabled={step === last} onClick={() => chooseStep(step + 1)}><ArrowRight size={15} aria-hidden /></button>
       </div>
-    </>
-  );
+      <span className="flow-demo-position" role="status">{step + 1} / {scenario.steps.length}<span className="map-v2-sr-only">，{frame.title}，{playing ? "播放中" : playback === "paused" ? "已暂停" : playback === "complete" ? "播放完毕" : "逐步阅读"}</span></span>
+      <button type="button" className="flow-demo-explain" aria-expanded={expanded} aria-controls={id + "-details"} onClick={() => {
+        setExpanded(current => !current);
+        if (!expanded) setPlayback(current => current === "playing" ? "paused" : current);
+      }}>{expanded ? "收起说明" : "原理说明"}</button>
+    </div>
+    <section className="flow-demo-note" id={id + "-details"} hidden={!expanded} aria-label="原理说明"><p>{scenario.purpose}</p>
+      <ol>{scenario.steps.map(item => <li key={item.title}><strong>{item.title}</strong><p>{item.explanation}</p></li>)}</ol>
+      <p>{scenario.result}</p><p>{scenario.note}</p><p>动画仅为流程示意。<a href={scenario.reference.url} target="_blank" rel="noreferrer">{scenario.reference.label} ↗</a></p>
+      {onSelect && <button type="button" onClick={() => onSelect(scenario.next.stage)}>{scenario.next.action ?? "继续看"}：{scenario.next.label}<ArrowRight size={15} aria-hidden /></button>}
+    </section>
+  </div>;
 }

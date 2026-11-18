@@ -37,7 +37,7 @@ describe("independent KV research library", () => {
     const app = renderToStaticMarkup(
       <MemoryRouter initialEntries={["/topics/kv-cache?view=guide"]}><DocxPreview /></MemoryRouter>,
     );
-    expect(app).toContain("KV Cache 问题导引");
+    expect(app).toContain("正在打开专题");
     expect(app).not.toContain("正在加载日报索引");
     expect(app).not.toContain("日报目录加载失败");
     expect(render("/topics", "archive unavailable")).toContain("/topics/kv-cache?view=guide");

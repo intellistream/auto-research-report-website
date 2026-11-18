@@ -11,9 +11,10 @@
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "preview": "vite preview --host 0.0.0.0",
-    "predev": "node scripts/prepare-catalog.mjs",
-    "pretest": "node scripts/prepare-catalog.mjs",
-    "prebuild": "node scripts/prepare-catalog.mjs"
+    "check:topic-survey": "node -e \"const {spawnSync}=require('node:child_process'); const r=spawnSync(process.platform==='win32'?'python':'python3',['scripts/import-topic-survey.py','--check'],{stdio:'inherit'}); if(r.error) throw r.error; process.exit(r.status ?? 1)\"",
+    "predev": "npm run check:topic-survey && node scripts/prepare-catalog.mjs",
+    "pretest": "npm run check:topic-survey && node scripts/prepare-catalog.mjs",
+    "prebuild": "npm run check:topic-survey && node scripts/prepare-catalog.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "4.4.1",
