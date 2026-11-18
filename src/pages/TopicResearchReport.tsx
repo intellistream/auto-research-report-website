@@ -36,7 +36,7 @@ function EvidenceDetails({ report }: { report: ResearchReport }) {
   if (!report.evidenceDetails?.length) return null;
   return <details id="survey-evidence" tabIndex={-1} className="survey-details survey-evidence-details">
     <summary><span>局部工程证据对照</span><small>{report.evidenceDetails.length} 类测量与验证 · 展开核对版本、工作量和限制</small></summary>
-    <p className="survey-muted">以下按比较对象分别保留研究稿中的原始条件。后端切换、即时执行与图回放、历史计划共享属于不同对照，不能拼接成统一加速比。</p>
+    <p className="survey-muted">每项对照保留原始环境、版本、工作量和失败记录。局部 Kernel、Host 与服务指标对应不同执行层级，不应跨配置拼接或合算加速比。</p>
     {report.evidenceDetails.map((evidence) => <details key={evidence.id} id={`survey-evidence-${evidence.id}`} tabIndex={-1} className="survey-evidence-detail">
       <summary><h3>{evidence.comparison}</h3><span>{evidence.level}</span></summary>
       <table><caption>{evidence.comparison}：条件、结果与证据边界</caption><tbody>{([
