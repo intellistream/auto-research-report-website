@@ -173,4 +173,17 @@ describe("KV paper reading", () => {
     expect(html).toContain("2.35–3.47 倍");
     expect(html).toContain("适用条件与局限");
   });
+
+  it("separates a paper’s classification from navigation to filtered results", () => {
+    const html = render("/topics/kv-cache?view=papers&topic=lifecycle&q=StreamingLLM");
+    const topics = html.match(/<dl class="kv-paper-topics">.*?<\/dl>/)?.[0];
+    expect(topics).toContain("<dt>主主题</dt><dd>容量与生命周期管理</dd>");
+    expect(topics).toContain("<dt>关联主题</dt><dd>缓存表示、布局与压缩</dd>");
+    expect(topics).not.toContain("<a ");
+    expect(html).toContain("查看同主题论文");
+    expect(html).toContain("view=papers&amp;topic=representation&amp;part=kv-papers-filters");
+    expect(html).toContain('id="kv-papers-filters"');
+    expect(html).toContain("1 篇论文");
+    expect(html).toContain("关键词 StreamingLLM");
+  });
 });

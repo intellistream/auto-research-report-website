@@ -1,11 +1,34 @@
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight, SlidersHorizontal } from "lucide-react";
+import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   filterPapers, kvResearch, paperCollectionFilter, paperViewQuery, researchSourceDate, researchTopicFilter,
   type PaperCollection, type PaperEntry,
 } from "./kv-research";
-import { safeTopicSource } from "./topic-report";
+import { revealTopicPart, safeTopicSource } from "./topic-report";
 import "./kv-papers.css";
+
+const paperFiltersPart = "kv-papers-filters";
+
+const collectionLabels: Record<PaperCollection, string> = {
+  "": "全部论文",
+  recommended: "推荐先读",
+  "notes-supplement": "笔记增补",
+};
+
+function PaperFilterLink({ search, children }: { search: URLSearchParams; children: ReactNode }) {
+  const [current] = useSearchParams();
+  const target = paperViewQuery(search);
+  target.set("part", paperFiltersPart);
+  return <Link to={{ search: target.toString() }} onClick={(event) => {
+    // The topic view handles new anchors. The same anchor can be selected again after scrolling.
+    if (current.get("part") === paperFiltersPart && event.button === 0 &&
+      !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+      requestAnimationFrame(() =>
+        revealTopicPart(document, paperFiltersPart, window.matchMedia("(prefers-reduced-motion: reduce)").matches));
+    }
+  }}>{children}</Link>;
+}
 
 function PaperRecommendations({ papers }: { papers: PaperEntry[] }) {
   return <section className="kv-paper-recommendations" aria-labelledby="kv-paper-recommendations-title">
@@ -14,9 +37,11 @@ function PaperRecommendations({ papers }: { papers: PaperEntry[] }) {
         <h3 id="kv-paper-recommendations-title">推荐先读</h3>
         <p>先理解分页和前缀复用，再按关心的问题选读。</p>
       </div>
-      <Link className="kv-action" to={{ search: "view=papers&collection=recommended" }}>
-        只看这 {papers.length} 篇 <ArrowRight size={14} aria-hidden="true" />
-      </Link>
+      <span className="kv-paper-recommendation-action">
+        <PaperFilterLink search={new URLSearchParams({ view: "papers", collection: "recommended" })}>
+          只看这 {papers.length} 篇 <ArrowRight size={14} aria-hidden="true" />
+        </PaperFilterLink>
+      </span>
     </div>
     <ul className="kv-paper-recommendation-list">
       {papers.map(({ id, paper }) => <li key={id}>
@@ -33,6 +58,9 @@ function PaperCard({ entry, collection }: { entry: PaperEntry; collection: Paper
   const source = safeTopicSource(entry.url);
   const date = researchSourceDate(entry);
   const isSurvey = paper.format === "survey";
+  const topics = kvResearch.taxonomy.filter(({ id }) => entry.topics.includes(id));
+  const primary = topics.find(({ id }) => id === entry.primaryTopic);
+  const related = topics.filter(({ id }) => id !== entry.primaryTopic);
   return <li className="kv-reading-card" id={id} data-paper-id={entry.id} tabIndex={-1}>
     <div className="kv-reading-meta">
       <span>{paper.venue}</span><span>{entry.sourceVersion}</span>
@@ -42,15 +70,20 @@ function PaperCard({ entry, collection }: { entry: PaperEntry; collection: Paper
     <h3>{entry.title}</h3>
     <p className="kv-reading-original" lang="en">{entry.originalTitle}</p>
     {collection === "recommended" && <p className="kv-paper-reading-tip">{paper.recommendedReason}</p>}
-    <div className="kv-material-topics" aria-label="论文关联研究问题">
-      {entry.topics.map((topicId) => {
-        const search = new URLSearchParams({ view: "papers", topic: topicId });
-        if (collection) search.set("collection", collection);
-        return <Link key={topicId} className={topicId === entry.primaryTopic ? "primary" : ""} to={{ search: search.toString() }}>
-          {kvResearch.taxonomy.find((topic) => topic.id === topicId)?.label}
-        </Link>;
-      })}
-    </div>
+    {topics.length > 0 && <dl className="kv-paper-topics">
+      {primary && <div><dt>主主题</dt><dd>{primary.label}</dd></div>}
+      {related.length > 0 && <div><dt>关联主题</dt><dd>{related.map(({ label }) => label).join("、")}</dd></div>}
+    </dl>}
+    {topics.length > 0 && <details className="kv-paper-related">
+      <summary>查看同主题论文</summary>
+      <ul aria-label="按研究问题筛选">
+        {[...(primary ? [primary] : []), ...related].map(({ id: topicId, label }) => {
+          const search = new URLSearchParams({ view: "papers", topic: topicId });
+          if (collection) search.set("collection", collection);
+          return <li key={topicId}><PaperFilterLink search={search}>{label}</PaperFilterLink></li>;
+        })}
+      </ul>
+    </details>}
     {paper.takeaway && <p className="kv-reading-takeaway">
       <strong>核心要点</strong>
       {paper.takeaway}
@@ -86,13 +119,14 @@ export default function KvPapers() {
   const collection = paperCollectionFilter(query);
   const topic = researchTopicFilter(query);
   const keyword = query.get("q") ?? "";
+  const topicLabel = kvResearch.taxonomy.find(({ id }) => id === topic)?.label;
   const all = filterPapers(kvResearch.entries, new URLSearchParams());
   const recommended = all.filter(({ paper }) => paper.recommendedReason);
   const papers = filterPapers(kvResearch.entries, query);
 
   function filter(key: string, value: string) {
     const next = paperViewQuery(query);
-    next.delete("part");
+    if (next.get("part") !== paperFiltersPart) next.delete("part");
     if (value) next.set(key, value);
     else next.delete(key);
     setQuery(next, { replace: true });
@@ -106,26 +140,41 @@ export default function KvPapers() {
     </header>
     {!collection && !topic && !keyword.trim() && recommended.length > 0 &&
       <PaperRecommendations papers={recommended} />}
-    <div className="topic-filters kv-paper-filters" role="search" aria-label="检索 KV 论文">
+    <div id={paperFiltersPart} className="topic-filters kv-paper-filters" role="search" aria-label="检索 KV 论文" tabIndex={-1}>
       <label>研究问题<select aria-label="论文研究问题" value={topic} onChange={(event) => filter("topic", event.target.value)}>
         <option value="">全部问题</option>
         {kvResearch.taxonomy.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
       </select></label>
       <label>收录范围<select aria-label="论文收录范围" value={collection} onChange={(event) => filter("collection", event.target.value)}>
-        <option value="">全部论文</option>
-        <option value="recommended">推荐先读</option>
-        <option value="notes-supplement">笔记增补</option>
+        <option value="">{collectionLabels[""]}</option>
+        <option value="recommended">{collectionLabels.recommended}</option>
+        <option value="notes-supplement">{collectionLabels["notes-supplement"]}</option>
       </select></label>
       <label className="kv-paper-search">
         <span>检索论文</span>
         <input type="search" value={keyword} placeholder="论文名或关键词" onChange={(event) => filter("q", event.target.value)} />
       </label>
-      <button type="button" onClick={() => setQuery({ view: "papers" }, { replace: true })}>清除筛选</button>
-      <span role="status" aria-live="polite">{papers.length} 篇论文</span>
+      {(collection || topic || keyword) && <PaperFilterLink search={new URLSearchParams()}>清除筛选</PaperFilterLink>}
+    </div>
+    <div className="kv-paper-result-bar">
+      <div className="kv-paper-result-summary" role="status" aria-live="polite">
+        <div className="kv-paper-result-heading">
+          <span>当前主题</span>
+          <strong className="kv-paper-result-topic">{topicLabel ?? (topic ? "未知研究问题" : "全部研究问题")}</strong>
+        </div>
+        <div className="kv-paper-result-meta">
+          <span>
+            {papers.length} 篇论文
+            {collection && <> · {collectionLabels[collection]}</>}
+          </span>
+          {keyword.trim() && <span className="kv-paper-result-keyword" title={keyword.trim()}>关键词 {keyword.trim()}</span>}
+        </div>
+      </div>
+      <PaperFilterLink search={query}><SlidersHorizontal size={14} aria-hidden="true" /> 调整筛选</PaperFilterLink>
     </div>
     {papers.length ? <ul className="kv-reading-list">
       {papers.map((entry) => <PaperCard key={entry.id} entry={entry} collection={collection} />)}
-    </ul> : <p className="kv-paper-empty" role="status">当前筛选下没有论文，可以清除筛选或更换关键词。</p>}
+    </ul> : <p className="kv-paper-empty">当前筛选下没有论文，可以清除筛选或更换关键词。</p>}
     <p className="kv-muted">解读依据公开原文整理。展开“原文核对范围”可查看对应章节和版本日期。</p>
   </article>;
 }
