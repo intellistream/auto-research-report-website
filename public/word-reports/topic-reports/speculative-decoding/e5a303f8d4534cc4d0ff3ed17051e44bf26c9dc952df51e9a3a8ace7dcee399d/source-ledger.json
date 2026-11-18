@@ -39,8 +39,7 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "execution-contract",
-        "engineering-evolution"
+        "execution-contract"
       ]
     },
     {
@@ -50,9 +49,7 @@
       "url": "https://docs.vllm.ai/projects/ascend/en/main/user_guide/feature_guide/speculative_decoding.html",
       "workId": null,
       "sourceIdentity": null,
-      "usedInSections": [
-        "engineering-evolution"
-      ]
+      "usedInSections": []
     },
     {
       "id": "D3",
@@ -62,8 +59,7 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "draft-techniques",
-        "engineering-evolution"
+        "draft-techniques"
       ]
     },
     {
@@ -74,6 +70,7 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
+        "correctness-and-cost",
         "execution-contract",
         "verification-budget",
         "research-perspective"
@@ -92,19 +89,35 @@
       "id": "D6",
       "kind": "documentation",
       "title": "vLLM SpecDec Runtime Source",
-      "url": "https://github.com/vllm-project/vllm/tree/main/vllm/v1/spec_decode",
+      "url": "https://github.com/vllm-project/vllm/tree/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/vllm/v1/worker/gpu/spec_decode",
       "workId": null,
-      "sourceIdentity": null,
-      "usedInSections": []
+      "sourceIdentity": {
+        "pinnedCommit": "0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665",
+        "checkedAt": "2026-11-18"
+      },
+      "usedInSections": [
+        "worked-round",
+        "correctness-and-cost",
+        "fixed-source-contract",
+        "capability-boundaries"
+      ]
     },
     {
       "id": "D7",
       "kind": "documentation",
       "title": "vLLM Ascend MRV2 SpecDec Source",
-      "url": "https://github.com/vllm-project/vllm-ascend/tree/main/vllm_ascend/worker/v2/spec_decode",
+      "url": "https://github.com/vllm-project/vllm-ascend/tree/5cb98caaadeff42b5b62b996e34bb2aaa29d20fd/vllm_ascend/worker/v2/spec_decode",
       "workId": null,
-      "sourceIdentity": null,
-      "usedInSections": []
+      "sourceIdentity": {
+        "pinnedCommit": "5cb98caaadeff42b5b62b996e34bb2aaa29d20fd",
+        "checkedAt": "2026-11-18"
+      },
+      "usedInSections": [
+        "worked-round",
+        "correctness-and-cost",
+        "fixed-source-contract",
+        "capability-boundaries"
+      ]
     },
     {
       "id": "P1",
@@ -114,6 +127,7 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
+        "worked-round",
         "execution-contract"
       ]
     },
@@ -125,6 +139,8 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
+        "worked-round",
+        "correctness-and-cost",
         "execution-contract"
       ]
     },
@@ -144,7 +160,9 @@
       "url": "https://doi.org/10.1145/3620666.3651335",
       "workId": null,
       "sourceIdentity": null,
-      "usedInSections": []
+      "usedInSections": [
+        "correctness-and-cost"
+      ]
     },
     {
       "id": "P5",
@@ -154,7 +172,8 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "draft-techniques"
+        "draft-techniques",
+        "engineering-evolution"
       ]
     },
     {
@@ -165,7 +184,8 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "draft-techniques"
+        "draft-techniques",
+        "engineering-evolution"
       ]
     },
     {
@@ -176,7 +196,8 @@
       "workId": null,
       "sourceIdentity": null,
       "usedInSections": [
-        "draft-techniques"
+        "draft-techniques",
+        "engineering-evolution"
       ]
     },
     {
@@ -189,6 +210,7 @@
       "usedInSections": [
         "draft-techniques",
         "verification-budget",
+        "engineering-evolution",
         "research-perspective"
       ]
     },
@@ -222,9 +244,11 @@
       "workId": "github:vllm-project/vllm#63096",
       "sourceIdentity": "11090e9315ca1c74d962feb90f3d4fd0e00e9cd8",
       "usedInSections": [
+        "correctness-and-cost",
         "draft-techniques",
         "runtime-cost",
-        "engineering-evolution"
+        "engineering-evolution",
+        "capability-boundaries"
       ]
     },
     {
@@ -235,8 +259,11 @@
       "workId": "github:vllm-project/vllm#63421",
       "sourceIdentity": "d28c23065300ee5b45dc9504f28a12be222d36bf",
       "usedInSections": [
+        "correctness-and-cost",
+        "fixed-source-contract",
         "verification-budget",
-        "engineering-evolution"
+        "engineering-evolution",
+        "capability-boundaries"
       ]
     },
     {
@@ -247,7 +274,9 @@
       "workId": "github:vllm-project/vllm#65175",
       "sourceIdentity": "9132bccd77919c7ee3ac9f3bd4d709767797464e",
       "usedInSections": [
-        "verification-budget"
+        "fixed-source-contract",
+        "verification-budget",
+        "engineering-evolution"
       ]
     },
     {
@@ -270,6 +299,7 @@
       "sourceIdentity": "9cc08bfe366e8ad3ac9fe7d53a64dd3847041a38",
       "usedInSections": [
         "state-correctness",
+        "engineering-evolution",
         "research-perspective"
       ]
     },
@@ -292,8 +322,10 @@
       "workId": "github:vllm-project/vllm#66595",
       "sourceIdentity": "cdced7fb9741c8eca9661c56883ea9828b90fcd3",
       "usedInSections": [
+        "worked-round",
         "state-correctness",
-        "research-perspective"
+        "research-perspective",
+        "capability-boundaries"
       ]
     },
     {
@@ -304,8 +336,9 @@
       "workId": "github:vllm-project/vllm-ascend#19512",
       "sourceIdentity": "2d4a2e00348ad29650da959f6603a20e90934479",
       "usedInSections": [
+        "fixed-source-contract",
         "runtime-cost",
-        "engineering-evolution"
+        "capability-boundaries"
       ]
     },
     {
@@ -317,7 +350,7 @@
       "sourceIdentity": "fe58a4cf1c89190bffe5f43b8d7220bfb875d31a",
       "usedInSections": [
         "runtime-cost",
-        "engineering-evolution"
+        "capability-boundaries"
       ]
     },
     {
@@ -339,7 +372,9 @@
       "workId": "github:vllm-project/vllm-ascend#19954",
       "sourceIdentity": "d40d2a64c656f7d86a996b23793ceaeb0f9ab3b0",
       "usedInSections": [
-        "state-correctness"
+        "state-correctness",
+        "engineering-evolution",
+        "capability-boundaries"
       ]
     },
     {
@@ -350,8 +385,10 @@
       "workId": "github:vllm-project/vllm-ascend#21430",
       "sourceIdentity": "a0c28fd17a3bda74d3d2d5e431be28245b068ddf",
       "usedInSections": [
+        "fixed-source-contract",
         "state-correctness",
-        "engineering-evolution"
+        "engineering-evolution",
+        "capability-boundaries"
       ]
     },
     {
@@ -405,7 +442,8 @@
       "sourceIdentity": "6f1891fb42992181a413bc6c4276889f4d3008f8",
       "usedInSections": [
         "runtime-cost",
-        "research-perspective"
+        "research-perspective",
+        "capability-boundaries"
       ]
     },
     {
@@ -714,8 +752,10 @@
       "headCommit": "a0c28fd17a3bda74d3d2d5e431be28245b068ddf",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
+        "fixed-source-contract",
         "state-correctness",
-        "engineering-evolution"
+        "engineering-evolution",
+        "capability-boundaries"
       ]
     },
     {
@@ -785,9 +825,11 @@
       "headCommit": "11090e9315ca1c74d962feb90f3d4fd0e00e9cd8",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
+        "correctness-and-cost",
         "draft-techniques",
         "runtime-cost",
-        "engineering-evolution"
+        "engineering-evolution",
+        "capability-boundaries"
       ]
     },
     {
@@ -809,8 +851,10 @@
       "headCommit": "cdced7fb9741c8eca9661c56883ea9828b90fcd3",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
+        "worked-round",
         "state-correctness",
-        "research-perspective"
+        "research-perspective",
+        "capability-boundaries"
       ]
     },
     {
@@ -1003,7 +1047,9 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [
+        "runtime-cost"
+      ]
     },
     {
       "workId": "github:vllm-project/vllm#65488",
@@ -1035,7 +1081,10 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [
+        "state-correctness",
+        "runtime-cost"
+      ]
     },
     {
       "workId": "github:vllm-project/vllm-ascend#20820",
@@ -1088,8 +1137,9 @@
       "headCommit": "2d4a2e00348ad29650da959f6603a20e90934479",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
+        "fixed-source-contract",
         "runtime-cost",
-        "engineering-evolution"
+        "capability-boundaries"
       ]
     },
     {
@@ -1143,7 +1193,9 @@
       "headCommit": "9132bccd77919c7ee3ac9f3bd4d709767797464e",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
-        "verification-budget"
+        "fixed-source-contract",
+        "verification-budget",
+        "engineering-evolution"
       ]
     },
     {
@@ -1294,7 +1346,8 @@
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
         "runtime-cost",
-        "research-perspective"
+        "research-perspective",
+        "capability-boundaries"
       ]
     },
     {
@@ -1391,7 +1444,9 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [
+        "state-correctness"
+      ]
     },
     {
       "workId": "github:vllm-project/vllm-ascend#20344",
@@ -1461,7 +1516,7 @@
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
         "runtime-cost",
-        "engineering-evolution"
+        "capability-boundaries"
       ]
     },
     {
@@ -1510,7 +1565,9 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [
+        "runtime-cost"
+      ]
     },
     {
       "workId": "github:vllm-project/vllm#63819",
@@ -1558,7 +1615,10 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [
+        "runtime-cost",
+        "research-perspective"
+      ]
     },
     {
       "workId": "github:vllm-project/vllm#63431",
@@ -1595,7 +1655,9 @@
       "headCommit": "d40d2a64c656f7d86a996b23793ceaeb0f9ab3b0",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
-        "state-correctness"
+        "state-correctness",
+        "engineering-evolution",
+        "capability-boundaries"
       ]
     },
     {
@@ -1713,8 +1775,11 @@
       "headCommit": "d28c23065300ee5b45dc9504f28a12be222d36bf",
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
+        "correctness-and-cost",
+        "fixed-source-contract",
         "verification-budget",
-        "engineering-evolution"
+        "engineering-evolution",
+        "capability-boundaries"
       ]
     },
     {
@@ -1737,6 +1802,7 @@
       "reviewLevel": "original-pr-description-plus-changed-file-paths",
       "usedInSections": [
         "state-correctness",
+        "engineering-evolution",
         "research-perspective"
       ]
     },
@@ -2090,7 +2156,9 @@
       "prStatus": null,
       "headCommit": null,
       "reviewLevel": "daily-report-index-only",
-      "usedInSections": []
+      "usedInSections": [
+        "runtime-cost"
+      ]
     },
     {
       "workId": "github:vllm-project/vllm#52921",
