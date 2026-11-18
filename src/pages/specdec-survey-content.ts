@@ -26,7 +26,7 @@ export const specDecSurvey = {
         {
           title: "1.1 为什么解码仍存在可利用的并行空间",
           paragraphs: [
-            "自回归 Transformer 按 p(xₜ | x₍₍ₜ₎₎) 逐位置生成。当前缀很短、Batch 较小时，单 token Forward 往往需要重新读取相当规模的模型权重，设备计算单元未必被充分利用。随着请求并发增加，矩阵规模、Attention KV 访存和 MoE 激活情况又会变化；因此相同模型在不同负载下的 Decode 瓶颈不固定。",
+            "自回归 Transformer 按 p(xₜ | x₁,…,xₜ₋₁) 逐位置生成。当前缀很短、Batch 较小时，单 token Forward 往往需要重新读取相当规模的模型权重，设备计算单元未必被充分利用。随着请求并发增加，矩阵规模、Attention KV 访存和 MoE 激活情况又会变化；因此相同模型在不同负载下的 Decode 瓶颈不固定。",
             "推测解码并不改变目标模型的因果分解。它将未来若干位置的候选先行生成，使 Target 在一次计算中得到多个位置的条件分布，再按验证结果提交合法前缀。该机制把原来多次串行 Target Forward 替换为便宜的 Draft 与较宽的 Target Verify，收益来自成本结构的改变，而不是取消目标概率依赖。",
             "Blockwise Parallel Decoding 与经典 Speculative Sampling 分别奠定了并行提案、前缀确认以及分布保持的基础。今天需要重新分析的，是较宽 Verify 在动态批次、混合模型和复杂 Runtime 下是否仍然划算。"
           ],
