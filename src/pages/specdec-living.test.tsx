@@ -83,6 +83,13 @@ describe("SpecDec novice-to-research reading contract", () => {
   it("uses ACLGraph's exact two-level disclosure contract in brief and full modes", () => {
     for (const topicId of ["aclgraph", "speculative-decoding"]) {
       const brief = render(`/topics/${topicId}?view=report`);
+      if (topicId === "aclgraph") {
+        expect(brief).toContain("研究范围与方法");
+        expect(brief).toContain("如何使用这些来源");
+      } else {
+        expect(brief).toContain("范围与研究方法");
+        expect(brief).toContain("证据层级与适用边界");
+      }
       const full = render(`/topics/${topicId}?view=report&read=full`);
       const outer = (html: string) => html.match(/<details[^>]*id="survey-analysis"[^>]*>/)?.[0];
       const chapters = (html: string) => [...html.matchAll(/<details[^>]*class="survey-body-section"[^>]*>/g)]
