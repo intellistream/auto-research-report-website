@@ -28,7 +28,7 @@ async function visit(name,hash,viewport,fn) {
 try {
   await visit("spec-report-brief","/topics/speculative-decoding?view=report",{width:1440,height:900},async page=>{
     const toc=await page.locator(".survey-toc a").allTextContents();
-    const first=toc.slice(0,4).map(x=>x.replace(/^(\\d{2})(?=\\S)/,"$1 ").replace(/\\s+/g," ").trim());
+    const first=toc.slice(0,4).map(x=>x.slice(0,2)+" "+x.slice(2).trim());
     assert.deepEqual(first,[
       "01 摘要与研究问题","02 范围与研究方法",
       "03 技术路线与权衡","04 局部工程证据对照",
