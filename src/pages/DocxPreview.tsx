@@ -338,15 +338,17 @@ function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
 }
 
 export default function DocxPreview() {
-  const result = useJson<Catalog>("catalog.json");
+  const location = useLocation();
+  const topicRoute = /^\/topics(?:\/|$)/.test(location.pathname);
+  const kvTopicRoute = /^\/topics\/kv-cache\/?$/.test(location.pathname);
+  const result = useJson<Catalog>(topicRoute ? undefined : "catalog.json");
   const catalog = result?.data;
   const days = useMemo(
     () => catalog?.schemaVersion === 1 ? Object.keys(catalog.days).sort().reverse() : [],
     [catalog],
   );
-  const location = useLocation();
   const reading = location.pathname.startsWith("/reports/");
-  const topics = useJson<TopicIndex>(location.pathname.startsWith("/topics") ? "topics.json" : undefined);
+  const topics = useJson<TopicIndex>(topicRoute && !kvTopicRoute ? "topics.json" : undefined);
   return (
     <div className="docx-preview">
       <nav className="docx-nav" aria-label="主导航">
@@ -363,7 +365,9 @@ export default function DocxPreview() {
       </nav>
       <div className="docx-workspace">
         <main className="docx-main">
-        {result?.error ? <p role="alert">{localReports ? "请先导入本地日报。" : "日报目录加载失败。"}{result.error}</p>
+        {topicRoute ? (
+          <Routes><Route path="/topics/:topicId?" element={<TopicPages index={topics?.data} error={topics?.error} />} /></Routes>
+        ) : result?.error ? <p role="alert">{localReports ? "请先导入本地日报。" : "日报目录加载失败。"}{result.error}</p>
           : !catalog ? <p role="status">正在加载日报索引…</p>
           : !days.length ? <p role="alert">索引为空或版本不支持。</p>
           : (
@@ -371,7 +375,6 @@ export default function DocxPreview() {
               <Route path="/" element={<FlowOverview catalog={catalog} days={days} />} />
               <Route path="/reports" element={<Archive catalog={catalog} days={days} />} />
               <Route path="/reports/:day" element={<Reader catalog={catalog} days={days} />} />
-              <Route path="/topics/:topicId?" element={<TopicPages index={topics?.data} error={topics?.error} />} />
               <Route path="*" element={<p>页面不存在。<Link to="/reports">查看历史日报</Link></p>} />
             </Routes>
           )}
