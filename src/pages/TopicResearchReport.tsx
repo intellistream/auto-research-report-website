@@ -62,7 +62,7 @@ function EvidenceDetails({ report, topicId }: { report: ResearchReport; topicId:
   const evidence = report.evidenceDetails ?? [];
   if (!evidence.length) return null;
   const spec = topicId === "speculative-decoding";
-  const groupedIds = new Set(specDecEvidenceGroups.flatMap(group => [...group.ids]));
+  const groupedIds = new Set<string>(specDecEvidenceGroups.flatMap(group => [...group.ids]));
   const other = evidence.filter(item => !groupedIds.has(item.id));
   const groups: { title: string; rows: EvidenceDetail[] }[] = [
     ...specDecEvidenceGroups.map(group => ({
