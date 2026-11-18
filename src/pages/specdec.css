@@ -72,3 +72,11 @@
 .specdec-contract-table th{background:#eaf3ec}
 .specdec-contract-table caption{text-align:left;font-size:.82rem;color:#426b50;margin:.6rem 0}
 @media(max-width:680px){.specdec-example-flow{grid-template-columns:repeat(2,minmax(0,1fr))}.specdec-contract-table{font-size:.75rem}}
+
+/* R2 academic chapter hierarchy; limited to the SpecDec topic. */
+.specdec-survey .survey-central-question, .acl-topic .survey-central-question{margin:.8rem 0 1.25rem;line-height:1.85}
+.acl-topic .survey-analytical-subsection{margin:1.35rem 0;padding:0 0 .2rem;border-bottom:1px solid #dce6de}
+.acl-topic .survey-analytical-subsection h3{font-size:1.05rem;font-weight:650;line-height:1.5;margin:1rem 0 .8rem}
+.acl-topic .survey-analytical-subsection p{line-height:1.95}
+.acl-topic .survey-chapter-conclusion{margin:1.5rem 0 .75rem;padding:.85rem 0;border-top:1px solid #cbd8ce;font-weight:400;line-height:1.85}
+.acl-topic .survey-taxonomy caption{font-size:.8rem;text-align:left;margin:.45rem 0;color:#52725c}
