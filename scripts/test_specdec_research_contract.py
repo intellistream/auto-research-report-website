@@ -113,7 +113,7 @@ class SpecDecResearchContract(unittest.TestCase):
         self.assertIn("K=3", markdown)
         self.assertIn("## 7. 跨层证据综合", markdown)
         self.assertIn("### 3.4 块并行", markdown)
-        self.assertIn("附录 D：Research Gaps", markdown)
+        self.assertIn("## 8. Research Gaps、验证路线与研究局限", markdown)
         self.assertIn("chapter-8", html)
         self.assertLess(html.index('id="chapter-1"'), html.index('id="appendix-a"'))
         self.assertIn("source-ledger.json", html)
