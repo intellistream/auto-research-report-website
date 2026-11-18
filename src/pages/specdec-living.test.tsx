@@ -55,6 +55,23 @@ describe("SpecDec novice-to-research reading contract", () => {
     expect(report).toContain("part=survey-evidence-E2");
   });
 
+  it("uses ACLGraph's exact two-level disclosure contract in brief and full modes", () => {
+    for (const topicId of ["aclgraph", "speculative-decoding"]) {
+      const brief = render(`/topics/${topicId}?view=report`);
+      const full = render(`/topics/${topicId}?view=report&read=full`);
+      const outer = (html: string) => html.match(/<details[^>]*id="survey-analysis"[^>]*>/)?.[0];
+      const chapters = (html: string) => [...html.matchAll(/<details[^>]*class="survey-body-section"[^>]*>/g)]
+        .map(match => match[0]);
+      expect(outer(brief), topicId).toBeDefined();
+      expect(outer(brief), topicId).not.toContain('open=""');
+      expect(chapters(brief), topicId).toHaveLength(8);
+      expect(chapters(brief).every(tag => !tag.includes('open=""')), topicId).toBe(true);
+      expect(outer(full), topicId).toContain('open=""');
+      expect(chapters(full), topicId).toHaveLength(8);
+      expect(chapters(full).every(tag => tag.includes('open=""')), topicId).toBe(true);
+    }
+  });
+
   it("surfaces PRs added after the frozen candidate baseline without promoting them", () => {
     const incoming = { ...spec.entries[0], workId: "github:vllm-project/vllm#999999",
       title: "New PR: dynamic speculative verification", url: "https://github.com/vllm-project/vllm/pull/999999",
