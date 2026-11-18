@@ -11,8 +11,10 @@ export type PaperReading = {
   collection?: "notes-supplement";
   recommendedReason?: string;
   format?: "survey";
+  takeaway?: string;
   problem: string;
   method: string;
+  result?: string;
   boundary: string;
   readingScope: string;
   sources: { label: string; url: string }[];
@@ -148,6 +150,6 @@ export function filterPapers(entries: ResearchEntry[], query: URLSearchParams): 
       return !collection || paper.collection === collection;
     })
     .filter((entry) => !term || [entry.title, entry.originalTitle, entry.summary, entry.paper.shortName,
-      entry.paper.problem, entry.paper.method, entry.paper.boundary].join(" ").normalize("NFKC").toLocaleLowerCase().includes(term))
+      entry.paper.takeaway, entry.paper.problem, entry.paper.method, entry.paper.result, entry.paper.boundary].join(" ").normalize("NFKC").toLocaleLowerCase().includes(term))
     .sort((left, right) => left.paper.order - right.paper.order || left.id.localeCompare(right.id));
 }

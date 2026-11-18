@@ -160,4 +160,17 @@ describe("KV paper reading", () => {
     expect(html).toContain('id="kv-paper-k-lpm"');
     expect(html).toContain('class="kv-paper-reading-tip"');
   });
+
+  it("presents the mechanism and evidence of a paper without following the original source", () => {
+    const html = render("/topics/kv-cache?view=papers&collection=recommended&q=2.35");
+    expect(html.match(/class="kv-reading-card"/g)).toHaveLength(1);
+    expect(html).toContain('id="kv-paper-kivi"');
+    expect(html).toContain("核心要点");
+    expect(html).toContain("全精度残留区");
+    expect(html).toContain("</p><p>新产生的 KV");
+    expect(html).toContain("论文结果");
+    expect(html).toContain("A100 80GB");
+    expect(html).toContain("2.35–3.47 倍");
+    expect(html).toContain("适用条件与局限");
+  });
 });

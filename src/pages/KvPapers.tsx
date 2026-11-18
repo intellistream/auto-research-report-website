@@ -51,14 +51,24 @@ function PaperCard({ entry, collection }: { entry: PaperEntry; collection: Paper
         </Link>;
       })}
     </div>
+    {paper.takeaway && <p className="kv-reading-takeaway">
+      <strong>核心要点</strong>
+      {paper.takeaway}
+    </p>}
     <dl className="kv-reading-fields">
       <div><dt>{isSurvey ? "关注什么" : "研究问题"}</dt><dd>{paper.problem}</dd></div>
-      <div><dt>{isSurvey ? "综述内容" : "核心方法"}</dt><dd>{paper.method}</dd></div>
+      <div>
+        <dt>{isSurvey ? "综述内容" : "核心方法"}</dt>
+        <dd className="kv-reading-method">
+          {paper.method.split("\n\n").map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        </dd>
+      </div>
+      {paper.result && <div><dt>论文结果</dt><dd>{paper.result}</dd></div>}
       <div><dt>{isSurvey ? "阅读提示" : "适用条件与局限"}</dt><dd>{paper.boundary}</dd></div>
     </dl>
     <div className="kv-reading-links">
       {source && <a href={source} target="_blank" rel="noreferrer">原始论文 <ArrowUpRight size={13} aria-hidden="true" /></a>}
-      <Link to={{ search: `view=papers&part=${id}` }} aria-label={`定位 ${paper.shortName} 简介`}>本篇链接</Link>
+      <Link to={{ search: `view=papers&part=${id}` }} aria-label={`定位 ${paper.shortName} 解读`}>本篇链接</Link>
     </div>
     <details className="kv-reading-basis"><summary>原文核对范围</summary>
       <p>{paper.readingScope}</p>
@@ -92,7 +102,7 @@ export default function KvPapers() {
     <header className="kv-study-intro">
       <p className="kv-direction">论文阅读 · {all.length} 篇</p>
       <h2>从论文理解 KV Cache</h2>
-      <p>按研究问题查找论文，了解每篇的方法与适用条件，再跳到原文核对细节。</p>
+      <p>每篇解读说明问题从哪里来、方法怎样运行，以及结论在什么条件下成立。</p>
     </header>
     {!collection && !topic && !keyword.trim() && recommended.length > 0 &&
       <PaperRecommendations papers={recommended} />}
@@ -116,6 +126,6 @@ export default function KvPapers() {
     {papers.length ? <ul className="kv-reading-list">
       {papers.map((entry) => <PaperCard key={entry.id} entry={entry} collection={collection} />)}
     </ul> : <p className="kv-paper-empty" role="status">当前筛选下没有论文，可以清除筛选或更换关键词。</p>}
-    <p className="kv-muted">简介依据公开原文整理。展开“原文核对范围”可查看所读章节和版本日期。</p>
+    <p className="kv-muted">解读依据公开原文整理。展开“原文核对范围”可查看对应章节和版本日期。</p>
   </article>;
 }
