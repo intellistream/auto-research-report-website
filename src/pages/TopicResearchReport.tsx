@@ -267,7 +267,7 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
       {report.sections.map((section, index) => <details key={`${mode}-${section.id}`} open={mode === "full"} id={`survey-section-${index}`} tabIndex={-1} className="survey-body-section">
         <summary><span className="survey-kicker">ANALYSIS {String(index + 1).padStart(2, "0")}</span><h2>{section.title}</h2>{mode === "brief" && <span className="survey-section-lead">{sectionLead(section.paragraphs[0] ?? "")}<span>展开分析</span></span>}</summary>
         {section.paragraphs.map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}
-        {section.subsections?.map((part, partIndex) => <section key={part.title} className="survey-analytical-subsection">
+        {section.subsections?.map((part) => <section key={part.title} className="survey-analytical-subsection">
           <h3>{part.title}</h3>
           {part.paragraphs.map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}
           <div className="survey-section-sources"><span>小节依据</span><Citations ids={part.sourceIds} references={report.references} /></div>
