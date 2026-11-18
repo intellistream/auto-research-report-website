@@ -33,7 +33,7 @@ jobs:
       - name: Install isolated browser smoke dependencies
         run: |
           npm install --no-save --package-lock=false playwright@1.57.0
-          npx playwright install --with-deps chromium
+          command -v google-chrome || command -v google-chrome-stable || { echo "::error::Chrome not preinstalled"; exit 1; }
       - name: Exercise all topic views in Chromium
         run: |
           (npm run preview -- --host 127.0.0.1 --port 5173 > /tmp/specdec-preview.log 2>&1 & echo $! > /tmp/specdec-preview.pid)

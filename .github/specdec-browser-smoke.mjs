@@ -6,7 +6,7 @@ const root = "http://127.0.0.1:5173/";
 const records = [];
 const directory = "/tmp/specdec-browser";
 mkdirSync(directory, { recursive: true });
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ channel: "chrome", headless: true, args: ["--no-sandbox"] });
 
 async function inspect(label, hash, width, height, verify) {
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1 });
