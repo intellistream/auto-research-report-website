@@ -69,7 +69,7 @@
 }
 .acl-survey-flow {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--flow-columns, 3), minmax(0, 1fr));
   gap: 1.15rem;
   padding: 0;
   margin: .42rem 0;
@@ -123,4 +123,21 @@
   .acl-survey-map-grid { grid-template-columns: minmax(0, 1fr); }
   .acl-survey-route-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .acl-survey-route-list li:last-child { grid-column: 1 / -1; }
+}
+.acl-survey-thesis { max-width: 70ch; margin: .6rem 0; font-size: .98rem; line-height: 1.65; }
+.acl-survey-version { color: #52695d; font-size: .78rem; margin: 0 0 .9rem; }
+.acl-survey-assessment { margin-top: .6rem; }
+.acl-survey-assessment p { margin: .25rem 0 .7rem; line-height: 1.65; }
+.acl-survey-boundary { margin-top: .4rem; border-top: 1px solid #d4e3d9; padding-top: .65rem; }
+.acl-survey-boundary summary { color: #285d44; font-weight: 650; cursor: pointer; }
+.acl-survey-boundary p { font-size: .87rem; line-height: 1.65; }
+.acl-survey-boundary .acl-survey-research { margin: .6rem 0; }
+.acl-survey-boundary a { color: #1e6245; text-decoration: underline; text-underline-offset: .15em; }
+.acl-survey-evidence-links { display: flex; flex-wrap: wrap; gap: .4rem .8rem; margin: .8rem 0; font-size: .83rem; }
+.acl-survey-sources { margin: .75rem 0 0; padding-left: 1.2rem; font-size: .8rem; }
+.acl-survey-sources li { margin: .5rem 0; overflow-wrap: anywhere; }
+.acl-survey-sources small { display: block; color: #52695d; margin-top: .18rem; }
+@media (max-width: 420px) {
+  .acl-survey-flow { grid-template-columns: minmax(0, 1fr); }
+  .acl-survey-flow li:not(:last-child)::after { content: "↓" / ""; left: 50%; right: auto; top: auto; bottom: -1.05rem; transform: translateX(-50%); }
 }

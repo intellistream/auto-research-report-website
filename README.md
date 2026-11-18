@@ -161,6 +161,8 @@ npm run build
 
 独立的学术稿使用 `scripts/import-academic-paper.py` 产出冻结资产和候选索引。当前正文以其稿件标识和资料截止日期引用；动态报告更新时继续提供此学术快照。
 
+ACL Graph 的问题路线、证据判断与研究反馈由 [`topics/aclgraph/survey.json`](topics/aclgraph/survey.json) 维护，经 `python scripts/import-topic-survey.py` 校验并原子导入。前端消费导入数据，报告/论文更新后从当前报告结构提供导读，避免固定版本的前端摘要失效。`npm` 的开发、测试和构建入口会检查源与索引一致；新版本已移除旧导读时，校验明确提示待复核，允许使用当前报告结构正常构建。相同版本未导入、仍发布旧版本导读及错误引用继续阻止构建。维护字段、证据时间口径和更新步骤见 [专题维护说明](topics/aclgraph/README.md)。
+
 ## 旧版 JSON 数据导入
 
 旧版页面的数据由上游仓库的导入脚本产出，需要该仓库的 Python 环境（校验复用 `sage_vllm_daily` 的 DailyReport 模型与组装完整性检查）：

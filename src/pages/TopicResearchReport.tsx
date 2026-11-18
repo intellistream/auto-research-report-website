@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import { safeTopicSource, loadFrozenVersion, revealTopicPart, reportOverview, sectionLead, type FrozenVersion, type Reference, type ResearchReport } from "./topic-report";
 import { EvidenceList, EvidenceTimeline } from "./TopicEvidence";
-import { aclGraphReportUpdate } from "./aclgraph-report-update";
+import { readingSurvey } from "./topic-survey";
 import "./topic-research-report.css";
 import "./topic-report-update.css";
 
@@ -130,14 +130,16 @@ function ReportHistory({ topic, report, current, embedded, requested }: {
   </>;
 }
 
-function ReportUpdateOverview({ report, topicId }: { report: ResearchReport; topicId: string }) {
-  const update = topicId === "aclgraph" && report.version === aclGraphReportUpdate.version ? aclGraphReportUpdate : undefined;
+function ReportUpdateOverview({ report, topic }: { report: ResearchReport; topic: Topic }) {
+  const guide = readingSurvey(topic);
+  const update = guide?.update;
   const latest = report.changelog[report.changelog.length - 1];
   const openGaps = report.gaps.filter((gap) => gap.status !== "resolved");
-  const next = update?.next ?? openGaps.slice(0, 3).map((gap) => ({ id: gap.id, label: gap.title }));
+  const next = update?.nextGapIds.map((id) => report.gaps.find((gap) => gap.id === id)).filter((gap) => gap !== undefined) ?? openGaps.slice(0, 3);
   const added = report.sourceDelta?.added.length ?? 0;
   const changed = report.sourceDelta?.changed.length ?? 0;
   const evidenceCount = report.evidenceDetails?.length ?? 0;
+  const pending = report.pendingEvidence ?? [];
 
   return <>
     <div className="report-brief-overview">
@@ -145,34 +147,66 @@ function ReportUpdateOverview({ report, topicId }: { report: ResearchReport; top
         <h3>本次更新</h3>
         {(added > 0 || changed > 0 || evidenceCount > 0) && <ul className="report-brief-counts">
           {added > 0 && <li>新增 {added} 条来源</li>}
-          {changed > 0 && <li>{update ? "复核" : "更新"} {changed} 条已有来源</li>}
+          {changed > 0 && <li>复核 {changed} 条已有来源</li>}
           {evidenceCount > 0 && <li>{evidenceCount} 项证据详情</li>}
         </ul>}
         <p>{update?.summary ?? latest?.summary ?? "本版暂无修订说明。"}</p>
+        {pending.length > 0 && <p className="survey-muted">另有 {pending.length} 项归档线索待评估；收录数量不代表判断发生变化。</p>}
       </section>
       <section className="report-brief-card report-brief-next">
         <h3>接下来验证</h3>
-        {next.length > 0 ? <ul>{next.map(({ id, label }) => (
-          <li key={id}><ReportJump id={`survey-gap-${id}`}>{label}</ReportJump></li>
+        {next.length > 0 ? <ul>{next.map((gap) => (
+          <li key={gap.id}><ReportJump id={`survey-gap-${gap.id}`}>{gap.title}</ReportJump></li>
         ))}</ul> : <p>本版暂无待验证问题。</p>}
         {openGaps.length > next.length && <ReportJump id="survey-gaps">查看全部 {openGaps.length} 个待验证问题 →</ReportJump>}
       </section>
     </div>
 
+    {guide?.researchAssessment && <section className="report-research-assessment" aria-labelledby="report-research-assessment">
+      <h3 id="report-research-assessment">研究判断</h3>
+      <p>{guide.researchAssessment.summary}</p>
+      <small>选题复评于 <time dateTime={guide.researchAssessment.asOf}>{guide.researchAssessment.asOf}</time> · {guide.researchAssessment.scope} 冻结报告修订 {report.revision} 与同版 PDF 保留原研究截止日期。</small>
+      <details><summary>按问题查看判断依据与重新评估条件</summary>
+        {guide.researchAssessment.decisions.map((item) => <div key={item.gapId}>
+          <h4>{report.gaps.find((gap) => gap.id === item.gapId)?.title}</h4>
+          <p>{item.reason}</p><p><strong>重新评估条件：</strong>{item.reopenWhen}</p>
+          <ReportJump id={`survey-gap-${item.gapId}`}>查看验证方案 →</ReportJump>
+          <div className="survey-review-sources">{item.sourceUrls.map((url) => {
+            const href = safeTopicSource(url);
+            return href ? <a key={url} href={href} target="_blank" rel="noreferrer">{new URL(href).pathname.split("/").slice(-2).join(" #")} ↗</a> : null;
+          })}</div>
+        </div>)}
+      </details>
+    </section>}
+
     <section className="report-brief-evidence">
       <h3>证据怎样改变判断</h3>
-      {update ? <div className="report-brief-evidence-grid">
-        {update.evidence.map((item) => (
-          <article key={item.source}>
-            <header><h4>{item.title}</h4><span>{item.source}</span></header>
+      {update?.evidence.length ? <div className="report-brief-evidence-grid">
+        {update.evidence.map((item, index) => (
+          <article key={`${item.title}-${index}`}>
+            <header><h4>{item.title}</h4></header>
             <p>{item.change}</p>
-            {item.links.map(({ id, label }) => <ReportJump key={id} id={`survey-evidence-${id}`}>{label} →</ReportJump>)}
+            {item.limitation && <details><summary>测量局限</summary><p>{item.limitation}</p></details>}
+            {item.evidenceIds.map((id) => <ReportJump key={id} id={`survey-evidence-${id}`}>{report.evidenceDetails?.find((entry) => entry.id === id)?.comparison} →</ReportJump>)}
+            <div><Citations ids={item.sourceIds} references={report.references} /></div>
           </article>
         ))}
       </div> : <div className="report-brief-card">
-        <p>本版未单列证据对判断的影响。<ReportJump id={evidenceCount ? "survey-evidence" : "survey-references"}>查看{evidenceCount ? "证据详情" : "参考来源"}</ReportJump></p>
+        <p>本次来源变化尚无对应的分项测量记录。<ReportJump id={evidenceCount ? "survey-evidence" : "survey-references"}>{evidenceCount ? "核对已有证据及其测量局限" : "核对参考来源及其证据层级"}</ReportJump></p>
       </div>}
     </section>
+    {!!guide?.pendingQuestions?.length && <details className="report-brief-disclosure report-pending-questions">
+      <summary>新线索提出了哪些问题 <span>{guide.pendingQuestions.length} 项待核对</span></summary>
+      <div className="report-brief-disclosure-content">{guide.pendingQuestions.map((item) => <article key={item.workId}>
+        <h3>{item.question}</h3><p>{item.missingEvidence}</p>
+        <p className="survey-muted">关联路线：{item.routeIds.map((id) => guide.routes.find((route) => route.id === id)?.title).filter(Boolean).join("、")}</p>
+        {(() => {
+          const source = report.pendingEvidence?.find((entry) => entry.workId === item.workId);
+          const href = source && safeTopicSource(source.url);
+          return href ? <a href={href} target="_blank" rel="noreferrer">{source.repository} #{source.workId.split("#")[1]} · 原始线索 ↗</a> : <ReportJump id="survey-appendix">回溯归档线索 →</ReportJump>;
+        })()}
+      </article>)}</div>
+    </details>}
   </>;
 }
 
@@ -204,7 +238,7 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
     { id: "survey-abstract", title: "摘要与研究问题" }, { id: "survey-methods", title: "范围与研究方法" }, { id: "survey-taxonomy", title: "技术路线与权衡" },
     ...(report.evidenceDetails?.length ? [{ id: "survey-evidence", title: "局部工程证据对照" }] : []),
     ...report.sections.map((section, index) => ({ id: `survey-section-${index}`, title: section.title })),
-    { id: "survey-gaps", title: "Research Gaps" }, { id: "survey-limitations", title: "局限与证据边界" },
+    { id: "survey-gaps", title: "待验证问题" }, { id: "survey-limitations", title: "局限与证据边界" },
     ...(report.reviewSummary ? [{ id: "survey-review", title: "独立审查摘要" }] : []),
     { id: "survey-references", title: "参考文献" }, { id: "survey-evolution", title: "版本与持续研究" },
     embedded ? { id: "survey-pr-trends", title: "PR 与趋势" } : { id: "survey-appendix", title: "取材证据附录" },
@@ -263,7 +297,7 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
       <ReportJump id="survey-top">返回报告开头 ↑</ReportJump><footer className="survey-footer">专题报告是研究交付物。可供下游团队引用、评估与继续研究；研究结论随新证据修订。</footer>
     </article></div>
   );
-  const previousRevision = topic.id === "aclgraph" && report.version === aclGraphReportUpdate.version ? aclGraphReportUpdate.previousRevision : undefined;
+  const previousRevision = readingSurvey(topic)?.update.previousRevision;
 
   const updateDate = report.changelog[report.changelog.length - 1]?.date;
 
@@ -282,7 +316,7 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
         {downloads}
       </header>
       {current?.error && <p className="survey-artifact-note" role="status">{current.error}</p>}
-      <ReportUpdateOverview report={report} topicId={topic.id} />
+      <ReportUpdateOverview report={report} topic={topic} />
       <details className="report-brief-disclosure report-pr-trends" id="survey-pr-trends" tabIndex={-1}>
         <summary>PR 与趋势 <span>每日收录与 {topic.entries.length} 条 PR 线索</span></summary>
         <div className="report-brief-disclosure-content">

@@ -5,6 +5,7 @@ import TopicResearchReport, { TopicReportCard } from "./TopicResearchReport";
 import type { ResearchReport } from "./topic-report";
 import TopicAcademicPaper, { AcademicPaperCard } from "./TopicAcademicPaper";
 import type { AcademicPaper } from "./academic-paper";
+import type { TopicSurvey } from "./topic-survey";
 import AclGraphTopic, { AclGraphTopicCard } from "./AclGraphTopic";
 
 export type Entry = {
@@ -30,6 +31,7 @@ export type Topic = {
   entries: Entry[];
   report?: ResearchReport;
   academicPaper?: AcademicPaper;
+  survey?: TopicSurvey;
 };
 export type TopicIndex = { schemaVersion: 1 | 2; topics: Topic[] };
 const community = { vllm: "vLLM", "vllm-ascend": "vLLM Ascend" };
