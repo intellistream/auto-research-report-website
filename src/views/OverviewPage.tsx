@@ -187,8 +187,8 @@ export default function OverviewPage({
             >
               探索推理全景工作台 <ArrowDown size={15} aria-hidden />
             </a>
-            <Link to="/topics/aclgraph" className="hero-btn secondary">
-              <Sparkles size={15} aria-hidden /> 技术专题：ACL Graph <ArrowRight size={14} aria-hidden />
+            <Link to="/topics" className="hero-btn secondary">
+              <Sparkles size={15} aria-hidden /> 技术专题 <ArrowRight size={14} aria-hidden />
             </Link>
           </div>
         </div>
