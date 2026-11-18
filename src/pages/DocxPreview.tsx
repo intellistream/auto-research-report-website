@@ -163,7 +163,8 @@ function Archive({ catalog, days }: { catalog: Catalog; days: string[] }) {
 }
 
 function Reader({ catalog, days }: { catalog: Catalog; days: string[] }) {
-  const { day = days[0] } = useParams();
+  const { day: requestedDay } = useParams();
+  const day = !requestedDay || requestedDay === "latest" ? days[0] : requestedDay;
   const [query] = useSearchParams();
   const record = catalog.days[day];
   const requested = query.get("version") ?? record?.current;
@@ -215,7 +216,7 @@ export default function DocxPreview() {
             <NavLink to="/" end>优化总览</NavLink>
             <NavLink to="/reports" end>日报档案</NavLink>
             <NavLink to="/topics">技术专题</NavLink>
-            {days[0] && <Link to={`/reports/${days[0]}`} aria-current={reading ? "page" : undefined}>研报阅读</Link>}
+            <Link to="/reports/latest" aria-current={reading ? "page" : undefined}>研报阅读</Link>
             <NavLink to="/contributors">贡献者</NavLink>
           </nav>
         </div>
