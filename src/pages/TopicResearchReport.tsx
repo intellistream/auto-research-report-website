@@ -35,7 +35,7 @@ function Methodology({ report }: { report: ResearchReport }) {
 function EvidenceDetails({ report }: { report: ResearchReport }) {
   if (!report.evidenceDetails?.length) return null;
   return <details id="survey-evidence" tabIndex={-1} className="survey-details survey-evidence-details">
-    <summary><span>{report.centralQuestion ? "附录 A：核心 PR 证据与归因边界" : "局部工程证据对照"}</span><small>{report.evidenceDetails.length} 类测量与验证 · 展开核对版本、工作量和限制</small></summary>
+    <summary><span>局部工程证据对照</span><small>{report.evidenceDetails.length} 类测量与验证 · 展开核对版本、工作量和限制</small></summary>
     <p className="survey-muted">每项对照保留原始环境、版本、工作量和失败记录。局部 Kernel、Host 与服务指标对应不同执行层级，不应跨配置拼接或合算加速比。</p>
     {report.evidenceDetails.map((evidence) => <details key={evidence.id} id={`survey-evidence-${evidence.id}`} tabIndex={-1} className="survey-evidence-detail">
       <summary><h3>{evidence.comparison}</h3><span>{evidence.level}</span></summary>
@@ -212,9 +212,9 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
   const prs = report.references.filter((reference) => reference.kind === "pr").length;
   const toc = [
     { id: "survey-abstract", title: "摘要与研究问题" }, { id: "survey-methods", title: "范围与研究方法" }, { id: "survey-taxonomy", title: "技术路线与权衡" },
+    ...(report.evidenceDetails?.length ? [{ id: "survey-evidence", title: "局部工程证据对照" }] : []),
     ...report.sections.map((section, index) => ({ id: `survey-section-${index}`, title: section.title })),
-    ...(report.evidenceDetails?.length ? [{ id: "survey-evidence", title: "附录 A：PR 原始证据" }] : []),
-    { id: "survey-gaps", title: report.centralQuestion ? "附录 D：Gaps 验证协议" : "Research Gaps" },
+    { id: "survey-gaps", title: "Research Gaps" },
     { id: "survey-limitations", title: "局限与证据边界" },
     ...(report.reviewSummary ? [{ id: "survey-review", title: "独立审查摘要" }] : []),
     { id: "survey-references", title: "参考文献" }, { id: "survey-evolution", title: "版本与持续研究" },
@@ -264,6 +264,7 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
           </div>
         </>}
       </section>
+      <EvidenceDetails report={report} />
       {report.sections.map((section, index) => <details key={`${mode}-${section.id}`} open={mode === "full"} id={`survey-section-${index}`} tabIndex={-1} className="survey-body-section">
         <summary><span className="survey-kicker">ANALYSIS {String(index + 1).padStart(2, "0")}</span><h2>{section.title}</h2>{mode === "brief" && <span className="survey-section-lead">{sectionLead(section.paragraphs[0] ?? "")}<span>展开分析</span></span>}</summary>
         {section.paragraphs.map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}
@@ -275,8 +276,7 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
         {section.conclusion && <p className="survey-chapter-conclusion"><strong>本章综合判断：</strong>{section.conclusion}</p>}
         <div className="survey-section-sources"><span>本章来源</span><Citations ids={section.sourceIds} references={report.references} /></div>
       </details>)}
-      <EvidenceDetails report={report} />
-      <section id="survey-gaps" tabIndex={-1}><div className="survey-kicker">RESEARCH AGENDA</div><h2>{report.centralQuestion ? "附录 D：Research Gaps 的控制变量与证伪条件" : "未解问题与未来方向"}</h2><p className="survey-muted">以下问题由本报告的证据推导，按可验证的研究假设呈现。证据覆盖不足不等于全领域尚无人解决；验证路径是后续研究方案。</p><div className="survey-gap-list">{report.gaps.map((gap, index) => <div className="survey-gap" key={gap.id} id={`survey-gap-${gap.id}`} tabIndex={-1}><header><span className="survey-gap-number">G{index + 1}</span><h3>{gap.title}</h3><span className={`survey-gap-status ${gap.status === "resolved" ? "resolved" : ""}`}>{gap.researchType === "evaluation-method" ? "统一评估方法" : gap.researchType === "mechanism-gap" ? "机制衔接缺口" : gap.researchType === "hypothesis" ? "可证伪假设" : gapStatus[gap.status] ?? "待研究"}</span></header><dl>{gap.shortSummary && <><dt>问题定位</dt><dd>{gap.shortSummary}</dd></>}<dt>观察与证据边界</dt><dd>{gap.observation}<Citations ids={gap.sourceIds} references={report.references} /></dd><dt>{gap.status === "hypothesis" ? "待验证假设" : "待回答的问题"}</dt><dd>{gap.question}</dd><dt>如何验证（方案）</dt><dd>{gap.validation}</dd>{gap.strongestKnown && <><dt>已有方法</dt><dd>{gap.strongestKnown}</dd></>}{gap.hypothesis && <><dt>精确假设</dt><dd>{gap.hypothesis}</dd></>}{gap.strongBaseline && <><dt>强基线与对照</dt><dd>{gap.strongBaseline}</dd></>}{gap.controls && <><dt>控制变量</dt><dd>{gap.controls}</dd></>}{gap.metrics && <><dt>观测指标</dt><dd>{gap.metrics}</dd></>}{gap.falsification && <><dt>证伪条件</dt><dd>{gap.falsification}</dd></>}</dl></div>)}</div></section>
+      <section id="survey-gaps" tabIndex={-1}><div className="survey-kicker">RESEARCH AGENDA</div><h2>Research Gaps 与验证路径</h2><p className="survey-muted">以下问题由本报告的证据推导，按可验证的研究假设呈现。证据覆盖不足不等于全领域尚无人解决；验证路径是后续研究方案。</p><div className="survey-gap-list">{report.gaps.map((gap, index) => <div className="survey-gap" key={gap.id} id={`survey-gap-${gap.id}`} tabIndex={-1}><header><span className="survey-gap-number">G{index + 1}</span><h3>{gap.title}</h3><span className={`survey-gap-status ${gap.status === "resolved" ? "resolved" : ""}`}>{gap.researchType === "evaluation-method" ? "统一评估方法" : gap.researchType === "mechanism-gap" ? "机制衔接缺口" : gap.researchType === "hypothesis" ? "可证伪假设" : gapStatus[gap.status] ?? "待研究"}</span></header><dl>{gap.shortSummary && <><dt>问题定位</dt><dd>{gap.shortSummary}</dd></>}<dt>观察与证据边界</dt><dd>{gap.observation}<Citations ids={gap.sourceIds} references={report.references} /></dd><dt>{gap.status === "hypothesis" ? "待验证假设" : "待回答的问题"}</dt><dd>{gap.question}</dd><dt>如何验证（方案）</dt><dd>{gap.validation}</dd>{gap.strongestKnown && <><dt>已有方法</dt><dd>{gap.strongestKnown}</dd></>}{gap.hypothesis && <><dt>精确假设</dt><dd>{gap.hypothesis}</dd></>}{gap.strongBaseline && <><dt>强基线与对照</dt><dd>{gap.strongBaseline}</dd></>}{gap.controls && <><dt>控制变量</dt><dd>{gap.controls}</dd></>}{gap.metrics && <><dt>观测指标</dt><dd>{gap.metrics}</dd></>}{gap.falsification && <><dt>证伪条件</dt><dd>{gap.falsification}</dd></>}</dl></div>)}</div></section>
       <section id="survey-limitations" tabIndex={-1} className="survey-limitations"><h2>局限与证据边界</h2><ul>{report.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul></section>
       <IndependentReview report={report} />
       <section id="survey-references" tabIndex={-1}><div className="survey-kicker">REFERENCES</div><h2>参考文献与工程来源</h2><ol className="survey-references">{report.references.map((reference, index) => {
