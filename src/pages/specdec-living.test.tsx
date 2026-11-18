@@ -37,7 +37,7 @@ describe("SpecDec novice-to-research reading contract", () => {
     expect(paper).toContain("参考文献与原始工程来源");
   });
 
-  it("shows all eight rich research chapters by default, not appendix-only", () => {
+  it("keeps eight substantive chapters in the same nested collapsible reader as ACL", () => {
     const report = render("/topics/speculative-decoding?view=report");
     expect(report).toContain("本章综合判断");
     expect(report).toContain("历史演进：解决一个依赖");
@@ -45,8 +45,12 @@ describe("SpecDec novice-to-research reading contract", () => {
     expect(report).toContain("证伪条件");
     expect(report).toContain("完整 PR 证据记录");
     expect(report).toContain("PDF 尚未生成");
-    expect(report).toContain('open=""');
     expect(report).toContain("8 节正文");
+    expect(report).toContain('id="survey-analysis"');
+    expect(report).not.toContain('id="survey-analysis" tabindex="-1" open=""');
+    const full = render("/topics/speculative-decoding?view=report&read=full");
+    expect(full).toContain('id="survey-analysis" tabindex="-1" open=""');
+    expect(full).toContain('id="survey-section-0" tabindex="-1"');
     expect(report).toContain("part=survey-section-6");
     expect(report).toContain("part=survey-evidence-E2");
   });
