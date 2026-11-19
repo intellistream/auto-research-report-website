@@ -5905,7 +5905,7 @@
           "github:vllm-project/vllm-ascend#21444",
           "github:vllm-project/vllm-ascend#21512"
         ],
-        "paperVersion": "de1531a63430338abfcaec0e309207e4441474bc82b25d3a8c80aa4ea1dc2c33"
+        "paperVersion": "16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5"
       },
       "academicPaper": {
         "schemaVersion": 1,
@@ -5921,40 +5921,40 @@
         ],
         "literatureCutoff": "2026-11-18",
         "manuscriptRevision": "academic-survey-review-20261119",
-        "version": "de1531a63430338abfcaec0e309207e4441474bc82b25d3a8c80aa4ea1dc2c33",
+        "version": "16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5",
         "assets": {
           "html": {
-            "path": "topic-papers/speculative-decoding/de1531a63430338abfcaec0e309207e4441474bc82b25d3a8c80aa4ea1dc2c33/paper.html",
+            "path": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/paper.html",
             "bytes": 333457,
             "sha256": "40fb724d1b9f2e0411a68109a0dfc11925bc9428f5fc6d1886295171df09adb5"
           },
           "pdf": {
-            "path": "topic-papers/speculative-decoding/de1531a63430338abfcaec0e309207e4441474bc82b25d3a8c80aa4ea1dc2c33/paper.pdf",
+            "path": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/paper.pdf",
             "bytes": 512409,
             "sha256": "5811ca7e5cc6fdaab280d4800df1086b38db63f0491ddc1f4cc3c5be3504e831"
           },
           "markdown": {
-            "path": "topic-papers/speculative-decoding/de1531a63430338abfcaec0e309207e4441474bc82b25d3a8c80aa4ea1dc2c33/paper.md",
+            "path": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/paper.md",
             "bytes": 90269,
             "sha256": "9a8512165c4b2c706fed2e7948c5d051cc7ed77b147620aed2224511c060bf4b"
           },
           "latex": {
-            "path": "topic-papers/speculative-decoding/de1531a63430338abfcaec0e309207e4441474bc82b25d3a8c80aa4ea1dc2c33/paper.tex",
+            "path": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/paper.tex",
             "bytes": 129395,
             "sha256": "f6e2e096af7ebcacc8387b84c0b8901f5e91cc22a961721d0eaada7b1ab97997"
           },
           "bibtex": {
-            "path": "topic-papers/speculative-decoding/de1531a63430338abfcaec0e309207e4441474bc82b25d3a8c80aa4ea1dc2c33/references.bib",
+            "path": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/references.bib",
             "bytes": 22829,
             "sha256": "d83a0f9f0461596b2e6e1ccb3aab54e1759edb9cb0b6fe4f11efbbda056ad83c"
           },
           "sources": {
-            "path": "topic-papers/speculative-decoding/de1531a63430338abfcaec0e309207e4441474bc82b25d3a8c80aa4ea1dc2c33/sources.zip",
-            "bytes": 238264,
-            "sha256": "82cad8b8920b291c5a1c05478dec4211400db19f831b8f5297c88818ff7bee5d"
+            "path": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/sources.zip",
+            "bytes": 238259,
+            "sha256": "e344a3cdbb23edaf8aa1b8b1ea34ec38f673dfa399eec7a38870984025884fec"
           }
         },
-        "manifestPath": "topic-papers/speculative-decoding/de1531a63430338abfcaec0e309207e4441474bc82b25d3a8c80aa4ea1dc2c33/manifest.json"
+        "manifestPath": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/manifest.json"
       }
     }
   ]
