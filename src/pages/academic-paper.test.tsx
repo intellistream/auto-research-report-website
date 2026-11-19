@@ -94,15 +94,18 @@ describe("academic manuscript branch", () => {
     expect(heading.focus).toHaveBeenCalledWith({ preventScroll: true });
     expect(revealPaperHeading({ getElementById: () => ({ tagName: "A" }) } as unknown as Document, "ref-a")).toBe(false);
   });
-  it("publishes the accepted R1 source snapshot as the current real paper", () => {
+  it("opens the taxonomy and links all five branches to their frozen chapters", () => {
     const actual = publishedTopic.academicPaper!;
-    expect(actual.manuscriptRevision).toBe("R1-content-review-accepted");
-    expect(actual.assets.markdown.sha256).toBe("382fe4bee7515b7487bdebda015306829939675fbece64a3672947f3f44d194b");
+    expect(actual.manuscriptRevision).toBe("R2-taxonomy-20261119");
     const hrefs = academicPaperHrefs("aclgraph", actual)!;
     const html = render("/topics/aclgraph?view=paper", publishedTopic);
-    expect(html).toContain("技术路线与待验证问题");
-    expect(html.indexOf("技术路线与待验证问题")).toBeLessThan(html.indexOf("<iframe"));
-    expect(html).toContain(`href="${hrefs.html}#${encodeURIComponent("可组合的状态有效性契约")}"`);
+    expect(html).toContain("ACLGraph 技术分类总图");
+    expect(html.indexOf("ACLGraph 技术分类总图")).toBeLessThan(html.indexOf("<iframe"));
+    for (const anchor of ["capture", "selection", "replay-state", "scheduling", "lifecycle"]) {
+      expect(html).toContain(`href="${hrefs.html}#${anchor}"`);
+    }
+    expect(html).toContain("昇腾直接工作");
+    expect(html).toContain("可借鉴的 GPU 工作");
     expect(html).toContain(`src="${hrefs.html}"`);
     expect(html).toContain(`href="${hrefs.pdf}"`);
     expect(html).toContain(`href="${hrefs.sources}"`);

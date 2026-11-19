@@ -129,6 +129,10 @@ def validate_survey(survey, topic, archive=None):
         route_ids.add(row["id"])
         for field in ("title", "problem", "assessment", "limitation"):
             text(row.get(field), f"route.{field}")
+        if "examples" in row:
+            require(isinstance(row["examples"], dict), "route.examples: object required")
+            for platform in ("ascend", "gpu"):
+                text(row["examples"].get(platform), f"route.examples.{platform}")
         if paper:
             for field in ("paperSection", "paperAnchor"):
                 text(row.get(field), f"route.{field}")

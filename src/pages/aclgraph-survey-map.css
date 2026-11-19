@@ -3,6 +3,77 @@
   color: var(--ink-primary);
 }
 
+.acl-taxonomy {
+  --columns: minmax(0, 1.16fr) minmax(0, 1fr) minmax(0, 1fr);
+  margin: 0;
+  padding: clamp(1rem, 2.8vw, 2rem);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.acl-taxonomy figcaption {
+  padding-left: 0.8rem;
+  border-left: 4px solid var(--brand-primary);
+}
+
+.acl-taxonomy figcaption p {
+  margin: 0;
+  color: var(--ink-secondary);
+  line-height: 1.65;
+}
+
+.acl-taxonomy-columns,
+.acl-taxonomy-branches li {
+  display: grid;
+  grid-template-columns: var(--columns);
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 0 0.8rem 1rem;
+}
+
+.acl-taxonomy-columns {
+  margin: 1.2rem 0 0 0.4rem;
+  border-bottom: 1px solid var(--border-default);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.acl-taxonomy-columns span:nth-child(2) { color: var(--brand-primary); }
+.acl-taxonomy-columns span:last-child { color: var(--color-paper); }
+.acl-taxonomy-branches { list-style: none; padding: 0; margin: 0 0 0 0.4rem; }
+.acl-taxonomy-branches li { position: relative; border-bottom: 1px solid var(--border-subtle); line-height: 1.5; }
+.acl-taxonomy-branches li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-left: 1px solid var(--brand-primary);
+}
+.acl-taxonomy-branches li:last-child::before { height: 50%; }
+.acl-taxonomy-branches li::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 0.6rem;
+  border-top: 1px solid var(--brand-primary);
+}
+.acl-taxonomy-branches a { color: var(--brand-primary); text-underline-offset: .2em; }
+.acl-taxonomy-branches a span { display: block; color: var(--ink-secondary); font-size: .84rem; }
+.acl-taxonomy-branches li > div { font-size: .92rem; }
+.acl-platform-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.acl-taxonomy-evidence { margin: .85rem 0; }
+.acl-taxonomy-evidence > summary { cursor: pointer; color: var(--brand-primary); padding: .5rem 0; }
+@media (max-width: 680px) {
+  .acl-taxonomy-columns { display: none; }
+  .acl-taxonomy-branches { margin-top: .9rem; }
+  .acl-taxonomy-branches li { grid-template-columns: 1fr; gap: .3rem; padding-left: 1rem; }
+  .acl-taxonomy-branches li > div { font-size: .84rem; }
+  .acl-platform-label { position: static; width: auto; height: auto; clip-path: none; font-weight: 650; margin-right: .5rem; color: var(--ink-secondary); }
+}
+
 .acl-survey-map h3 {
   margin: 0 0 0.65rem;
   font-size: clamp(1.18rem, 2.4vw, 1.45rem);

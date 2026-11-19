@@ -933,7 +933,7 @@
         "schemaVersion": 1,
         "title": "面向大语言模型推理的ACLGraph图执行技术综述",
         "titleEn": "ACLGraph Execution for Large Language Model Inference: A Survey",
-        "abstract": "大语言模型服务反复执行相似计算，却持续改变请求成员、长度、存储映射和元数据。运行时图执行通过提前准备任务计划减少逐算子提交，其有效性因而取决于静态结构与动态状态之间的契约。本文以ACLGraph为中心，综合截至2026年11月15日的19项研究及相关官方规范和固定实现，区分直接Ascend设计、部署观察、可迁移执行技术和工作负载背景。本文提出图资产六元表示与地址、值、范围、依赖、请求世代五项不变量，按计划生成、提交更新、设备调度与状态恢复比较相关路线，分析CANN、torch_npu及两个服务框架的职责。比较表明，动态性可以通过参数、设备计划、图族和受限条件表示；生成位置、存储位置与消费位置必须分别讨论。分桶、部分捕获与回退又与资源争用、内存寿命和冷启动共同决定生命周期收益。本文据已有方案提出可组合状态契约、含共享成本的资产维护、计划共享、跨图多算子资源约束及静止点资产失效等研究方向，并明确其前提和可证伪方法。",
+        "abstract": "大语言模型解码反复执行相似任务，请求成员、序列长度和缓存映射却逐轮变化。本文按机制直接改变的执行决策，将图执行技术分为图构造与捕获、图选择与回退、回放状态管理、执行调度与资源分配、图生命周期管理五类。基于截至 2026 年 11 月 15 日纳入的 19 项研究及相关规范和工程实现，本文分别讨论昇腾直接工作与可借鉴的 GPU 工作。即使两轮选择同一张图，服务仍需刷新本轮参数、约束消费者的读取顺序，并维护底层资源的寿命。本文以地址、值、范围、依赖和请求归属检查这些条件，以关键路径和生命周期成本比较不同机制的代价。",
         "keywords": [
           "ACLGraph",
           "大语言模型推理",
@@ -943,79 +943,86 @@
           "图资产恢复"
         ],
         "literatureCutoff": "2026-11-15",
-        "manuscriptRevision": "R1-content-review-accepted",
-        "version": "c2e049495b12bf5dec36e89bedcabdf9c9f9324c2674cdf42aa557360985db75",
+        "manuscriptRevision": "R2-taxonomy-20261119",
+        "version": "298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989",
         "assets": {
           "html": {
-            "path": "topic-papers/aclgraph/c2e049495b12bf5dec36e89bedcabdf9c9f9324c2674cdf42aa557360985db75/paper.html",
-            "bytes": 725379,
-            "sha256": "68cac119d23958771321301cdafca4ef60aaf0f71c128bf5cf473baf0503cb15"
+            "path": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/paper.html",
+            "bytes": 1013513,
+            "sha256": "2014abb5d89d31d76e8327c47394a20e7a503677733c60bc76f1de40bc1217a6"
           },
           "pdf": {
-            "path": "topic-papers/aclgraph/c2e049495b12bf5dec36e89bedcabdf9c9f9324c2674cdf42aa557360985db75/paper.pdf",
-            "bytes": 441659,
-            "sha256": "9230636d8ae3c507729aeded9f9a2001914a5ad2683fd93b7b0df772f8c7f60e"
+            "path": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/paper.pdf",
+            "bytes": 482040,
+            "sha256": "6843a3ea9e6b47ba2337b2ec0255c3e0d805a9d6bfe9c294297693456cda089c"
           },
           "markdown": {
-            "path": "topic-papers/aclgraph/c2e049495b12bf5dec36e89bedcabdf9c9f9324c2674cdf42aa557360985db75/paper.md",
-            "bytes": 71345,
-            "sha256": "382fe4bee7515b7487bdebda015306829939675fbece64a3672947f3f44d194b"
+            "path": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/paper.md",
+            "bytes": 58173,
+            "sha256": "fe698ab425dba6d1ca73fc3eb8d168f20c1bb743de356a79b5ce6252947cef14"
           },
           "latex": {
-            "path": "topic-papers/aclgraph/c2e049495b12bf5dec36e89bedcabdf9c9f9324c2674cdf42aa557360985db75/paper.tex",
-            "bytes": 103809,
-            "sha256": "8f460badec83e0e27f56443c844b2392c9362eab2331cda95149207b164e22ab"
+            "path": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/paper.tex",
+            "bytes": 90987,
+            "sha256": "2ef7d60b80dbf572abdfc1aa727e6257ac0eadfa664a2d14b9c8f1aa9c44e4d9"
           },
           "bibtex": {
-            "path": "topic-papers/aclgraph/c2e049495b12bf5dec36e89bedcabdf9c9f9324c2674cdf42aa557360985db75/references.bib",
-            "bytes": 20209,
-            "sha256": "58dccd9f0d792b3587b2c803980361054daf9b18890baa51ddbab7a79964fc58"
+            "path": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/references.bib",
+            "bytes": 20928,
+            "sha256": "1228abbab75d3bb967e64071b89a48ffe51ade637cc092e44051374e77f240d3"
           },
           "sources": {
-            "path": "topic-papers/aclgraph/c2e049495b12bf5dec36e89bedcabdf9c9f9324c2674cdf42aa557360985db75/sources.zip",
-            "bytes": 256815,
-            "sha256": "b8fcf6715868c253a46db5ca6fc65e1c62bb240dae12ddd4d7d3e6e8fb4c123b"
+            "path": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/sources.zip",
+            "bytes": 389547,
+            "sha256": "60c2a5bd2c80a109fe673409ec0e6a07bd7eb28d6d36d344e58d0c8561ae710a"
           }
         },
-        "manifestPath": "topic-papers/aclgraph/c2e049495b12bf5dec36e89bedcabdf9c9f9324c2674cdf42aa557360985db75/manifest.json"
+        "manifestPath": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/manifest.json"
       },
       "survey": {
         "schemaVersion": 1,
         "reportVersion": "6dd5554a521e6faeb3477353dd6258a54089733402109dec9c3555eb67ba1d66",
-        "paperVersion": "c2e049495b12bf5dec36e89bedcabdf9c9f9324c2674cdf42aa557360985db75",
-        "reviewedAt": "2026-11-17",
-        "thesis": "ACL Graph 复用设备执行计划，收益取决于关键路径上减少了哪些准备、提交和等待。动态状态仍需满足地址、值、有效范围、依赖顺序和请求归属约束。局部任务消除、后端选择和服务提速应分别评价。",
+        "paperVersion": "298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989",
+        "reviewedAt": "2026-11-19",
+        "thesis": "分类单位是一项具体机制。按它直接改变的执行决策归类，同一系统的不同机制可以分属多类。",
         "routes": [
           {
-            "id": "state",
-            "title": "更新回放状态",
-            "problem": "换了请求，图仍需读取本轮状态",
+            "id": "capture",
+            "title": "图构造与捕获",
+            "problem": "哪些任务一起入图？",
             "mechanism": [
-              "准备本轮参数",
-              "更新参数并记录事件",
-              "消费者等待后读取"
+              "识别动态任务",
+              "划定捕获边界",
+              "记录设备任务及依赖"
             ],
-            "assessment": "主机任务参数更新与图内设备元数据生成是两类路径；设备驻留不等于设备生成。已有消费者时点和动态回放测试，应先核查现有保护。",
-            "limitation": "固定地址不保证值、有效范围或请求归属正确；局部测试不能代替整模型质量和跨流复用检查。",
+            "assessment": "xLLM 在模块间划分部分图与即时执行路径。昇腾草稿模型的工程案例进一步给出了完整图与其他模式的隔离和填充用例。",
+            "limitation": "整套图模式的消融同时改变分段、参数化和缓存。单一配置的结果只能说明该组合的表现。",
             "sourceIds": [
-              "D4",
-              "E1",
-              "E3"
+              "D1",
+              "D3",
+              "D5",
+              "P2",
+              "E4",
+              "E5",
+              "E8"
             ],
             "evidenceIds": [
-              "e1-h2d-removal",
-              "e3-dynamic-replay"
+              "e5-modes-padded"
             ],
             "gapIds": [
-              "state-ownership"
+              "capture-budget"
             ],
-            "paperSection": "7.1",
-            "paperAnchor": "可组合的状态有效性契约"
+            "paperSection": "1",
+            "paperAnchor": "capture",
+            "examples": {
+              "ascend": "xLLM 捕获 FFN、LayerNorm 等模块",
+              "gpu": "IOS 搜索算子阶段划分"
+            }
           },
           {
             "id": "buckets",
-            "title": "分桶与图族管理",
-            "problem": "输入变化，填充和持图都占资源",
+            "title": "图选择与回退",
+            "problem": "这一批输入走哪条路径？",
             "mechanism": [
               "划分合法输入桶",
               "匹配完整图或分段图",
@@ -1038,20 +1045,24 @@
             "gapIds": [
               "capture-budget"
             ],
-            "paperSection": "7.2",
-            "paperAnchor": "图族维护与资源调度的联合选择"
+            "paperSection": "2",
+            "paperAnchor": "selection",
+            "examples": {
+              "ascend": "vLLM-Ascend 按批次描述符选图",
+              "gpu": "FlashInfer 按 KV 配置选图"
+            }
           },
           {
-            "id": "metadata",
-            "title": "生成与共享元数据",
-            "problem": "逐层准备长度和布局，形成重复开销",
+            "id": "state",
+            "title": "回放状态管理",
+            "problem": "图怎样读到本轮的值？",
             "mechanism": [
-              "定位准备与搬运成本",
-              "设备生成或复用计划",
-              "分别测任务与服务关键路径"
+              "生成本轮元数据",
+              "绑定或共享设备缓冲",
+              "发布后由算子读取"
             ],
-            "assessment": "已有特定 H2D 任务从 72 降至 0 的作者记录。后端切换、图开关与计划共享是不同对照，不能拼成统一加速比。",
-            "limitation": "计划共享的服务差值区间含零；六层微基准不含完整模型和通信。历史基线与当前移植版本也须分开。",
+            "assessment": "主机任务更新和图内设备生成都可向消费者提供本轮状态。比较两者要分别记录生产位置、传输、等待以及共享条件。",
+            "limitation": "固定地址不保证值、有效范围或请求归属正确；局部测试不能代替整模型质量和跨流复用检查。",
             "sourceIds": [
               "D4",
               "E1",
@@ -1061,21 +1072,27 @@
             ],
             "evidenceIds": [
               "e1-h2d-removal",
+              "e3-dynamic-replay",
               "e2-backend-graphs",
               "e2-eager-graph",
               "e2-plan-sharing",
               "e3-historical-service"
             ],
             "gapIds": [
+              "state-ownership",
               "causal-backend-graph"
             ],
-            "paperSection": "7.3",
-            "paperAnchor": "计划生成位置与跨消费者共享"
+            "paperSection": "3",
+            "paperAnchor": "replay-state",
+            "examples": {
+              "ascend": "torch_npu 更新任务组参数",
+              "gpu": "FlashInfer 在 CPU 规划、GPU 消费"
+            }
           },
           {
             "id": "overlap",
-            "title": "跨算子资源调度",
-            "problem": "计算、访存与通信互相等待",
+            "title": "执行调度与资源分配",
+            "problem": "哪些任务并行，各用多少资源？",
             "mechanism": [
               "识别可重叠阶段",
               "按图容量分配资源",
@@ -1095,13 +1112,17 @@
             "gapIds": [
               "capture-budget"
             ],
-            "paperSection": "7.4",
-            "paperAnchor": "跨图与多算子的资源和状态约束"
+            "paperSection": "4",
+            "paperAnchor": "scheduling",
+            "examples": {
+              "ascend": "WKV 投影与 MoE 专家分发重叠",
+              "gpu": "NanoFlow 搜索并行与资源配置"
+            }
           },
           {
             "id": "lifecycle",
-            "title": "生命周期与恢复",
-            "problem": "预热、捕获和资源恢复影响服务准备",
+            "title": "图生命周期管理",
+            "problem": "实例怎样准备、保留和恢复？",
             "mechanism": [
               "分别计量编译与捕获",
               "维护工作空间与对象寿命",
@@ -1122,8 +1143,12 @@
             "gapIds": [
               "lifecycle-reliability"
             ],
-            "paperSection": "7.5",
-            "paperAnchor": "恢复兼容性与部分失效处理"
+            "paperSection": "5",
+            "paperAnchor": "lifecycle",
+            "examples": {
+              "ascend": "图预热期间准备静态内核",
+              "gpu": "Medusa 恢复绑定，Foundry 重建环境"
+            }
           }
         ],
         "update": {
@@ -1251,7 +1276,6 @@
             "workId": "github:vllm-project/vllm-ascend#21172",
             "routeIds": [
               "state",
-              "metadata",
               "overlap"
             ],
             "question": "辅助流准备被捕获后，消费者等待是否仍进入关键路径？",
