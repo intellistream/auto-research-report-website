@@ -1,6 +1,9 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowUp, MessageCircle, Plus, Square, X } from "lucide-react";
+import { ArrowUp, GripHorizontal, Plus, Square, X } from "lucide-react";
+import assistantMascot from "./assistant-mascot.png";
+import { constrainPosition, placePanel, viewportSize, type Point } from "./assistant-position";
 import { askAssistant, maxQuestionLength, type ChatHistory } from "./chat-stream";
+import { useFloatingDrag } from "./useFloatingDrag";
 import "./research-assistant.css";
 
 const endpoint = import.meta.env.VITE_CHAT_API_URL?.trim() ||
@@ -12,11 +15,27 @@ type Turn = ChatHistory & {
   note?: string;
 };
 
+function Mascot() {
+  return (
+    <span className="research-assistant-mascot">
+      <img src={assistantMascot} alt="" decoding="async" draggable={false} />
+    </span>
+  );
+}
+
+function positionStyle(position: Point | null) {
+  return position ? { left: position.x, top: position.y, right: "auto", bottom: "auto" } : undefined;
+}
+
 export default function ResearchAssistant() {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
+  const [triggerPosition, setTriggerPosition] = useState<Point | null>(null);
+  const [panelPosition, setPanelPosition] = useState<Point | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLElement>(null);
+  const manualPanelPosition = useRef<Point | null>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const transcript = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
@@ -26,6 +45,44 @@ export default function ResearchAssistant() {
   const titleId = useId();
   const expanded = turns.length > 0;
   const streaming = turns.at(-1)?.status === "streaming";
+  const dragTrigger = useFloatingDrag(trigger, setTriggerPosition);
+  const dragPanel = useFloatingDrag(panel, (point) => {
+    manualPanelPosition.current = point;
+    setPanelPosition(point);
+  });
+
+  useLayoutEffect(() => {
+    const button = trigger.current;
+    const dialog = panel.current;
+    if (!button) return;
+
+    const updatePositions = () => {
+      const viewport = viewportSize();
+      const buttonBounds = button.getBoundingClientRect();
+      const anchor = triggerPosition
+        ? constrainPosition(triggerPosition, buttonBounds, viewport)
+        : buttonBounds;
+      if (triggerPosition && (anchor.x !== triggerPosition.x || anchor.y !== triggerPosition.y)) {
+        setTriggerPosition(anchor);
+      }
+      if (dialog) {
+        const size = dialog.getBoundingClientRect();
+        const point = manualPanelPosition.current
+          ? constrainPosition(manualPanelPosition.current, size, viewport)
+          : placePanel({ x: anchor.x, y: anchor.y, width: buttonBounds.width, height: buttonBounds.height }, size, viewport);
+        setPanelPosition((current) => current?.x === point.x && current.y === point.y ? current : point);
+      }
+    };
+
+    updatePositions();
+    const observer = dialog ? new ResizeObserver(updatePositions) : null;
+    if (dialog) observer?.observe(dialog);
+    window.addEventListener("resize", updatePositions);
+    return () => {
+      window.removeEventListener("resize", updatePositions);
+      observer?.disconnect();
+    };
+  }, [expanded, open, triggerPosition]);
 
   useEffect(() => () => inFlight.current?.controller.abort(), []);
   useEffect(() => {
@@ -103,11 +160,13 @@ export default function ResearchAssistant() {
   }
 
   return (
-    <aside className="research-assistant" aria-label="AI 提问">
+    <aside className="research-assistant" aria-label="AI 提问" style={positionStyle(triggerPosition)}>
       {open && (
         <section
           id={panelId}
+          ref={panel}
           className={`research-assistant-panel${expanded ? " is-expanded" : ""}`}
+          style={positionStyle(panelPosition)}
           role="dialog"
           aria-labelledby={titleId}
           onKeyDown={(event) => {
@@ -118,7 +177,10 @@ export default function ResearchAssistant() {
           }}
         >
           <header className="research-assistant-header">
-            <h2 id={titleId}><MessageCircle size={18} aria-hidden /> 研报助手</h2>
+            <div className="research-assistant-drag-handle" title="拖动移动窗口" {...dragPanel}>
+              <h2 id={titleId}><Mascot />研报助手</h2>
+              <GripHorizontal size={18} aria-hidden />
+            </div>
             <div className="research-assistant-actions">
               {expanded && (
                 <button type="button" title="新对话" aria-label="新对话" onClick={reset}>
@@ -201,9 +263,10 @@ export default function ResearchAssistant() {
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         onClick={() => open ? close() : setOpen(true)}
-        title={open ? "收起提问窗口" : "向 AI 提问"}
+        title={open ? "点击收起，拖动移动" : "点击提问，拖动移动"}
+        {...dragTrigger}
       >
-        {open ? <X size={24} aria-hidden /> : <MessageCircle size={25} aria-hidden />}
+        <Mascot />
       </button>
     </aside>
   );
