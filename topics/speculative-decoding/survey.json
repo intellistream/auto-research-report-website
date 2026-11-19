@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "reportVersion": "e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d",
+  "reviewedAt": "2026-11-18",
+  "thesis": "在 Target 分布与 Accepted State 合法的前提下，Candidate、Verification 与 Serving 如何共同降低单位有效 Token 的关键路径成本？",
+  "routes": [
+    {
+      "id": "candidate",
+      "title": "Candidate：从串行提案到并行块",
+      "problem": "提案更长、接受率更高，为什么不能直接推断服务更快？",
+      "mechanism": [
+        "Lookup 不引入 Drafter 模型，但依赖文本重复；独立草稿与 EAGLE/MTP 引入条件预测，保留权重、KV 和串行步的成本。",
+        "Tree/Medusa 拓宽候选搜索空间；DFlash、DFLare、DSpark 缩短串行 Draft 深度，同时重新分配块内条件依赖和 Confidence 成本。",
+        "真正的优化对象是合法输出量与 Draft+Target Verification 的联合关键路径，而不是候选数量。"
+      ],
+      "assessment": "#63096 的 Draft Loop 局部缩短没有在作者的相同 Serving 档位观察到稳定吞吐收益；#19512 的图回放结果同时改变了接受长度与执行条件。",
+      "limitation": "方法训练/特征依赖和 Backend 不可直接替换；ROCm 与 910B4 作者测量不构成 910B2 固定 Pair 的复现。",
+      "sourceIds": [
+        "P1",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P10",
+        "D3",
+        "E1",
+        "E8"
+      ],
+      "evidenceIds": [
+        "E1",
+        "E8"
+      ],
+      "gapIds": [],
+      "paperSection": "4",
+      "paperAnchor": "drafting"
+    },
+    {
+      "id": "verification",
+      "title": "Verification：从 Fixed K 到 Target-aware Budget",
+      "problem": "新增 Verify Position 的存活价值能否抵消 Target、Selector 与 Router 的成本？",
+      "mechanism": [
+        "固定 K 无法匹配各请求候选存活曲线，额外的 Query Rows 可能只计算被拒绝的后缀。",
+        "Adaptive Verification 把位置存活概率与 Target Shape 成本共同引入预算；XPress Estimator 和 DSpark Confidence 的输入/校准决定分配正确性。",
+        "HybridSpec 将 Router 信息引入两阶段 Verify，但 Selector、图切换和合法 State 恢复仍有代价。"
+      ],
+      "assessment": "#65175 修复估计器后高并发 AV 改善，但单并发仍退化；#63421 表明 Budget Selector 的 Host/JIT 路径可吞没算法收益。",
+      "limitation": "GPU/模型/并发原始条件不可跨后端泛化；没有可移植的统一 Router-aware 最优预算测量。",
+      "sourceIds": [
+        "D4",
+        "P8",
+        "P9",
+        "E2",
+        "E3",
+        "E17",
+        "E1",
+        "E8",
+        "E9"
+      ],
+      "evidenceIds": [
+        "E2",
+        "E3",
+        "E17"
+      ],
+      "gapIds": [
+        "adaptive-cost",
+        "graph-budget"
+      ],
+      "paperSection": "5",
+      "paperAnchor": "verification"
+    },
+    {
+      "id": "accepted-state",
+      "title": "Accepted State：从 Token 对齐到生命周期正确",
+      "problem": "Verify 算出拒绝候选后的中间态，怎样证明下一轮只读取合法前缀？",
+      "mechanism": [
+        "概率和 Greedy 输出合法不等于 Attention KV、GDN/Mamba/KDA 隐藏态已物化并提交。",
+        "Checkpoint、RecoverSSM、Pending Replay 处理合法状态恢复；Lookahead Hash 表达 Draft KV 依赖额外后继 Token 的身份。",
+        "Prefix Hit、Preemption、P/D 迁移和 Slot Reuse 必须保持 Producer→Consumer 的时序和代际不变量。"
+      ],
+      "assessment": "#61589 的正确 Hash 身份改善复用但增加 CPU 成本；#66595 Deferred Replay 与 #21430 D2H/Commit Overlap 需要独立的多轮与异常生命周期对照。",
+      "limitation": "固定源码能说明数据生产与读取契约，但不是混合状态在各种动态服务模式下的独立 NPU 正确性证明。",
+      "sourceIds": [
+        "P2",
+        "P9",
+        "D6",
+        "D7",
+        "E5",
+        "E7",
+        "E12",
+        "E11",
+        "E15",
+        "E18",
+        "E6",
+        "E14"
+      ],
+      "evidenceIds": [
+        "E5",
+        "E7",
+        "E12"
+      ],
+      "gapIds": [
+        "accepted-state",
+        "kv-residency"
+      ],
+      "paperSection": "6",
+      "paperAnchor": "runtime"
+    },
+    {
+      "id": "runtime",
+      "title": "Serving Runtime：关键路径与资源共同预算",
+      "problem": "Graph、Sampling 和 KV Residency 的局部优化何时真的改善 TPOT/Goodput？",
+      "mechanism": [
+        "Scheduler、Drafter、Target、Sampler、Commit 和 Host/Device 构成一轮推测执行的关键路径。",
+        "图捕获和回放减少频繁下发；变长 Verify、Padding、图桶、KV/SSM 与 Workspace 共存增加新的成本。",
+        "相同源码和请求轨迹、同指标与可复核失败记录，才能判定阶段节省能否传递至服务端。"
+      ],
+      "assessment": "#19954 的 GDN Metadata 明显缩短却没有同比例 TPS 改善；#19512、#20254 的服务对照存在接受长度或配置差异，不能直接合算收益。",
+      "limitation": "Graph、Sampler、后端、并发与硬件均有条件边界；未独立重复作者实验。",
+      "sourceIds": [
+        "D6",
+        "D7",
+        "E11",
+        "E1",
+        "E8",
+        "E9",
+        "E17",
+        "E2",
+        "E12"
+      ],
+      "evidenceIds": [
+        "E1",
+        "E8",
+        "E9",
+        "E11",
+        "E17"
+      ],
+      "gapIds": [
+        "serving-causality"
+      ],
+      "paperSection": "7",
+      "paperAnchor": "serving"
+    }
+  ],
+  "update": {
+    "summary": "首个冻结版本的学术综合导读，不代表本次又获得 NPU 实验结果。沿正确性→成本→Candidate→Verification→Accepted State→Runtime→跨层因果的八章主线，建立持续修订的研究判断起点。",
+    "evidence": [
+      {
+        "title": "Draft 局部缩短不保证服务更快",
+        "change": "#63096 报告 Draft Loop 改善，但原作者在并发 32 的 Serving 吞吐未观察到可辨提速。",
+        "limitation": "ROCm AITER 和 Synthetic Acceptance 条件。",
+        "sourceIds": [
+          "E1"
+        ],
+        "evidenceIds": [
+          "E1"
+        ]
+      },
+      {
+        "title": "Adaptive Verification 的收益会随并发翻转",
+        "change": "#65175 修复 XPress Estimator 后高并发吞吐改善，单并发 AV 仍退化；Estimator 接线与 Policy 应分别评价。",
+        "limitation": "H100、Qwen3-8B、指定 XPress 工作量。",
+        "sourceIds": [
+          "E3"
+        ],
+        "evidenceIds": [
+          "E3"
+        ]
+      },
+      {
+        "title": "Full ACLGraph 与接受率共同变化",
+        "change": "#19512 历史图模式比较中 Acceptance 改变，不能把全部 TPOT 改善归因于 Graph。",
+        "limitation": "跨日 4×910B4 对照，非旧版 910B2 Pair。",
+        "sourceIds": [
+          "E8"
+        ],
+        "evidenceIds": [
+          "E8"
+        ]
+      },
+      {
+        "title": "Metadata 阶段节省与 TPS 改善不等幅",
+        "change": "#19954 的 GDN Metadata 阶段显著缩短，而作者报告的 TPS 差别很小，需验证其是否处于实际 Critical Path。",
+        "limitation": "950DT C32，原作者未声称统计显著。",
+        "sourceIds": [
+          "E11"
+        ],
+        "evidenceIds": [
+          "E11"
+        ]
+      }
+    ],
+    "nextGapIds": [
+      "adaptive-cost",
+      "accepted-state",
+      "graph-budget"
+    ]
+  },
+  "pendingQuestions": [],
+  "candidateBaseline": [
+    "github:vllm-project/vllm#52921",
+    "github:vllm-project/vllm#57770",
+    "github:vllm-project/vllm#59774",
+    "github:vllm-project/vllm#60229",
+    "github:vllm-project/vllm#60532",
+    "github:vllm-project/vllm#60895",
+    "github:vllm-project/vllm#61435",
+    "github:vllm-project/vllm#61498",
+    "github:vllm-project/vllm#61589",
+    "github:vllm-project/vllm#61855",
+    "github:vllm-project/vllm#61942",
+    "github:vllm-project/vllm#62091",
+    "github:vllm-project/vllm#62101",
+    "github:vllm-project/vllm#62769",
+    "github:vllm-project/vllm#62784",
+    "github:vllm-project/vllm#62994",
+    "github:vllm-project/vllm#63096",
+    "github:vllm-project/vllm#63101",
+    "github:vllm-project/vllm#63102",
+    "github:vllm-project/vllm#63219",
+    "github:vllm-project/vllm#63245",
+    "github:vllm-project/vllm#63421",
+    "github:vllm-project/vllm#63431",
+    "github:vllm-project/vllm#63440",
+    "github:vllm-project/vllm#63444",
+    "github:vllm-project/vllm#63527",
+    "github:vllm-project/vllm#63528",
+    "github:vllm-project/vllm#63532",
+    "github:vllm-project/vllm#63554",
+    "github:vllm-project/vllm#63568",
+    "github:vllm-project/vllm#63638",
+    "github:vllm-project/vllm#63710",
+    "github:vllm-project/vllm#63801",
+    "github:vllm-project/vllm#63819",
+    "github:vllm-project/vllm#63886",
+    "github:vllm-project/vllm#63921",
+    "github:vllm-project/vllm#63971",
+    "github:vllm-project/vllm#64033",
+    "github:vllm-project/vllm#64109",
+    "github:vllm-project/vllm#64442",
+    "github:vllm-project/vllm#64612",
+    "github:vllm-project/vllm#64659",
+    "github:vllm-project/vllm#64828",
+    "github:vllm-project/vllm#64829",
+    "github:vllm-project/vllm#64852",
+    "github:vllm-project/vllm#64898",
+    "github:vllm-project/vllm#64915",
+    "github:vllm-project/vllm#64916",
+    "github:vllm-project/vllm#64948",
+    "github:vllm-project/vllm#64950",
+    "github:vllm-project/vllm#65103",
+    "github:vllm-project/vllm#65175",
+    "github:vllm-project/vllm#65182",
+    "github:vllm-project/vllm#65217",
+    "github:vllm-project/vllm#65421",
+    "github:vllm-project/vllm#65463",
+    "github:vllm-project/vllm#65488",
+    "github:vllm-project/vllm#65553",
+    "github:vllm-project/vllm#65619",
+    "github:vllm-project/vllm#65874",
+    "github:vllm-project/vllm#66324",
+    "github:vllm-project/vllm#66485",
+    "github:vllm-project/vllm#66595",
+    "github:vllm-project/vllm#66612",
+    "github:vllm-project/vllm#66652",
+    "github:vllm-project/vllm#66764",
+    "github:vllm-project/vllm#66865",
+    "github:vllm-project/vllm#67034",
+    "github:vllm-project/vllm-ascend#17147",
+    "github:vllm-project/vllm-ascend#18053",
+    "github:vllm-project/vllm-ascend#18236",
+    "github:vllm-project/vllm-ascend#18717",
+    "github:vllm-project/vllm-ascend#18931",
+    "github:vllm-project/vllm-ascend#19512",
+    "github:vllm-project/vllm-ascend#19550",
+    "github:vllm-project/vllm-ascend#19682",
+    "github:vllm-project/vllm-ascend#19724",
+    "github:vllm-project/vllm-ascend#19753",
+    "github:vllm-project/vllm-ascend#19840",
+    "github:vllm-project/vllm-ascend#19851",
+    "github:vllm-project/vllm-ascend#19868",
+    "github:vllm-project/vllm-ascend#19869",
+    "github:vllm-project/vllm-ascend#19898",
+    "github:vllm-project/vllm-ascend#19911",
+    "github:vllm-project/vllm-ascend#19954",
+    "github:vllm-project/vllm-ascend#19971",
+    "github:vllm-project/vllm-ascend#20006",
+    "github:vllm-project/vllm-ascend#20060",
+    "github:vllm-project/vllm-ascend#20194",
+    "github:vllm-project/vllm-ascend#20254",
+    "github:vllm-project/vllm-ascend#20279",
+    "github:vllm-project/vllm-ascend#20344",
+    "github:vllm-project/vllm-ascend#20345",
+    "github:vllm-project/vllm-ascend#20489",
+    "github:vllm-project/vllm-ascend#20566",
+    "github:vllm-project/vllm-ascend#20755",
+    "github:vllm-project/vllm-ascend#20820",
+    "github:vllm-project/vllm-ascend#21075",
+    "github:vllm-project/vllm-ascend#21209",
+    "github:vllm-project/vllm-ascend#21281",
+    "github:vllm-project/vllm-ascend#21403",
+    "github:vllm-project/vllm-ascend#21430",
+    "github:vllm-project/vllm-ascend#21435",
+    "github:vllm-project/vllm-ascend#21444",
+    "github:vllm-project/vllm-ascend#21512"
+  ],
+  "paperVersion": "16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5"
+}

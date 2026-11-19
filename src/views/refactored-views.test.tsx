@@ -104,9 +104,9 @@ describe("refactored website views", () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(specHtml).toContain("推测解码怎样在不改变输出分布的前提下压缩单步延迟？");
-    expect(specHtml).toContain("方法与模型适配");
-    expect(specHtml).toContain("候选生成与验证");
-    expect(specHtml).toContain("执行与部署");
+    expect(specHtml).toContain("一次 Target 前向");
+    expect(specHtml).toContain("从零开始，如何阅读本专题");
+    expect(specHtml).toContain("候选从哪里来");
+    expect(specHtml).toContain("阅读八章动态研究报告");
   });
 });
