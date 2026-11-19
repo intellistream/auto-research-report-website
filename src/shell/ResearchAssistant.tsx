@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowUp, GripHorizontal, Plus, Square, X } from "lucide-react";
+import { ArrowUp, GripHorizontal, MoveDiagonal2, Plus, Square, X } from "lucide-react";
 import assistantMascot from "./assistant-mascot.png";
-import { constrainPosition, placePanel, viewportSize, type Point } from "./assistant-position";
+import { chooseDock, constrainAssistant, resizePanel, viewportSize, type Dock, type Point, type Size } from "./assistant-position";
 import { askAssistant, maxQuestionLength, type ChatHistory } from "./chat-stream";
 import { useFloatingDrag } from "./useFloatingDrag";
 import "./research-assistant.css";
@@ -27,15 +27,22 @@ function positionStyle(position: Point | null) {
   return position ? { left: position.x, top: position.y, right: "auto", bottom: "auto" } : undefined;
 }
 
+const resizeKeys: Partial<Record<string, Point>> = {
+  ArrowLeft: { x: -16, y: 0 },
+  ArrowRight: { x: 16, y: 0 },
+  ArrowUp: { x: 0, y: -16 },
+  ArrowDown: { x: 0, y: 16 },
+};
+
 export default function ResearchAssistant() {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [triggerPosition, setTriggerPosition] = useState<Point | null>(null);
-  const [panelPosition, setPanelPosition] = useState<Point | null>(null);
+  const [dock, setDock] = useState<Dock>({ above: true, right: true });
+  const [customSizes, setCustomSizes] = useState<{ prompt?: Size; answer?: Size }>({});
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLElement>(null);
-  const manualPanelPosition = useRef<Point | null>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const transcript = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
@@ -45,11 +52,18 @@ export default function ResearchAssistant() {
   const titleId = useId();
   const expanded = turns.length > 0;
   const streaming = turns.at(-1)?.status === "streaming";
-  const dragTrigger = useFloatingDrag(trigger, setTriggerPosition);
-  const dragPanel = useFloatingDrag(panel, (point) => {
-    manualPanelPosition.current = point;
-    setPanelPosition(point);
+  const sizeMode = expanded ? "answer" : "prompt";
+  const dialogSize = customSizes[sizeMode] ?? (expanded && customSizes.prompt ? {
+    width: `max(var(--assistant-expanded-width), ${customSizes.prompt.width}px)`,
+    height: `max(var(--assistant-expanded-height), ${customSizes.prompt.height}px)`,
+  } : undefined);
+  const dragWidget = useFloatingDrag(trigger, (start, delta) => {
+    setTriggerPosition(constrainAssistant(
+      { ...start, x: start.x + delta.x, y: start.y + delta.y },
+      panel.current?.getBoundingClientRect(), dock, viewportSize(),
+    ));
   });
+  const dragResize = useFloatingDrag(panel, changeSize);
 
   useLayoutEffect(() => {
     const button = trigger.current;
@@ -57,32 +71,23 @@ export default function ResearchAssistant() {
     if (!button) return;
 
     const updatePositions = () => {
-      const viewport = viewportSize();
       const buttonBounds = button.getBoundingClientRect();
-      const anchor = triggerPosition
-        ? constrainPosition(triggerPosition, buttonBounds, viewport)
-        : buttonBounds;
-      if (triggerPosition && (anchor.x !== triggerPosition.x || anchor.y !== triggerPosition.y)) {
+      const anchor = constrainAssistant(buttonBounds, dialog?.getBoundingClientRect(), dock, viewportSize());
+      if (anchor.x !== buttonBounds.x || anchor.y !== buttonBounds.y) {
         setTriggerPosition(anchor);
-      }
-      if (dialog) {
-        const size = dialog.getBoundingClientRect();
-        const point = manualPanelPosition.current
-          ? constrainPosition(manualPanelPosition.current, size, viewport)
-          : placePanel({ x: anchor.x, y: anchor.y, width: buttonBounds.width, height: buttonBounds.height }, size, viewport);
-        setPanelPosition((current) => current?.x === point.x && current.y === point.y ? current : point);
       }
     };
 
     updatePositions();
-    const observer = dialog ? new ResizeObserver(updatePositions) : null;
-    if (dialog) observer?.observe(dialog);
+    const observer = new ResizeObserver(updatePositions);
+    observer.observe(button);
+    if (dialog) observer.observe(dialog);
     window.addEventListener("resize", updatePositions);
     return () => {
       window.removeEventListener("resize", updatePositions);
-      observer?.disconnect();
+      observer.disconnect();
     };
-  }, [expanded, open, triggerPosition]);
+  }, [dock, expanded, open]);
 
   useEffect(() => () => inFlight.current?.controller.abort(), []);
   useEffect(() => {
@@ -113,6 +118,23 @@ export default function ResearchAssistant() {
     stop();
     setOpen(false);
     trigger.current?.focus({ preventScroll: true });
+  }
+
+  function toggle() {
+    if (open) {
+      close();
+      return;
+    }
+    const bounds = trigger.current?.getBoundingClientRect();
+    if (bounds) setDock(chooseDock(bounds, viewportSize()));
+    setOpen(true);
+  }
+
+  function changeSize(start: Size, delta: Point) {
+    const bounds = trigger.current?.getBoundingClientRect();
+    if (!bounds) return;
+    const next = resizePanel(start, delta, bounds, dock, viewportSize(), expanded);
+    setCustomSizes((current) => ({ ...current, [sizeMode]: next }));
   }
 
   function reset() {
@@ -160,13 +182,19 @@ export default function ResearchAssistant() {
   }
 
   return (
-    <aside className="research-assistant" aria-label="AI 提问" style={positionStyle(triggerPosition)}>
+    <aside
+      className="research-assistant"
+      aria-label="AI 提问"
+      style={positionStyle(triggerPosition)}
+      data-side={dock.above ? "above" : "below"}
+      data-align={dock.right ? "right" : "left"}
+    >
       {open && (
         <section
           id={panelId}
           ref={panel}
           className={`research-assistant-panel${expanded ? " is-expanded" : ""}`}
-          style={positionStyle(panelPosition)}
+          style={dialogSize}
           role="dialog"
           aria-labelledby={titleId}
           onKeyDown={(event) => {
@@ -177,7 +205,7 @@ export default function ResearchAssistant() {
           }}
         >
           <header className="research-assistant-header">
-            <div className="research-assistant-drag-handle" title="拖动移动窗口" {...dragPanel}>
+            <div className="research-assistant-drag-handle" title="拖动移动助手" {...dragWidget}>
               <h2 id={titleId}><Mascot />研报助手</h2>
               <GripHorizontal size={18} aria-hidden />
             </div>
@@ -193,66 +221,84 @@ export default function ResearchAssistant() {
             </div>
           </header>
 
-          {expanded && (
-            <div
-              className="research-assistant-transcript"
-              ref={transcript}
-              onScroll={(event) => {
-                const region = event.currentTarget;
-                follow.current = region.scrollHeight - region.scrollTop - region.clientHeight < 64;
-              }}
-              aria-label="对话记录"
-              tabIndex={0}
-            >
-              {turns.map((turn) => (
-                <article className="research-assistant-turn" key={turn.id}>
-                  <p className="research-assistant-question">{turn.question}</p>
-                  {turn.answer && <p className="research-assistant-answer">{turn.answer}</p>}
-                  {turn.status === "streaming" && (
-                    <p className="research-assistant-status" role="status">正在生成回答…</p>
-                  )}
-                  {turn.status === "stopped" && <p className="research-assistant-status">已停止生成。</p>}
-                  {turn.note && <p className="research-assistant-status" role={turn.status === "error" ? "alert" : "status"}>{turn.note}</p>}
-                </article>
-              ))}
-            </div>
-          )}
-
-          <form className="research-assistant-form" onSubmit={submit}>
-            {!expanded && (
-              <p className="research-assistant-hint">
-                {endpoint ? "可粘贴研报片段一起提问。问题将发送给 DeepSeek。" : "提问服务暂未连接。"}
-              </p>
-            )}
-            <div className="research-assistant-compose">
-              <textarea
-                ref={input}
-                aria-label="输入你的问题"
-                placeholder={expanded ? "继续提问…" : "输入你的问题…"}
-                maxLength={maxQuestionLength}
-                rows={expanded ? 2 : 3}
-                value={question}
-                disabled={!endpoint}
-                onChange={(event) => setQuestion(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing &&
-                      event.keyCode !== 229 && !streaming) {
-                    event.preventDefault();
-                    event.currentTarget.form?.requestSubmit();
-                  }
+          <div className="research-assistant-panel-body">
+            {expanded && (
+              <div
+                className="research-assistant-transcript"
+                ref={transcript}
+                onScroll={(event) => {
+                  const region = event.currentTarget;
+                  follow.current = region.scrollHeight - region.scrollTop - region.clientHeight < 64;
                 }}
-              />
-              {streaming ? (
-                <button type="button" aria-label="停止生成" title="停止生成" onClick={stop}>
-                  <Square size={17} aria-hidden />
-                </button>
-              ) : (
-                <button type="submit" title="发送问题" aria-label="发送问题" disabled={!endpoint || !question.trim()}>
-                  <ArrowUp size={20} aria-hidden />
-                </button>
+                aria-label="对话记录"
+                tabIndex={0}
+              >
+                {turns.map((turn) => (
+                  <article className="research-assistant-turn" key={turn.id}>
+                    <p className="research-assistant-question">{turn.question}</p>
+                    {turn.answer && <p className="research-assistant-answer">{turn.answer}</p>}
+                    {turn.status === "streaming" && (
+                      <p className="research-assistant-status" role="status">正在生成回答…</p>
+                    )}
+                    {turn.status === "stopped" && <p className="research-assistant-status">已停止生成。</p>}
+                    {turn.note && <p className="research-assistant-status" role={turn.status === "error" ? "alert" : "status"}>{turn.note}</p>}
+                  </article>
+                ))}
+              </div>
+            )}
+
+            <form className="research-assistant-form" onSubmit={submit}>
+              {!expanded && (
+                <p className="research-assistant-hint">
+                  {endpoint ? "可粘贴研报片段一起提问。问题将发送给 DeepSeek。" : "提问服务暂未连接。"}
+                </p>
               )}
-            </div>
-          </form>
+              <div className="research-assistant-compose">
+                <textarea
+                  ref={input}
+                  aria-label="输入你的问题"
+                  placeholder={expanded ? "继续提问…" : "输入你的问题…"}
+                  maxLength={maxQuestionLength}
+                  rows={expanded ? 2 : 3}
+                  value={question}
+                  disabled={!endpoint}
+                  onChange={(event) => setQuestion(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing &&
+                        event.keyCode !== 229 && !streaming) {
+                      event.preventDefault();
+                      event.currentTarget.form?.requestSubmit();
+                    }
+                  }}
+                />
+                {streaming ? (
+                  <button type="button" aria-label="停止生成" title="停止生成" onClick={stop}>
+                    <Square size={17} aria-hidden />
+                  </button>
+                ) : (
+                  <button type="submit" title="发送问题" aria-label="发送问题" disabled={!endpoint || !question.trim()}>
+                    <ArrowUp size={20} aria-hidden />
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+          <button
+            className="research-assistant-resize"
+            type="button"
+            aria-label="调整对话框宽高"
+            title="拖动或用方向键调整宽高"
+            onKeyDown={(event) => {
+              const delta = resizeKeys[event.key];
+              const bounds = panel.current?.getBoundingClientRect();
+              if (!delta || !bounds) return;
+              event.preventDefault();
+              changeSize(bounds, delta);
+            }}
+            {...dragResize}
+          >
+            <MoveDiagonal2 size={14} aria-hidden />
+          </button>
         </section>
       )}
       <button
@@ -262,9 +308,9 @@ export default function ResearchAssistant() {
         aria-label={open ? "收起 AI 提问" : "向 AI 提问"}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
-        onClick={() => open ? close() : setOpen(true)}
+        onClick={toggle}
         title={open ? "点击收起，拖动移动" : "点击提问，拖动移动"}
-        {...dragTrigger}
+        {...dragWidget}
       >
         <Mascot />
       </button>

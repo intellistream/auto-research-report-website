@@ -1,6 +1,12 @@
 .research-assistant {
+  --assistant-logo-size: min(120px, 40vw, 26dvh);
+  --assistant-gap: 12px;
+  --assistant-prompt-width: 360px;
+  --assistant-expanded-width: 600px;
+  --assistant-expanded-height: min(600px, 72dvh);
   position: fixed;
   z-index: 170;
+  display: grid;
   right: max(20px, env(safe-area-inset-right));
   bottom: max(20px, env(safe-area-inset-bottom));
   color: var(--ink-primary);
@@ -17,9 +23,9 @@
 .research-assistant .research-assistant-trigger {
   box-sizing: border-box;
   display: grid;
-  width: 60px;
-  height: 60px;
-  padding: 2px;
+  width: var(--assistant-logo-size);
+  height: var(--assistant-logo-size);
+  padding: 3px;
   border: 1px solid var(--border-strong);
   border-radius: 50%;
   background: var(--bg-surface);
@@ -62,16 +68,17 @@
 }
 
 .research-assistant-panel {
-  position: fixed;
+  position: absolute;
   z-index: 1;
-  right: max(20px, env(safe-area-inset-right));
-  bottom: calc(max(20px, env(safe-area-inset-bottom)) + 72px);
+  right: 0;
+  bottom: calc(100% + var(--assistant-gap));
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  width: min(360px, calc(100vw - 40px));
-  max-height: calc(100dvh - 24px);
-  overflow: auto;
+  width: var(--assistant-prompt-width);
+  max-width: calc(100dvw - 24px);
+  max-height: max(0px, calc(100dvh - var(--assistant-logo-size) - var(--assistant-gap) - 24px));
+  overflow: hidden;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-xl);
@@ -79,8 +86,80 @@
 }
 
 .research-assistant-panel.is-expanded {
-  width: min(600px, calc(100vw - 40px));
-  height: min(600px, 72dvh);
+  width: var(--assistant-expanded-width);
+  height: var(--assistant-expanded-height);
+}
+
+.research-assistant[data-side="below"] .research-assistant-panel {
+  top: calc(100% + var(--assistant-gap));
+  bottom: auto;
+}
+
+.research-assistant[data-align="left"] .research-assistant-panel {
+  right: auto;
+  left: 0;
+}
+
+.research-assistant-panel-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}
+
+.research-assistant .research-assistant-resize {
+  position: absolute;
+  z-index: 2;
+  top: 1px;
+  left: 1px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-tertiary);
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.research-assistant-resize:hover,
+.research-assistant-resize:focus-visible {
+  background: var(--bg-hover);
+  color: var(--ink-primary);
+}
+
+.research-assistant[data-align="left"] .research-assistant-resize {
+  right: 1px;
+  left: auto;
+}
+
+.research-assistant[data-side="below"] .research-assistant-resize {
+  top: auto;
+  bottom: 1px;
+}
+
+.research-assistant[data-side="above"][data-align="left"] .research-assistant-resize,
+.research-assistant[data-side="below"][data-align="right"] .research-assistant-resize {
+  cursor: nesw-resize;
+}
+
+.research-assistant[data-side="above"][data-align="left"] .research-assistant-resize svg,
+.research-assistant[data-side="below"][data-align="right"] .research-assistant-resize svg {
+  transform: rotate(90deg);
+}
+
+.research-assistant[data-side="above"][data-align="right"] .research-assistant-drag-handle {
+  padding-left: 36px;
+}
+
+.research-assistant[data-side="above"][data-align="left"] .research-assistant-header {
+  padding-right: 36px;
+}
+
+.research-assistant[data-side="below"] .research-assistant-form {
+  padding-bottom: 34px;
 }
 
 .research-assistant-header {
@@ -195,6 +274,7 @@
 
 .research-assistant-form {
   flex-shrink: 0;
+  margin-top: auto;
   padding: 13px 15px 15px;
 }
 
@@ -255,13 +335,10 @@
 
 @media (max-width: 520px) {
   .research-assistant {
+    --assistant-prompt-width: 420px;
+    --assistant-expanded-width: 420px;
     right: max(12px, env(safe-area-inset-right));
     bottom: max(12px, env(safe-area-inset-bottom));
-  }
-
-  .research-assistant-panel,
-  .research-assistant-panel.is-expanded {
-    width: min(420px, calc(100vw - 24px - env(safe-area-inset-right) - env(safe-area-inset-left)));
   }
 
   .research-assistant-compose textarea {
