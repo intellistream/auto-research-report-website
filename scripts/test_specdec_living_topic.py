@@ -21,9 +21,9 @@ class SpecDecLivingTopic(unittest.TestCase):
         cls.acl = next(t for t in index["topics"] if t["id"] == "aclgraph")
         cls.survey = json.loads(SOURCE.read_text(encoding="utf-8"))
 
-    def test_versioned_synthesis_carries_paperless_report(self):
-        self.assertNotIn("academicPaper", self.topic)
-        self.assertNotIn("paperVersion", self.survey)
+    def test_versioned_synthesis_tracks_academic_paper_and_report(self):
+        self.assertIn("academicPaper", self.topic)
+        self.assertEqual(self.survey["paperVersion"], self.topic["academicPaper"]["version"])
         self.assertEqual(self.topic["survey"], self.survey)
         self.assertEqual(self.survey["reportVersion"], self.topic["report"]["version"])
         self.assertIs(validate_survey(self.survey, self.topic, INDEX.parent), self.survey)
@@ -60,7 +60,7 @@ class SpecDecLivingTopic(unittest.TestCase):
             validate_survey(invalid, self.topic)
         spoof = deepcopy(self.survey)
         spoof["paperVersion"] = "f" * 64
-        with self.assertRaisesRegex(ValueError, "no frozen academic paper"):
+        with self.assertRaisesRegex(ValueError, "different version"):
             validate_survey(spoof, self.topic)
 
 
