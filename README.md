@@ -108,6 +108,8 @@ python scripts/import-docx.py "/path/to/daily-reports.zip" --web-only --output p
 
 首次部署前需在仓库 Settings → Pages → Source 选择 “GitHub Actions”。项目站点地址为 `https://intellistream.github.io/auto-research-report-website/`，因此构建时把 `VITE_BASE_PATH` 设为 `/<repo>/`；改用自定义域名时改为 `/`。
 
+右下角的「AI 提问」使用 [研报助手后端](https://github.com/intellistream/auto-research-report-super-intelligence-backend)。在仓库的 Actions variables 中设置 `VITE_CHAT_API_URL` 为完整的 HTTPS 接口地址（含 `/api/chat`），然后重新运行 Website 工作流。开发环境默认请求 `http://127.0.0.1:8765/api/chat`，也可通过同名环境变量指定地址。
+
 ## v2.0 系统日报
 
 系统日报覆盖北京时间已结束的自然日，来源为 vLLM 和 vLLM Ascend 的当日合入 PR。网站接收运行目录中的 `manifest.json`、`report.json`、`flow.png`。这三个文件须来自同一次生成。

@@ -16,6 +16,7 @@ import {
 import { Link, NavLink, useLocation } from "react-router-dom";
 import type { Catalog } from "../pages/report-preview-data";
 import CommandSearchModal from "./CommandSearchModal";
+import ResearchAssistant from "./ResearchAssistant";
 import "./shell.css";
 
 function getInitialTheme(): "light" | "dark" {
@@ -297,6 +298,7 @@ export default function SiteLayout({
         days={days}
         catalog={catalog}
       />
+      <ResearchAssistant />
     </div>
   );
 }
