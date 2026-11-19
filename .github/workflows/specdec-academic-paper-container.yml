@@ -5,6 +5,16 @@ on:
     branches: [research/specdec-academic-survey-20261118]
     paths:
       - .github/workflows/specdec-academic-paper-container.yml
+      - topics/speculative-decoding/paper/paper.md
+      - topics/speculative-decoding/paper/references.bib
+      - topics/speculative-decoding/paper/paper-header.tex
+      - topics/speculative-decoding/paper/paper.css
+      - topics/speculative-decoding/paper/build.sh
+      - topics/speculative-decoding/paper/figures/*.tex
+      - scripts/publish-specdec-paper.py
+      - src/pages/SpecDecTopic.tsx
+      - src/pages/TopicAcademicPaper.tsx
+      - src/pages/specdec-living.test.tsx
   workflow_dispatch:
 
 permissions:
@@ -44,6 +54,13 @@ jobs:
           pdftotext topics/speculative-decoding/paper/paper.pdf /tmp/specdec-text.txt
           grep -q '参考文献' /tmp/specdec-text.txt
           grep -q '正确性' /tmp/specdec-text.txt
+          pages=$(pdfinfo topics/speculative-decoding/paper/paper.pdf | awk '/^Pages:/ {print $2}')
+          middle=$(( (pages + 1) / 2 ))
+          for page in 1 "$middle" "$pages"; do
+            pdftoppm -f "$page" -l "$page" -scale-to 1500 -png -singlefile \
+              topics/speculative-decoding/paper/paper.pdf "/tmp/specdec-page-$page"
+            test -s "/tmp/specdec-page-$page.png"
+          done
 
       - name: Freeze validated assets
         run: python3 scripts/publish-specdec-paper.py --publish
@@ -59,6 +76,15 @@ jobs:
           npm ci
           npm test
           npm run build
+
+      - name: Attach PDF and representative page renders for inspection
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: specdec-academic-paper-pages
+          path: |
+            topics/speculative-decoding/paper/paper.pdf
+            /tmp/specdec-page-*.png
+          retention-days: 14
 
       - name: Commit generated academic paper
         run: |
