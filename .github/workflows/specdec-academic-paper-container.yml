@@ -36,6 +36,8 @@ jobs:
 
       - name: Verify generated PDF and source
         run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends poppler-utils
           test -s topics/speculative-decoding/paper/paper.html
           test -s topics/speculative-decoding/paper/paper.pdf
           pdfinfo topics/speculative-decoding/paper/paper.pdf
