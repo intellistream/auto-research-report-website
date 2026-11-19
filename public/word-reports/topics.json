@@ -943,46 +943,46 @@
           "图资产恢复"
         ],
         "literatureCutoff": "2026-11-15",
-        "manuscriptRevision": "R2-taxonomy-20261119",
-        "version": "298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989",
+        "manuscriptRevision": "R2.1-taxonomy-examples",
+        "version": "113efe82bdd3a1ed8d9e86c6285091fefe72e24818e26f079a39a97f6244db5c",
         "assets": {
           "html": {
-            "path": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/paper.html",
-            "bytes": 1013513,
-            "sha256": "2014abb5d89d31d76e8327c47394a20e7a503677733c60bc76f1de40bc1217a6"
+            "path": "topic-papers/aclgraph/113efe82bdd3a1ed8d9e86c6285091fefe72e24818e26f079a39a97f6244db5c/paper.html",
+            "bytes": 1090967,
+            "sha256": "72366f4e47faca46ee3f9cf563d56d0d0dd5bad89ff9bc394dd8753af77189fe"
           },
           "pdf": {
-            "path": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/paper.pdf",
-            "bytes": 482040,
-            "sha256": "6843a3ea9e6b47ba2337b2ec0255c3e0d805a9d6bfe9c294297693456cda089c"
+            "path": "topic-papers/aclgraph/113efe82bdd3a1ed8d9e86c6285091fefe72e24818e26f079a39a97f6244db5c/paper.pdf",
+            "bytes": 493897,
+            "sha256": "468aee99f4e1b64edce29c85fb49ff11d7bbdc2f60e7ac445b9507ec69d2d1ea"
           },
           "markdown": {
-            "path": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/paper.md",
-            "bytes": 58173,
-            "sha256": "fe698ab425dba6d1ca73fc3eb8d168f20c1bb743de356a79b5ce6252947cef14"
+            "path": "topic-papers/aclgraph/113efe82bdd3a1ed8d9e86c6285091fefe72e24818e26f079a39a97f6244db5c/paper.md",
+            "bytes": 58449,
+            "sha256": "5689d05febeb8cb7f1a5e8585e3bd8fa23717265cde903c56ebc118116bc6e51"
           },
           "latex": {
-            "path": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/paper.tex",
-            "bytes": 90987,
-            "sha256": "2ef7d60b80dbf572abdfc1aa727e6257ac0eadfa664a2d14b9c8f1aa9c44e4d9"
+            "path": "topic-papers/aclgraph/113efe82bdd3a1ed8d9e86c6285091fefe72e24818e26f079a39a97f6244db5c/paper.tex",
+            "bytes": 91548,
+            "sha256": "43810b8e8cf0139dfb5b63fede666ea39819540bbcbc3c16ac9e9d889ae8e18e"
           },
           "bibtex": {
-            "path": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/references.bib",
-            "bytes": 20928,
-            "sha256": "1228abbab75d3bb967e64071b89a48ffe51ade637cc092e44051374e77f240d3"
+            "path": "topic-papers/aclgraph/113efe82bdd3a1ed8d9e86c6285091fefe72e24818e26f079a39a97f6244db5c/references.bib",
+            "bytes": 21143,
+            "sha256": "f2c23a8303f7a96daf4f70aa947ddd8fe994474648b5172060c260eae13b4b70"
           },
           "sources": {
-            "path": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/sources.zip",
-            "bytes": 389547,
-            "sha256": "60c2a5bd2c80a109fe673409ec0e6a07bd7eb28d6d36d344e58d0c8561ae710a"
+            "path": "topic-papers/aclgraph/113efe82bdd3a1ed8d9e86c6285091fefe72e24818e26f079a39a97f6244db5c/sources.zip",
+            "bytes": 418112,
+            "sha256": "cef9ca766cd2252a7c8fbcbd35b8415f01d182e023dfd6eb969b036a0dcc6367"
           }
         },
-        "manifestPath": "topic-papers/aclgraph/298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989/manifest.json"
+        "manifestPath": "topic-papers/aclgraph/113efe82bdd3a1ed8d9e86c6285091fefe72e24818e26f079a39a97f6244db5c/manifest.json"
       },
       "survey": {
         "schemaVersion": 1,
         "reportVersion": "6dd5554a521e6faeb3477353dd6258a54089733402109dec9c3555eb67ba1d66",
-        "paperVersion": "298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989",
+        "paperVersion": "113efe82bdd3a1ed8d9e86c6285091fefe72e24818e26f079a39a97f6244db5c",
         "reviewedAt": "2026-11-19",
         "thesis": "分类单位是一项具体机制。按它直接改变的执行决策归类，同一系统的不同机制可以分属多类。",
         "routes": [
@@ -1015,8 +1015,24 @@
             "paperSection": "1",
             "paperAnchor": "capture",
             "examples": {
-              "ascend": "xLLM 捕获 FFN、LayerNorm 等模块",
-              "gpu": "IOS 搜索算子阶段划分"
+              "ascend": {
+                "detail": "将 FFN、LayerNorm 等模块捕获为部分图。",
+                "works": [
+                  {
+                    "label": "xLLM 技术报告",
+                    "url": "https://arxiv.org/abs/2510.14686v2"
+                  }
+                ]
+              },
+              "gpu": {
+                "detail": "搜索算子的阶段划分。",
+                "works": [
+                  {
+                    "label": "IOS",
+                    "url": "https://proceedings.mlsys.org/paper_files/paper/2021/hash/1f8053a67ec8e0b57455713cefdd8218-Abstract.html"
+                  }
+                ]
+              }
             }
           },
           {
@@ -1048,8 +1064,24 @@
             "paperSection": "2",
             "paperAnchor": "selection",
             "examples": {
-              "ascend": "vLLM-Ascend 按批次描述符选图",
-              "gpu": "FlashInfer 按 KV 配置选图"
+              "ascend": {
+                "detail": "为 DFlash2 草稿选用完整图，注意力后端不兼容时回退。",
+                "works": [
+                  {
+                    "label": "vLLM-Ascend PR #20279",
+                    "url": "https://github.com/vllm-project/vllm-ascend/pull/20279"
+                  }
+                ]
+              },
+              "gpu": {
+                "detail": "按当前 KV 缓存配置选图。",
+                "works": [
+                  {
+                    "label": "FlashInfer",
+                    "url": "https://proceedings.mlsys.org/paper_files/paper/2025/hash/dbf02b21d77409a2db30e56866a8ab3a-Abstract-Conference.html"
+                  }
+                ]
+              }
             }
           },
           {
@@ -1085,8 +1117,24 @@
             "paperSection": "3",
             "paperAnchor": "replay-state",
             "examples": {
-              "ascend": "torch_npu 更新任务组参数",
-              "gpu": "FlashInfer 在 CPU 规划、GPU 消费"
+              "ascend": {
+                "detail": "复用设备上的查询边界，省去重复拷贝。",
+                "works": [
+                  {
+                    "label": "vLLM-Ascend PR #21191",
+                    "url": "https://github.com/vllm-project/vllm-ascend/pull/21191"
+                  }
+                ]
+              },
+              "gpu": {
+                "detail": "CPU 生成本轮计划，GPU 在图内读取。",
+                "works": [
+                  {
+                    "label": "FlashInfer",
+                    "url": "https://proceedings.mlsys.org/paper_files/paper/2025/hash/dbf02b21d77409a2db30e56866a8ab3a-Abstract-Conference.html"
+                  }
+                ]
+              }
             }
           },
           {
@@ -1115,8 +1163,24 @@
             "paperSection": "4",
             "paperAnchor": "scheduling",
             "examples": {
-              "ascend": "WKV 投影与 MoE 专家分发重叠",
-              "gpu": "NanoFlow 搜索并行与资源配置"
+              "ascend": {
+                "detail": "让 WKV 投影与 MoE 专家分发重叠执行。",
+                "works": [
+                  {
+                    "label": "vLLM-Ascend PR #19716",
+                    "url": "https://github.com/vllm-project/vllm-ascend/pull/19716"
+                  }
+                ]
+              },
+              "gpu": {
+                "detail": "根据算子间的干扰选择流水与资源配置。",
+                "works": [
+                  {
+                    "label": "NanoFlow",
+                    "url": "https://www.usenix.org/conference/osdi25/presentation/zhu-kan"
+                  }
+                ]
+              }
             }
           },
           {
@@ -1146,8 +1210,28 @@
             "paperSection": "5",
             "paperAnchor": "lifecycle",
             "examples": {
-              "ascend": "图预热期间准备静态内核",
-              "gpu": "Medusa 恢复绑定，Foundry 重建环境"
+              "ascend": {
+                "detail": "在图预热期间准备静态内核。",
+                "works": [
+                  {
+                    "label": "vLLM-Ascend PR #21373",
+                    "url": "https://github.com/vllm-project/vllm-ascend/pull/21373"
+                  }
+                ]
+              },
+              "gpu": {
+                "detail": "Medusa 恢复地址绑定，Foundry 重建执行环境。",
+                "works": [
+                  {
+                    "label": "Medusa",
+                    "url": "https://minhui-xie.github.io/papers/asplos25-medusa.pdf"
+                  },
+                  {
+                    "label": "Foundry",
+                    "url": "https://arxiv.org/abs/2604.06664v1"
+                  }
+                ]
+              }
             }
           }
         ],

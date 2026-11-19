@@ -96,7 +96,7 @@ describe("academic manuscript branch", () => {
   });
   it("opens the taxonomy and links all five branches to their frozen chapters", () => {
     const actual = publishedTopic.academicPaper!;
-    expect(actual.manuscriptRevision).toBe("R2-taxonomy-20261119");
+    expect(actual.manuscriptRevision).toBe("R2.1-taxonomy-examples");
     const hrefs = academicPaperHrefs("aclgraph", actual)!;
     const html = render("/topics/aclgraph?view=paper", publishedTopic);
     expect(html).toContain("ACLGraph 技术分类总图");

@@ -1,11 +1,16 @@
 import type { Topic } from "./TopicPages";
 import { safeTopicSource } from "./topic-report";
 
+export type PlatformExample = string | {
+  detail: string;
+  works: { label: string; url: string }[];
+};
+
 export type SurveyRoute = {
   id: string; title: string; problem: string; mechanism: string[];
   assessment: string; limitation: string; sourceIds: string[]; evidenceIds: string[]; gapIds: string[];
   paperSection?: string; paperAnchor?: string;
-  examples?: { ascend: string; gpu: string };
+  examples?: { ascend: PlatformExample; gpu: PlatformExample };
 };
 export type SurveyUpdateEvidence = {
   title: string; change: string; sourceIds: string[]; evidenceIds: string[];
@@ -24,6 +29,12 @@ export type TopicSurvey = {
 const text = (value: unknown): value is string => typeof value === "string" && value.trim().length > 0;
 const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every(text);
 const hash = (value: unknown): value is string => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
+
+function validExample(value: PlatformExample | undefined) {
+  if (typeof value === "string") return text(value);
+  return !!value && text(value.detail) && Array.isArray(value.works) && value.works.length > 0
+    && value.works.every((work) => work && text(work.label) && text(work.url) && safeTopicSource(work.url));
+}
 
 /** Reject stale editorial judgments and broken citations before displaying them. */
 export function validatedSurvey(topic: Topic): TopicSurvey | undefined {
@@ -55,7 +66,7 @@ export function validatedSurvey(topic: Topic): TopicSurvey | undefined {
     if (!route || !text(route.id) || !/^[a-z0-9][a-z0-9-]*$/.test(route.id) || routeIds.has(route.id)
       || ![route.title, route.problem, route.assessment, route.limitation].every(text)
       || !strings(route.mechanism) || !route.mechanism.length || !strings(route.gapIds) || !linksValid(route)
-      || (route.examples !== undefined && (!text(route.examples?.ascend) || !text(route.examples?.gpu)))) return;
+      || (route.examples !== undefined && (!validExample(route.examples?.ascend) || !validExample(route.examples?.gpu)))) return;
     routeIds.add(route.id);
   }
   if (!survey.update.evidence.every((item) => item && text(item.title) && text(item.change) && linksValid(item))

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "reportVersion": "6dd5554a521e6faeb3477353dd6258a54089733402109dec9c3555eb67ba1d66",
-  "paperVersion": "298e87d34148a5f817c75b767fc8ad73e4ccc695c89d8aa37edae01c83163989",
+  "paperVersion": "113efe82bdd3a1ed8d9e86c6285091fefe72e24818e26f079a39a97f6244db5c",
   "reviewedAt": "2026-11-19",
   "thesis": "分类单位是一项具体机制。按它直接改变的执行决策归类，同一系统的不同机制可以分属多类。",
   "routes": [
@@ -18,8 +18,24 @@
       "paperSection": "1",
       "paperAnchor": "capture",
       "examples": {
-        "ascend": "xLLM 捕获 FFN、LayerNorm 等模块",
-        "gpu": "IOS 搜索算子阶段划分"
+        "ascend": {
+          "detail": "将 FFN、LayerNorm 等模块捕获为部分图。",
+          "works": [
+            {
+              "label": "xLLM 技术报告",
+              "url": "https://arxiv.org/abs/2510.14686v2"
+            }
+          ]
+        },
+        "gpu": {
+          "detail": "搜索算子的阶段划分。",
+          "works": [
+            {
+              "label": "IOS",
+              "url": "https://proceedings.mlsys.org/paper_files/paper/2021/hash/1f8053a67ec8e0b57455713cefdd8218-Abstract.html"
+            }
+          ]
+        }
       }
     },
     {
@@ -35,8 +51,24 @@
       "paperSection": "2",
       "paperAnchor": "selection",
       "examples": {
-        "ascend": "vLLM-Ascend 按批次描述符选图",
-        "gpu": "FlashInfer 按 KV 配置选图"
+        "ascend": {
+          "detail": "为 DFlash2 草稿选用完整图，注意力后端不兼容时回退。",
+          "works": [
+            {
+              "label": "vLLM-Ascend PR #20279",
+              "url": "https://github.com/vllm-project/vllm-ascend/pull/20279"
+            }
+          ]
+        },
+        "gpu": {
+          "detail": "按当前 KV 缓存配置选图。",
+          "works": [
+            {
+              "label": "FlashInfer",
+              "url": "https://proceedings.mlsys.org/paper_files/paper/2025/hash/dbf02b21d77409a2db30e56866a8ab3a-Abstract-Conference.html"
+            }
+          ]
+        }
       }
     },
     {
@@ -52,8 +84,24 @@
       "paperSection": "3",
       "paperAnchor": "replay-state",
       "examples": {
-        "ascend": "torch_npu 更新任务组参数",
-        "gpu": "FlashInfer 在 CPU 规划、GPU 消费"
+        "ascend": {
+          "detail": "复用设备上的查询边界，省去重复拷贝。",
+          "works": [
+            {
+              "label": "vLLM-Ascend PR #21191",
+              "url": "https://github.com/vllm-project/vllm-ascend/pull/21191"
+            }
+          ]
+        },
+        "gpu": {
+          "detail": "CPU 生成本轮计划，GPU 在图内读取。",
+          "works": [
+            {
+              "label": "FlashInfer",
+              "url": "https://proceedings.mlsys.org/paper_files/paper/2025/hash/dbf02b21d77409a2db30e56866a8ab3a-Abstract-Conference.html"
+            }
+          ]
+        }
       }
     },
     {
@@ -69,8 +117,24 @@
       "paperSection": "4",
       "paperAnchor": "scheduling",
       "examples": {
-        "ascend": "WKV 投影与 MoE 专家分发重叠",
-        "gpu": "NanoFlow 搜索并行与资源配置"
+        "ascend": {
+          "detail": "让 WKV 投影与 MoE 专家分发重叠执行。",
+          "works": [
+            {
+              "label": "vLLM-Ascend PR #19716",
+              "url": "https://github.com/vllm-project/vllm-ascend/pull/19716"
+            }
+          ]
+        },
+        "gpu": {
+          "detail": "根据算子间的干扰选择流水与资源配置。",
+          "works": [
+            {
+              "label": "NanoFlow",
+              "url": "https://www.usenix.org/conference/osdi25/presentation/zhu-kan"
+            }
+          ]
+        }
       }
     },
     {
@@ -86,8 +150,28 @@
       "paperSection": "5",
       "paperAnchor": "lifecycle",
       "examples": {
-        "ascend": "图预热期间准备静态内核",
-        "gpu": "Medusa 恢复绑定，Foundry 重建环境"
+        "ascend": {
+          "detail": "在图预热期间准备静态内核。",
+          "works": [
+            {
+              "label": "vLLM-Ascend PR #21373",
+              "url": "https://github.com/vllm-project/vllm-ascend/pull/21373"
+            }
+          ]
+        },
+        "gpu": {
+          "detail": "Medusa 恢复地址绑定，Foundry 重建执行环境。",
+          "works": [
+            {
+              "label": "Medusa",
+              "url": "https://minhui-xie.github.io/papers/asplos25-medusa.pdf"
+            },
+            {
+              "label": "Foundry",
+              "url": "https://arxiv.org/abs/2604.06664v1"
+            }
+          ]
+        }
       }
     }
   ],

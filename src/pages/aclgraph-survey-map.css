@@ -17,11 +17,9 @@
   border-left: 4px solid var(--brand-primary);
 }
 
-.acl-taxonomy figcaption p {
-  margin: 0;
-  color: var(--ink-secondary);
-  line-height: 1.65;
-}
+.acl-example-works { display: flex; flex-wrap: wrap; gap: .15rem .8rem; font-weight: 650; }
+.acl-example-works a { text-decoration: underline; text-underline-offset: .18em; }
+.acl-example-detail { margin-top: .15rem; color: var(--ink-secondary); font-size: .85rem; }
 
 .acl-taxonomy-columns,
 .acl-taxonomy-branches li {
@@ -71,6 +69,7 @@
   .acl-taxonomy-branches { margin-top: .9rem; }
   .acl-taxonomy-branches li { grid-template-columns: 1fr; gap: .3rem; padding-left: 1rem; }
   .acl-taxonomy-branches li > div { font-size: .84rem; }
+  .acl-taxonomy-example { margin-top: .3rem; }
   .acl-platform-label { position: static; width: auto; height: auto; clip-path: none; font-weight: 650; margin-right: .5rem; color: var(--ink-secondary); }
 }
 

@@ -132,7 +132,16 @@ def validate_survey(survey, topic, archive=None):
         if "examples" in row:
             require(isinstance(row["examples"], dict), "route.examples: object required")
             for platform in ("ascend", "gpu"):
-                text(row["examples"].get(platform), f"route.examples.{platform}")
+                example = row["examples"].get(platform)
+                field = f"route.examples.{platform}"
+                if isinstance(example, str):
+                    text(example, field)
+                else:
+                    require(isinstance(example, dict), f"{field}: example required")
+                    text(example.get("detail"), f"{field}.detail")
+                    for work in records(example.get("works"), f"{field}.works"):
+                        text(work.get("label"), f"{field}.works.label")
+                        public_url(work.get("url"), f"{field}.works.url")
         if paper:
             for field in ("paperSection", "paperAnchor"):
                 text(row.get(field), f"route.{field}")
