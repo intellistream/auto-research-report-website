@@ -15,26 +15,32 @@ function render(path: string): string {
 }
 
 describe("SpecDec novice-to-research reading contract", () => {
-  it("binds a report-only editorial survey without fabricating an academic PDF", () => {
-    expect(spec.academicPaper).toBeUndefined();
+  it("binds the manuscript and reviewed report to their respective frozen versions", () => {
+    expect(spec.academicPaper).toBeDefined();
+    expect(spec.academicPaper!.version).toMatch(/^[a-f0-9]{64}$/);
     expect(spec.survey).toEqual(reviewedSurvey);
+    expect(spec.survey!.paperVersion).toBe(spec.academicPaper!.version);
     expect(validatedSurvey(spec)).toEqual(reviewedSurvey);
     expect(readingSurvey(spec)?.routes.map(route => route.id)).toEqual([
       "candidate", "verification", "accepted-state", "runtime",
     ]);
   });
 
-  it("provides a plain-language introduction and algorithmic manuscript", () => {
+  it("shows the full academic paper through ACLGraph's versioned reader instead of the legacy hardcoded survey", () => {
     const guide = render("/topics/speculative-decoding");
     expect(guide).toContain("一次 Target 前向");
     expect(guide).toContain("从零开始，如何阅读本专题？");
     expect(guide).toContain("view=paper");
     const paper = render("/topics/speculative-decoding?view=paper");
-    expect(paper).toContain("历史演进：每一代方法改变了哪项成本");
-    expect(paper).toContain("一轮 K=3");
-    expect(paper).toContain("跨层阅读线索");
-    expect(paper).toContain(reviewedSurvey.routes[0].assessment);
-    expect(paper).toContain("参考文献与原始工程来源");
+    expect(paper).toContain(spec.academicPaper!.title);
+    expect(paper).toContain("完整正文");
+    expect(paper).toContain("下载同版 PDF");
+    expect(paper).toContain(spec.academicPaper!.version);
+    expect(paper).toContain("paper.html");
+    expect(paper).toContain("references.bib");
+    expect(paper).not.toContain("一轮 K=3");
+    expect(paper).not.toContain("历史演进：每一代方法改变了哪项成本");
+    expect(paper).not.toContain("specdec-manuscript");
   });
 
   it("keeps eight substantive chapters in the same nested collapsible reader as ACL", () => {

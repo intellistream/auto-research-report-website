@@ -1,0 +1,32 @@
+\documentclass[tikz,border=7pt]{standalone}
+\usepackage[UTF8,fontset=none]{ctex}
+\setCJKmainfont{Noto Sans CJK SC}
+\usetikzlibrary{arrows.meta,positioning}
+\definecolor{ink}{HTML}{234158}
+\definecolor{wash}{HTML}{EDF4F8}
+\definecolor{line}{HTML}{547084}
+\begin{document}
+\begin{tikzpicture}[
+  font=\small, arr/.style={-{Latex[length=2mm]},semithick,line},
+  box/.style={draw=line,rounded corners=2pt,minimum width=37mm,
+    minimum height=11mm,align=center,fill=wash,text=ink},
+  commitstep/.style={draw=line,rounded corners=2pt,minimum width=54mm,
+    minimum height=11mm,align=center,text=ink},
+  node distance=4mm and 7mm
+]
+\node[box] (kv) {逐位置 KV};
+\node[commitstep,right=of kv] (kvop) {选择接受路径上的有效行};
+\node[box,right=of kvop] (kvnew) {更新逻辑映射};
+\node[box,below=of kv] (rec) {循环检查点};
+\node[commitstep,right=of rec] (recop) {以接受路径因子重建或重放};
+\node[box,right=of recop] (recnew) {物化接受状态};
+\draw[arr] (kv) -- (kvop);
+\draw[arr] (kvop) -- (kvnew);
+\draw[arr] (rec) -- (recop);
+\draw[arr] (recop) -- (recnew);
+\node[commitstep,below=5mm of recop,minimum width=78mm,fill=wash] (finish)
+  {只发布合法前缀及对应的待处理 token};
+\draw[arr] (kvnew.east) -- ++(4mm,0) |- (finish.east);
+\draw[arr] (recnew.south) |- ([xshift=-11mm]finish.east);
+\end{tikzpicture}
+\end{document}

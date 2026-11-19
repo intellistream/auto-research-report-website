@@ -1,6 +1,9 @@
 .acl-topic {
+  /* Grid children with auto inline margins otherwise shrink to the paper iframe's intrinsic width. */
+  width: 100%;
   max-width: 74rem;
   min-width: 0;
+  box-sizing: border-box;
   margin-inline: auto;
   color: var(--ink-primary);
 }

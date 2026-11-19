@@ -1,0 +1,32 @@
+\documentclass[tikz,border=7pt]{standalone}
+\usepackage[UTF8,fontset=none]{ctex}
+\setCJKmainfont{Noto Sans CJK SC}
+\usetikzlibrary{arrows.meta,positioning}
+\definecolor{ink}{HTML}{234158}
+\definecolor{wash}{HTML}{EDF4F8}
+\definecolor{line}{HTML}{547084}
+\begin{document}
+\begin{tikzpicture}[
+  font=\small, arr/.style={-{Latex[length=2mm]},semithick,line},
+  box/.style={draw=line,rounded corners=2pt,minimum width=32mm,
+    minimum height=14mm,align=center,fill=wash,text=ink},
+  note/.style={align=center,font=\footnotesize,text=ink},
+  node distance=5mm
+]
+\node[box] (draft) {生成候选\\草稿 $D$};
+\node[box,right=of draft] (verify) {目标验证\\链 $K$／树 $N$};
+\node[box,right=of verify] (accept) {接受与纠正\\提交输出 $R$};
+\node[box,right=of accept] (commit) {更新有效状态\\物化边界 $c'$};
+\draw[arr] (draft) -- (verify);
+\draw[arr] (verify) -- (accept);
+\draw[arr] (accept) -- (commit);
+\node[note,above=5mm of verify,xshift=-17mm] (budget) {共享批次和形状预算};
+\node[note,above=5mm of commit] (prefix) {后续计算读取合法前缀};
+\draw[arr] (budget.south) -- (draft.north);
+\draw[arr] (budget.south) -- (verify.north);
+\draw[arr] (commit.north) -- (prefix.south);
+\draw[line,semithick] ([yshift=-6mm]draft.south west)
+  -- ++(0,-2mm) -| ([yshift=-6mm]commit.south east);
+\node[note,below=7mm of verify,xshift=18mm] {计入调度、等待与状态发布的实际关键路径时间};
+\end{tikzpicture}
+\end{document}

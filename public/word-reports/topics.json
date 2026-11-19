@@ -5632,7 +5632,9 @@
               "E1",
               "E8"
             ],
-            "gapIds": []
+            "gapIds": [],
+            "paperSection": "4",
+            "paperAnchor": "drafting"
           },
           {
             "id": "verification",
@@ -5664,7 +5666,9 @@
             "gapIds": [
               "adaptive-cost",
               "graph-budget"
-            ]
+            ],
+            "paperSection": "5",
+            "paperAnchor": "verification"
           },
           {
             "id": "accepted-state",
@@ -5699,7 +5703,9 @@
             "gapIds": [
               "accepted-state",
               "kv-residency"
-            ]
+            ],
+            "paperSection": "6",
+            "paperAnchor": "runtime"
           },
           {
             "id": "runtime",
@@ -5732,7 +5738,9 @@
             ],
             "gapIds": [
               "serving-causality"
-            ]
+            ],
+            "paperSection": "7",
+            "paperAnchor": "serving"
           }
         ],
         "update": {
@@ -5896,7 +5904,57 @@
           "github:vllm-project/vllm-ascend#21435",
           "github:vllm-project/vllm-ascend#21444",
           "github:vllm-project/vllm-ascend#21512"
-        ]
+        ],
+        "paperVersion": "16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5"
+      },
+      "academicPaper": {
+        "schemaVersion": 1,
+        "title": "面向大语言模型服务的推测解码综述",
+        "titleEn": "Speculative Decoding for Large Language Model Serving: A Survey",
+        "abstract": "推测解码利用低成本候选与目标并行验证减少自回归生成的串行调用，但接受长度提高并不必然降低在线服务的单位输出成本。本文系统梳理截至 2026 年 11 月 18 日的代表性机制与服务实现，围绕候选如何成为符合目标输出语义、具有合法执行状态且能够持续生成的有效输出建立分析框架。首先区分模型因果关系、候选拓扑与设备执行形状，阐述贪心一致、精确采样、状态提交和单位有效输出时间的共同约束；其次比较草稿来源与依赖结构、目标验证预算、Transformer KV 与循环状态的接受路径恢复，以及动态服务中的资源共享和异步重叠；最后综合配对实验与主流推理框架的执行路径，分析候选质量、真实目标工作、状态可见性和 SLO 表现之间的关系。现有证据表明，增加候选或提高接受率未必减少实际执行时间，局部状态与算子优化也可能因缓存容量、等待和请求排队而失去服务收益。本文据此提出可通过强基线检验的状态生命周期、路由感知预算、服务效用训练与跨负载迁移问题。",
+        "keywords": [
+          "推测解码",
+          "目标验证",
+          "精确采样",
+          "合法前缀状态",
+          "大语言模型服务"
+        ],
+        "literatureCutoff": "2026-11-18",
+        "manuscriptRevision": "academic-survey-review-20261119",
+        "version": "16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5",
+        "assets": {
+          "html": {
+            "path": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/paper.html",
+            "bytes": 333457,
+            "sha256": "40fb724d1b9f2e0411a68109a0dfc11925bc9428f5fc6d1886295171df09adb5"
+          },
+          "pdf": {
+            "path": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/paper.pdf",
+            "bytes": 512409,
+            "sha256": "5811ca7e5cc6fdaab280d4800df1086b38db63f0491ddc1f4cc3c5be3504e831"
+          },
+          "markdown": {
+            "path": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/paper.md",
+            "bytes": 90269,
+            "sha256": "9a8512165c4b2c706fed2e7948c5d051cc7ed77b147620aed2224511c060bf4b"
+          },
+          "latex": {
+            "path": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/paper.tex",
+            "bytes": 129395,
+            "sha256": "f6e2e096af7ebcacc8387b84c0b8901f5e91cc22a961721d0eaada7b1ab97997"
+          },
+          "bibtex": {
+            "path": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/references.bib",
+            "bytes": 22829,
+            "sha256": "d83a0f9f0461596b2e6e1ccb3aab54e1759edb9cb0b6fe4f11efbbda056ad83c"
+          },
+          "sources": {
+            "path": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/sources.zip",
+            "bytes": 238259,
+            "sha256": "e344a3cdbb23edaf8aa1b8b1ea34ec38f673dfa399eec7a38870984025884fec"
+          }
+        },
+        "manifestPath": "topic-papers/speculative-decoding/16b45afb020650d9b0fbf57f18a555e9b2a5d6bf8f349468f94196daa1d413d5/manifest.json"
       }
     }
   ]
