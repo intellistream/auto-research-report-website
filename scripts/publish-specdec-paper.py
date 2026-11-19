@@ -51,6 +51,32 @@ def main():
         paper = next(topic for topic in candidate["topics"] if topic["id"] == TOPIC)["academicPaper"]
         survey = json.loads(SURVEY.read_text(encoding="utf-8"))
         survey["paperVersion"] = paper["version"]
+        # A living topic survey is bound to both its report and its current
+        # academic paper; every route must point to a real Pandoc heading.
+        section_by_route = {
+            "candidate": ("4", "drafting"),
+            "verification": ("5", "verification"),
+            "accepted-state": ("6", "runtime"),
+            "runtime": ("7", "serving"),
+        }
+        route_ids = {route["id"] for route in survey["routes"]}
+        if route_ids != section_by_route.keys():
+            raise SystemExit("SpecDec survey routes changed; update paper binding explicitly")
+        for route in survey["routes"]:
+            route["paperSection"], route["paperAnchor"] = section_by_route[route["id"]]
+        from html.parser import HTMLParser
+
+        class HeadingIds(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.ids = set()
+            def handle_starttag(self, tag, attrs):
+                if tag in {"h1", "h2", "h3"}:
+                    self.ids.update(value for key, value in attrs if key == "id")
+        headings = HeadingIds()
+        headings.feed((src / "paper.html").read_text(encoding="utf-8"))
+        if not all(route["paperAnchor"] in headings.ids for route in survey["routes"]):
+            raise SystemExit("Survey route is not a heading in the frozen academic paper")
         next(topic for topic in candidate["topics"] if topic["id"] == TOPIC)["survey"] = survey
         relative = Path("topic-papers") / TOPIC / paper["version"]
         src = staging / "word-reports" / relative
