@@ -84,7 +84,7 @@ export default function AclGraphTopic({ topic }: { topic: Topic }) {
       {sections.map(({ id, label, search }) =>
         <Link key={id} to={{ pathname: path, search }} aria-current={section === id ? "page" : undefined}>{label}</Link>)}
     </nav>
-    {section === "guide" && <AclGraphGuide topic={topic} />}
+    {section === "guide" && <AclGraphGuide />}
     {section === "paper" && (topic.academicPaper
       ? <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} embedded />
       : <p>综述准备中。</p>)}
