@@ -14,6 +14,8 @@ on:
       - scripts/publish-specdec-paper.py
       - src/pages/SpecDecTopic.tsx
       - src/pages/TopicAcademicPaper.tsx
+      - src/pages/aclgraph-topic.css
+      - src/pages/topic-academic-paper.css
       - src/pages/specdec-living.test.tsx
   workflow_dispatch:
 
