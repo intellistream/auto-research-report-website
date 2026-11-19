@@ -32,7 +32,9 @@
         "E1",
         "E8"
       ],
-      "gapIds": []
+      "gapIds": [],
+      "paperSection": "4",
+      "paperAnchor": "drafting"
     },
     {
       "id": "verification",
@@ -64,7 +66,9 @@
       "gapIds": [
         "adaptive-cost",
         "graph-budget"
-      ]
+      ],
+      "paperSection": "5",
+      "paperAnchor": "verification"
     },
     {
       "id": "accepted-state",
@@ -99,7 +103,9 @@
       "gapIds": [
         "accepted-state",
         "kv-residency"
-      ]
+      ],
+      "paperSection": "6",
+      "paperAnchor": "runtime"
     },
     {
       "id": "runtime",
@@ -132,7 +138,9 @@
       ],
       "gapIds": [
         "serving-causality"
-      ]
+      ],
+      "paperSection": "7",
+      "paperAnchor": "serving"
     }
   ],
   "update": {
@@ -296,5 +304,6 @@
     "github:vllm-project/vllm-ascend#21435",
     "github:vllm-project/vllm-ascend#21444",
     "github:vllm-project/vllm-ascend#21512"
-  ]
+  ],
+  "paperVersion": "eea409e10bfa574e842a0e6af32513dd5a017679a2d295a35963291ff95929b3"
 }
