@@ -6,13 +6,13 @@ lang: zh-CN
 
 ## 摘要 {.unnumbered #abstract-zh}
 
-推测解码利用低成本候选与目标并行验证减少自回归生成的串行调用，但接受长度提高并不必然降低在线服务的单位输出成本。本文综述截至 2026 年 11 月 18 日的代表性研究和固定版本实现，围绕候选如何成为**符合目标输出语义、具有合法执行状态且能够持续生成的有效输出**建立分析框架。首先区分模型因果关系、候选拓扑与设备执行形状，阐述贪心一致、精确采样、状态提交和单位有效输出时间的共同约束；其次比较草稿来源与依赖结构、目标验证预算、Transformer KV 与循环状态的接受路径恢复，以及动态服务中的资源共享和异步重叠；最后依据匹配的作者实验与版本化源码，综合分析候选质量、真实目标工作、状态可见性和 SLO 表现之间的关系。现有证据表明，增加候选或提高接受率未必减少实际执行时间，局部状态与算子优化也可能因缓存容量、等待和请求排队而失去服务收益。本文据此提出可通过强基线检验的状态生命周期、路由感知预算、服务效用训练与跨负载迁移问题。
+推测解码利用低成本候选与目标并行验证减少自回归生成的串行调用，但接受长度提高并不必然降低在线服务的单位输出成本。本文系统梳理截至 2026 年 11 月 18 日的代表性机制与服务实现，围绕候选如何成为**符合目标输出语义、具有合法执行状态且能够持续生成的有效输出**建立分析框架。首先区分模型因果关系、候选拓扑与设备执行形状，阐述贪心一致、精确采样、状态提交和单位有效输出时间的共同约束；其次比较草稿来源与依赖结构、目标验证预算、Transformer KV 与循环状态的接受路径恢复，以及动态服务中的资源共享和异步重叠；最后综合配对实验与主流推理框架的执行路径，分析候选质量、真实目标工作、状态可见性和 SLO 表现之间的关系。现有证据表明，增加候选或提高接受率未必减少实际执行时间，局部状态与算子优化也可能因缓存容量、等待和请求排队而失去服务收益。本文据此提出可通过强基线检验的状态生命周期、路由感知预算、服务效用训练与跨负载迁移问题。
 
 **关键词：** 推测解码；目标验证；精确采样；合法前缀状态；大语言模型服务
 
 ## Abstract {.unnumbered #abstract-en}
 
-Speculative decoding reduces serial target-model invocations by combining inexpensive proposals with parallel verification. Yet a longer accepted prefix does not necessarily lower the cost per output token in an online serving system. This survey reviews representative studies and version-pinned implementations available through November 18, 2026, focusing on how speculative candidates become target-consistent outputs backed by valid execution state. We distinguish model causality, proposal topology, and device execution shape, and use a common framework to examine greedy equivalence, exact sampling, committed-prefix state, and effective output cost. We then compare proposal sources and dependencies, verification budgets, accepted-path state recovery for Transformer and recurrent layers, and resource sharing and asynchronous overlap in serving runtimes. Evidence from matched author-reported experiments and fixed implementation paths reveals three interacting boundaries: proposal quality must yield useful target progress, committed outputs must have consumable state, and local computational savings must survive actual device execution and shared-resource constraints. We formulate testable questions for state lifecycle management, routing-aware budgeting, serving-oriented draft training, and transfer across workloads and platforms. The analysis does not claim an independent benchmark or a new speculative decoding algorithm.
+Speculative decoding reduces serial target-model invocations by combining inexpensive proposals with parallel verification. Yet a longer accepted prefix does not necessarily lower the cost per output token in an online serving system. This survey reviews representative studies and version-pinned implementations available through November 18, 2026, focusing on how speculative candidates become target-consistent outputs backed by valid execution state. We distinguish model causality, proposal topology, and device execution shape, and use a common framework to examine greedy equivalence, exact sampling, committed-prefix state, and effective output cost. We then compare proposal sources and dependencies, verification budgets, accepted-path state recovery for Transformer and recurrent layers, and resource sharing and asynchronous overlap in serving runtimes. Evidence from matched author-reported experiments and fixed implementation paths reveals three interacting boundaries: proposal quality must yield useful target progress, committed outputs must have consumable state, and local computational savings must survive actual device execution and shared-resource constraints. We formulate testable questions for state lifecycle management, routing-aware budgeting, serving-oriented draft training, and transfer across workloads and platforms. The resulting synthesis identifies the semantic and execution conditions under which speculative decoding can provide sustained serving benefits.
 
 **Keywords:** speculative decoding; target verification; exact sampling; committed-prefix state; LLM serving
 
@@ -26,31 +26,31 @@ Speculative decoding reduces serial target-model invocations by combining inexpe
 
 动态 Serving 与混合模型使状态问题成为必不可少的一环。多个请求共享执行批次，MoE 目标的专家路由使新增查询行价格不均匀，GDN 等循环层又要求拒绝后持久状态与接受路径一致。HybridSpec、Twig 和 ReplaySSM 分别展示阶段化验证、路径状态重建及检查点表示的取舍；固定运行时中接受计数、设备缓存和主机元数据的可见性也可能处于不同边界。逻辑验证成功、状态可供消费和真实关键路径缩短，需要分别建立证据。[@forespark; @hybridspec; @twig; @replayssm; @ascend-pin]
 
-已有领域综述已经建立问题与方法分类：Ji 等从草稿、验证和系统执行的性能限制审视优化，Zhao 等建立 Draft Source、Draft Geometry、Verification Fidelity 与 Runtime Execution 的跨层体系。与此不同，Xia 等的早期序列到序列研究属于具体生成方法，而非领域综述。本文不宣称首次提出端到端 co-design，也不重新构造覆盖所有方法的总目录，而聚焦于**候选如何经目标授权，转化为具有合法模型状态、可持续推进且成本可比较的输出**。[@xia; @ji2026survey; @zhao2026survey]
+相关研究已经建立了从候选质量到系统效率的多层分析路径。Ji 等以候选生成、目标验证及系统执行的约束讨论推测优化，Zhao 等进一步从 Draft Source、Draft Geometry、Verification Fidelity 和 Runtime Execution 分析方法之间的结构联系。两种视角共同表明，算法局部最优不必对应服务端到端最优。围绕这一问题，本文将研究对象进一步落实为可观察的执行过程：候选如何经过目标验证成为合法输出，相关前缀状态如何支持下一轮计算，增加的候选工作又如何改变真实设备成本。[@ji2026survey; @zhao2026survey]
 
-本文的机制综合有三个方面。首先，分离模型因果关系、候选拓扑及设备执行形状，澄清不同草稿与验证方法真正改变的依赖和代价。其次，将输出语义与已提交前缀的状态物化、发布及下一轮消费分开，以 KV、循环状态和运行时元数据为例分析有效性。最后，将真实提交进度、目标工作、前台等待和在线 SLO 放入匹配实验与固定实现共同约束的证据框架。本文不提出新算法，也不把静态源码审计或作者结果当作独立硬件复现。
+全文沿三项互相关联的机制组织。其一，区分模型因果关系、候选拓扑与设备执行形状，以判断不同草稿与验证方法改变了哪些依赖及计算。其二，联合考察输出分布、KV/循环状态的接受路径提交以及元数据的跨轮可见性，建立从输出语义到可消费执行状态的对应。其三，将目标查询行、草稿与状态成本、执行关键路径及在线 SLO 置于共同的测量边界，解释收益随模型、后端和负载变化的原因。
 
-第二节说明来源范围与版本；第三节建立正确性、状态及成本框架；第四、五节讨论候选与目标验证，第六节分析合法状态与运行时接口，第七节讨论在线服务和资源耦合。第八节综合配对证据，第九节提出可证伪的问题，最后概括适用范围。
+第二节交代文献范围与评价口径；第三节建立正确性、状态与成本模型。第四、五节分别讨论候选生成和目标验证，第六节考察合法状态及运行时接口，第七节分析动态服务与资源耦合。第八节在配对实验和跨工作比较中归纳证据，第九节讨论尚待解决的联合设计问题，最后概括全文的系统性结论。
 
 # 研究范围与文献获取 {#scope}
 
-文献的纳排与证据等级决定后续论断能够覆盖的对象。本文将算法证明、作者实验、官方能力和固定源码分开使用，并区分已有领域综述的分类贡献与本文的执行机制综合；源码中存在某项能力不等于该能力已在目标负载获得端到端收益。[@ji2026survey; @zhao2026survey]
+本文采用机制驱动的技术综述方法，在共同的生成语义与服务执行边界下比较算法研究、系统实现与实证评估。算法证明用于确定输出分布和接受路径的成立条件，运行时实现用于揭示状态生产、发布与消费的执行关系，而配对消融和在线测评用于归因实际性能变化。研究问题由这些证据的相互约束形成。[@ji2026survey; @zhao2026survey; @leviathan]
 
 ## 工作边界与纳入依据 {#selection}
 
 本文采用问题导向的叙述性技术综述，研究对象是自回归目标模型上经过提议、验证与状态提交的推测执行。纳入的研究至少须解释候选如何生成或组织、目标如何判定接受与纠正、已提交状态如何恢复，或上述步骤怎样影响 Serving 性能。训练方法仅在影响候选分布或接受路径时进入主论证；长上下文、约束生成、混合循环架构及多模态负载，用于说明特定计算与状态约束。与推测执行无直接关系的通用优化不作为核心方法比较。
 
-资料截点为 2026 年 11 月 18 日。以既有 Decoding Acceleration 索引及专题检索记录为入口，按系统名、论文题名、DOI、arXiv 编号与组合关键词追查完整方法、实验、官方文档和固定源码，再合并同一成果的首发、修订及正式版身份。本文检索以机制比较与反例核查为目的，不声称穷尽数据库，也不虚构 PRISMA 筛选流程、召回率或独立复现。[@awesome-index; @website-index]
+资料截点为 2026 年 11 月 18 日。以既有 Decoding Acceleration 索引及专题检索记录为入口，按系统名、论文题名、DOI、arXiv 编号与组合关键词追查完整方法、实验、官方文档和固定源码，再合并同一成果的首发、修订及正式版身份。检索以机制间的可比性、完整实验条件及具有解释力的反例为主要纳入依据。[@awesome-index; @website-index]
 
-每项方法首先区分候选的实际生成来源，再记录候选在验证器接口上的逻辑几何和相应输出保证。这里的 Chain、Block、Tree 与 Collection 并非按设备是否并行发射划分；候选来源、几何及 fidelity 也不能相互代替。同一方法可能继承多个接口，但其核心贡献仍以原文说明为准。这样的分类仅作为对比工具，重点在揭示候选、验证、状态与成本的关系，而非复制已有综述的分类全集。[@zhao2026survey; @specinfer; @spectr; @medusa; @dflash]
+每项方法首先区分候选的实际生成来源，再记录候选在验证器接口上的逻辑几何和相应输出保证。这里的 Chain、Block、Tree 与 Collection 并非按设备是否并行发射划分；候选来源、几何及 fidelity 也不能相互代替。同一方法可能继承多个接口，但其核心贡献仍以原文说明为准。上述分类为后文的跨层机制比较提供一致的术语，并将候选、验证、状态与成本置于不同的决策维度。[@zhao2026survey; @specinfer; @spectr; @medusa; @dflash]
 
-## 证据用途与版本对应 {#source-versions}
+## 研究证据与版本对应 {#source-versions}
 
-本文使用的原始研究承担三类证据任务。算法论文及其附录确定验证规则、概率保证和成立条件，例如单候选残差、树节点验证和整块耦合。系统论文的实验记录说明在指定模型、硬件、负载及基线下的效果，例如 Tree 验证节点预算与运行成本的关系。服务测评与失效案例用于比较延迟、吞吐、显存和基线差异。一个最优性命题通常只覆盖被定义的提议和验证问题，某个 SLO 好转也只能约束实测场景。将不同类型证据连起来，仍需核对它们是否使用同一种语义和测量边界。[@leviathan; @spectr; @blockverification; @illusion; @forespark]
+推测解码文献中的理论保证、算法组件收益和服务测评对应不同的观察范围。经典拒绝采样与 Block Verification 的推导约束候选条件分布和验证规则；树形方法的机制实验展示路径覆盖与验证行数的关系；在线 Serving 研究则在指定模型、硬件、请求流与 SLO 下测量吞吐、时延和资源竞争。这些研究构成由算法语义到系统执行的分层证据：数学保证规定可执行的状态转换，局部消融识别组件作用，配对服务测量检验总效用。[@leviathan; @spectr; @blockverification; @illusion; @forespark]
 
-同一成果的发表版和预印本按一个研究身份处理。本文从完整方法和实验所在版本取证，例如 AdaServe 使用 EuroSys 版本，EVICT 的机制描述以 EMNLP Findings 发表稿为准，ForeSpark 使用 v2，Twig 的 11 月版本与 8 月首投分别登记。HybridSpec 附录所述 ReplaySSM 对照是作者在其 SGLang 设置中的实现，本文同时查阅 ReplaySSM 的原始技术说明与后续预印本，具体证据各按其版本理解。EVICT 与 HybridSpec 的相对速度分别使用各自论文匹配的基线。[@adaserve; @evict; @forespark; @twig; @replayssm; @replayssm-blog; @hybridspec]
+同一成果的发表稿、预印本与补充材料按统一研究身份整理，具体机制与实验以实际采用的版本为准。例如 AdaServe 的服务评估、EVICT 的树预算策略、ForeSpark 的前后两阶段预算以及 Twig 的循环状态恢复分别对应不同的论文版本和实现条件。HybridSpec 对 ReplaySSM 的比较发生在相应 SGLang 评测环境中，与 ReplaySSM 的算法和工程设计形成互补说明。比较表中的 Target、Drafter、精度、采样方式、并行配置与工作负载共同确定实验的归因范围。[@adaserve; @evict; @forespark; @twig; @hybridspec; @replayssm]
 
-官方文档用于确认入口、参数和支持条件，固定源码可确定数据从哪个组件写入、由哪个组件读取以及局部顺序。工程 PR 的作者测试作为给定实现与配置的局部记录。本文讨论的 vLLM、vLLM-Ascend 和 SGLang 均绑定版本，相关执行路径在第六节展开。仍在评审的变更只用于分析拟议机制，其测量结果沿用 PR 作者口径。[@vllmdocs; @ascenddocs; @vllm-pin; @ascend-pin; @sglang-pin; @pr-recover; @pr-d2h]
+官方文档和固定版本的 vLLM、vLLM-Ascend 与 SGLang 源码进一步揭示候选行的准备、目标采样、接受计数回传和状态提交等软件路径；代码变更中的局部测量用于解释接口及执行顺序的成本。本文在第六节以这些执行机制对应前述语义与成本模型，并在第八节结合性能实验讨论哪些局部调整影响实际关键路径。[@vllmdocs; @ascenddocs; @vllm-pin; @ascend-pin; @sglang-pin; @pr-recover; @pr-d2h]
 
 # 正确性、前缀状态与单轮成本 {#framework}
 
@@ -179,7 +179,7 @@ DDTree 把 DFlash 的位置级候选用固定节点预算编成树，增加分�
 
 块并行草稿可进一步转化为树，收益取决于分叉后的条件质量。对位置边缘分数，主路径后缀的高分不能直接外推到分支路径。DForkTree 通过 n-gram PMI 补充这一条件，D3Tree 用学习得到的存活分数结合负载裁剪。另一类做法是在生成时直接恢复条件依赖，例如 DSpark 的轻量 head 与 Domino 的递归校正。二者构成可比的选择：一类花代价改进候选条件，另一类花代价仅将有价值节点送给目标。二者能否叠加取决于构造时间、目标行的边际价格和状态暂存，而非分别在不同模型上获得的接受长度。[@dforktree; @d3tree; @dspark; @domino]
 
-Table: 表 2　代表性草稿方案的核心设计选择与验证接口。这里区分核心生成机制与可能被继承的验证形状；每行仅描述所列研究的主要设计差异，不声称各工作只采用一种技术。
+Table: 表 2　代表性候选生成方法的设计对象、条件依赖与验证接口。
 
 | 研究及核心作用点 | 提议条件与关键依赖 | 主要候选结构 | 主要附加工作及验证边界 |
 |:--|:--|:--|:--|
@@ -261,7 +261,7 @@ MoE 目标使单个候选位置的边际验证费用不再由 token 数唯一决
 
 循环层的状态不能简单通过缩短逻辑序列恢复。若候选计算已经把被拒后缀写入单一递归状态张量，旧接受边界的信息可能丢失，因此需要快照、检查点重放或接受路径的紧凑因子。HybridSpec 针对链式 GDN 验证，保留按因果次序组合的候选更新因子，并在路径已知后形成持久状态；Twig 将类似问题推广到树的祖先依赖，通过选中路径重建持久状态。二者降低或重新安排状态维护开销，但分别支付链形三角表示、树索引、临时缓冲及重建费用；整个模型的因果层间依赖并未因最后提交路径可压缩而消失。[@hybridspec; @twig]
 
-接受决定与物化时点还可以分离。vLLM RecoverSSM 的开放提案将部分已接受输入保留为 pending，下一次验证前再重放并处理退出 runner 的边界。这种表示可能隐藏当前轮提交成本，却要求下一消费者接收到属于同一请求世代的检查点、输入日志和有效位置，避免重复重放、错误 slot 复用或把待处理状态发布为已完成状态。它提供一种可审查的协议选择，而不是已确认的跨配置性能结果。对混合 Transformer–GDN 模型，正确性还需同时覆盖 KV、递归与卷积状态。[@pr-recover; @hybridspec; @twig]
+接受决定与物化时点还可以分离。vLLM RecoverSSM 的开放提案将部分已接受输入保留为 pending，下一次验证前再重放并处理退出 runner 的边界。这种表示把当前轮的状态恢复费用转移到后续消费者，其正确性依赖请求世代、检查点、输入日志及有效位置的一致性，并要求在 slot 复用与请求结束时恰当地处理未物化状态。对混合 Transformer–GDN 模型，正确性还需同时覆盖 KV、递归与卷积状态。[@pr-recover; @hybridspec; @twig]
 
 [图 2](#fig-commit)比较逐位置 KV 与可重建循环状态的提交粒度。二者可以出现在同一 Target；图中的状态发布代表语义边界，不代表每条物理释放或传输必须同步完成。
 
@@ -290,7 +290,7 @@ Table: 表 4　接受后状态的表示、提交位置与约束。
 
 vLLM-Ascend 固定 `5cb98caaadeff42b5b62b996e34bb2aaa29d20fd` 的 MRV2 在继承提交路径后增加一条 CPU 消费链。独立复制流等待当前生产者流，异步回传 `num_computed_tokens` 并记录 event。`_update_seq_lens_cpu` 在读取已缓存请求对应的槽位前同步该 event，再加上本轮调度的 token 数形成 CPU 长度元数据。这表明，D2H 字节数虽小，消费者能否提前继续仍由等待集决定。后续 #21430 提议将复制发起移到设备状态提交之前，保留上一计数写入的依赖，并主张新请求写槽与旧请求 CPU 消费槽可以分开。该排序的可移植条件是生产者、消费者和槽位的真实依赖成立，不能只根据调用位置提早就判定正确。[@ascend-pin; @pr-d2h]
 
-图重放降低潜在的提交开销，能覆盖到哪一步取决于 shape、资源寿命、拷贝及后端支持。vLLM #63421 把 adaptive verification 的预算选择替换为预热的一次 Triton launch，改的是调度开销和编译停顿。Ascend #19512 的 DFlash2 Full ACLGraph 覆盖 MRV2 下的草稿前向、候选选择和草稿缓存更新，其作者评测对应 Qwen3.8-27B-W8A8、4×910B4 与 TP4。#20254 仍在评审，针对 rejection sampling 的 host launch 和图重放，特殊采样路径仍有 fallback。这些版本各自落在决策、草稿或采样热路径，具体可组合性须按目标模型、量化、图模式及硬件检查。旧版 pair 的静态证据不回答这些更新在 910B2 上是否通过。[@pr-av; @pr-graph; @pr-sampling; @ascenddocs]
+图重放降低潜在的提交开销，能覆盖到哪一步取决于 shape、资源寿命、拷贝及后端支持。vLLM #63421 把 adaptive verification 的预算选择替换为预热的一次 Triton launch，改的是调度开销和编译停顿。Ascend #19512 的 DFlash2 Full ACLGraph 覆盖 MRV2 下的草稿前向、候选选择和草稿缓存更新，其作者评测对应 Qwen3.8-27B-W8A8、4×910B4 与 TP4。#20254 仍在评审，针对 rejection sampling 的 host launch 和图重放，特殊采样路径仍有 fallback。这些版本各自落在决策、草稿或采样热路径，具体可组合性须按目标模型、量化、图模式及硬件检查。这些实现分别面向不同的量化、模型并行与硬件配置，其收益范围由相应执行条件确定。[@pr-av; @pr-graph; @pr-sampling; @ascenddocs]
 
 SGLang 为候选验证与状态提交提供了另一实现对照。其文档明确，随机验证模式与链宽、硬件后端和分离部署相关。在 SGLang 固定 DFlash runner 中，`_chain_accept_indices` 生成接受行索引，目标状态有独立的 `_update_target_mamba_state_after_verify` 路径。固定实现还会在部分设备缺乏非贪心验证时产生贪心 fallback 提示，明确指出请求分布无法保持。应用最新文档选项时须再查部署版本。[@sglangdocs; @sglang-pin]
 
@@ -300,7 +300,7 @@ SGLang 为候选验证与状态提交提供了另一实现对照。其文档明�
 
 图重放增加了地址与范围的一致性要求。捕获时通常固定部分缓冲的地址及可容纳 shape，运行时再更新有效行、位置映射或采样参数。将一个请求验证完毕后的候选长度用于选下一轮图，要确认图内消费的是对应轮次的新值；padding 行能否影响实际采样或写回取决于后端掩码和计数。TP/EP 下，计数和接受路径还必须在需要共享它们的 rank 间一致，空请求行也不能漏掉相应的通信参与条件。验证这些职责可分别观察实际图命中、输入刷新、采样与提交事件，以及请求上的 token 差分。[@flashinfer; @vllm-pin; @ascend-pin; @pr-graph]
 
-以目前固定版本及后续补丁为例，Device sampler、图重放、草稿模型与 Scheduler 的上线时间可以独立变化。能读到 rejection-sampler 路径仅表明相应源码存在，给定模型配对是否支持某种精确采样，还取决于草稿能否提供真实分布、后端是否走对应 kernel、配置是否触发替代模式等。对于移植，先在固定输入重放逐请求的 token、accept/reject 计数、合法前缀与状态事件，随后再比较图与 eager、单卡与多卡、轻载与并发。这样可以将新增收益定位到设备执行，并尽早隔离版本支持和正确性问题。[@vllm-sampler; @sglang-pin; @sglangdocs; @ascenddocs; @pr-sampling]
+Device sampler、图重放、草稿生成和请求调度能够独立演进，但一次推测轮次仍须在这些接口间保持统一的候选分布、请求状态与版本语义。精确随机采样要求 Drafter 提供相应的条件提议概率，并由实际采用的 Verifier 计算接受与纠正分布；图模式和设备后端则决定这些计算能否在同一执行路径上完成。以固定请求轨迹对照 token、accept/reject 计数、状态事件及目标输出，再比较图/eager 与并发配置，可以区分抽样语义、状态管理和实际执行成本的作用。[@vllm-sampler; @sglang-pin; @sglangdocs; @ascenddocs; @pr-sampling]
 
 # 在线服务中的预算、资源与重叠 {#serving}
 
@@ -357,7 +357,7 @@ Table: 表 5　服务控制器按照动作作用点的比较。
 
 第三条是局部计算成本到共享服务资源。Weights That Stay 主要减少特定串行草稿 head 的访存和发射，草稿 KV 量化主要缩减候选状态字节；SmartSpec、AdaServe 和 ForeSpark 则改变请求间的验证预算与达标目标。三类工作可以互补，但各自优化的资源并非等价：减少草稿字节未必释放 Target KV 容量，降低单轮延迟也不一定提高开放到达下的可承受请求率。本文据此将结果证据分为机制可实现、局部测量和服务端到端三个层级，并只在同一分母和资源边界下形成性能排序。[@weights; @draftkv; @smartspec; @adaserve; @forespark]
 
-这三条链共同约束本综述的结论：**候选的逻辑价值必须通过正确的目标验证，转化为可消费的合法状态，并在真实执行图和共享资源上释放关键路径时间**。其中任一接口出现新的等待、无效工作或状态债务，都会使单项接受长度提升失去充分解释力。这个结论是对原始研究的机制综合，不是已在某一硬件上证明的通用加速定理。
+这三条链共同揭示推测加速的系统条件：**候选的逻辑价值必须经过符合目标语义的验证，转化为可供下一轮使用的执行状态，并在设备与共享资源约束下减少有效输出的关键路径成本**。当生成、验证、状态发布或服务调度引入额外等待和无效工作时，接受长度单独增长便不足以解释最终收益。
 
 ## 对齐分母与匹配基线 {#comparison}
 
@@ -365,7 +365,7 @@ Table: 表 5　服务控制器按照动作作用点的比较。
 
 可比基线由要识别的机制决定。评估 Drafter 应匹配 Target、Verifier、候选几何及采样，评估动态预算应保留相同 Drafter 与状态路径，评估 Serving 净收益则需要同配置 AR、调优的固定推测与可运行的动态控制作为强参照。开放到达、固定并发、离线 batch 的排队和资源利用口径不同，模型、精度、TP/EP、图模式、缓存与请求长度又会移动收益反转点。因此，证据表不跨工作合成加速排名，而逐项记录可支持的判断；同一工作中出现的退化、数值分歧与资源副作用也属于需要保留的结论。[@illusion; @tabletune; @specsearch; @forespark]
 
-Table: 表 6　代表性作者实验与各自的证据边界。表中数字来自对应原文或对原表同条件数据的直接读取。
+Table: 表 6　代表性推测解码研究的实验设置、性能结果与适用范围。
 
 | 工作与定位 | 对照条件 | 可支持的判断 |
 |:--|:--|:--|
@@ -374,7 +374,7 @@ Table: 表 6　代表性作者实验与各自的证据边界。表中数字来�
 | TableTune Table 1、§6 [@tabletune] | H100，vLLM V2，闭环模型及草稿组合，对照逐负载最佳固定长度 | 五组测试中四组的校准表达到最佳固定基线吞吐的至少 94%。图模式影响表的可转移性 |
 | Twig §§VI–VII [@twig] | SGLang，A100/GB10，含 Qwen3.5 和混合模型的树验证；有离线和 Open-SWE-Traces 在线案例 | 分开测树 verifier、整模型与在线尾部时延。收益依赖状态 kernel、预算和端到端调度组合 |
 | SpecSearch Figure 2、§V [@specsearch] | Qwen3-4B、RTX 5090，vLLM AR 与 DFlash 配置，短输出、不同并发 | 在该 sweep 中 DFlash 吞吐由并发 2 的 AR 3.50 倍变成并发 64 的 0.76 倍。设备与内存校准决定排序 |
-| Draft KV quantization Table 8 [@draftkv] | Qwen2.5-3B/1.5B，1K/16K、256 输出、batch one，packed K4V4 与 BF16 SD | 实际缓存字节下降与整体峰值不变、解码变慢同时出现。该原型不等于生产在线服务 |
+| Draft KV quantization Table 8 [@draftkv] | Qwen2.5-3B/1.5B，1K/16K、256 输出、batch one，packed K4V4 与 BF16 SD | 草稿缓存字节下降，但整体峰值分配未同步变化，端到端解码时延增加；说明缓存压缩与计算价格之间存在权衡 |
 
 HybridSpec 的 Table 1 和 Table 3 给出一个直接的反例：Qwen3.6-35B-A3B 的主表平均提交量从 vanilla DFlash 的 4.79 降至 4.57，平均 AR 归一化速度却从 1.37 增至 1.83。这里的收益来自少验证与更高效的循环状态处理的组合。与此同时，附录 E.7 的同模型四客户端运行，整体吞吐只比 vanilla DFlash 高约 10%，批中请求共用一个窗口长度。对比两者应保留负载、基线和分母，避免把单请求加速推广到服务 SLO。[@hybridspec]
 
@@ -401,9 +401,11 @@ ForeSpark 对照将在线问题进一步分解。Figure 8 用匹配每用户生�
 
 另外，有些结论只能在不同工作之间做机制对照。SpecSearch 的同硬件并发扫描说明一个配置可以跨越收益反转点。Draft KV 量化的设备原型显示缓存字节减少可能与总峰值不变且整体运行变慢同时存在。TableTune 则通过图模式与固定长度对照说明执行器也会移动反转点。这三个结果分别改变负载、状态精度及执行形状的代价，彼此不能作为性能复现。它们共同约束的是解释：应给出实际有效进度、形状、KV/图预算和状态维护分项，才可能定位差异来自哪个边界。[@specsearch; @draftkv; @tabletune]
 
-## 11 月增量证据的处理 {#november}
+## 近期研究的机制演进 {#november}
 
-采用首次提交和所用版本两个时间字段可避免把修订当成新工作。HybridSpec、DForkTree、D3Tree、ForeSpark、REAL Loss、ChainFlow 和 SpecSearch 作为 11 月新预印本参与相应机制论证。Twig 从 8 月首投更新到 11 月 v2，Weights That Stay 首投为 10 月 31 日、列入 11 月序号。ForeSpark 引用 11 月 13 日 v2，DForkTree 与 D3Tree 分别用于分叉分数与负载裁剪。两者的文本与多模态评测各自保留。此次还追查了 Callo、草稿 KV 量化、Hybrid Spark 及 SpecPilot。SpecPilot 对推测优化的部署依赖提供交叉证据，但其复合搜索同时改变目标权重格式、树验证与批处理等因素，本文只用来说明配置依赖，并将可归因的主比较建立在匹配消融上。[@hybridspec; @forespark; @dforktree; @d3tree; @realloss; @chainflow; @specsearch; @twig; @weights; @callo; @draftkv; @hybridspark; @specpilot]
+面向并行草稿的新近研究将候选生成与目标预算的优化进一步耦合。ChainFlow、DSpark 和 Domino 分别从少步候选生成、轻量因果校正和训练协调改善块内依赖；DForkTree 与 D3Tree 将并行产生的位置候选组织为具有分叉和节点存活信息的树。它们的共同问题是，减少草稿的串行深度之后，如何在有限的目标计算预算内恢复有价值的条件依赖。ForeSpark 进一步把生成前的预算与生成后的验证预算联合建模，说明候选构造与目标查询形状需要协同选择。[@chainflow; @dspark; @domino; @dforktree; @d3tree; @forespark]
+
+另一组工作将优化目标从接受长度扩展到完成轮数、状态恢复与部署成本。REAL Loss 与 EDR 分别面向接受轨迹和完成所需轮数调整草稿训练目标；HybridSpec 与 Twig 将混合模型的循环状态表示纳入验证设计；SpecSearch 则按硬件与并发条件选择推测配置。与此同时，Weights That Stay、草稿 KV 压缩、Hybrid Spark 和 Callo 展示了词表投影驻留、状态存储、提议源切换及跨阶段复用等执行选择。这些研究共同表明，推测解码的有效优化空间已经由局部提议质量延伸到状态生命周期及服务资源配置。[@realloss; @edr; @hybridspec; @twig; @specsearch; @weights; @draftkv; @hybridspark; @callo]
 
 # 开放问题与可检验研究方向 {#directions}
 
@@ -455,7 +457,7 @@ Sequoia、TableTune 与 SpecSearch 分别在树预算、批次长度和部署配
 
 跨工作综合得到三个相互关联的判断。首先，检索、特征复用、浅层路径、并行块和树构造优化不同的条件依赖与构造成本，不能仅按平均接受率比较。其次，自适应预算和目标内分段验证必须同时满足所声明的输出保证、状态契约以及真正少执行昂贵工作这一收益条件。最后，批次组成、graph bucket、内存驻留、专家路由与异步排队共同决定局部算法收益是否转化为 TTFT、TPOT、吞吐或 SLO Goodput。不同测量只有在同一语义、基线及资源边界下才具有可比性。
 
-据此，状态延迟物化、路由与验证预算联合优化、服务效用导向的训练及受资源限制的提前推测，可以进一步形成有强基线和证伪条件的研究问题。这些方向属于对已有机制与证据的条件化综合，并非本文已证明的新算法或在 Ascend 上完成的独立性能复现。可持续加速必须同时满足目标语义、合法状态和真实服务成本三个方面的约束。
+据此，状态延迟物化、路由与验证预算联合优化、服务效用导向的训练及受资源限制的提前推测，可以进一步形成有强基线和证伪条件的研究问题。这些方向以既有机制为基础，进一步研究状态、预算和共享资源的联合条件。可持续的推测加速最终取决于目标语义、合法执行状态与有效输出成本的协同优化。
 
 # 参考文献 {.unnumbered #references}
 
