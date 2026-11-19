@@ -74,7 +74,7 @@ def main():
                 if tag in {"h1", "h2", "h3"}:
                     self.ids.update(value for key, value in attrs if key == "id")
         headings = HeadingIds()
-        headings.feed((src / "paper.html").read_text(encoding="utf-8"))
+        headings.feed((SOURCE / "paper.html").read_text(encoding="utf-8"))
         if not all(route["paperAnchor"] in headings.ids for route in survey["routes"]):
             raise SystemExit("Survey route is not a heading in the frozen academic paper")
         next(topic for topic in candidate["topics"] if topic["id"] == TOPIC)["survey"] = survey
