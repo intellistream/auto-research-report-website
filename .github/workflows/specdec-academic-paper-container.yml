@@ -1,0 +1,77 @@
+name: SpecDec academic paper (TeXLive container)
+
+on:
+  push:
+    branches: [research/specdec-academic-survey-20261118]
+    paths:
+      - .github/workflows/specdec-academic-paper-container.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: specdec-container-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Compile through complete TeX Live Docker image
+        uses: xu-cheng/texlive-action@v3
+        with:
+          os: debian
+          texlive_version: 2025
+          run: |
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -qq
+            apt-get install -y -qq --no-install-recommends pandoc poppler-utils fonts-noto-cjk
+            pandoc --version | head -1
+            xelatex --version | head -1
+            bash topics/speculative-decoding/paper/build.sh
+
+      - name: Verify generated PDF and source
+        run: |
+          test -s topics/speculative-decoding/paper/paper.html
+          test -s topics/speculative-decoding/paper/paper.pdf
+          pdfinfo topics/speculative-decoding/paper/paper.pdf
+          pdftotext topics/speculative-decoding/paper/paper.pdf /tmp/specdec-text.txt
+          grep -q '参考文献' /tmp/specdec-text.txt
+          grep -q '正确性' /tmp/specdec-text.txt
+
+      - name: Freeze validated assets
+        run: python3 scripts/publish-specdec-paper.py --publish
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Validate website and frozen-paper contract
+        run: |
+          python3 -m unittest discover -s scripts
+          npm ci
+          npm test
+          npm run build
+
+      - name: Commit generated academic paper
+        run: |
+          git add -- topics/speculative-decoding/paper/paper.tex \
+            topics/speculative-decoding/paper/paper.html \
+            topics/speculative-decoding/paper/paper.pdf \
+            topics/speculative-decoding/paper/figures \
+            topics/speculative-decoding/survey.json \
+            public/word-reports/topics.json \
+            public/word-reports/topic-papers/speculative-decoding
+          if git diff --cached --quiet; then
+            echo 'No changes to generated assets'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Build and publish reviewed SpecDec academic paper assets'
+          git push origin HEAD:refs/heads/research/specdec-academic-survey-20261118
