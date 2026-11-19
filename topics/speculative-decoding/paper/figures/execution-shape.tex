@@ -1,0 +1,87 @@
+\documentclass[tikz,border=6pt]{standalone}
+\usepackage[UTF8,fontset=none]{ctex}
+\setCJKmainfont{Noto Sans CJK SC}
+\usepackage{amsmath}
+\usetikzlibrary{arrows.meta,calc,positioning,patterns.meta}
+\definecolor{ink}{HTML}{20374D}
+\definecolor{line}{HTML}{638198}
+\definecolor{slate}{HTML}{587289}
+\definecolor{bcol}{HTML}{4974AD}
+\definecolor{gcol}{HTML}{4A896A}
+\definecolor{pcol}{HTML}{7A70A5}
+\definecolor{ocol}{HTML}{BA824C}
+\definecolor{bluewash}{HTML}{EDF4FC}
+\definecolor{greenwash}{HTML}{EDF7F0}
+\definecolor{lavwash}{HTML}{F3EFF8}
+\definecolor{orangewash}{HTML}{FCF3E9}
+\begin{document}
+\begin{tikzpicture}[
+  font=\footnotesize\sffamily,text=ink,
+  arrow/.style={-{Latex[length=2.5mm]},draw=line,line width=0.85pt},
+  panel/.style={draw=line,rounded corners=3pt,line width=.8pt,fill=white},
+  token/.style={draw=bcol,fill=bluewash,rounded corners=.6pt,minimum height=4.6mm,minimum width=4.5mm,inner sep=0pt},
+  bar/.style={draw=bcol,fill=bluewash,line width=.55pt,minimum width=4.3mm,minimum height=4.5mm,inner sep=0pt},
+  greentoken/.style={draw=gcol,fill=greenwash},
+  purpletoken/.style={draw=pcol,fill=lavwash},
+  xlabel/.style={font=\scriptsize\sffamily,text=ink},
+]
+% Three analytical levels: logical rows, placement under a batch/shape contract, device work.
+\draw[panel] (0,0) rectangle (4.0,7.3);
+\draw[panel] (4.45,0) rectangle (8.05,7.3);
+\draw[panel] (8.50,0) rectangle (16.65,7.3);
+\fill[bluewash,rounded corners=3pt] (0.02,6.62) rectangle (3.98,7.28);
+\fill[bluewash,rounded corners=3pt] (4.47,6.62) rectangle (8.03,7.28);
+\fill[bluewash,rounded corners=3pt] (8.52,6.62) rectangle (16.63,7.28);
+\node[font=\small\bfseries] at (2.0,6.95) {候选行表示};
+\node[font=\small\bfseries] at (6.25,6.95) {形状映射};
+\node[font=\small\bfseries] at (12.55,6.95) {设备执行形状};
+% Left: logical rows, not fabricated numerical benchmark or token counts.
+\foreach \y/\label/\col/\val in {5.75/草稿候选/bcol/$D_i$,4.35/目标验证/gcol/$Q_i$,2.95/接受与纠正/pcol/$R_i$,1.55/状态发布/bcol/$S_c$}{
+  \draw[draw=line!60,rounded corners=2pt,fill=white] (.23,\y-.48) rectangle (3.77,\y+.52);
+  \node[anchor=west,font=\scriptsize\sffamily] at (.4,\y+.22) {\label};
+  \node[anchor=east,font=\scriptsize\sffamily] at (3.55,\y+.22) {\val};
+}
+\foreach \x in {.47,.94,1.41,1.88,2.35,2.82,3.29} {
+  \draw[fill=bluewash,draw=bcol,rounded corners=.6pt] (\x,5.43) rectangle ++(.32,.32);
+}
+\foreach \x in {.47,.94,1.41,1.88} {
+  \draw[fill=greenwash,draw=gcol,rounded corners=.6pt] (\x,4.03) rectangle ++(.32,.32);
+}
+\foreach \x in {.47,.94} {
+  \draw[fill=lavwash,draw=pcol,rounded corners=.6pt] (\x,2.63) rectangle ++(.32,.32);
+}
+\foreach \x in {.47,.94} {
+  \draw[fill=bluewash,draw=bcol,rounded corners=.6pt] (\x,1.23) rectangle ++(.32,.32);
+}
+\node[xlabel,anchor=west] at (2.08,2.78) {合法输出};
+\node[xlabel,anchor=west] at (2.08,1.39) {可消费状态};
+% Middle: configuration and placement; arrows indicate scheduling choices.
+\draw[rounded corners=2.5pt,dashed,draw=line] (4.68,4.16) rectangle (7.82,6.25);
+\node[font=\scriptsize\bfseries] at (6.25,5.94) {共享执行约束};
+\node[font=\scriptsize,align=left] at (6.25,5.34) {批次组成 $B$ \quad 历史长度 $L$};
+\node[font=\scriptsize,align=left] at (6.25,4.78) {验证宽度 $Q$ \quad 有效状态 $S_c$};
+\node[draw=bcol,rounded corners=3pt,fill=bluewash,minimum width=28mm,minimum height=12mm,align=center,font=\footnotesize\bfseries] (map) at (6.25,2.63) {映射到设备\\执行形状};
+\draw[arrow] (6.25,4.15) -- (map.north);
+\node[xlabel,align=center] at (6.25,1.30) {行到算子与图形状\\的实际映射};
+\draw[arrow] (4.02,3.65) -- (4.43,3.65);
+\draw[arrow] (8.07,3.65) -- (8.48,3.65);
+% Right: execution lanes: compute, verification, materialization, synchronization.
+\foreach \y/\name/\sub/\bg in {5.80/并行前向/草稿与目标计算/bluewash,4.51/验证及接受扫描/前缀选择/greenwash,3.22/状态物化/缓存与索引/lavwash,1.93/调度及等待/依赖与同步/orangewash}{
+  \draw[draw=line!60,rounded corners=2pt,fill=white] (8.73,\y-.45) rectangle (16.4,\y+.45);
+  \fill[\bg,rounded corners=2pt] (8.75,\y-.43) rectangle (11.2,\y+.43);
+  \node[anchor=west,font=\scriptsize\bfseries] at (8.92,\y+.13) {\name};
+  \node[anchor=west,font=\tiny] at (8.92,\y-.22) {\sub};
+}
+\foreach \x in {11.5,12.1,12.7,13.3,13.9,14.5} \draw[draw=bcol,fill=bluewash,rounded corners=.5pt] (\x,5.62) rectangle ++(.49,.36);
+\foreach \x in {11.5,12.1,12.7,13.3} \draw[draw=gcol,fill=greenwash,rounded corners=.5pt] (\x,4.33) rectangle ++(.49,.36);
+\foreach \x in {11.5,12.1} \draw[draw=pcol,fill=lavwash,rounded corners=.5pt] (\x,3.04) rectangle ++(.49,.36);
+\foreach \x in {11.5,12.1,12.7,13.3} \draw[draw=ocol,fill=orangewash,rounded corners=.5pt] (\x,1.75) rectangle ++(.49,.36);
+\node[xlabel,anchor=west] at (14.25,4.51) {裁剪 / 选择};
+\node[xlabel,anchor=west] at (13.02,3.22) {状态发布};
+\node[xlabel,anchor=west] at (14.10,1.93) {资源同步};
+\draw[draw=line!70] (8.74,.56) -- (16.39,.56);
+\node[font=\scriptsize,align=center] at (12.57,.27) {真实成本由执行、等待与发布的\textbf{关键路径}决定};
+% Caption outside diagram clarifies subsequent consumption.
+\node[font=\scriptsize\sffamily,text=slate] at (8.3,-.44) {后续轮次仅消费已提交的合法前缀与对应有效状态};
+\end{tikzpicture}
+\end{document}

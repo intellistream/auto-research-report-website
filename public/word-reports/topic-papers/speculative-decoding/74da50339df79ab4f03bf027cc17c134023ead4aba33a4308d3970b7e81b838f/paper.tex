@@ -338,8 +338,8 @@ anchor，避免将验证行数、草稿数和提交数混用。{[}\citeproc{ref-
 \(T_0,T_{\mathrm{spec}}\) & 关键路径 & 同配置普通解码步与推测轮的时间 \\
 \end{longtable}
 
-\hyperref[fig-round]{图 1}给出从候选到物化的一轮职责。第 3.2
-节补充候选行到设备执行形状的映射，后续成本核算覆盖图中的执行和等待。
+图 1
+给出从候选生成到合法状态物化的一轮执行职责；各阶段的真实成本还取决于设备形状、调度等待及跨轮状态发布。
 
 \begin{figure}
 \centering
@@ -367,6 +367,18 @@ query 的 attention
 组织能力，但仍需给候选行绑定正确的请求、位置与掩码。因而，候选节点总数和预填充
 token 总数相同，只提供了局部 shape
 信息。{[}\citeproc{ref-specinfer}{8},\citeproc{ref-flashinfer}{33},\citeproc{ref-pagedattention}{34}{]}
+
+图 2
+将候选行、共享形状约束与设备执行工作分开表示。草稿、目标验证、接受扫描及状态发布可以具有不同的逻辑行数；运行时依据批次、上下文与验证宽度映射为实际前向、扫描和状态操作。图中方块数量仅为结构示意，不对应实测
+token 数量或 kernel
+时长；真实成本按有依赖关系的执行、等待和发布路径计量。
+
+\begin{figure}
+\centering
+\includegraphics[width=1\textwidth,height=\textheight]{figures/execution-shape.pdf}
+\caption{图
+2　推测轮次中的候选行与设备执行形状映射。逻辑行数、设备工作量与状态发布边界分别表示，方块仅为示意。}\label{fig-execution}
+\end{figure}
 
 \subsection{验证规则决定保真度}\label{fidelity}
 
@@ -873,17 +885,6 @@ runner
 slot 复用与请求结束时恰当地处理未物化状态。对混合 Transformer--GDN
 模型，正确性还需同时覆盖
 KV、递归与卷积状态。{[}\citeproc{ref-hybridspec}{7},\citeproc{ref-twig}{15},\citeproc{ref-pr-recover}{30}{]}
-
-\hyperref[fig-commit]{图 2}比较逐位置 KV
-与可重建循环状态的提交粒度。二者可以出现在同一
-Target；图中的状态发布代表语义边界，不代表每条物理释放或传输必须同步完成。
-
-\begin{figure}
-\centering
-\includegraphics[width=1\textwidth,height=\textheight]{figures/state-commit.pdf}
-\caption{图 2　注意力 KV
-与循环检查点的提交。物理回收可由后端延后，后续消费者只读取合法的状态范围。}\label{fig-commit}
-\end{figure}
 
 \subsection{检查点、输入缓存与接受路径重建}\label{state-representations}
 
