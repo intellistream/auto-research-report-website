@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import SpecDecGuide from "./SpecDecGuide";
-import SpecDecSurvey from "./SpecDecSurvey";
+import TopicAcademicPaper from "./TopicAcademicPaper";
 import TopicResearchReport from "./TopicResearchReport";
 import { validatedSurvey } from "./topic-survey";
 import { safeTopicSource } from "./topic-report";
@@ -59,7 +59,9 @@ export default function SpecDecTopic({ topic }: { topic: Topic }) {
         <Link key={id} to={{ pathname: path, search }} aria-current={section === id ? "page" : undefined}>{label}</Link>)}
     </nav>
     {section === "guide" && <SpecDecGuide topic={topic} />}
-    {section === "paper" && <SpecDecSurvey topic={topic} />}
+    {section === "paper" && (topic.academicPaper
+      ? <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} embedded />
+      : <p role="status">综述全文准备中。</p>)}
     {section === "report" && (topic.report ? <>
       {newCandidates.length > 0 && <details className="specdec-new-candidates">
         <summary>新入候选：{newCandidates.length} 条 PR 尚未综合入本版研究判断</summary>
