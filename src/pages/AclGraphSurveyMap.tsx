@@ -2,13 +2,26 @@ import { useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import { safeTopicSource } from "./topic-report";
-import { readingSurvey, surveyReportLink, validatedSurvey } from "./topic-survey";
+import { readingSurvey, surveyReportLink, validatedSurvey, type PlatformExample } from "./topic-survey";
 import "./aclgraph-survey-map.css";
 
-export default function AclGraphSurveyMap({ topic, htmlHref, revealSection }: {
+function ExampleCell({ platform, example }: { platform: string; example: PlatformExample }) {
+  return <div className="acl-taxonomy-example">
+    <span className="acl-platform-label">{platform}</span>
+    {typeof example === "string" ? example : <>
+      <div className="acl-example-works">{example.works.map((work) =>
+        <a key={work.url} href={safeTopicSource(work.url)} target="_blank" rel="noreferrer">{work.label}</a>
+      )}</div>
+      <div className="acl-example-detail">{example.detail}</div>
+    </>}
+  </div>;
+}
+
+export default function AclGraphSurveyMap({ topic, htmlHref, revealSection, showTaxonomy }: {
   topic: Topic;
   htmlHref: string;
   revealSection: (id: string) => boolean;
+  showTaxonomy: boolean;
 }) {
   const [selected, setSelected] = useState(0);
   const survey = readingSurvey(topic);
@@ -20,10 +33,7 @@ export default function AclGraphSurveyMap({ topic, htmlHref, revealSection }: {
   const checked = validatedSurvey(topic);
   const paperAnchor = checked?.paperVersion === topic.academicPaper?.version ? route.paperAnchor : undefined;
 
-  return (
-    <section className="acl-survey-map" aria-labelledby="acl-survey-map-heading">
-      <h3 id="acl-survey-map-heading">技术路线与待验证问题</h3>
-      <p className="acl-survey-thesis">{survey.thesis}</p>
+  const engineeringDetails = <>
       <p className="acl-survey-version">依据动态报告修订 {report.revision} · 证据截至 {report.asOf}{!checked && " · 本版按正文组织，简明导读待复核"}</p>
       <div className="acl-survey-map-grid">
         <ul className="acl-survey-route-list">
@@ -67,6 +77,30 @@ export default function AclGraphSurveyMap({ topic, htmlHref, revealSection }: {
           {!paperAnchor && <Link className="acl-survey-section-link" to={surveyReportLink(topic.id, "survey-taxonomy")}>阅读本版技术路线与权衡 →</Link>}
         </div>
       </div>
-    </section>
-  );
+  </>;
+
+  return <section className="acl-survey-map" aria-labelledby="acl-survey-map-heading">
+    {showTaxonomy ? <>
+      <figure className="acl-taxonomy">
+        <figcaption>
+          <h3 id="acl-survey-map-heading">ACLGraph 技术分类总图</h3>
+        </figcaption>
+        <div className="acl-taxonomy-columns" aria-hidden="true"><span>类别与判据</span><span>昇腾直接工作</span><span>可借鉴的 GPU 工作</span></div>
+        <ol className="acl-taxonomy-branches">{survey.routes.map((item) =>
+          <li key={item.id}>
+            <a href={htmlHref + "#" + encodeURIComponent(item.paperAnchor!)} target="_blank" rel="noreferrer" onClick={(event) => {
+              if (!event.button && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && revealSection(item.paperAnchor!)) event.preventDefault();
+            }}><strong>{item.title}</strong><span>{item.problem}</span></a>
+            <ExampleCell platform="昇腾直接工作" example={item.examples!.ascend} />
+            <ExampleCell platform="可借鉴的 GPU 工作" example={item.examples!.gpu} />
+          </li>
+        )}</ol>
+      </figure>
+      <details className="acl-taxonomy-evidence"><summary>分章查看工程证据与待验证问题</summary>{engineeringDetails}</details>
+    </> : <>
+      <h3 id="acl-survey-map-heading">技术路线与待验证问题</h3>
+      <p className="acl-survey-thesis">{survey.thesis}</p>
+      {engineeringDetails}
+    </>}
+  </section>;
 }

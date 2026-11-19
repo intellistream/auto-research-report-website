@@ -20,7 +20,15 @@ describe("continuous survey presentation", () => {
   it("uses reviewed source data and exposes traceable evidence, limitations and questions", () => {
     expect(validatedSurvey(checkedTopic)).toEqual(survey);
     const html = render(checkedTopic, "paper");
-    expect(html).toContain(survey.thesis);
+    expect(html).not.toContain(survey.thesis);
+    const map = html.slice(html.indexOf('<figure class="acl-taxonomy">'), html.indexOf("</figure>"));
+    for (const route of survey.routes) {
+      for (const example of Object.values(route.examples!)) {
+        expect(typeof example).toBe("object");
+        if (typeof example === "string") continue;
+        for (const work of example.works) expect(map).toContain(`href="${work.url}"`);
+      }
+    }
     const first = survey.routes[0];
     expect(html).toContain(first.assessment);
     expect(html).toContain(first.limitation);
