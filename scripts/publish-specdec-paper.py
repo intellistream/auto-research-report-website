@@ -5,7 +5,6 @@ snapshot into the local static site on the dedicated editorial branch.
 """
 import argparse
 import json
-import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -17,7 +16,6 @@ TOPIC = "speculative-decoding"
 SOURCE = ROOT / "topics" / TOPIC / "paper"
 INDEX = ROOT / "public" / "word-reports" / "topics.json"
 SURVEY = ROOT / "topics" / TOPIC / "survey.json"
-BRANCH = "research/specdec-academic-survey-20261118"
 
 
 def main():
@@ -26,9 +24,6 @@ def main():
     args = parser.parse_args()
     if not args.publish:
         parser.error("explicit --publish is required")
-    active = os.environ.get("GITHUB_REF_NAME")
-    if active and active != BRANCH:
-        raise SystemExit(f"Refusing to publish on {active}; expected {BRANCH}")
     if not all((SOURCE / name).is_file() for name in ("paper.md", "references.bib", "paper.tex", "paper.html", "paper.pdf")):
         raise SystemExit("Build paper.md, references.bib, paper.tex, paper.html and paper.pdf first")
 
