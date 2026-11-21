@@ -11,9 +11,70 @@ const statusText = {
   synthesizing: "正在整理进展和研究缺口…",
   rendering: "正在生成报告文件…",
 };
+const phases = [
+  { id: "queued", label: "排队" },
+  { id: "searching", label: "检索资料" },
+  { id: "synthesizing", label: "综合分析" },
+  { id: "rendering", label: "生成文件" },
+  { id: "complete", label: "完成" },
+];
+const phaseLabels = {
+  complete: "已完成",
+  current: "进行中",
+  failed: "失败",
+  unknown: "状态待确认",
+  pending: "待开始",
+};
 
 function isPending(job?: ResearchJob) {
   return job?.status === "queued" || job?.status === "running";
+}
+
+export function ResearchProgress({ job, submitting = false, interrupted = false }: {
+  job?: ResearchJob;
+  submitting?: boolean;
+  interrupted?: boolean;
+}) {
+  if (!job && !submitting) return null;
+  const complete = job?.status === "complete";
+  const failed = job?.status === "failed";
+  const phase = job?.status === "queued" || complete ? job.status : job?.stage;
+  const current = phases.findIndex((step) => step.id === phase);
+  const synthesisIncomplete = complete && (job.synthesisStatus === "unavailable"
+    || job.synthesisStatus === "insufficient_evidence");
+  let message: string | undefined;
+  if (submitting) message = "正在提交调研任务…";
+  else if (job && isPending(job) && !interrupted) {
+    message = job.status === "queued" ? statusText.queued : statusText[job.stage ?? "running"];
+  }
+
+  return (
+    <section className="research-query-progress" aria-label="调研进度">
+      {message && <p role="status">{message}</p>}
+      <ol aria-label="处理阶段">
+        {phases.map((step, index) => {
+          const done = complete || index < current || (!!job && job.status !== "queued" && index === 0);
+          const active = index === current && !complete;
+          let state: keyof typeof phaseLabels = failed ? "unknown" : "pending";
+          if (active) {
+            state = failed ? "failed" : interrupted ? "unknown" : "current";
+          }
+          if (done) state = "complete";
+          let label = state === "current" && job?.status === "queued" ? "等待中" : phaseLabels[state];
+          if (synthesisIncomplete && step.id === "synthesizing") {
+            state = "unknown";
+            label = job.synthesisStatus === "insufficient_evidence" ? "证据不足" : "综合未生成";
+          }
+          return (
+            <li key={step.id} data-state={state} aria-current={active ? "step" : undefined}>
+              <span>{step.label}</span>
+              <small>{label}</small>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
 }
 
 export default function ResearchQuery() {
@@ -106,11 +167,7 @@ export default function ResearchQuery() {
         )}
       </form>
 
-      {busy && (
-        <p className="research-query-feedback" role="status">
-          {submitting ? "正在提交调研任务…" : job && isPending(job) && statusText[job.stage ?? (job.status === "queued" ? "queued" : "running")]}
-        </p>
-      )}
+      <ResearchProgress job={job} submitting={submitting} interrupted={!!error} />
       {error && (
         <div className="research-query-feedback research-query-error" role="alert">
           <p>{error}</p>
@@ -128,7 +185,7 @@ export default function ResearchQuery() {
           <header>
             <div aria-live="polite">
               <h2 id="research-report-title">调研报告已生成</h2>
-              <p>{searchedQuery}</p>
+              <p>{searchedQuery}{job.cached && " · 已复用近期报告"}</p>
             </div>
             <div className="research-query-actions">
               <a href={report.html} target="_blank" rel="noopener noreferrer">

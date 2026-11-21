@@ -6,6 +6,8 @@ export type ResearchJob = {
   status: ResearchStatus;
   stage?: ResearchStage;
   error?: string;
+  cached?: boolean;
+  synthesisStatus?: "generated" | "unavailable" | "insufficient_evidence";
   report?: { html: string; pdf?: string };
 };
 
@@ -34,6 +36,11 @@ export function parseResearchJob(data: unknown, base: string, expectedId?: strin
   const result: ResearchJob = { id: job.id, status: job.status };
   if (job.stage && stages.includes(job.stage)) result.stage = job.stage;
   if (typeof job.error === "string") result.error = job.error;
+  if (job.cached === true) result.cached = true;
+  if (job.synthesisStatus === "generated" || job.synthesisStatus === "unavailable"
+    || job.synthesisStatus === "insufficient_evidence") {
+    result.synthesisStatus = job.synthesisStatus;
+  }
   if (job.status === "complete") {
     const reportPath = `/api/research/jobs/${job.id}/report`;
     if (job.report?.html !== `${reportPath}.html`) {
