@@ -1,137 +1,189 @@
 {
   "schemaVersion": 1,
   "reportVersion": "6dd5554a521e6faeb3477353dd6258a54089733402109dec9c3555eb67ba1d66",
-  "paperVersion": "113efe82bdd3a1ed8d9e86c6285091fefe72e24818e26f079a39a97f6244db5c",
-  "reviewedAt": "2026-11-19",
-  "thesis": "分类单位是一项具体机制。按它直接改变的执行决策归类，同一系统的不同机制可以分属多类。",
+  "paperVersion": "94956208fc9282e755b71b1b7a5fe1dee9aa92b86ac8c4b56edfcde76f5b701f",
+  "reviewedAt": "2026-11-23",
+  "thesis": "先辨认变化发生在程序、请求状态、执行安排还是恢复环境，再比较复用对象、状态准备与服务代价。新稿综合52项有PDF的文献及8项规范/实现来源；GPU机制、Ascend直接证据和待验证推论分别陈述。",
   "routes": [
     {
       "id": "capture",
-      "title": "图构造与捕获",
-      "problem": "哪些任务一起入图？",
-      "mechanism": ["识别动态任务", "划定捕获边界", "记录设备任务及依赖"],
-      "assessment": "xLLM 在模块间划分部分图与即时执行路径。昇腾草稿模型的工程案例进一步给出了完整图与其他模式的隔离和填充用例。",
-      "limitation": "整套图模式的消融同时改变分段、参数化和缓存。单一配置的结果只能说明该组合的表现。",
-      "sourceIds": ["D1", "D3", "D5", "P2", "E4", "E5", "E8"],
-      "evidenceIds": ["e5-modes-padded"],
-      "gapIds": ["capture-budget"],
-      "paperSection": "1",
-      "paperAnchor": "capture",
+      "title": "动态程序与捕获资格",
+      "problem": "哪些动态信息能够进入可复用计划？",
+      "mechanism": [
+        "区分符号尺寸与数据控制",
+        "选择表示和专化边界",
+        "核验捕获资格与回放收益"
+      ],
+      "assessment": "动态编译可以保留尺寸关系和运行时控制；图捕获还受地址、调用和依赖条件限制。新稿把两层分开，并比较专化、分段与选择性回放。",
+      "limitation": "编译成功不保证整段可捕获；可捕获也不保证更快。GPU编译机制不自动构成Ascend实现证据。",
+      "sourceIds": [
+        "D1",
+        "D3",
+        "D5",
+        "P2",
+        "E4",
+        "E5",
+        "E8"
+      ],
+      "evidenceIds": [
+        "e5-modes-padded"
+      ],
+      "gapIds": [
+        "capture-budget"
+      ],
+      "paperSection": "2",
+      "paperAnchor": "动态程序怎样成为可复用计划",
       "examples": {
         "ascend": {
-          "detail": "将 FFN、LayerNorm 等模块捕获为部分图。",
+          "detail": "xLLM以参数化与部分图处理动态模块；其捕获范围仍需对应固定软件合同。",
           "works": [
             {
-              "label": "xLLM 技术报告",
+              "label": "xLLM · 直接Ascend设计",
               "url": "https://arxiv.org/abs/2510.14686v2"
             }
           ]
         },
         "gpu": {
-          "detail": "搜索算子的阶段划分。",
+          "detail": "比较动态编译中的未知信息与图捕获资格，明确Shen Nimble和固定任务回放Nimble的身份差别。",
           "works": [
             {
-              "label": "IOS",
-              "url": "https://proceedings.mlsys.org/paper_files/paper/2021/hash/1f8053a67ec8e0b57455713cefdd8218-Abstract.html"
+              "label": "Shen Nimble",
+              "url": "https://proceedings.mlsys.org/paper_files/paper/2021/hash/5b47430e24a5a1f9fe21f0e8eb814131-Abstract.html"
+            },
+            {
+              "label": "Relax",
+              "url": "https://doi.org/10.1145/3676641.3716249"
+            },
+            {
+              "label": "GraCE",
+              "url": "https://www.usenix.org/conference/osdi26/presentation/ghosh"
             }
           ]
         }
       }
     },
     {
-      "id": "buckets",
-      "title": "图选择与回退",
-      "problem": "这一批输入走哪条路径？",
-      "mechanism": ["划分合法输入桶", "匹配完整图或分段图", "不兼容时安全回退"],
-      "assessment": "图覆盖率、填充和资源预算需要联合衡量。草稿图已有模式隔离与双卡填充用例，可作为验证起点。",
-      "limitation": "配置开关不等于实际命中模式；用例存在不代表已执行通过。时延表未披露的单位和重复次数不能补写。",
-      "sourceIds": ["D1", "D3", "D5", "P2", "E4", "E5", "E8"],
-      "evidenceIds": ["e5-modes-padded"],
-      "gapIds": ["capture-budget"],
-      "paperSection": "2",
-      "paperAnchor": "selection",
-      "examples": {
-        "ascend": {
-          "detail": "为 DFlash2 草稿选用完整图，注意力后端不兼容时回退。",
-          "works": [
-            {
-              "label": "vLLM-Ascend PR #20279",
-              "url": "https://github.com/vllm-project/vllm-ascend/pull/20279"
-            }
-          ]
-        },
-        "gpu": {
-          "detail": "按当前 KV 缓存配置选图。",
-          "works": [
-            {
-              "label": "FlashInfer",
-              "url": "https://proceedings.mlsys.org/paper_files/paper/2025/hash/dbf02b21d77409a2db30e56866a8ab3a-Abstract-Conference.html"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "state",
-      "title": "回放状态管理",
-      "problem": "图怎样读到本轮的值？",
-      "mechanism": ["生成本轮元数据", "绑定或共享设备缓冲", "发布后由算子读取"],
-      "assessment": "主机任务更新和图内设备生成都可向消费者提供本轮状态。比较两者要分别记录生产位置、传输、等待以及共享条件。",
-      "limitation": "固定地址不保证值、有效范围或请求归属正确；局部测试不能代替整模型质量和跨流复用检查。",
-      "sourceIds": ["D4", "E1", "E2", "E3", "E4"],
-      "evidenceIds": ["e1-h2d-removal", "e3-dynamic-replay", "e2-backend-graphs", "e2-eager-graph", "e2-plan-sharing", "e3-historical-service"],
-      "gapIds": ["state-ownership", "causal-backend-graph"],
+      "id": "replay-state",
+      "title": "请求状态与验证可见性",
+      "problem": "相同token数为什么仍可能需要更新状态？",
+      "mechanism": [
+        "区分长度、地址和参数身份",
+        "保留祖先可见性与共享结构",
+        "按真实失效事件更新目录"
+      ],
+      "assessment": "固定验证预算不固定祖先mask。Sequoia的离线树与EAGLE-2的在线选择形成对照；FlashInfer逐步CPU plan、跨层复用和ChunkAttention事件更新承担不同维护工作。",
+      "limitation": "设备驻留不等于设备生成，动态mask不直接意味着重捕获。共享KV命中、图命中与请求状态正确需要分别核验。",
+      "sourceIds": [
+        "D4",
+        "E1",
+        "E2",
+        "E3",
+        "E4"
+      ],
+      "evidenceIds": [
+        "e1-h2d-removal",
+        "e3-dynamic-replay",
+        "e2-backend-graphs",
+        "e2-eager-graph",
+        "e2-plan-sharing",
+        "e3-historical-service"
+      ],
+      "gapIds": [
+        "state-ownership",
+        "causal-backend-graph"
+      ],
       "paperSection": "3",
-      "paperAnchor": "replay-state",
+      "paperAnchor": "请求变化怎样进入执行",
       "examples": {
         "ascend": {
-          "detail": "复用设备上的查询边界，省去重复拷贝。",
+          "detail": "xLLM使用稳定池偏移与显式参数；工程记录提供设备边界复用案例，未证明任意状态更新均兼容。",
           "works": [
             {
-              "label": "vLLM-Ascend PR #21191",
+              "label": "xLLM",
+              "url": "https://arxiv.org/abs/2510.14686v2"
+            },
+            {
+              "label": "设备查询边界复用 · PR #21191",
               "url": "https://github.com/vllm-project/vllm-ascend/pull/21191"
             }
           ]
         },
         "gpu": {
-          "detail": "CPU 生成本轮计划，GPU 在图内读取。",
+          "detail": "对照CPU规划、结构事件更新与静态/动态验证树，区分工作规模和可见性语义。",
           "works": [
             {
               "label": "FlashInfer",
               "url": "https://proceedings.mlsys.org/paper_files/paper/2025/hash/dbf02b21d77409a2db30e56866a8ab3a-Abstract-Conference.html"
+            },
+            {
+              "label": "ChunkAttention",
+              "url": "https://aclanthology.org/2024.acl-long.623/"
+            },
+            {
+              "label": "Sequoia",
+              "url": "https://proceedings.neurips.cc/paper_files/paper/2024/hash/ea1f5f0878d43ff4fb8bf64ef4a2326c-Abstract-Conference.html"
+            },
+            {
+              "label": "EAGLE-2",
+              "url": "https://aclanthology.org/2024.emnlp-main.422/"
             }
           ]
         }
       }
     },
     {
-      "id": "overlap",
-      "title": "执行调度与资源分配",
-      "problem": "哪些任务并行，各用多少资源？",
-      "mechanism": ["识别可重叠阶段", "按图容量分配资源", "比较整体时间与局部代价"],
-      "assessment": "多流重叠可能隐藏局部变慢的内核。资源计划须与捕获容量、工作空间及事件依赖一起评价。",
-      "limitation": "资源上限不是独占保证；指定形状微基准和波动的历史服务基线，不能证明跨模型稳定收益。",
-      "sourceIds": ["D1", "D5", "P1", "P2", "E7", "E8"],
+      "id": "scheduling",
+      "title": "执行安排与剩余主机路径",
+      "problem": "一次图提交之后，关键路径上还剩什么？",
+      "mechanism": [
+        "安排并发与资源分配",
+        "定位状态生产和主机工作",
+        "约束KV交接的准备与提交"
+      ],
+      "assessment": "设备任务仍需处理干扰和同步，服务还可能受CPU准备约束。KV跨实例交接需要预分配、复制、提交与释放，不能由图提交次数概括。",
+      "limitation": "多流不保证资源共置；异步传输不保证消费者已经就绪。Llumnix和DistServe没有给出迁移必然重捕获图的实验。",
+      "sourceIds": [
+        "D1",
+        "D5",
+        "P1",
+        "P2",
+        "E7",
+        "E8"
+      ],
       "evidenceIds": [],
-      "gapIds": ["capture-budget"],
+      "gapIds": [
+        "capture-budget"
+      ],
       "paperSection": "4",
-      "paperAnchor": "scheduling",
+      "paperAnchor": "执行安排与剩余主机路径",
       "examples": {
         "ascend": {
-          "detail": "让 WKV 投影与 MoE 专家分发重叠执行。",
+          "detail": "固定工程材料中有投影与专家分发的多流重叠；局部安排仍需同负载计量依赖与资源代价。",
           "works": [
             {
-              "label": "vLLM-Ascend PR #19716",
+              "label": "多流重叠 · PR #19716",
               "url": "https://github.com/vllm-project/vllm-ascend/pull/19716"
             }
           ]
         },
         "gpu": {
-          "detail": "根据算子间的干扰选择流水与资源配置。",
+          "detail": "跨算子流水、SM共置与跨实例KV协议分别位于不同调度层。",
           "works": [
             {
               "label": "NanoFlow",
               "url": "https://www.usenix.org/conference/osdi25/presentation/zhu-kan"
+            },
+            {
+              "label": "POD-Attention",
+              "url": "https://doi.org/10.1145/3676641.3715996"
+            },
+            {
+              "label": "Llumnix",
+              "url": "https://www.usenix.org/conference/osdi24/presentation/sun-biao"
+            },
+            {
+              "label": "DistServe",
+              "url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
             }
           ]
         }
@@ -139,36 +191,179 @@
     },
     {
       "id": "lifecycle",
-      "title": "图生命周期管理",
-      "problem": "实例怎样准备、保留和恢复？",
-      "mechanism": ["分别计量编译与捕获", "维护工作空间与对象寿命", "检查异常清理与再次加载"],
-      "assessment": "声明式预热和并行编译改变启动阶段；图恢复还要求环境与绑定兼容。两类成本需要分别记录。",
-      "limitation": "42-key 编译与服务 5-key 预热不是同一工作量。旧挂起和退出的原因未定；论文中的恢复机制也不代表 Ascend 已具备跨进程图恢复能力。",
-      "sourceIds": ["D1", "D4", "E2", "E6", "E9"],
-      "evidenceIds": ["e2-eager-graph"],
-      "gapIds": ["lifecycle-reliability"],
+      "title": "准备、保留与恢复对象",
+      "problem": "恢复了权重，是否就恢复了图执行？",
+      "mechanism": [
+        "分别计量准备与稳态",
+        "辨认缓存保留和恢复对象",
+        "核验地址、环境与读写覆盖"
+      ],
+      "assessment": "权重加载、token重算、图绑定物化和进程快照恢复不同对象。新稿比较准备摊销、图族保留、分配事件与恢复协议，而不把恢复支持声明当成完整验证。",
+      "limitation": "部分kernel或快照覆盖不能证明任意图可恢复；GPU地址环境与同步原语不能直接外推为ACL Graph能力。",
+      "sourceIds": [
+        "D1",
+        "D4",
+        "E2",
+        "E6",
+        "E9"
+      ],
+      "evidenceIds": [
+        "e2-eager-graph"
+      ],
+      "gapIds": [
+        "lifecycle-reliability"
+      ],
       "paperSection": "5",
-      "paperAnchor": "lifecycle",
+      "paperAnchor": "准备成本保留与恢复",
       "examples": {
         "ascend": {
-          "detail": "在图预热期间准备静态内核。",
+          "detail": "DeepServe讨论Ascend服务冷启动的加载与准备；工程预热记录也需与整图或活请求恢复区分。",
           "works": [
             {
-              "label": "vLLM-Ascend PR #21373",
+              "label": "DeepServe · Ascend服务",
+              "url": "https://www.usenix.org/conference/atc25/presentation/hu-junhao"
+            },
+            {
+              "label": "图预热 · PR #21373",
               "url": "https://github.com/vllm-project/vllm-ascend/pull/21373"
             }
           ]
         },
         "gpu": {
-          "detail": "Medusa 恢复地址绑定，Foundry 重建执行环境。",
+          "detail": "图绑定物化、模板环境重建和OS级快照具有不同恢复边界。",
           "works": [
             {
               "label": "Medusa",
-              "url": "https://minhui-xie.github.io/papers/asplos25-medusa.pdf"
+              "url": "https://doi.org/10.1145/3669940.3707285"
             },
             {
-              "label": "Foundry",
+              "label": "Foundry · 预印本",
               "url": "https://arxiv.org/abs/2604.06664v1"
+            },
+            {
+              "label": "PhoenixOS",
+              "url": "https://doi.org/10.1145/3731569.3764813"
+            },
+            {
+              "label": "GCR",
+              "url": "https://www.usenix.org/conference/fast26/presentation/zeng"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ascend",
+      "title": "ACL Graph版本合同与直接证据",
+      "problem": "哪些机制已经有Ascend依据？",
+      "mechanism": [
+        "固定规范与源码版本",
+        "区分框架职责与运行库合同",
+        "对照直接设计和部署观察"
+      ],
+      "assessment": "新稿分别核对CANN 9.0、9.1和8.5条款及固定框架快照。xLLM提供直接设计与局部图消融；field study提供特定版本和负载的部署观察。",
+      "limitation": "不同版本条款不能拼成一套保证。观察性部署不等于控制实验，GPU机制也不等于NPU已实现或已有相同收益。",
+      "sourceIds": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "P2",
+        "E4",
+        "E5",
+        "E8"
+      ],
+      "evidenceIds": [],
+      "gapIds": [],
+      "paperSection": "6",
+      "paperAnchor": "面向acl-graph的证据映射",
+      "examples": {
+        "ascend": {
+          "detail": "规范、xLLM和Ascend部署研究各自支持接口、设计和观察层面的结论。",
+          "works": [
+            {
+              "label": "CANN 9.1 · 捕获API",
+              "url": "https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910/API/runtimeapi/aclcppdevg_03_1782.html"
+            },
+            {
+              "label": "xLLM",
+              "url": "https://arxiv.org/abs/2510.14686v2"
+            },
+            {
+              "label": "Ascend field study",
+              "url": "https://arxiv.org/abs/2607.08215v1"
+            }
+          ]
+        },
+        "gpu": {
+          "detail": "GraCE等机制可用于比较，但须重新核验Ascend算子、接口和顺序条件。",
+          "works": [
+            {
+              "label": "GraCE · GPU机制对照",
+              "url": "https://www.usenix.org/conference/osdi26/presentation/ghosh"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "selection",
+      "title": "证据判断与路线选择",
+      "problem": "哪组对照真正支持当前结论？",
+      "mechanism": [
+        "对齐被改变的因素与版本",
+        "分别计量kernel、模型步和服务",
+        "保留冲突、失败与未覆盖范围"
+      ],
+      "assessment": "局部图开关与整套后端替换回答不同问题。新稿保留Hybrid表文冲突、CPU瓶颈与后端复现差异，要求性能、输出粒度及基线范围分别解释。",
+      "limitation": "最大加速比不可跨硬件和驻留条件拼接；任务分数接近不等于逐token一致。此次更新没有新增GPU/NPU实验，也未确认新的Research Gap。",
+      "sourceIds": [
+        "E1",
+        "E2",
+        "E3",
+        "E4",
+        "E5",
+        "E7",
+        "E8",
+        "P1"
+      ],
+      "evidenceIds": [
+        "e2-backend-graphs",
+        "e2-eager-graph",
+        "e2-plan-sharing",
+        "e3-dynamic-replay"
+      ],
+      "gapIds": [
+        "causal-backend-graph",
+        "reproducible-matrix"
+      ],
+      "paperSection": "7",
+      "paperAnchor": "怎样比较性能与正确性",
+      "examples": {
+        "ascend": {
+          "detail": "xLLM的指定模型/长度图开关与field study的部署观察应分别解释；原工程测量继续保留在动态报告修订3。",
+          "works": [
+            {
+              "label": "xLLM · 局部图消融",
+              "url": "https://arxiv.org/abs/2510.14686v2"
+            },
+            {
+              "label": "Ascend部署观察",
+              "url": "https://arxiv.org/abs/2607.08215v1"
+            }
+          ]
+        },
+        "gpu": {
+          "detail": "性能上界、CPU限制和输出复现是不同证据；冲突表格不能被摘要的最大倍数覆盖。",
+          "works": [
+            {
+              "label": "CPU诱发瓶颈",
+              "url": "https://arxiv.org/abs/2603.22774v3"
+            },
+            {
+              "label": "推理后端与复现",
+              "url": "https://arxiv.org/abs/2605.19537v4"
             }
           ]
         }
@@ -176,31 +371,144 @@
     }
   ],
   "update": {
-    "summary": "主判断延续。图执行的收益取决于关键路径上少了哪段开销。本版补齐对照条件，收紧性能结论。",
+    "summary": "本次重建学术综述：截至2026-11-23取得52项文献PDF（49项原始研究/报告、3篇综述入口），正文共60项参考来源、8章和2幅原创图。导读按动态编译、验证mask、状态维护、执行安排与恢复边界重新组织。工程报告仍为修订3、资料截至2026-11-14；下列分项记录属于既有工程证据，不是本次新增实测。",
     "previousRevision": 2,
     "evidence": [
-      {"title": "服务提速仍需重复验证", "change": "后端实验只有一次顺序配对。计划共享的服务差值区间含零。", "sourceIds": ["E2"], "evidenceIds": ["e2-backend-graphs", "e2-plan-sharing"]},
-      {"title": "补强局部回放正确性", "change": "补录作者报告的 112 次动态回放和负对照。当前上游集成与整模型质量仍需配对验证。", "sourceIds": ["E3"], "evidenceIds": ["e3-dynamic-replay"]},
-      {"title": "搬运减少，首 token 收益待测", "change": "轨迹中冗余 H2D 任务从 72 降到 0。在线每组只测了 1 个正式请求。", "sourceIds": ["E1"], "evidenceIds": ["e1-h2d-removal"]},
-      {"title": "草稿图补齐回退与填充证据", "change": "源码核实了模式隔离和两卡填充用例。时延表的单位与重复次数仍待确认。", "sourceIds": ["E5"], "evidenceIds": ["e5-modes-padded"]}
+      {
+        "title": "服务提速仍需重复验证",
+        "change": "后端实验只有一次顺序配对。计划共享的服务差值区间含零。",
+        "sourceIds": [
+          "E2"
+        ],
+        "evidenceIds": [
+          "e2-backend-graphs",
+          "e2-plan-sharing"
+        ]
+      },
+      {
+        "title": "补强局部回放正确性",
+        "change": "补录作者报告的 112 次动态回放和负对照。当前上游集成与整模型质量仍需配对验证。",
+        "sourceIds": [
+          "E3"
+        ],
+        "evidenceIds": [
+          "e3-dynamic-replay"
+        ]
+      },
+      {
+        "title": "搬运减少，首 token 收益待测",
+        "change": "轨迹中冗余 H2D 任务从 72 降到 0。在线每组只测了 1 个正式请求。",
+        "sourceIds": [
+          "E1"
+        ],
+        "evidenceIds": [
+          "e1-h2d-removal"
+        ]
+      },
+      {
+        "title": "草稿图补齐回退与填充证据",
+        "change": "源码核实了模式隔离和两卡填充用例。时延表的单位与重复次数仍待确认。",
+        "sourceIds": [
+          "E5"
+        ],
+        "evidenceIds": [
+          "e5-modes-padded"
+        ]
+      }
     ],
-    "nextGapIds": ["causal-backend-graph", "state-ownership", "capture-budget"]
+    "nextGapIds": [
+      "causal-backend-graph",
+      "state-ownership",
+      "capture-budget"
+    ]
   },
   "researchAssessment": {
     "asOf": "2026-11-17",
     "scope": "第二项工作的纯推理论文选题；保留有证据的工程结论与评测限制。",
-    "summary": "目前没有确认的 Research Gap。以下为待验证问题与评测要求；须先证明合理的常规方案之后，仍有可重复的错误或用户可感知代价。",
+    "summary": "截至2026-11-17的既有纯推理选题反馈没有确认的Research Gap。本次文献重建保留这些待验证问题与评测要求；须先证明合理常规方案之后，仍有可重复的错误或用户可感知代价。",
     "decisions": [
-      {"gapId": "causal-backend-graph", "decision": "missing_evidence", "reason": "后端与图开关在不同提交和对照中测量，尚缺目标服务中同条件运行后仍有代价的见证。", "reopenWhen": "取得同模型、同请求的配对，定位现有更新、元数据准备或回放后仍留在关键路径的开销。", "sourceUrls": ["https://github.com/vllm-project/vllm-ascend/pull/21281"]},
-      {"gapId": "state-ownership", "decision": "missing_evidence", "reason": "已有消费者等待与复用保护。材料中的 v0.30.0rc1 单卡微型随机权重模型对照，以三路 setter 修复 workspace 登记；图运行两臂各记录 127 次图更新事件，三臂各 10 个请求的对应输出一致。该记录未测时延或显存，不能据旧归属错误推导通用新合同的必要性；本轮未重跑实机。", "reopenWhen": "在普通保护和三类 owner 写入均生效的固定版本上，发现同输入、同前态可复现的错误、等待或显存代价。", "sourceUrls": ["https://github.com/vllm-project/vllm-ascend/pull/21172", "https://github.com/vllm-project/vllm-ascend/issues/20143#issuecomment-6472390990", "https://github.com/vllm-project/vllm-ascend/pull/20238"]},
-      {"gapId": "capture-budget", "decision": "missing_evidence", "reason": "精确静态桶已覆盖已知失配；真实混批的分段图观察仍缺同输入、同预算、同输出的普通对照。", "reopenWhen": "在合法捕获桶中以实际图内 profiling 选择逐桶静态方案，再在留出负载上量出仍影响服务的代价。", "sourceUrls": ["https://github.com/vllm-project/vllm-ascend/issues/16049", "https://github.com/vllm-project/vllm-ascend/pull/16970", "https://github.com/vllm-project/vllm-ascend/pull/21414"]},
-      {"gapId": "lifecycle-reliability", "decision": "missing_evidence", "reason": "旧挂起与退出的图资源归因未知。另一处填充崩溃的公开记录保持镜像、代码与负载不变，只替换运行库：11 分钟内 56,306 次填充路径命中未崩溃，换回旧库复现。计数不是请求数，只支持该环境的普通工程修复，不能与旧挂起合并为通用生命周期缺陷；本轮未重跑实机。", "reopenWhen": "在已修运行库、安全释放和常规恢复均生效时，仍能复现同一明确图资源的泄漏、挂起或服务失败。", "sourceUrls": ["https://github.com/vllm-project/vllm-ascend/pull/21373", "https://github.com/vllm-project/vllm-ascend/pull/21281", "https://github.com/vllm-project/vllm-ascend/issues/19608#issuecomment-6648690129"]},
-      {"gapId": "reproducible-matrix", "decision": "evaluation_requirement", "reason": "跨模型、设备和负载复现是具体主张的评测要求；现有材料没有给出指定机制与可比负载下反复出现的剩余问题。", "reopenWhen": "先取得具体图机制在强普通对照之后仍有实际代价的案例，再限定结果迁移问题。", "sourceUrls": ["https://github.com/vllm-project/vllm-ascend/pull/21191", "https://github.com/vllm-project/vllm-ascend/pull/19716", "https://github.com/vllm-project/vllm-ascend/pull/19909"]}
+      {
+        "gapId": "causal-backend-graph",
+        "decision": "missing_evidence",
+        "reason": "后端与图开关在不同提交和对照中测量，尚缺目标服务中同条件运行后仍有代价的见证。",
+        "reopenWhen": "取得同模型、同请求的配对，定位现有更新、元数据准备或回放后仍留在关键路径的开销。",
+        "sourceUrls": [
+          "https://github.com/vllm-project/vllm-ascend/pull/21281"
+        ]
+      },
+      {
+        "gapId": "state-ownership",
+        "decision": "missing_evidence",
+        "reason": "已有消费者等待与复用保护。材料中的 v0.30.0rc1 单卡微型随机权重模型对照，以三路 setter 修复 workspace 登记；图运行两臂各记录 127 次图更新事件，三臂各 10 个请求的对应输出一致。该记录未测时延或显存，不能据旧归属错误推导通用新合同的必要性；本轮未重跑实机。",
+        "reopenWhen": "在普通保护和三类 owner 写入均生效的固定版本上，发现同输入、同前态可复现的错误、等待或显存代价。",
+        "sourceUrls": [
+          "https://github.com/vllm-project/vllm-ascend/pull/21172",
+          "https://github.com/vllm-project/vllm-ascend/issues/20143#issuecomment-6472390990",
+          "https://github.com/vllm-project/vllm-ascend/pull/20238"
+        ]
+      },
+      {
+        "gapId": "capture-budget",
+        "decision": "missing_evidence",
+        "reason": "精确静态桶已覆盖已知失配；真实混批的分段图观察仍缺同输入、同预算、同输出的普通对照。",
+        "reopenWhen": "在合法捕获桶中以实际图内 profiling 选择逐桶静态方案，再在留出负载上量出仍影响服务的代价。",
+        "sourceUrls": [
+          "https://github.com/vllm-project/vllm-ascend/issues/16049",
+          "https://github.com/vllm-project/vllm-ascend/pull/16970",
+          "https://github.com/vllm-project/vllm-ascend/pull/21414"
+        ]
+      },
+      {
+        "gapId": "lifecycle-reliability",
+        "decision": "missing_evidence",
+        "reason": "旧挂起与退出的图资源归因未知。另一处填充崩溃的公开记录保持镜像、代码与负载不变，只替换运行库：11 分钟内 56,306 次填充路径命中未崩溃，换回旧库复现。计数不是请求数，只支持该环境的普通工程修复，不能与旧挂起合并为通用生命周期缺陷；本轮未重跑实机。",
+        "reopenWhen": "在已修运行库、安全释放和常规恢复均生效时，仍能复现同一明确图资源的泄漏、挂起或服务失败。",
+        "sourceUrls": [
+          "https://github.com/vllm-project/vllm-ascend/pull/21373",
+          "https://github.com/vllm-project/vllm-ascend/pull/21281",
+          "https://github.com/vllm-project/vllm-ascend/issues/19608#issuecomment-6648690129"
+        ]
+      },
+      {
+        "gapId": "reproducible-matrix",
+        "decision": "evaluation_requirement",
+        "reason": "跨模型、设备和负载复现是具体主张的评测要求；现有材料没有给出指定机制与可比负载下反复出现的剩余问题。",
+        "reopenWhen": "先取得具体图机制在强普通对照之后仍有实际代价的案例，再限定结果迁移问题。",
+        "sourceUrls": [
+          "https://github.com/vllm-project/vllm-ascend/pull/21191",
+          "https://github.com/vllm-project/vllm-ascend/pull/19716",
+          "https://github.com/vllm-project/vllm-ascend/pull/19909"
+        ]
+      }
     ]
   },
   "pendingQuestions": [
-    {"workId": "github:vllm-project/vllm-ascend#21519", "routeIds": ["buckets"], "question": "视觉编码器的哪些输入形状和布局可以复用图？", "missingEvidence": "核对捕获键、填充与回退条件，并取得输出一致性、实际命中率及同版本服务对照。"},
-    {"workId": "github:vllm-project/vllm-ascend#21172", "routeIds": ["state", "overlap"], "question": "辅助流准备被捕获后，消费者等待是否仍进入关键路径？", "missingEvidence": "核对生产、等待与覆盖顺序；在同请求和同前态下测等待，保留现有同步保护的常规基线。"},
-    {"workId": "github:vllm-project/vllm-ascend#20254", "routeIds": ["state", "buckets"], "question": "候选接受处理的一次图提交省去了哪段开销？", "missingEvidence": "分离主机提交、设备处理与拒绝长度变化，核对动态回放正确性和用户时延，不能用提交次数代替收益。"}
+    {
+      "workId": "github:vllm-project/vllm-ascend#21519",
+      "routeIds": [
+        "capture",
+        "replay-state"
+      ],
+      "question": "视觉编码器的哪些输入形状和布局可以复用图？",
+      "missingEvidence": "核对捕获键、填充与回退条件，并取得输出一致性、实际命中率及同版本服务对照。"
+    },
+    {
+      "workId": "github:vllm-project/vllm-ascend#21172",
+      "routeIds": [
+        "replay-state",
+        "scheduling"
+      ],
+      "question": "辅助流准备被捕获后，消费者等待是否仍进入关键路径？",
+      "missingEvidence": "核对生产、等待与覆盖顺序；在同请求和同前态下测等待，保留现有同步保护的常规基线。"
+    },
+    {
+      "workId": "github:vllm-project/vllm-ascend#20254",
+      "routeIds": [
+        "replay-state",
+        "selection"
+      ],
+      "question": "候选接受处理的一次图提交省去了哪段开销？",
+      "missingEvidence": "分离主机提交、设备处理与拒绝长度变化，核对动态回放正确性和用户时延，不能用提交次数代替收益。"
+    }
   ]
 }
