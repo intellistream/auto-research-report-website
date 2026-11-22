@@ -717,3 +717,9 @@
     gap: 24px;
   }
 }
+
+@media (max-width: 420px) {
+  .site-brand-text small {
+    display: none;
+  }
+}

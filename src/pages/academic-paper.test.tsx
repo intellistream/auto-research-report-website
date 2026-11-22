@@ -94,15 +94,17 @@ describe("academic manuscript branch", () => {
     expect(heading.focus).toHaveBeenCalledWith({ preventScroll: true });
     expect(revealPaperHeading({ getElementById: () => ({ tagName: "A" }) } as unknown as Document, "ref-a")).toBe(false);
   });
-  it("opens the taxonomy and links all five branches to their frozen chapters", () => {
+  it("links all reviewed routes and downloads to the current frozen paper", () => {
     const actual = publishedTopic.academicPaper!;
-    expect(actual.manuscriptRevision).toBe("R2.1-taxonomy-examples");
     const hrefs = academicPaperHrefs("aclgraph", actual)!;
     const html = render("/topics/aclgraph?view=paper", publishedTopic);
     expect(html).toContain("ACLGraph 技术分类总图");
     expect(html.indexOf("ACLGraph 技术分类总图")).toBeLessThan(html.indexOf("<iframe"));
-    for (const anchor of ["capture", "selection", "replay-state", "scheduling", "lifecycle"]) {
-      expect(html).toContain(`href="${hrefs.html}#${anchor}"`);
+    for (const route of publishedTopic.survey!.routes) {
+      expect(html).toContain(`href="${hrefs.html}#${encodeURIComponent(route.paperAnchor!)}"`);
+    }
+    for (const kind of Object.keys(actual.assets)) {
+      expect(html).toContain(`href="${hrefs[kind as keyof typeof PAPER_FILES]}"`);
     }
     expect(html).toContain("昇腾直接工作");
     expect(html).toContain("可借鉴的 GPU 工作");
