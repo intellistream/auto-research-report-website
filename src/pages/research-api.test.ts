@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseResearchJob, researchApiBase } from "./research-api";
+import { mergeResearchJobProgress, parseResearchJob, researchApiBase, type ResearchJob } from "./research-api";
 
 const origin = "https://example.com";
 const job = {
@@ -20,6 +20,29 @@ describe("research job responses", () => {
     const running = { id: job.id, status: "running", stage: "synthesizing" };
     expect(parseResearchJob(running, origin, job.id)).toEqual(running);
     expect(() => parseResearchJob(running, origin, "another-job")).toThrow("无法连接调研服务");
+  });
+
+  it("accepts Agent stages and filters unsupported history while retaining repeated review", () => {
+    const history = ["searching", "supplementing_1", "synthesizing", "reviewing", "supplementing_2", "synthesizing", "reviewing", "revising"];
+    const running = { id: job.id, status: "running", stage: "revising", stageHistory: [...history, "unknown"] };
+    expect(parseResearchJob(running, origin)).toEqual({ ...running, stageHistory: history });
+    expect(parseResearchJob({ ...job, reviewStatus: "needs_review" }, origin).reviewStatus).toBe("needs_review");
+    expect(parseResearchJob({ ...job, reviewStatus: "unknown" }, origin).reviewStatus).toBeUndefined();
+  });
+
+  it("retains observed stages for older servers and replaces them with authoritative history", () => {
+    const initial: ResearchJob = { id: "job", status: "running", stage: "reviewing" };
+    const first = mergeResearchJobProgress(undefined, initial);
+    const unchanged = mergeResearchJobProgress(first, initial);
+    expect(unchanged.observedStages).toEqual(["reviewing"]);
+    const supplement = mergeResearchJobProgress(unchanged, { ...initial, stage: "supplementing_2" });
+    const returned = mergeResearchJobProgress(supplement, initial);
+    expect(returned.observedStages).toEqual(["reviewing", "supplementing_2", "reviewing"]);
+    const complete = mergeResearchJobProgress(returned, { id: "job", status: "complete" });
+    expect(complete.observedStages).toEqual(returned.observedStages);
+    const confirmed = mergeResearchJobProgress(returned, { ...initial, stageHistory: ["searching", "synthesizing", "reviewing"] });
+    expect(confirmed.observedStages).toEqual(["searching", "synthesizing", "reviewing"]);
+    expect(mergeResearchJobProgress(returned, { id: "new-job", status: "queued" }).observedStages).toEqual([]);
   });
 
   it("uses the same job's HTML and supports an optional PDF", () => {

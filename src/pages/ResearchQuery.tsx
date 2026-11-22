@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Download, ExternalLink, FileText, Search } from "lucide-react";
-import { getResearchJob, submitResearchJob, type ResearchJob } from "./research-api";
+import { getResearchJob, mergeResearchJobProgress, submitResearchJob, type ResearchJob, type ResearchStage } from "./research-api";
 import "./research-query.css";
 
 const windows = [7, 30, 90, 180, 365];
@@ -8,13 +8,21 @@ const statusText = {
   queued: "任务已提交，正在排队。",
   running: "正在生成调研报告…",
   searching: "正在检索论文和 PR…",
+  supplementing_1: "Agent 正在定向补查资料（第 1 轮）…",
+  supplementing_2: "Agent 正在定向补查资料（第 2 轮）…",
   synthesizing: "正在整理进展和研究缺口…",
+  reviewing: "正在审查报告结论和证据…",
+  revising: "正在根据审查结果修订报告…",
   rendering: "正在生成报告文件…",
 };
 const phases = [
   { id: "queued", label: "排队" },
   { id: "searching", label: "检索资料" },
+  { id: "supplementing_1", label: "补查·第 1 轮" },
   { id: "synthesizing", label: "综合分析" },
+  { id: "reviewing", label: "审查报告" },
+  { id: "supplementing_2", label: "补查·第 2 轮" },
+  { id: "revising", label: "修订报告" },
   { id: "rendering", label: "生成文件" },
   { id: "complete", label: "完成" },
 ];
@@ -24,6 +32,16 @@ const phaseLabels = {
   failed: "失败",
   unknown: "状态待确认",
   pending: "待开始",
+  optional: "按需执行",
+  skipped: "未执行",
+  unrecorded: "未记录",
+};
+const optionalStages = new Set<string>(["supplementing_1", "supplementing_2", "revising"]);
+const reviewLabels = {
+  approved: "审查通过",
+  needs_review: "需进一步核查",
+  unavailable: "审查不可用",
+  insufficient_evidence: "证据不足",
 };
 
 function isPending(job?: ResearchJob) {
@@ -38,8 +56,10 @@ export function ResearchProgress({ job, submitting = false, interrupted = false 
   if (!job && !submitting) return null;
   const complete = job?.status === "complete";
   const failed = job?.status === "failed";
-  const phase = job?.status === "queued" || complete ? job.status : job?.stage;
-  const current = phases.findIndex((step) => step.id === phase);
+  const history = job?.stageHistory ?? job?.observedStages ?? [];
+  const phase = job?.status === "queued" || complete ? job.status : job?.stage ?? (failed ? history.at(-1) : undefined);
+  const priorHistory = phase && history.at(-1) === phase && !complete ? history.slice(0, -1) : history;
+  const completedStages = new Set<string>(priorHistory);
   const synthesisIncomplete = complete && (job.synthesisStatus === "unavailable"
     || job.synthesisStatus === "insufficient_evidence");
   let message: string | undefined;
@@ -52,18 +72,26 @@ export function ResearchProgress({ job, submitting = false, interrupted = false 
     <section className="research-query-progress" aria-label="调研进度">
       {message && <p role="status">{message}</p>}
       <ol aria-label="处理阶段">
-        {phases.map((step, index) => {
-          const done = complete || index < current || (!!job && job.status !== "queued" && index === 0);
-          const active = index === current && !complete;
-          let state: keyof typeof phaseLabels = failed ? "unknown" : "pending";
+        {phases.map((step) => {
+          const active = step.id === phase && !complete;
+          const done = !active && (completedStages.has(step.id)
+            || (step.id === "queued" && !!job && job.status !== "queued") || (step.id === "complete" && complete));
+          let state: keyof typeof phaseLabels = optionalStages.has(step.id) ? "optional" : "pending";
+          if (complete) state = job?.stageHistory ? "skipped" : "unrecorded";
+          if (failed) state = "unknown";
           if (active) {
             state = failed ? "failed" : interrupted ? "unknown" : "current";
+            if (failed && !job?.stage) state = "unknown";
           }
           if (done) state = "complete";
           let label = state === "current" && job?.status === "queued" ? "等待中" : phaseLabels[state];
           if (synthesisIncomplete && step.id === "synthesizing") {
             state = "unknown";
             label = job.synthesisStatus === "insufficient_evidence" ? "证据不足" : "综合未生成";
+          }
+          if (complete && step.id === "reviewing" && job.reviewStatus) {
+            state = job.reviewStatus === "approved" ? "complete" : "unknown";
+            label = reviewLabels[job.reviewStatus];
           }
           return (
             <li key={step.id} data-state={state} aria-current={active ? "step" : undefined}>
@@ -73,6 +101,16 @@ export function ResearchProgress({ job, submitting = false, interrupted = false 
           );
         })}
       </ol>
+      {history.length > 0 && (
+        <details className="research-query-history">
+          <summary>实际执行顺序</summary>
+          <ol aria-label="阶段记录">
+            {history.map((stage: ResearchStage, index) => (
+              <li key={index}>{phases.find((step) => step.id === stage)?.label}</li>
+            ))}
+          </ol>
+        </details>
+      )}
     </section>
   );
 }
@@ -95,7 +133,7 @@ export default function ResearchQuery() {
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       getResearchJob(job.id, controller.signal).then((next) => {
-        if (!controller.signal.aborted) setJob(next);
+        if (!controller.signal.aborted) setJob((previous) => mergeResearchJobProgress(previous, next));
       }).catch((cause: Error) => {
         if (!controller.signal.aborted) setError(cause.message);
       });
@@ -117,7 +155,7 @@ export default function ResearchQuery() {
     setSubmitting(true);
     try {
       const next = await submitResearchJob(keyword, days, controller.signal);
-      if (!controller.signal.aborted) setJob(next);
+      if (!controller.signal.aborted) setJob(mergeResearchJobProgress(undefined, next));
     } catch (cause) {
       if (!controller.signal.aborted && cause instanceof Error) setError(cause.message);
     } finally {

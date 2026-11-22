@@ -1,19 +1,25 @@
 type ResearchStatus = "queued" | "running" | "complete" | "failed";
-type ResearchStage = "searching" | "synthesizing" | "rendering";
+export type ResearchStage = "searching" | "supplementing_1" | "supplementing_2"
+  | "synthesizing" | "reviewing" | "revising" | "rendering";
 
 export type ResearchJob = {
   id: string;
   status: ResearchStatus;
   stage?: ResearchStage;
+  stageHistory?: ResearchStage[];
+  observedStages?: ResearchStage[];
   error?: string;
   cached?: boolean;
   synthesisStatus?: "generated" | "unavailable" | "insufficient_evidence";
+  reviewStatus?: "approved" | "needs_review" | "unavailable" | "insufficient_evidence";
   report?: { html: string; pdf?: string };
 };
 
 const connectionError = "无法连接调研服务。请确认网站已接入调研接口，再试一次。";
 const statuses: ResearchStatus[] = ["queued", "running", "complete", "failed"];
-const stages: ResearchStage[] = ["searching", "synthesizing", "rendering"];
+const stages: ResearchStage[] = [
+  "searching", "supplementing_1", "supplementing_2", "synthesizing", "reviewing", "revising", "rendering",
+];
 
 export function researchApiBase(configured: string | undefined, origin: string) {
   try {
@@ -35,11 +41,18 @@ export function parseResearchJob(data: unknown, base: string, expectedId?: strin
   }
   const result: ResearchJob = { id: job.id, status: job.status };
   if (job.stage && stages.includes(job.stage)) result.stage = job.stage;
+  if (Array.isArray(job.stageHistory)) {
+    result.stageHistory = job.stageHistory.slice(-32).filter((stage) => stages.includes(stage));
+  }
   if (typeof job.error === "string") result.error = job.error;
   if (job.cached === true) result.cached = true;
   if (job.synthesisStatus === "generated" || job.synthesisStatus === "unavailable"
     || job.synthesisStatus === "insufficient_evidence") {
     result.synthesisStatus = job.synthesisStatus;
+  }
+  if (job.reviewStatus === "approved" || job.reviewStatus === "needs_review"
+    || job.reviewStatus === "unavailable" || job.reviewStatus === "insufficient_evidence") {
+    result.reviewStatus = job.reviewStatus;
   }
   if (job.status === "complete") {
     const reportPath = `/api/research/jobs/${job.id}/report`;
@@ -50,6 +63,15 @@ export function parseResearchJob(data: unknown, base: string, expectedId?: strin
     if (job.report.pdf === `${reportPath}.pdf`) result.report.pdf = base + job.report.pdf;
   }
   return result;
+}
+
+export function mergeResearchJobProgress(previous: ResearchJob | undefined, next: ResearchJob): ResearchJob {
+  const previousHistory = previous?.id === next.id ? previous.observedStages ?? previous.stageHistory ?? [] : [];
+  const observedStages = [...(next.stageHistory ?? previousHistory)];
+  if (next.stage && next.status !== "queued" && observedStages.at(-1) !== next.stage) {
+    observedStages.push(next.stage);
+  }
+  return { ...next, observedStages: observedStages.slice(-32) };
 }
 
 async function requestResearchJob(path: string, options: RequestInit, expectedId?: string) {
