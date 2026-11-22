@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Download, ExternalLink, FileText, Search } from "lucide-react";
+import { Check, CheckCircle2, ChevronDown, Circle, Clock3, Download, ExternalLink, FileText, LoaderCircle, Search, TriangleAlert } from "lucide-react";
 import { getResearchJob, mergeResearchJobProgress, submitResearchJob, type ResearchJob, type ResearchStage } from "./research-api";
 import "./research-query.css";
 
@@ -15,28 +15,15 @@ const statusText = {
   revising: "正在根据审查结果修订报告…",
   rendering: "正在生成报告文件…",
 };
-const phases = [
-  { id: "queued", label: "排队" },
-  { id: "searching", label: "检索资料" },
-  { id: "supplementing_1", label: "补查·第 1 轮" },
-  { id: "synthesizing", label: "综合分析" },
-  { id: "reviewing", label: "审查报告" },
-  { id: "supplementing_2", label: "补查·第 2 轮" },
-  { id: "revising", label: "修订报告" },
-  { id: "rendering", label: "生成文件" },
-  { id: "complete", label: "完成" },
-];
-const phaseLabels = {
-  complete: "已完成",
-  current: "进行中",
-  failed: "失败",
-  unknown: "状态待确认",
-  pending: "待开始",
-  optional: "按需执行",
-  skipped: "未执行",
-  unrecorded: "未记录",
+const stageTitles: Record<ResearchStage, string> = {
+  searching: "检索资料",
+  supplementing_1: "补查·第 1 轮",
+  supplementing_2: "补查·第 2 轮",
+  synthesizing: "综合分析",
+  reviewing: "审查报告",
+  revising: "修订报告",
+  rendering: "生成文件",
 };
-const optionalStages = new Set<string>(["supplementing_1", "supplementing_2", "revising"]);
 const reviewLabels = {
   approved: "审查通过",
   needs_review: "需进一步核查",
@@ -57,60 +44,114 @@ export function ResearchProgress({ job, submitting = false, interrupted = false 
   const complete = job?.status === "complete";
   const failed = job?.status === "failed";
   const history = job?.stageHistory ?? job?.observedStages ?? [];
-  const phase = job?.status === "queued" || complete ? job.status : job?.stage ?? (failed ? history.at(-1) : undefined);
-  const priorHistory = phase && history.at(-1) === phase && !complete ? history.slice(0, -1) : history;
-  const completedStages = new Set<string>(priorHistory);
+  const records = job?.stage && history.at(-1) !== job.stage ? [...history, job.stage] : history;
+  const activeStage = !complete ? job?.stage ?? records.at(-1) : undefined;
   const synthesisIncomplete = complete && (job.synthesisStatus === "unavailable"
     || job.synthesisStatus === "insufficient_evidence");
-  let message: string | undefined;
-  if (submitting) message = "正在提交调研任务…";
-  else if (job && isPending(job) && !interrupted) {
-    message = job.status === "queued" ? statusText.queued : statusText[job.stage ?? "running"];
+  let state: "current" | "complete" | "failed" | "unknown" = "current";
+  let message = statusText[job?.stage ?? "running"];
+  let note = "";
+  if (submitting) {
+    message = "正在提交调研任务…";
+  } else if (interrupted) {
+    state = "unknown";
+    message = "任务状态更新中断";
+  } else if (failed) {
+    state = "failed";
+    message = "调研未完成";
+  } else if (complete) {
+    state = "complete";
+    message = job.cached ? "已复用近期报告" : "调研已完成";
+    const evidenceNote = synthesisIncomplete
+      ? job.synthesisStatus === "insufficient_evidence" ? "证据不足，综合分析未生成" : "综合分析未生成"
+      : "";
+    note = [evidenceNote, job.reviewStatus && reviewLabels[job.reviewStatus]].filter(Boolean).join(" · ");
+    if (synthesisIncomplete || (job.reviewStatus && job.reviewStatus !== "approved")) state = "unknown";
+  } else if (job?.status === "queued") {
+    message = statusText.queued;
   }
+  if ((failed || interrupted) && activeStage) note = `最后记录的阶段为${stageTitles[activeStage]}`;
+  const waiting = submitting || job?.status === "queued";
+  const StatusIcon = state === "complete" ? CheckCircle2
+    : state === "failed" || state === "unknown" ? TriangleAlert : waiting ? Clock3 : LoaderCircle;
 
   return (
-    <section className="research-query-progress" aria-label="调研进度">
-      {message && <p role="status">{message}</p>}
-      <ol aria-label="处理阶段">
-        {phases.map((step) => {
-          const active = step.id === phase && !complete;
-          const done = !active && (completedStages.has(step.id)
-            || (step.id === "queued" && !!job && job.status !== "queued") || (step.id === "complete" && complete));
-          let state: keyof typeof phaseLabels = optionalStages.has(step.id) ? "optional" : "pending";
-          if (complete) state = job?.stageHistory ? "skipped" : "unrecorded";
-          if (failed) state = "unknown";
-          if (active) {
-            state = failed ? "failed" : interrupted ? "unknown" : "current";
-            if (failed && !job?.stage) state = "unknown";
-          }
-          if (done) state = "complete";
-          let label = state === "current" && job?.status === "queued" ? "等待中" : phaseLabels[state];
-          if (synthesisIncomplete && step.id === "synthesizing") {
-            state = "unknown";
-            label = job.synthesisStatus === "insufficient_evidence" ? "证据不足" : "综合未生成";
-          }
-          if (complete && step.id === "reviewing" && job.reviewStatus) {
-            state = job.reviewStatus === "approved" ? "complete" : "unknown";
-            label = reviewLabels[job.reviewStatus];
-          }
-          return (
-            <li key={step.id} data-state={state} aria-current={active ? "step" : undefined}>
-              <span>{step.label}</span>
-              <small>{label}</small>
-            </li>
-          );
-        })}
-      </ol>
-      {history.length > 0 && (
+    <section className="research-query-progress" data-state={state} aria-label="调研进度">
+      <div className="research-query-current">
+        <span className="research-query-status-icon" aria-hidden="true">
+          <StatusIcon size={21} className={!waiting && state === "current" ? "research-query-spinning" : undefined} />
+        </span>
+        <div role="status" aria-atomic="true">
+          <p className="research-query-status">{message}</p>
+          {note && <p className="research-query-status-note">{note}</p>}
+        </div>
+      </div>
+      {records.length > 0 && (
         <details className="research-query-history">
-          <summary>实际执行顺序</summary>
+          <summary>执行记录 <ChevronDown size={14} aria-hidden="true" /></summary>
           <ol aria-label="阶段记录">
-            {history.map((stage: ResearchStage, index) => (
-              <li key={index}>{phases.find((step) => step.id === stage)?.label}</li>
-            ))}
+            {records.map((stage, index) => {
+              const active = index === records.length - 1 && !complete;
+              let recordState = active ? state : "complete";
+              let label = active ? "进行中" : "已完成";
+              if (active && state === "failed") label = "失败";
+              if (active && (interrupted || !job?.stage)) {
+                recordState = "unknown";
+                label = "状态待确认";
+              }
+              if (synthesisIncomplete && stage === "synthesizing") {
+                recordState = "unknown";
+                label = job.synthesisStatus === "insufficient_evidence" ? "证据不足" : "综合未生成";
+              }
+              const RecordIcon = recordState === "complete" ? Check : Circle;
+              return (
+                <li key={index} data-state={recordState} aria-current={active ? "step" : undefined}>
+                  <RecordIcon size={14} aria-hidden="true" />
+                  <span>{stageTitles[stage]}</span>
+                  <small className={recordState === "complete" ? "research-query-sr-only" : undefined}>{label}</small>
+                </li>
+              );
+            })}
           </ol>
         </details>
       )}
+    </section>
+  );
+}
+
+export function ResearchReport({ job, query }: { job: ResearchJob; query: string }) {
+  const report = job.report;
+  if (!report) return null;
+  return (
+    <section className="research-query-report" aria-labelledby="research-report-title">
+      <header>
+        <div className="research-query-report-heading" aria-live="polite">
+          <h2 id="research-report-title">{query} 调研报告</h2>
+        </div>
+        <div className="research-query-actions" role="group" aria-label="报告操作">
+          {report.pdf && (
+            <a className="research-query-primary-action" href={`${report.pdf}?download=1`} download>
+              <FileText size={16} aria-hidden="true" /> 下载 PDF
+            </a>
+          )}
+          <a className={!report.pdf ? "research-query-primary-action" : undefined} href={report.html} target="_blank" rel="noopener noreferrer">
+            <ExternalLink size={16} aria-hidden="true" /> 打开 HTML
+          </a>
+          <a href={`${report.html}?download=1`} download>
+            <Download size={16} aria-hidden="true" /> 下载 HTML
+          </a>
+        </div>
+      </header>
+      {!report.pdf && <p className="research-query-print-note">需要 PDF 时，可打开 HTML 后在浏览器中打印并选择「另存为 PDF」。</p>}
+      <div className="research-query-preview">
+        <iframe
+          className="research-query-frame"
+          title={`${query} 调研报告预览`}
+          src={report.html}
+          sandbox="allow-popups allow-popups-to-escape-sandbox"
+          referrerPolicy="no-referrer"
+        />
+      </div>
     </section>
   );
 }
@@ -165,7 +206,6 @@ export default function ResearchQuery() {
   }
 
   const busy = submitting || (isPending(job) && !error);
-  const report = job?.report;
   return (
     <section className="research-query" aria-labelledby="research-title">
       <header className="research-query-heading">
@@ -218,37 +258,7 @@ export default function ResearchQuery() {
         </p>
       )}
 
-      {report && (
-        <section className="research-query-report" aria-labelledby="research-report-title">
-          <header>
-            <div aria-live="polite">
-              <h2 id="research-report-title">调研报告已生成</h2>
-              <p>{searchedQuery}{job.cached && " · 已复用近期报告"}</p>
-            </div>
-            <div className="research-query-actions">
-              <a href={report.html} target="_blank" rel="noopener noreferrer">
-                <ExternalLink size={16} aria-hidden="true" /> 打开 HTML
-              </a>
-              <a href={`${report.html}?download=1`} download>
-                <Download size={16} aria-hidden="true" /> 下载 HTML
-              </a>
-              {report.pdf && (
-                <a href={`${report.pdf}?download=1`} download>
-                  <FileText size={16} aria-hidden="true" /> 下载 PDF
-                </a>
-              )}
-            </div>
-          </header>
-          {!report.pdf && <p className="research-query-print-note">需要 PDF 时，可打开 HTML 后在浏览器中打印并选择「另存为 PDF」。</p>}
-          <iframe
-            className="research-query-frame"
-            title={`${searchedQuery} 调研报告预览`}
-            src={report.html}
-            sandbox="allow-popups allow-popups-to-escape-sandbox"
-            referrerPolicy="no-referrer"
-          />
-        </section>
-      )}
+      {job?.report && <ResearchReport job={job} query={searchedQuery} />}
     </section>
   );
 }
