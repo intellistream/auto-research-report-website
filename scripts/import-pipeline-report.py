@@ -239,11 +239,21 @@ def save_report(root, report, figure, *, promote=False, reviewed=False):
 
     # Validate every selected report before any archive files are changed.
     flow = flow_index(root, catalog, incoming=projected)
+    topic_index_path = root / "topics.json"
+    topics = None
+    if topic_index_path.exists():
+        from specdec_curation import sync as sync_specdec
+        topics, _ = sync_specdec(
+            json.loads(topic_index_path.read_text(encoding="utf-8")), catalog, flow, root,
+            incoming=projected,
+        )
     snapshot.mkdir(parents=True, exist_ok=True)
     write_bytes(figure_path, figure)
     write_json(snapshot_path, projected)
     write_json(root / "flow-index.json", flow, compact=True)
     write_json(index_path, catalog)
+    if topics is not None:
+        write_json(topic_index_path, topics)
 
 
 def main(argv=None):

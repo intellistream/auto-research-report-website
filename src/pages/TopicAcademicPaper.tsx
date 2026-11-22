@@ -3,7 +3,8 @@ import { ArrowLeft, ArrowUpRight, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import { academicPaperHeadings, academicPaperHrefs, revealPaperHeading, type AcademicPaper } from "./academic-paper";
-import AclGraphSurveyMap, { aclGraphSurveyVersion } from "./AclGraphSurveyMap";
+import AclGraphSurveyMap from "./AclGraphSurveyMap";
+import { validatedSurvey } from "./topic-survey";
 import "./topic-academic-paper.css";
 
 export function AcademicPaperCard({ topic, paper }: { topic: Topic; paper: AcademicPaper }) {
@@ -27,6 +28,12 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
   const observer = useRef<ResizeObserver | null>(null);
   const [headings, setHeadings] = useState<{ id: string; title: string }[]>([]);
   const [height, setHeight] = useState(1000);
+  const showTaxonomy = topic.id === "aclgraph" && !!validatedSurvey(topic)?.routes.every((row) => row.examples && row.paperAnchor && row.paperSection);
+  function syncCover(doc: Document | null | undefined, shownAbove: boolean) {
+    const cover = doc?.getElementById("taxonomy-overview")?.closest("figure");
+    if (cover) cover.hidden = shownAbove;
+  }
+  useEffect(() => { syncCover(frame.current?.contentDocument, showTaxonomy); }, [showTaxonomy]);
   useEffect(() => () => observer.current?.disconnect(), []);
   function loaded() {
     observer.current?.disconnect();
@@ -34,6 +41,7 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
     try {
       const doc = frame.current?.contentDocument;
       if (!doc || !hrefs || new URL(doc.URL).href !== new URL(hrefs.html, window.location.href).href) return;
+      syncCover(doc, showTaxonomy);
       setHeadings(academicPaperHeadings(doc));
       const resize = () => {
         const body = doc.body;
@@ -57,7 +65,7 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
     return <p role="alert">论文版本元数据无效，无法读取此稿。<Link to="/topics">返回专题目录</Link></p>;
   }
   const Title = embedded ? "h2" : "h1";
-  const showMap = topic.id === "aclgraph" && paper.version === aclGraphSurveyVersion;
+  const showMap = topic.id === "aclgraph" && !!topic.report;
 
   return (
     <div className="academic-paper-page">
@@ -72,7 +80,7 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
         </div>
       </header>
 
-      {showMap && <AclGraphSurveyMap htmlHref={hrefs.html} revealSection={revealSection} />}
+      {showMap && <AclGraphSurveyMap topic={topic} htmlHref={hrefs.html} revealSection={revealSection} showTaxonomy={showTaxonomy} />}
 
       <section className="academic-paper-fulltext" aria-labelledby="academic-paper-fulltext">
         <div className="academic-paper-fulltext-heading">

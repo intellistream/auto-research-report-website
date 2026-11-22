@@ -30,6 +30,7 @@ env:
   # Project sites are served from /<repo>/; set to "/" for a custom domain.
   VITE_BASE_PATH: /${{ github.event.repository.name }}/
   VITE_RESEARCH_API_BASE: ${{ vars.VITE_RESEARCH_API_BASE }}
+  VITE_CHAT_API_URL: ${{ vars.VITE_CHAT_API_URL }}
 
 jobs:
   build:

@@ -24,12 +24,12 @@ function render(path: string, topic = nextTopic) {
 }
 
 describe("academic manuscript branch", () => {
-  it("uses one topic title and navigation for all four sections", () => {
+  it("uses one topic title and navigation for the three sections", () => {
     const html = render("/topics/aclgraph");
-    expect(html).toContain("一次前向怎样用上 ACLGraph？");
+    expect(html).toContain("图回放省去了哪部分工作？");
     expect(html).toContain("view=paper");
     expect(html).toContain("view=report");
-    expect(html).toContain("view=evidence");
+    expect(html).not.toContain("view=evidence");
     expect(html).toContain("<h1>ACL Graph</h1>");
     expect(html).not.toContain("<iframe");
   });
@@ -51,14 +51,14 @@ describe("academic manuscript branch", () => {
     expect(html).toContain("view=report");
     const reportView = render("/topics/aclgraph?view=report");
     expect(reportView).toContain(oldTopic.report!.title);
-    expect(reportView).not.toContain("工程证据的持续积累");
+    expect(reportView).toContain("工程证据的持续积累");
     expect(reportView).not.toContain("取材证据附录");
     expect(reportView).not.toContain("<iframe");
   });
   it("names the topic in the directory and keeps the manuscript inside its own section", () => {
     const html = render("/topics");
     expect(html).toContain("ACL Graph");
-    expect(html).toContain("PR 与趋势");
+    expect(html).not.toContain("PR 与趋势");
     expect(html).not.toContain(paper.title);
     expect(html).not.toContain(paper.abstract);
   });
@@ -94,15 +94,18 @@ describe("academic manuscript branch", () => {
     expect(heading.focus).toHaveBeenCalledWith({ preventScroll: true });
     expect(revealPaperHeading({ getElementById: () => ({ tagName: "A" }) } as unknown as Document, "ref-a")).toBe(false);
   });
-  it("publishes the accepted R1 source snapshot as the current real paper", () => {
+  it("opens the taxonomy and links all five branches to their frozen chapters", () => {
     const actual = publishedTopic.academicPaper!;
-    expect(actual.manuscriptRevision).toBe("R1-content-review-accepted");
-    expect(actual.assets.markdown.sha256).toBe("382fe4bee7515b7487bdebda015306829939675fbece64a3672947f3f44d194b");
+    expect(actual.manuscriptRevision).toBe("R2.1-taxonomy-examples");
     const hrefs = academicPaperHrefs("aclgraph", actual)!;
     const html = render("/topics/aclgraph?view=paper", publishedTopic);
-    expect(html).toContain("技术路线与待验证问题");
-    expect(html.indexOf("技术路线与待验证问题")).toBeLessThan(html.indexOf("<iframe"));
-    expect(html).toContain(`href="${hrefs.html}#${encodeURIComponent("可组合的状态有效性契约")}"`);
+    expect(html).toContain("ACLGraph 技术分类总图");
+    expect(html.indexOf("ACLGraph 技术分类总图")).toBeLessThan(html.indexOf("<iframe"));
+    for (const anchor of ["capture", "selection", "replay-state", "scheduling", "lifecycle"]) {
+      expect(html).toContain(`href="${hrefs.html}#${anchor}"`);
+    }
+    expect(html).toContain("昇腾直接工作");
+    expect(html).toContain("可借鉴的 GPU 工作");
     expect(html).toContain(`src="${hrefs.html}"`);
     expect(html).toContain(`href="${hrefs.pdf}"`);
     expect(html).toContain(`href="${hrefs.sources}"`);

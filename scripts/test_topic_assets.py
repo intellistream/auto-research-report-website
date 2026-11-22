@@ -32,15 +32,18 @@ class TopicAssetsTest(unittest.TestCase):
                         seen.add(version)
                         folder = f"topic-reports/{topic['id']}/{version}"
                         self.assertEqual(report["manifestPath"], f"{folder}/manifest.json")
-                        self.assertEqual(report["pdfPath"], f"{folder}/report.pdf")
+                        if report.get("pdfPath"):
+                            self.assertEqual(report["pdfPath"], f"{folder}/report.pdf")
                         manifest = json.loads((ARCHIVE / report["manifestPath"]).read_bytes())
                         self.assertEqual(manifest["topicId"], topic["id"])
                         self.assertEqual(manifest["version"], version)
                         self.assertEqual(manifest["previousVersion"], report["previousVersion"])
                         frozen = json.loads((ARCHIVE / folder / "report.json").read_bytes())
                         self.assertEqual(frozen, report)
-                        for name in ("report.pdf", "report.html", "report.md", "report.json"):
-                            self.check_asset(ARCHIVE / folder / name, manifest["assets"][name])
+                        self.assertTrue({"report.html", "report.md", "report.json"} <= set(manifest["assets"]))
+                        self.assertEqual("report.pdf" in manifest["assets"], bool(report.get("pdfPath")))
+                        for name, asset in manifest["assets"].items():
+                            self.check_asset(ARCHIVE / folder / name, asset)
                         previous = report["previousVersion"]
                         if not previous:
                             break

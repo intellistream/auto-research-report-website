@@ -123,6 +123,8 @@ python scripts/import-docx.py "/path/to/daily-reports.zip" --web-only --output p
 
 首次部署前需在仓库 Settings → Pages → Source 选择 “GitHub Actions”。项目站点地址为 `https://intellistream.github.io/auto-research-report-website/`，因此构建时把 `VITE_BASE_PATH` 设为 `/<repo>/`；改用自定义域名时改为 `/`。
 
+右下角的「AI 提问」使用 [研报助手后端](https://github.com/intellistream/auto-research-report-super-intelligence-backend)。在仓库的 Actions variables 中设置 `VITE_CHAT_API_URL` 为完整的 HTTPS 接口地址（含 `/api/chat`），然后重新运行 Website 工作流。开发环境默认请求 `http://127.0.0.1:8765/api/chat`，也可通过同名环境变量指定地址。
+
 ## v2.0 系统日报
 
 系统日报覆盖北京时间已结束的自然日，来源为 vLLM 和 vLLM Ascend 的当日合入 PR。网站接收运行目录中的 `manifest.json`、`report.json`、`flow.png`。这三个文件须来自同一次生成。
@@ -170,11 +172,13 @@ npm run build
 
 ## 技术专题
 
-导航「技术专题」读取 `public/word-reports/topics.json`。ACL Graph 技术专题提供四个并列分区：导引（默认入口）、综述（`?view=paper`，含同版 PDF、HTML、LaTeX、BibTeX、Markdown 与源码 ZIP）、动态报告（`?view=report`，含版本记录）、PR 与趋势（`?view=evidence`，含趋势图和可筛选 PR 索引）。旧动态报告的取材附录深链接仍可打开 PR 索引。KV Cache 和推测解码沿用原有 PR 索引、筛选与日报回溯入口。
+导航「技术专题」读取 `public/word-reports/topics.json`。ACL Graph 技术专题提供导引（默认入口）、综述（`?view=paper`，含同版 PDF、HTML、LaTeX、BibTeX、Markdown 与源码 ZIP）和动态报告（`?view=report`）。动态报告可展开 PR 趋势、可筛选的 PR 索引、具体分析和版本记录。旧 `?view=evidence` 链接转到动态报告的 PR 与趋势，旧取材附录链接继续定位到 PR 索引。KV Cache 和推测解码沿用原有 PR 索引、筛选与日报回溯入口。
 
 技术专题从后端独立构建。取材复用此仓库的日报归档，论文及原始 PR 核验进入专题研究稿。后端 `build-topic-reports` 写入冻结的 `topic-reports/<id>/<version>/`，然后更新 `topics.json`。上游使用 `topics/README.md` 中的命令构建；站点提交索引及新增版本目录后，现有 Pages 构建即可发布。发布前执行 `python -X utf8 -m unittest discover -s scripts`、`npm test` 和 `npm run build`，覆盖索引、历史链、资产 SHA-256 及页面路由。
 
 独立的学术稿使用 `scripts/import-academic-paper.py` 产出冻结资产和候选索引。当前正文以其稿件标识和资料截止日期引用；动态报告更新时继续提供此学术快照。
+
+ACL Graph 的问题路线、证据判断与研究反馈由 [`topics/aclgraph/survey.json`](topics/aclgraph/survey.json) 维护，经 `python scripts/import-topic-survey.py` 校验并原子导入。前端消费导入数据，报告/论文更新后从当前报告结构提供导读，避免固定版本的前端摘要失效。`npm` 的开发、测试和构建入口会检查源与索引一致；新版本已移除旧导读时，校验明确提示待复核，允许使用当前报告结构正常构建。相同版本未导入、仍发布旧版本导读及错误引用继续阻止构建。维护字段、证据时间口径和更新步骤见 [专题维护说明](topics/aclgraph/README.md)。
 
 ## 旧版 JSON 数据导入
 

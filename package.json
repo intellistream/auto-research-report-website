@@ -11,9 +11,10 @@
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "preview": "vite preview --host 0.0.0.0",
-    "predev": "node scripts/prepare-catalog.mjs",
-    "pretest": "node scripts/prepare-catalog.mjs",
-    "prebuild": "node scripts/prepare-catalog.mjs"
+    "check:topic-survey": "node scripts/check-topic-surveys.mjs",
+    "predev": "npm run check:topic-survey && node scripts/prepare-catalog.mjs",
+    "pretest": "npm run check:topic-survey && node scripts/prepare-catalog.mjs",
+    "prebuild": "npm run check:topic-survey && node scripts/prepare-catalog.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "4.4.1",
