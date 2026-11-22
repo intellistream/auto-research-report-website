@@ -23,6 +23,8 @@ npm run dev
 
 在「研究查询」输入研究方向，选择最近 7、30、90、180 或 365 天，生成包含论文进展、近期 PR 时间线及 Research Gap 的调研报告。完成后可在页内预览、单独打开或下载 HTML。服务提供 PDF 时页面也提供下载，HTML 同样可通过浏览器的打印功能另存为 PDF。
 
+组内模式在当前页显示生成进度和结果。公开模式（`VITE_RESEARCH_MODE=public`）提交后立即提供任务链接，重新打开 `/#/research?task=<任务 UUID>` 可继续查看进度和报告。任务页只读取已有任务，提交新查询使用「发起新调研」。
+
 本地联调时，先启动上游调研服务，再在网站仓库根目录运行：
 
 ```powershell
@@ -33,6 +35,7 @@ npm run dev -- --host 127.0.0.1
 打开 `http://127.0.0.1:5173/#/research`。Vite 将 `/api/research` 转发给调研服务。同源部署可通过网关转发此路径。
 
 GitHub Pages 使用独立的 HTTPS 调研服务。将服务地址设为网站仓库的 Actions 变量 `VITE_RESEARCH_API_BASE`，在后端通过 `RESEARCH_ALLOWED_ORIGINS` 放行站点的 Origin（如 `https://lab.sage.org.ai`），再从 `main` 运行 Website 工作流重建页面。GitHub 和模型凭据由后端配置。
+Pages 工作流在该接口变量存在时启用公开模式；组内构建默认使用当前页等待模式。
 
 ### 贡献者
 

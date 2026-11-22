@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Check, CheckCircle2, ChevronDown, Circle, Clock3, Download, ExternalLink, FileText, LoaderCircle, Search, TriangleAlert } from "lucide-react";
-import { getResearchJob, mergeResearchJobProgress, submitResearchJob, type ResearchJob, type ResearchStage } from "./research-api";
+import { Link, useHref, useSearchParams } from "react-router-dom";
+import { Check, CheckCircle2, ChevronDown, Circle, Clock3, Copy, Download, ExternalLink, FileText, LoaderCircle, Search, TriangleAlert } from "lucide-react";
+import { getResearchJob, isResearchTaskId, mergeResearchJobProgress, researchTaskHref, submitResearchJob, type ResearchJob, type ResearchStage } from "./research-api";
 import "./research-query.css";
 
 const windows = [7, 30, 90, 180, 365];
@@ -126,7 +127,7 @@ export function ResearchReport({ job, query }: { job: ResearchJob; query: string
     <section className="research-query-report" aria-labelledby="research-report-title">
       <header>
         <div className="research-query-report-heading" aria-live="polite">
-          <h2 id="research-report-title">{query} 调研报告</h2>
+          <h2 id="research-report-title">{query ? `${query} 调研报告` : "调研报告"}</h2>
         </div>
         <div className="research-query-actions" role="group" aria-label="报告操作">
           {report.pdf && (
@@ -146,7 +147,7 @@ export function ResearchReport({ job, query }: { job: ResearchJob; query: string
       <div className="research-query-preview">
         <iframe
           className="research-query-frame"
-          title={`${query} 调研报告预览`}
+          title={query ? `${query} 调研报告预览` : "调研报告预览"}
           src={report.html}
           sandbox="allow-popups allow-popups-to-escape-sandbox"
           referrerPolicy="no-referrer"
@@ -156,18 +157,76 @@ export function ResearchReport({ job, query }: { job: ResearchJob; query: string
   );
 }
 
-export default function ResearchQuery() {
+export function ResearchTaskLink({ id }: { id: string }) {
+  const routeHref = useHref({ pathname: "/research", search: "?" + new URLSearchParams({ task: id }) });
+  const href = typeof window === "undefined" ? routeHref : researchTaskHref(id, window.location.href);
+  const field = useRef<HTMLInputElement>(null);
+  const [message, setMessage] = useState("");
+
+  async function copyLink() {
+    try {
+      if (!navigator.clipboard) throw new Error();
+      await navigator.clipboard.writeText(href);
+      setMessage("任务链接已复制。");
+    } catch {
+      field.current?.focus();
+      field.current?.select();
+      setMessage("已选中链接，请复制后保存。");
+    }
+  }
+
+  return (
+    <aside className="research-query-task" aria-labelledby="research-task-title">
+      <h2 id="research-task-title">任务链接</h2>
+      <p>保存此链接，可查看任务和下载报告。</p>
+      <div className="research-query-task-actions">
+        <input ref={field} aria-label="调研任务链接" readOnly value={href} onFocus={(event) => event.currentTarget.select()} />
+        <button type="button" onClick={copyLink}><Copy size={15} aria-hidden="true" />复制链接</button>
+        <a href={href} target="_blank" rel="noopener noreferrer"><ExternalLink size={15} aria-hidden="true" />打开任务</a>
+      </div>
+      {message && <p className="research-query-copy-status" role="status">{message}</p>}
+    </aside>
+  );
+}
+
+function ResearchQueryContent({ publicMode, taskId, invalidTask, onCreated }: {
+  publicMode: boolean;
+  taskId?: string;
+  invalidTask: boolean;
+  onCreated: (id: string) => void;
+}) {
   const [query, setQuery] = useState("");
   const [days, setDays] = useState(30);
   const [job, setJob] = useState<ResearchJob>();
   const [searchedQuery, setSearchedQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [loadingTask, setLoadingTask] = useState(!!taskId);
+  const [restoreAttempt, setRestoreAttempt] = useState(0);
+  const [error, setError] = useState(invalidTask ? "调研任务链接无效，请重新发起调研。" : "");
   const submitRequest = useRef<AbortController>(null);
   const keyword = query.trim();
   const validQuery = [...keyword].length >= 2 && /[\p{L}\p{N}]/u.test(keyword);
 
   useEffect(() => () => submitRequest.current?.abort(), []);
+
+  useEffect(() => {
+    if (!taskId) return;
+    const controller = new AbortController();
+    setLoadingTask(true);
+    setError("");
+    getResearchJob(taskId, controller.signal).then((next) => {
+      if (controller.signal.aborted) return;
+      setJob(mergeResearchJobProgress(undefined, next));
+      setQuery(next.query ?? "");
+      setSearchedQuery(next.query ?? "");
+      setDays(next.days ?? 30);
+    }).catch((cause: Error) => {
+      if (!controller.signal.aborted) setError(cause.message);
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoadingTask(false);
+    });
+    return () => controller.abort();
+  }, [taskId, restoreAttempt]);
 
   useEffect(() => {
     if (!job || !isPending(job) || error) return;
@@ -187,7 +246,7 @@ export default function ResearchQuery() {
 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!validQuery || submitRequest.current || (isPending(job) && !error)) return;
+    if (invalidTask || loadingTask || !validQuery || submitRequest.current || (isPending(job) && !error)) return;
     const controller = new AbortController();
     submitRequest.current = controller;
     setError("");
@@ -196,7 +255,13 @@ export default function ResearchQuery() {
     setSubmitting(true);
     try {
       const next = await submitResearchJob(keyword, days, controller.signal);
-      if (!controller.signal.aborted) setJob(mergeResearchJobProgress(undefined, next));
+      if (!controller.signal.aborted) {
+        if (publicMode) {
+          if (!isResearchTaskId(next.id)) throw new Error("调研服务未返回有效的任务链接。");
+          onCreated(next.id);
+        }
+        else setJob(mergeResearchJobProgress(undefined, next));
+      }
     } catch (cause) {
       if (!controller.signal.aborted && cause instanceof Error) setError(cause.message);
     } finally {
@@ -205,15 +270,20 @@ export default function ResearchQuery() {
     }
   }
 
-  const busy = submitting || (isPending(job) && !error);
+  const busy = invalidTask || loadingTask || submitting || (isPending(job) && !error);
   return (
     <section className="research-query" aria-labelledby="research-title">
       <header className="research-query-heading">
-        <h1 id="research-title">研究查询</h1>
-        <p>输入研究方向，获取近期论文、相关 PR 时间线和有来源可核查的 Research Gap。</p>
+        <h1 id="research-title">{taskId ? "调研任务" : "研究查询"}</h1>
+        {taskId ? (
+          <>
+            {job?.query && <p>{job.query} · 最近 {job.days ?? days} 天</p>}
+            <Link className="research-query-new-task" to="/research">发起新调研</Link>
+          </>
+        ) : <p>{publicMode ? "提交研究方向，在后台生成论文、PR 进展和 Research Gap 调研报告。" : "输入研究方向，获取近期论文、相关 PR 时间线和有来源可核查的 Research Gap。"}</p>}
       </header>
 
-      <form className="research-query-form" onSubmit={search}>
+      {!taskId && !invalidTask && <form className="research-query-form" onSubmit={search}>
         <label>
           <span>研究方向</span>
           <input
@@ -236,20 +306,26 @@ export default function ResearchQuery() {
         </label>
         <button className="research-query-submit" type="submit" disabled={busy || !validQuery}>
           <Search size={17} aria-hidden="true" />
-          生成调研报告
+          {publicMode ? "创建调研任务" : "生成调研报告"}
         </button>
         {keyword && !validQuery && (
           <p id="research-query-guidance" className="research-query-guidance">
             请输入至少两个字符，并包含文字或数字。
           </p>
         )}
-      </form>
+      </form>}
 
+      {publicMode && taskId && !submitting && <ResearchTaskLink id={taskId} />}
+      {loadingTask && <p className="research-query-feedback" role="status">正在读取调研任务…</p>}
       <ResearchProgress job={job} submitting={submitting} interrupted={!!error} />
       {error && (
         <div className="research-query-feedback research-query-error" role="alert">
           <p>{error}</p>
-          {isPending(job) && <button type="button" onClick={() => setError("")}>重新查询任务状态</button>}
+          {(isPending(job) || taskId) && <button type="button" onClick={() => {
+            if (taskId && !job) setRestoreAttempt((attempt) => attempt + 1);
+            else setError("");
+          }}>重新查询任务状态</button>}
+          {invalidTask && <Link to="/research">重新发起调研</Link>}
         </div>
       )}
       {job?.status === "failed" && (
@@ -260,5 +336,22 @@ export default function ResearchQuery() {
 
       {job?.report && <ResearchReport job={job} query={searchedQuery} />}
     </section>
+  );
+}
+
+export default function ResearchQuery() {
+  const publicMode = import.meta.env.VITE_RESEARCH_MODE === "public";
+  const [parameters, setParameters] = useSearchParams();
+  const requested = parameters.getAll("task");
+  const invalidTask = publicMode && (requested.length > 1 || (requested.length === 1 && !isResearchTaskId(requested[0])));
+  const taskId = publicMode && !invalidTask ? requested[0]?.toLowerCase() : undefined;
+  return (
+    <ResearchQueryContent
+      key={publicMode ? taskId ?? (invalidTask ? "invalid" : "new") : "private"}
+      publicMode={publicMode}
+      taskId={taskId}
+      invalidTask={invalidTask}
+      onCreated={(id) => setParameters({ task: id })}
+    />
   );
 }

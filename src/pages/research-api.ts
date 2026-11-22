@@ -5,6 +5,8 @@ export type ResearchStage = "searching" | "supplementing_1" | "supplementing_2"
 export type ResearchJob = {
   id: string;
   status: ResearchStatus;
+  query?: string;
+  days?: number;
   stage?: ResearchStage;
   stageHistory?: ResearchStage[];
   observedStages?: ResearchStage[];
@@ -21,6 +23,25 @@ const stages: ResearchStage[] = [
   "searching", "supplementing_1", "supplementing_2", "synthesizing", "reviewing", "revising", "rendering",
 ];
 
+export function isResearchJobId(value: unknown): value is string {
+  return typeof value === "string" && /^[a-zA-Z0-9_-]{1,80}$/.test(value);
+}
+
+export function isResearchTaskId(value: unknown): value is string {
+  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+export function researchTaskHref(id: string, pageUrl: string) {
+  if (!isResearchTaskId(id)) throw new Error("调研任务链接无效。");
+  const url = new URL(pageUrl);
+  if (!["http:", "https:"].includes(url.protocol)) throw new Error("调研任务链接无效。");
+  url.username = "";
+  url.password = "";
+  url.search = "";
+  url.hash = "/research?" + new URLSearchParams({ task: id.toLowerCase() }).toString();
+  return url.href;
+}
+
 export function researchApiBase(configured: string | undefined, origin: string) {
   try {
     const base = new URL(configured?.trim() || "/", origin);
@@ -35,11 +56,16 @@ export function researchApiBase(configured: string | undefined, origin: string) 
 
 export function parseResearchJob(data: unknown, base: string, expectedId?: string): ResearchJob {
   const job = data as Partial<ResearchJob> | null;
-  if (!job || typeof job.id !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(job.id)
+  if (!job || !isResearchJobId(job.id)
     || (expectedId && job.id !== expectedId) || !job.status || !statuses.includes(job.status)) {
     throw new Error(connectionError);
   }
   const result: ResearchJob = { id: job.id, status: job.status };
+  if (typeof job.query === "string" && [...job.query.trim()].length >= 2
+    && [...job.query.trim()].length <= 120) result.query = job.query.trim();
+  if (typeof job.days === "number" && Number.isInteger(job.days) && job.days >= 7 && job.days <= 365) {
+    result.days = job.days;
+  }
   if (job.stage && stages.includes(job.stage)) result.stage = job.stage;
   if (Array.isArray(job.stageHistory)) {
     result.stageHistory = job.stageHistory.slice(-32).filter((stage) => stages.includes(stage));
@@ -99,5 +125,6 @@ export function submitResearchJob(query: string, days: number, signal: AbortSign
 }
 
 export function getResearchJob(id: string, signal: AbortSignal) {
+  if (!isResearchJobId(id)) return Promise.reject(new Error("调研任务链接无效。"));
   return requestResearchJob(`/${id}`, { signal }, id);
 }

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { mergeResearchJobProgress, parseResearchJob, researchApiBase, type ResearchJob } from "./research-api";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { getResearchJob, isResearchTaskId, mergeResearchJobProgress, parseResearchJob, researchApiBase, researchTaskHref, type ResearchJob } from "./research-api";
 
 const origin = "https://example.com";
 const job = {
@@ -7,6 +7,9 @@ const job = {
   status: "complete",
   report: { html: "/api/research/jobs/research-abc/report.html" },
 };
+const taskId = "569aeb71-ff29-4ea6-9c87-8dfe537a7795";
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe("research job responses", () => {
   it("supports same-origin and separately hosted research services", () => {
@@ -20,6 +23,31 @@ describe("research job responses", () => {
     const running = { id: job.id, status: "running", stage: "synthesizing" };
     expect(parseResearchJob(running, origin, job.id)).toEqual(running);
     expect(() => parseResearchJob(running, origin, "another-job")).toThrow("无法连接调研服务");
+  });
+
+  it("restores bounded query metadata without breaking older job responses", () => {
+    expect(parseResearchJob({ ...job, query: "  KV 缓存 ", days: 30 }, origin).query).toBe("KV 缓存");
+    expect(parseResearchJob({ ...job, query: "  KV 缓存 ", days: 30 }, origin).days).toBe(30);
+    expect(parseResearchJob(job, origin).query).toBeUndefined();
+    expect(parseResearchJob({ ...job, query: "x".repeat(121), days: 400 }, origin).query).toBeUndefined();
+    expect(parseResearchJob({ ...job, days: 7.5 }, origin).days).toBeUndefined();
+  });
+
+  it("creates canonical public task links under the existing site path", () => {
+    const href = researchTaskHref(taskId.toUpperCase(), "https://example.com/project/?previous=topic#/research");
+    expect(href).toBe(`https://example.com/project/#/research?task=${taskId}`);
+    expect(researchTaskHref(taskId, "http://127.0.0.1:5173/#/research")).toContain(`/#/research?task=${taskId}`);
+    for (const value of ["", "research-abc", "../private", "//other.example", taskId + "?task=other"]) {
+      expect(isResearchTaskId(value)).toBe(false);
+      expect(() => researchTaskHref(value, origin)).toThrow("任务链接无效");
+    }
+  });
+
+  it("rejects unsafe restored IDs before fetching", async () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal("fetch", fetcher);
+    await expect(getResearchJob("../private", new AbortController().signal)).rejects.toThrow("任务链接无效");
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it("accepts Agent stages and filters unsupported history while retaining repeated review", () => {
