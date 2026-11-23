@@ -129,6 +129,17 @@ def validate_survey(survey, topic, archive=None):
         route_ids.add(row["id"])
         for field in ("title", "problem", "assessment", "limitation"):
             text(row.get(field), f"route.{field}")
+        if "subcategories" in row:
+            for subcategory in records(row["subcategories"], "route.subcategories"):
+                text(subcategory.get("title"), "route.subcategories.title")
+                for work in records(subcategory.get("works"), "route.subcategories.works"):
+                    text(work.get("label"), "route.subcategories.works.label")
+                    reference = work.get("reference")
+                    require(type(reference) is int and reference > 0,
+                            "route.subcategories.works.reference: positive integer required")
+                    if anchors is not None:
+                        require(f"ref-{reference}" in anchors,
+                                "route.subcategories.works.reference: absent from the bound paper HTML")
         if "examples" in row:
             require(isinstance(row["examples"], dict), "route.examples: object required")
             for platform in ("ascend", "gpu"):

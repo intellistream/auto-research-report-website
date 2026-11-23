@@ -22,11 +22,19 @@ describe("continuous survey presentation", () => {
     const html = render(checkedTopic, "paper");
     expect(html).not.toContain(survey.thesis);
     const map = html.slice(html.indexOf('<figure class="acl-taxonomy">'), html.indexOf("</figure>"));
+    expect(survey.routes).toHaveLength(4);
+    expect(survey.routes.flatMap((route) => route.subcategories!)).toHaveLength(13);
+    expect(map).toContain('<table class="acl-taxonomy-table"');
+    expect(map.match(/scope="rowgroup"/g)).toHaveLength(4);
+    expect(map.match(/scope="row"/g)).toHaveLength(13);
     for (const route of survey.routes) {
-      for (const example of Object.values(route.examples!)) {
-        expect(typeof example).toBe("object");
-        if (typeof example === "string") continue;
-        for (const work of example.works) expect(map).toContain(`href="${work.url}"`);
+      expect(map).toContain(`#${route.paperAnchor}"`);
+      for (const subcategory of route.subcategories!) {
+        expect(map).toContain(subcategory.title);
+        for (const work of subcategory.works) {
+          expect(map).toContain(work.label);
+          expect(map).toContain(`#ref-${work.reference}"`);
+        }
       }
     }
     const first = survey.routes[0];
@@ -93,6 +101,20 @@ describe("continuous survey presentation", () => {
       const item = { ...checkedTopic, survey: bad as TopicSurvey };
       expect(validatedSurvey(item)).toBeUndefined();
       expect(readingSurvey(item)!.routes.length).toBe(topic.report!.taxonomy.length);
+      expect(render(item, "paper")).toContain("技术路线与待验证问题");
+    }
+  });
+
+  it("rejects malformed taxonomy rows and citation numbers before rendering", () => {
+    const invalid: unknown[] = [null, [], [{ title: " ", works: [{ label: "Paper", reference: 1 }] }],
+      { title: "Missing array", works: [] }, [{ title: "Missing works" }], [{ title: "No works", works: [] }]];
+    for (const reference of [0, -1, 1.5, "1", true, null]) {
+      invalid.push([{ title: "A category", works: [{ label: "Paper", reference }] }]);
+    }
+    for (const subcategories of invalid) {
+      const bad = { ...survey, routes: survey.routes.map((route, index) => index ? route : { ...route, subcategories }) } as unknown as TopicSurvey;
+      const item = { ...checkedTopic, survey: bad };
+      expect(validatedSurvey(item)).toBeUndefined();
       expect(render(item, "paper")).toContain("技术路线与待验证问题");
     }
   });

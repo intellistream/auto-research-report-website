@@ -83,8 +83,28 @@ export default function AclGraphSurveyMap({ topic, htmlHref, revealSection, show
     {showTaxonomy ? <>
       <figure className="acl-taxonomy">
         <figcaption>
-          <h3 id="acl-survey-map-heading">ACLGraph 技术分类总图</h3>
+          <h3 id="acl-survey-map-heading">ACLGraph 技术分类与代表工作</h3>
         </figcaption>
+        {survey.routes.every((item) => item.subcategories?.length) ?
+          <div className="acl-taxonomy-table-scroll" role="region" aria-label="技术分类表，可横向滚动" tabIndex={0}>
+            <table className="acl-taxonomy-table" aria-labelledby="acl-survey-map-heading">
+              <colgroup><col className="acl-taxonomy-major" /><col className="acl-taxonomy-minor" /><col /></colgroup>
+              <thead><tr><th scope="col">大类</th><th scope="col">小类</th><th scope="col">代表工作</th></tr></thead>
+              {survey.routes.map((item) => <tbody key={item.id}>
+                {item.subcategories!.map((subcategory, index) => <tr key={subcategory.title}>
+                  {index === 0 && <th scope="rowgroup" rowSpan={item.subcategories!.length}>
+                    <a href={`${htmlHref}#${encodeURIComponent(item.paperAnchor!)}`} target="_blank" rel="noreferrer" onClick={(event) => {
+                      if (!event.button && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && revealSection(item.paperAnchor!)) event.preventDefault();
+                    }}>{item.title}</a>
+                  </th>}
+                  <th scope="row">{subcategory.title}</th>
+                  <td>{subcategory.works.map((work, workIndex) => <span key={`${work.reference}-${work.label}`}>
+                    {workIndex > 0 && "；"}{work.label} <a className="acl-taxonomy-citation" href={`${htmlHref}#ref-${work.reference}`} target="_blank" rel="noreferrer" aria-label={`${work.label}，参考文献 ${work.reference}`}>[{work.reference}]</a>
+                  </span>)}</td>
+                </tr>)}
+              </tbody>)}
+            </table>
+          </div> : <>
         <div className="acl-taxonomy-columns" aria-hidden="true"><span>类别与判据</span><span>昇腾直接工作</span><span>可借鉴的 GPU 工作</span></div>
         <ol className="acl-taxonomy-branches">{survey.routes.map((item) =>
           <li key={item.id}>
@@ -95,6 +115,7 @@ export default function AclGraphSurveyMap({ topic, htmlHref, revealSection, show
             <ExampleCell platform="可借鉴的 GPU 工作" example={item.examples!.gpu} />
           </li>
         )}</ol>
+        </>}
       </figure>
       <details className="acl-taxonomy-evidence"><summary>分章查看工程证据与待验证问题</summary>{engineeringDetails}</details>
     </> : <>

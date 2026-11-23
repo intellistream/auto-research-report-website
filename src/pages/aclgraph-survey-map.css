@@ -17,6 +17,41 @@
   border-left: 4px solid var(--brand-primary);
 }
 
+.acl-taxonomy-table-scroll {
+  margin-top: 1.2rem;
+  overflow-x: auto;
+}
+
+.acl-taxonomy-table-scroll:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 3px;
+}
+
+.acl-taxonomy-table {
+  width: 100%;
+  min-width: 34rem;
+  border-collapse: collapse;
+  border-top: 2px solid var(--ink-primary);
+  border-bottom: 2px solid var(--ink-primary);
+  font-size: .88rem;
+  line-height: 1.65;
+}
+
+.acl-taxonomy-major { width: 23%; }
+.acl-taxonomy-minor { width: 31%; }
+.acl-taxonomy-table thead { border-bottom: 1px solid var(--ink-primary); }
+.acl-taxonomy-table th,
+.acl-taxonomy-table td { padding: .65rem .6rem; border: 0; text-align: left; vertical-align: middle; }
+.acl-taxonomy-table th { font-weight: 650; }
+.acl-taxonomy-table a { color: var(--brand-primary); text-underline-offset: .2em; }
+.acl-taxonomy-table th a { text-decoration: none; }
+.acl-taxonomy-table th a:hover { text-decoration: underline; }
+.acl-taxonomy-citation { white-space: nowrap; }
+.acl-survey-map h3,
+.acl-survey-map h4,
+.acl-survey-route-list strong,
+.acl-taxonomy-table th { font-family: "SimHei", "黑体", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
+
 .acl-example-works { display: flex; flex-wrap: wrap; gap: .15rem .8rem; font-weight: 650; }
 .acl-example-works a { text-decoration: underline; text-underline-offset: .18em; }
 .acl-example-detail { margin-top: .15rem; color: var(--ink-secondary); font-size: .85rem; }
@@ -309,7 +344,7 @@
   .acl-survey-route-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .acl-survey-route-list li:last-child {
+  .acl-survey-route-list li:last-child:nth-child(odd) {
     grid-column: 1 / -1;
   }
 }

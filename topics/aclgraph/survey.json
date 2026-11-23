@@ -1,21 +1,21 @@
 {
   "schemaVersion": 1,
   "reportVersion": "6dd5554a521e6faeb3477353dd6258a54089733402109dec9c3555eb67ba1d66",
-  "paperVersion": "94956208fc9282e755b71b1b7a5fe1dee9aa92b86ac8c4b56edfcde76f5b701f",
+  "paperVersion": "36208abcc752abf4b76b9039c6e93270f049a29fc0033ac6fc92621f8617e937",
   "reviewedAt": "2026-11-23",
-  "thesis": "先辨认变化发生在程序、请求状态、执行安排还是恢复环境，再比较复用对象、状态准备与服务代价。新稿综合52项有PDF的文献及8项规范/实现来源；GPU机制、Ascend直接证据和待验证推论分别陈述。",
+  "thesis": "本综述围绕执行图构建与低开销提交、动态负载适配与图复用、并行执行与资源协调、图实例准备缓存与恢复四大类展开，进一步划分十三个小类，并区分昇腾直接工作与可迁移的方法证据。",
   "routes": [
     {
       "id": "capture",
-      "title": "动态程序与捕获资格",
-      "problem": "哪些动态信息能够进入可复用计划？",
+      "title": "执行图构建与低开销提交",
+      "problem": "哪些计算适合入图，预捕获和重复提交何时能够带来收益？",
       "mechanism": [
-        "区分符号尺寸与数据控制",
-        "选择表示和专化边界",
-        "核验捕获资格与回放收益"
+        "确定可图化范围与捕获兼容性",
+        "预捕获并实例化可重复提交的执行片段",
+        "结合准备成本、重复次数和实际开销判断收益"
       ],
-      "assessment": "动态编译可以保留尺寸关系和运行时控制；图捕获还受地址、调用和依赖条件限制。新稿把两层分开，并比较专化、分段与选择性回放。",
-      "limitation": "编译成功不保证整段可捕获；可捕获也不保证更快。GPU编译机制不自动构成Ascend实现证据。",
+      "assessment": "xLLM 是昇腾 ACLGraph 的直接工作，以部分图捕获覆盖适合重复执行的模块。Nimble（2020）和 Taskflow 提供预捕获与低开销提交的 GPU 方法；GraCE 与 Relax 分别帮助理解图执行边界和程序表示。",
+      "limitation": "能够捕获不等于一定加速。需要区分图准备成本与稳态收益，并在相同负载下核对主机提交、设备执行、端到端延迟和显存开销；GPU 方法的效果仍需在昇腾环境验证。",
       "sourceIds": [
         "D1",
         "D3",
@@ -23,16 +23,29 @@
         "P2",
         "E4",
         "E5",
-        "E8"
+        "E8",
+        "D2",
+        "D4",
+        "E1",
+        "E2",
+        "E3",
+        "E7",
+        "P1"
       ],
       "evidenceIds": [
-        "e5-modes-padded"
+        "e5-modes-padded",
+        "e2-backend-graphs",
+        "e2-eager-graph",
+        "e2-plan-sharing",
+        "e3-dynamic-replay"
       ],
       "gapIds": [
-        "capture-budget"
+        "capture-budget",
+        "causal-backend-graph",
+        "reproducible-matrix"
       ],
-      "paperSection": "2",
-      "paperAnchor": "动态程序怎样成为可复用计划",
+      "paperSection": "3",
+      "paperAnchor": "section-3",
       "examples": {
         "ascend": {
           "detail": "xLLM以参数化与部分图处理动态模块；其捕获范围仍需对应固定软件合同。",
@@ -44,35 +57,84 @@
           ]
         },
         "gpu": {
-          "detail": "比较动态编译中的未知信息与图捕获资格，明确Shen Nimble和固定任务回放Nimble的身份差别。",
           "works": [
             {
-              "label": "Shen Nimble",
-              "url": "https://proceedings.mlsys.org/paper_files/paper/2021/hash/5b47430e24a5a1f9fe21f0e8eb814131-Abstract.html"
+              "label": "GraCE",
+              "url": "https://www.usenix.org/conference/osdi26/presentation/ghosh"
             },
             {
               "label": "Relax",
               "url": "https://doi.org/10.1145/3676641.3716249"
             },
             {
+              "label": "Nimble（2020）",
+              "url": "https://proceedings.neurips.cc/paper/2020/hash/5f0ad4db43d8723d18169b2e4817a160-Abstract.html"
+            },
+            {
+              "label": "Taskflow",
+              "url": "https://doi.org/10.1109/TPDS.2021.3104255"
+            }
+          ],
+          "detail": "图化边界、程序表示及预捕获提交的 GPU 方法。"
+        }
+      },
+      "subcategories": [
+        {
+          "title": "图化范围与捕获兼容性",
+          "works": [
+            {
+              "label": "xLLM",
+              "reference": 5
+            },
+            {
               "label": "GraCE",
-              "url": "https://www.usenix.org/conference/osdi26/presentation/ghosh"
+              "reference": 6
+            },
+            {
+              "label": "Relax",
+              "reference": 10
+            }
+          ]
+        },
+        {
+          "title": "预捕获与重复提交",
+          "works": [
+            {
+              "label": "Nimble（2020）",
+              "reference": 11
+            },
+            {
+              "label": "Taskflow",
+              "reference": 13
+            }
+          ]
+        },
+        {
+          "title": "图执行收益判断",
+          "works": [
+            {
+              "label": "GraCE",
+              "reference": 6
+            },
+            {
+              "label": "xLLM",
+              "reference": 5
             }
           ]
         }
-      }
+      ]
     },
     {
       "id": "replay-state",
-      "title": "请求状态与验证可见性",
-      "problem": "相同token数为什么仍可能需要更新状态？",
+      "title": "动态负载适配与图复用",
+      "problem": "形状、控制流和回放状态变化时，怎样复用已有执行图？",
       "mechanism": [
-        "区分长度、地址和参数身份",
-        "保留祖先可见性与共享结构",
-        "按真实失效事件更新目录"
+        "按形状和运行配置选择图变体",
+        "处理动态控制流与执行结构变化",
+        "更新回放参数、元数据和地址绑定"
       ],
-      "assessment": "固定验证预算不固定祖先mask。Sequoia的离线树与EAGLE-2的在线选择形成对照；FlashInfer逐步CPU plan、跨层复用和ChunkAttention事件更新承担不同维护工作。",
-      "limitation": "设备驻留不等于设备生成，动态mask不直接意味着重捕获。共享KV命中、图命中与请求状态正确需要分别核验。",
+      "assessment": "xLLM 直接展示昇腾上的动态维度处理与部分图复用；FlashInfer、DISC、CoRa、Relax、Sequoia、Cortex、ACRoBat 和 GraCE 从配置变化、控制结构与回放状态等不同层面提供方法借鉴。",
+      "limitation": "本类工作处理的动态性并不相同，不能把支持变长输入等同于支持任意控制流或地址变化。需要分别核对捕获约束、图变体数量、更新成本、缓存命中与回退行为。",
       "sourceIds": [
         "D4",
         "E1",
@@ -92,8 +154,8 @@
         "state-ownership",
         "causal-backend-graph"
       ],
-      "paperSection": "3",
-      "paperAnchor": "请求变化怎样进入执行",
+      "paperSection": "4",
+      "paperAnchor": "section-4",
       "examples": {
         "ascend": {
           "detail": "xLLM使用稳定池偏移与显式参数；工程记录提供设备边界复用案例，未证明任意状态更新均兼容。",
@@ -109,39 +171,96 @@
           ]
         },
         "gpu": {
-          "detail": "对照CPU规划、结构事件更新与静态/动态验证树，区分工作规模和可见性语义。",
           "works": [
             {
               "label": "FlashInfer",
               "url": "https://proceedings.mlsys.org/paper_files/paper/2025/hash/dbf02b21d77409a2db30e56866a8ab3a-Abstract-Conference.html"
             },
             {
-              "label": "ChunkAttention",
-              "url": "https://aclanthology.org/2024.acl-long.623/"
+              "label": "Relax",
+              "url": "https://doi.org/10.1145/3676641.3716249"
             },
             {
               "label": "Sequoia",
               "url": "https://proceedings.neurips.cc/paper_files/paper/2024/hash/ea1f5f0878d43ff4fb8bf64ef4a2326c-Abstract-Conference.html"
+            }
+          ],
+          "detail": "形状配置、动态结构与回放状态的不同适配方法。"
+        }
+      },
+      "subcategories": [
+        {
+          "title": "形状配置变化与图变体选择",
+          "works": [
+            {
+              "label": "xLLM",
+              "reference": 5
             },
             {
-              "label": "EAGLE-2",
-              "url": "https://aclanthology.org/2024.emnlp-main.422/"
+              "label": "FlashInfer",
+              "reference": 14
+            },
+            {
+              "label": "DISC",
+              "reference": 15
+            },
+            {
+              "label": "CoRa",
+              "reference": 16
+            }
+          ]
+        },
+        {
+          "title": "动态控制流与执行结构适配",
+          "works": [
+            {
+              "label": "Relax",
+              "reference": 10
+            },
+            {
+              "label": "Sequoia",
+              "reference": 21
+            },
+            {
+              "label": "Cortex",
+              "reference": 17
+            },
+            {
+              "label": "ACRoBat",
+              "reference": 18
+            }
+          ]
+        },
+        {
+          "title": "回放参数元数据与地址更新",
+          "works": [
+            {
+              "label": "xLLM",
+              "reference": 5
+            },
+            {
+              "label": "FlashInfer",
+              "reference": 14
+            },
+            {
+              "label": "GraCE",
+              "reference": 6
             }
           ]
         }
-      }
+      ]
     },
     {
       "id": "scheduling",
-      "title": "执行安排与剩余主机路径",
-      "problem": "一次图提交之后，关键路径上还剩什么？",
+      "title": "并行执行与资源协调",
+      "problem": "如何表达并行性，并协调算子、细粒度任务及跨设备资源？",
       "mechanism": [
-        "安排并发与资源分配",
-        "定位状态生产和主机工作",
-        "约束KV交接的准备与提交"
+        "识别算子级并行与依赖同步",
+        "细化任务粒度并协调计算、访存和通信",
+        "显式处理跨 GPU 依赖与任务分配"
       ],
-      "assessment": "设备任务仍需处理干扰和同步，服务还可能受CPU准备约束。KV跨实例交接需要预分配、复制、提交与释放，不能由图提交次数概括。",
-      "limitation": "多流不保证资源共置；异步传输不保证消费者已经就绪。Llumnix和DistServe没有给出迁移必然重捕获图的实验。",
+      "assessment": "Nimble（2020）、Opara、AutoGraph 和 IOS 研究算子级并行；Rammer 与 MPK 将调度推进到更细粒度；NanoFlow、POD-Attention 和 xLLM 涉及执行重叠；Mustard 与 MPK 为跨 GPU 协调提供借鉴，其中 xLLM 是昇腾直接工作。",
+      "limitation": "有并行机会不代表资源竞争后的收益一定为正。需要区分 DAG 依赖、流或任务调度、设备资源分配和跨设备同步，并验证同步开销及多负载干扰。",
       "sourceIds": [
         "D1",
         "D5",
@@ -154,8 +273,8 @@
       "gapIds": [
         "capture-budget"
       ],
-      "paperSection": "4",
-      "paperAnchor": "执行安排与剩余主机路径",
+      "paperSection": "5",
+      "paperAnchor": "section-5",
       "examples": {
         "ascend": {
           "detail": "固定工程材料中有投影与专家分发的多流重叠；局部安排仍需同负载计量依赖与资源代价。",
@@ -167,7 +286,6 @@
           ]
         },
         "gpu": {
-          "detail": "跨算子流水、SM共置与跨实例KV协议分别位于不同调度层。",
           "works": [
             {
               "label": "NanoFlow",
@@ -178,28 +296,91 @@
               "url": "https://doi.org/10.1145/3676641.3715996"
             },
             {
-              "label": "Llumnix",
-              "url": "https://www.usenix.org/conference/osdi24/presentation/sun-biao"
+              "label": "Mustard",
+              "url": "https://doi.org/10.1145/3721145.3730426"
+            }
+          ],
+          "detail": "计算访存通信重叠与跨 GPU 依赖协调。"
+        }
+      },
+      "subcategories": [
+        {
+          "title": "算子级并行与依赖同步",
+          "works": [
+            {
+              "label": "Nimble（2020）",
+              "reference": 11
             },
             {
-              "label": "DistServe",
-              "url": "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"
+              "label": "Opara",
+              "reference": 24
+            },
+            {
+              "label": "AutoGraph",
+              "reference": 25
+            },
+            {
+              "label": "IOS",
+              "reference": 23
+            }
+          ]
+        },
+        {
+          "title": "细粒度任务调度",
+          "works": [
+            {
+              "label": "Rammer",
+              "reference": 26
+            },
+            {
+              "label": "MPK",
+              "reference": 27
+            }
+          ]
+        },
+        {
+          "title": "计算访存通信重叠",
+          "works": [
+            {
+              "label": "NanoFlow",
+              "reference": 28
+            },
+            {
+              "label": "POD-Attention",
+              "reference": 29
+            },
+            {
+              "label": "xLLM",
+              "reference": 5
+            }
+          ]
+        },
+        {
+          "title": "跨GPU依赖协调与任务分配",
+          "works": [
+            {
+              "label": "Mustard",
+              "reference": 30
+            },
+            {
+              "label": "MPK",
+              "reference": 27
             }
           ]
         }
-      }
+      ]
     },
     {
       "id": "lifecycle",
-      "title": "准备、保留与恢复对象",
-      "problem": "恢复了权重，是否就恢复了图执行？",
+      "title": "图实例准备缓存与恢复",
+      "problem": "怎样减少图实例准备成本，并安全地缓存、持久化或恢复实例？",
       "mechanism": [
-        "分别计量准备与稳态",
-        "辨认缓存保留和恢复对象",
-        "核验地址、环境与读写覆盖"
+        "管理在线捕获与图缓存",
+        "持久化图并重建跨进程绑定",
+        "重建执行环境并复用图模板"
       ],
-      "assessment": "权重加载、token重算、图绑定物化和进程快照恢复不同对象。新稿比较准备摊销、图族保留、分配事件与恢复协议，而不把恢复支持声明当成完整验证。",
-      "limitation": "部分kernel或快照覆盖不能证明任意图可恢复；GPU地址环境与同步原语不能直接外推为ACL Graph能力。",
+      "assessment": "xLLM 支持已捕获部分图的复用；Hybrid JIT-CUDA Graph 预印本讨论在线捕获与缓存管理。Medusa 面向 CUDA Graph 持久化与重绑定，Foundry 预印本探索图模板共享；DEEPSERVE 和 PhoenixOS 提供环境准备或恢复层面的支撑，不能等同于图持久化。",
+      "limitation": "复用图结构仍受内存地址、内核、运行时状态和进程环境约束。xLLM 的图复用不能扩写成通用在线淘汰策略；GPU 图恢复机制及相关预印本结论需要单独验证其昇腾可迁移性。",
       "sourceIds": [
         "D1",
         "D4",
@@ -213,8 +394,8 @@
       "gapIds": [
         "lifecycle-reliability"
       ],
-      "paperSection": "5",
-      "paperAnchor": "准备成本保留与恢复",
+      "paperSection": "6",
+      "paperAnchor": "section-6",
       "examples": {
         "ascend": {
           "detail": "DeepServe讨论Ascend服务冷启动的加载与准备；工程预热记录也需与整图或活请求恢复区分。",
@@ -230,144 +411,64 @@
           ]
         },
         "gpu": {
-          "detail": "图绑定物化、模板环境重建和OS级快照具有不同恢复边界。",
           "works": [
             {
               "label": "Medusa",
               "url": "https://doi.org/10.1145/3669940.3707285"
             },
             {
-              "label": "Foundry · 预印本",
+              "label": "Foundry",
               "url": "https://arxiv.org/abs/2604.06664v1"
             },
             {
               "label": "PhoenixOS",
               "url": "https://doi.org/10.1145/3731569.3764813"
-            },
-            {
-              "label": "GCR",
-              "url": "https://www.usenix.org/conference/fast26/presentation/zeng"
             }
-          ]
+          ],
+          "detail": "区分直接图持久化、图模板共享与通用 GPU 环境恢复。"
         }
-      }
-    },
-    {
-      "id": "ascend",
-      "title": "ACL Graph版本合同与直接证据",
-      "problem": "哪些机制已经有Ascend依据？",
-      "mechanism": [
-        "固定规范与源码版本",
-        "区分框架职责与运行库合同",
-        "对照直接设计和部署观察"
-      ],
-      "assessment": "新稿分别核对CANN 9.0、9.1和8.5条款及固定框架快照。xLLM提供直接设计与局部图消融；field study提供特定版本和负载的部署观察。",
-      "limitation": "不同版本条款不能拼成一套保证。观察性部署不等于控制实验，GPU机制也不等于NPU已实现或已有相同收益。",
-      "sourceIds": [
-        "D1",
-        "D2",
-        "D3",
-        "D4",
-        "D5",
-        "P2",
-        "E4",
-        "E5",
-        "E8"
-      ],
-      "evidenceIds": [],
-      "gapIds": [],
-      "paperSection": "6",
-      "paperAnchor": "面向acl-graph的证据映射",
-      "examples": {
-        "ascend": {
-          "detail": "规范、xLLM和Ascend部署研究各自支持接口、设计和观察层面的结论。",
+      },
+      "subcategories": [
+        {
+          "title": "在线捕获与图缓存管理",
           "works": [
-            {
-              "label": "CANN 9.1 · 捕获API",
-              "url": "https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/910/API/runtimeapi/aclcppdevg_03_1782.html"
-            },
             {
               "label": "xLLM",
-              "url": "https://arxiv.org/abs/2510.14686v2"
+              "reference": 5
             },
             {
-              "label": "Ascend field study",
-              "url": "https://arxiv.org/abs/2607.08215v1"
+              "label": "Hybrid JIT-CUDA Graph",
+              "reference": 31
             }
           ]
         },
-        "gpu": {
-          "detail": "GraCE等机制可用于比较，但须重新核验Ascend算子、接口和顺序条件。",
+        {
+          "title": "图持久化与跨进程重绑定",
           "works": [
             {
-              "label": "GraCE · GPU机制对照",
-              "url": "https://www.usenix.org/conference/osdi26/presentation/ghosh"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "selection",
-      "title": "证据判断与路线选择",
-      "problem": "哪组对照真正支持当前结论？",
-      "mechanism": [
-        "对齐被改变的因素与版本",
-        "分别计量kernel、模型步和服务",
-        "保留冲突、失败与未覆盖范围"
-      ],
-      "assessment": "局部图开关与整套后端替换回答不同问题。新稿保留Hybrid表文冲突、CPU瓶颈与后端复现差异，要求性能、输出粒度及基线范围分别解释。",
-      "limitation": "最大加速比不可跨硬件和驻留条件拼接；任务分数接近不等于逐token一致。此次更新没有新增GPU/NPU实验，也未确认新的Research Gap。",
-      "sourceIds": [
-        "E1",
-        "E2",
-        "E3",
-        "E4",
-        "E5",
-        "E7",
-        "E8",
-        "P1"
-      ],
-      "evidenceIds": [
-        "e2-backend-graphs",
-        "e2-eager-graph",
-        "e2-plan-sharing",
-        "e3-dynamic-replay"
-      ],
-      "gapIds": [
-        "causal-backend-graph",
-        "reproducible-matrix"
-      ],
-      "paperSection": "7",
-      "paperAnchor": "怎样比较性能与正确性",
-      "examples": {
-        "ascend": {
-          "detail": "xLLM的指定模型/长度图开关与field study的部署观察应分别解释；原工程测量继续保留在动态报告修订3。",
-          "works": [
-            {
-              "label": "xLLM · 局部图消融",
-              "url": "https://arxiv.org/abs/2510.14686v2"
-            },
-            {
-              "label": "Ascend部署观察",
-              "url": "https://arxiv.org/abs/2607.08215v1"
+              "label": "Medusa",
+              "reference": 32
             }
           ]
         },
-        "gpu": {
-          "detail": "性能上界、CPU限制和输出复现是不同证据；冲突表格不能被摘要的最大倍数覆盖。",
+        {
+          "title": "执行环境重建与图模板共享",
           "works": [
             {
-              "label": "CPU诱发瓶颈",
-              "url": "https://arxiv.org/abs/2603.22774v3"
+              "label": "Foundry",
+              "reference": 33
             },
             {
-              "label": "推理后端与复现",
-              "url": "https://arxiv.org/abs/2605.19537v4"
+              "label": "DEEPSERVE",
+              "reference": 34
+            },
+            {
+              "label": "PhoenixOS",
+              "reference": 35
             }
           ]
         }
-      }
+      ]
     }
   ],
   "update": {
@@ -505,7 +606,7 @@
       "workId": "github:vllm-project/vllm-ascend#20254",
       "routeIds": [
         "replay-state",
-        "selection"
+        "capture"
       ],
       "question": "候选接受处理的一次图提交省去了哪段开销？",
       "missingEvidence": "分离主机提交、设备处理与拒绝长度变化，核对动态回放正确性和用户时延，不能用提交次数代替收益。"
