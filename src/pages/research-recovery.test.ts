@@ -28,6 +28,21 @@ afterEach(() => {
 });
 
 describe("research connection recovery", () => {
+  it("retains private same-origin login cookies for reads and submissions", async () => {
+    vi.stubEnv("VITE_RESEARCH_API_CONFIG_URL", "");
+    vi.stubEnv("VITE_RESEARCH_API_BASE", "/");
+    const fetcher = vi.fn().mockResolvedValueOnce(json(complete)).mockResolvedValueOnce(json({ id, status: "queued" }, 202));
+    vi.stubGlobal("fetch", fetcher);
+    const { getResearchJob, submitResearchJob } = await import("./research-api");
+    await getResearchJob(id, signal());
+    await submitResearchJob("ACL Graph", 30, signal());
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    for (const [url, options] of fetcher.mock.calls) {
+      expect(String(url)).toMatch(/^https:\/\/lab\.sage\.org\.ai\/api\/research\/jobs/);
+      expect(options.credentials).toBe("same-origin");
+    }
+  });
+
   it("updates an existing task's exports after the runtime cache expires", async () => {
     let now = Date.parse("2026-11-23T00:00:00Z");
     vi.spyOn(Date, "now").mockImplementation(() => now);
@@ -51,6 +66,8 @@ describe("research connection recovery", () => {
     const { getResearchJob } = await import("./research-api");
     const job = await getResearchJob(id, signal());
     expect(job.report).toEqual({ html: newBase + path + "/report.html", pdf: newBase + path + "/report.pdf" });
+    expect(fetcher.mock.calls[1][1].credentials).toBe("omit");
+    expect(fetcher.mock.calls[3][1].credentials).toBe("omit");
     expect(fetcher.mock.calls.map(([url]) => String(url))).toEqual([
       expect.stringContaining(configUrl + "?v="), oldBase + path,
       expect.stringContaining(configUrl + "?v="), newBase + path,
