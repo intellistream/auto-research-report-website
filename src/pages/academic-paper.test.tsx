@@ -115,9 +115,9 @@ describe("academic manuscript branch", () => {
     for (const kind of Object.keys(actual.assets)) {
       expect(html).toContain(`href="${hrefs[kind as keyof typeof PAPER_FILES]}"`);
     }
-    expect(html).toContain("回放参数元数据与地址更新");
-    expect(html).toContain("执行环境重建与图模板共享");
-    expect(html).toContain(`${hrefs.html}#ref-35`);
+    expect(html).toContain("回放状态与地址更新");
+    expect(html).toContain("图模板共享与重复准备消除");
+    expect(html).toContain(`${hrefs.html}#ref-31`);
     expect(html).toContain(`src="${hrefs.html}"`);
     expect(html).toContain(`href="${hrefs.pdf}"`);
     expect(html).toContain(`href="${hrefs.sources}"`);
