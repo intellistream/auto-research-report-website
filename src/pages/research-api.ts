@@ -131,7 +131,8 @@ async function requestAt(base: string, path: string, options: RequestInit, expec
   let response: Response;
   try {
     response = await fetch(`${base}/api/research/jobs${path}`, {
-      ...options, cache: "no-store", credentials: "omit",
+      ...options, cache: "no-store",
+      credentials: new URL(base).origin === window.location.origin ? "same-origin" : "omit",
       signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),
     });
   } catch {
