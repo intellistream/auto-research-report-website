@@ -75,6 +75,7 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
         <Title>{paper.title}</Title>
         <div className="academic-paper-downloads">
           <a href={hrefs.pdf} download={`${topic.id}-${paper.version.slice(0, 12)}.pdf`}><Download size={16} aria-hidden="true" /> 下载同版 PDF</a>
+          {hrefs.word && <a href={hrefs.word} download={`${topic.id}-${paper.manuscriptRevision}.docx`}><Download size={16} aria-hidden="true" /> 下载 Word</a>}
           <button type="button" onClick={() => revealPaperHeading(document, "academic-paper-fulltext", window.matchMedia("(prefers-reduced-motion: reduce)").matches)}>跳到完整正文 <span aria-hidden="true">↓</span></button>
           {!embedded && topic.report && <Link to={{ search: "view=report" }}>查看动态报告</Link>}
         </div>

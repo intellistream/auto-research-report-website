@@ -7,6 +7,13 @@
   margin-bottom: 1.15rem;
 }
 
+.academic-paper-page h1,
+.academic-paper-page h2,
+.academic-paper-page h3,
+.academic-paper-page h4 {
+  font-family: SimHei, "黑体", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+}
+
 .academic-paper-heading .topic-meta {
   margin: 0;
 }

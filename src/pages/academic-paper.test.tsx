@@ -84,6 +84,15 @@ describe("academic manuscript branch", () => {
     expect(render("/topics", { ...nextTopic, academicPaper: bad })).toContain("ACL Graph");
     expect(render("/topics/aclgraph?view=paper", { ...nextTopic, academicPaper: bad })).toContain("论文版本元数据无效");
   });
+  it("offers a version-bound Word original without accepting an unrelated download", () => {
+    const word = { path: prefix + "paper.docx", sha256: "e".repeat(64), bytes: 123 };
+    const withWord = { ...paper, assets: { ...paper.assets, word } };
+    expect(academicPaperHrefs("aclgraph", withWord)?.word).toBe(archiveBase + word.path);
+    expect(render("/topics/aclgraph?view=paper", { ...nextTopic, academicPaper: withWord })).toContain("下载 Word");
+    for (const path of ["https://example.com/paper.docx", prefix + "../paper.docx", prefix + "paper.pdf"]) {
+      expect(academicPaperHrefs("aclgraph", { ...withWord, assets: { ...withWord.assets, word: { ...word, path } } })).toBeUndefined();
+    }
+  });
   it("extracts existing paper headings and focuses only heading targets without injecting HTML", () => {
     const heading = { id: "section-1", tagName: "H2", textContent: "  论文第一节  ", tabIndex: 0, scrollIntoView: vi.fn(), focus: vi.fn() };
     const doc = { querySelectorAll: vi.fn().mockReturnValue([heading]), getElementById: vi.fn().mockReturnValue(heading) } as unknown as Document;
@@ -98,16 +107,17 @@ describe("academic manuscript branch", () => {
     const actual = publishedTopic.academicPaper!;
     const hrefs = academicPaperHrefs("aclgraph", actual)!;
     const html = render("/topics/aclgraph?view=paper", publishedTopic);
-    expect(html).toContain("ACLGraph 技术分类总图");
-    expect(html.indexOf("ACLGraph 技术分类总图")).toBeLessThan(html.indexOf("<iframe"));
+    expect(html).toContain("ACLGraph 技术分类与代表工作");
+    expect(html.indexOf("ACLGraph 技术分类与代表工作")).toBeLessThan(html.indexOf("<iframe"));
     for (const route of publishedTopic.survey!.routes) {
       expect(html).toContain(`href="${hrefs.html}#${encodeURIComponent(route.paperAnchor!)}"`);
     }
     for (const kind of Object.keys(actual.assets)) {
       expect(html).toContain(`href="${hrefs[kind as keyof typeof PAPER_FILES]}"`);
     }
-    expect(html).toContain("昇腾直接工作");
-    expect(html).toContain("可借鉴的 GPU 工作");
+    expect(html).toContain("回放参数元数据与地址更新");
+    expect(html).toContain("执行环境重建与图模板共享");
+    expect(html).toContain(`${hrefs.html}#ref-35`);
     expect(html).toContain(`src="${hrefs.html}"`);
     expect(html).toContain(`href="${hrefs.pdf}"`);
     expect(html).toContain(`href="${hrefs.sources}"`);

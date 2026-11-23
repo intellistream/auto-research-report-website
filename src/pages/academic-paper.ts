@@ -6,7 +6,9 @@ export type PaperAssetKind = keyof typeof PAPER_FILES;
 export type AcademicPaper = {
   schemaVersion: 1; title: string; titleEn: string; abstract: string; keywords: string[];
   literatureCutoff: string; version: string; manuscriptRevision: string;
-  assets: Record<PaperAssetKind, { path: string; sha256: string; bytes: number }>;
+  assets: Record<PaperAssetKind, { path: string; sha256: string; bytes: number }> & {
+    word?: { path: string; sha256: string; bytes: number };
+  };
   manifestPath: string;
 };
 
@@ -19,11 +21,16 @@ export function academicPaperHrefs(topicId: string, paper: AcademicPaper) {
   if (paper.manifestPath !== prefix + "manifest.json") return;
   const local = import.meta.env.DEV && ["docx", "pipeline"].includes(import.meta.env.MODE);
   const base = import.meta.env.BASE_URL + (local ? "" : "word-reports/");
-  const hrefs = {} as Record<PaperAssetKind, string> & { manifest: string };
+  const hrefs = {} as Record<PaperAssetKind, string> & { manifest: string; word?: string };
   for (const kind of Object.keys(PAPER_FILES) as PaperAssetKind[]) {
     const asset = paper.assets?.[kind];
     if (!asset || asset.path !== prefix + PAPER_FILES[kind] || !/^[a-f0-9]{64}$/.test(asset.sha256) || !Number.isSafeInteger(asset.bytes) || asset.bytes < 1) return;
     hrefs[kind] = base + asset.path;
+  }
+  if (paper.assets.word) {
+    const asset = paper.assets.word;
+    if (asset.path !== prefix + "paper.docx" || !/^[a-f0-9]{64}$/.test(asset.sha256) || !Number.isSafeInteger(asset.bytes) || asset.bytes < 1) return;
+    hrefs.word = base + asset.path;
   }
   hrefs.manifest = base + paper.manifestPath;
   return hrefs;
