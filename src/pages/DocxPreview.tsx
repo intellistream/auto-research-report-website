@@ -1,5 +1,5 @@
 import { lazy, Suspense, useMemo } from "react";
-import { Link, Route, Routes, useLocation, useParams, useSearchParams } from "react-router-dom";
+import { Link, Route, Routes, useLocation, useMatch, useParams, useSearchParams } from "react-router-dom";
 import type { FlowIndex } from "./chapter-intros";
 import { localReports, useJson, type Catalog, type Report } from "./report-preview-data";
 import type { TopicIndex } from "./TopicPages";
@@ -10,6 +10,7 @@ import ArchivePage from "../views/ArchivePage";
 const DailyReportReader = lazy(() => import("./DailyReportReader"));
 const TopicPages = lazy(() => import("./TopicPages"));
 const Contributors = lazy(() => import("./Contributors"));
+const ResearchQuery = lazy(() => import("./ResearchQuery"));
 
 function ReaderRoute({ catalog, days }: { catalog: Catalog; days: string[] }) {
   const { day = days[0] } = useParams();
@@ -42,6 +43,7 @@ export default function DocxPreview() {
     [catalog],
   );
   const { pathname } = useLocation();
+  const research = useMatch("/research");
   const overview = pathname === "/";
   const flow = useJson<FlowIndex>(overview ? "flow-index.json" : undefined);
   const topics = useJson<TopicIndex>(pathname.startsWith("/topics") ? "topics.json" : undefined);
@@ -51,6 +53,10 @@ export default function DocxPreview() {
       {pathname === "/contributors" ? (
         <Suspense fallback={<div className="overview-status-card" role="status">正在打开贡献者页面…</div>}>
           <Contributors />
+        </Suspense>
+      ) : research ? (
+        <Suspense fallback={<div className="overview-status-card" role="status">正在打开研究查询…</div>}>
+          <ResearchQuery />
         </Suspense>
       ) : result?.error ? (
         <div className="overview-status-card error" role="alert">

@@ -126,6 +126,10 @@ export default function SiteLayout({
               <BookOpen size={15} aria-hidden />
               技术专题
             </NavLink>
+            <NavLink to="/research">
+              <Search size={15} aria-hidden />
+              研究查询
+            </NavLink>
             {latestDay && (
               <Link to={`/reports/${latestDay}`} aria-current={reading ? "page" : undefined}>
                 <Activity size={15} aria-hidden />
@@ -185,6 +189,10 @@ export default function SiteLayout({
             <NavLink to="/topics">
               <BookOpen size={16} aria-hidden />
               技术专题
+            </NavLink>
+            <NavLink to="/research">
+              <Search size={16} aria-hidden />
+              研究查询
             </NavLink>
             {latestDay && (
               <Link to={`/reports/${latestDay}`} aria-current={reading ? "page" : undefined}>

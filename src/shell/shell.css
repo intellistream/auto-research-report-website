@@ -718,6 +718,25 @@
   }
 }
 
+@media (max-width: 480px) {
+  .site-header .site-brand {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  .site-header .site-brand-emblem {
+    flex-shrink: 0;
+  }
+  .site-header .site-brand-text {
+    min-width: 0;
+  }
+  .site-header .site-brand-text strong,
+  .site-header .site-brand-text small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 420px) {
   .site-brand-text small {
     display: none;
