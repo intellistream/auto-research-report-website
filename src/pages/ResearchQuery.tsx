@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useHref, useSearchParams } from "react-router-dom";
 import { Check, CheckCircle2, ChevronDown, Circle, Clock3, Copy, Download, ExternalLink, FileText, LoaderCircle, Search, TriangleAlert } from "lucide-react";
-import { getResearchJob, isResearchTaskId, mergeResearchJobProgress, researchTaskHref, submitResearchJob, type ResearchJob, type ResearchStage } from "./research-api";
+import { isResearchTaskId, mergeResearchJobProgress, researchTaskHref, submitResearchJob, type ResearchJob, type ResearchStage } from "./research-api";
+import { watchResearchJob } from "./research-polling";
 import "./research-query.css";
 
 const windows = [7, 30, 90, 180, 365];
@@ -202,47 +203,56 @@ function ResearchQueryContent({ publicMode, taskId, invalidTask, onCreated }: {
   const [submitting, setSubmitting] = useState(false);
   const [loadingTask, setLoadingTask] = useState(!!taskId);
   const [restoreAttempt, setRestoreAttempt] = useState(0);
+  const [reconnecting, setReconnecting] = useState(false);
   const [error, setError] = useState(invalidTask ? "调研任务链接无效，请重新发起调研。" : "");
   const submitRequest = useRef<AbortController>(null);
   const keyword = query.trim();
   const validQuery = [...keyword].length >= 2 && /[\p{L}\p{N}]/u.test(keyword);
+  const activeTaskId = taskId ?? job?.id;
 
   useEffect(() => () => submitRequest.current?.abort(), []);
 
   useEffect(() => {
-    if (!taskId) return;
+    if (job?.status !== "complete") return;
+    const refresh = () => setRestoreAttempt((attempt) => attempt + 1);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("pageshow", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("pageshow", refresh);
+    };
+  }, [job?.id, job?.status]);
+
+  useEffect(() => {
+    if (!activeTaskId || (!taskId && job && !isPending(job))) return;
     const controller = new AbortController();
-    setLoadingTask(true);
+    setLoadingTask(!!taskId && !job);
+    setReconnecting(false);
     setError("");
-    getResearchJob(taskId, controller.signal).then((next) => {
+    watchResearchJob(activeTaskId, controller.signal, (next) => {
       if (controller.signal.aborted) return;
-      setJob(mergeResearchJobProgress(undefined, next));
-      setQuery(next.query ?? "");
-      setSearchedQuery(next.query ?? "");
-      setDays(next.days ?? 30);
+      setLoadingTask(false);
+      setJob((previous) => mergeResearchJobProgress(previous, next));
+      if (next.query) {
+        setQuery(next.query);
+        setSearchedQuery(next.query);
+      }
+      if (next.days) setDays(next.days);
+    }, (retrying) => {
+      if (!controller.signal.aborted) {
+        setReconnecting(retrying);
+        if (retrying) setLoadingTask(false);
+      }
     }).catch((cause: Error) => {
       if (!controller.signal.aborted) setError(cause.message);
     }).finally(() => {
-      if (!controller.signal.aborted) setLoadingTask(false);
+      if (!controller.signal.aborted) {
+        setLoadingTask(false);
+        setReconnecting(false);
+      }
     });
     return () => controller.abort();
-  }, [taskId, restoreAttempt]);
-
-  useEffect(() => {
-    if (!job || !isPending(job) || error) return;
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
-      getResearchJob(job.id, controller.signal).then((next) => {
-        if (!controller.signal.aborted) setJob((previous) => mergeResearchJobProgress(previous, next));
-      }).catch((cause: Error) => {
-        if (!controller.signal.aborted) setError(cause.message);
-      });
-    }, 2000);
-    return () => {
-      window.clearTimeout(timer);
-      controller.abort();
-    };
-  }, [job, error]);
+  }, [activeTaskId, restoreAttempt]);
 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -251,6 +261,7 @@ function ResearchQueryContent({ publicMode, taskId, invalidTask, onCreated }: {
     submitRequest.current = controller;
     setError("");
     setJob(undefined);
+    setReconnecting(false);
     setSearchedQuery(keyword);
     setSubmitting(true);
     try {
@@ -317,13 +328,13 @@ function ResearchQueryContent({ publicMode, taskId, invalidTask, onCreated }: {
 
       {publicMode && taskId && !submitting && <ResearchTaskLink id={taskId} />}
       {loadingTask && <p className="research-query-feedback" role="status">正在读取调研任务…</p>}
-      <ResearchProgress job={job} submitting={submitting} interrupted={!!error} />
+      <ResearchProgress job={job} submitting={submitting} interrupted={!!error || reconnecting} />
+      {reconnecting && <p className="research-query-feedback" role="status">连接暂时中断，正在自动恢复任务状态，请稍候…</p>}
       {error && (
         <div className="research-query-feedback research-query-error" role="alert">
           <p>{error}</p>
           {(isPending(job) || taskId) && <button type="button" onClick={() => {
-            if (taskId && !job) setRestoreAttempt((attempt) => attempt + 1);
-            else setError("");
+            setRestoreAttempt((attempt) => attempt + 1);
           }}>重新查询任务状态</button>}
           {invalidTask && <Link to="/research">重新发起调研</Link>}
         </div>
