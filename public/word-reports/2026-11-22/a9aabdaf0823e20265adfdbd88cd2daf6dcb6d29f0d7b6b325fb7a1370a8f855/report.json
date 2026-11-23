@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 1,
+  "day": "2026-11-22",
+  "sha256": "a9aabdaf0823e20265adfdbd88cd2daf6dcb6d29f0d7b6b325fb7a1370a8f855",
+  "title": "vLLM 与 vLLM Ascend 性能优化日报",
+  "intro": [
+    [
+      {
+        "text": "工程 PR 从 vLLM 与 vLLM Ascend 两仓北京时间当日合入的条目中筛选。"
+      }
+    ]
+  ],
+  "sections": [
+    {
+      "key": "summary",
+      "title": "一 本日归纳",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "容量紧张时保留可继续利用的缓存，避免存储和前缀复用机会流失。存储准备返回未容纳的键，调度侧按组截断范围，在后续步骤继续尝试存储。把仍驻留的复用前缀纳入未完成请求排序，与新后缀一同按尾部优先淘汰。\n\n减少无效唤醒与独立启动，压缩执行中的固定开销。为空闲等待者设独立条件变量，只在最后一个作业完成时通知，减少空闲线程唤醒。将循环混合改为批量矩阵乘，并在一次启动内完成查询、键、值投影。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "flow",
+      "title": "二 推理流程与优化位置",
+      "figure": "2026-11-22/a9aabdaf0823e20265adfdbd88cd2daf6dcb6d29f0d7b6b325fb7a1370a8f855/flow.png",
+      "blocks": []
+    },
+    {
+      "key": "startup",
+      "title": "三 服务启动与模型准备",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "scheduling",
+      "title": "四 请求接入与调度",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注卸载存储空间不足时，未能写入的键如何被保留并在后续步骤重试。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "按组重试未容纳的存储键"
+        },
+        {
+          "kind": "entry",
+          "number": "V1",
+          "title": "让卸载存储按组重试未容纳的键",
+          "workId": "github:vllm-project/vllm#66719",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：当卸载管理器空间不足时，一次存储请求中放不下的键会被直接丢弃，后续步骤也不会再尝试，导致这些分块无法写入外部缓存。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：存储准备阶段现在会返回未能容纳的键，调度侧按组把存储范围截断到第一个待重试分块，并在下一步重新提供这些键。若请求已结束仍无法存储，则记录一次分配失败。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：空间不足时，已容纳的键照常写入，未容纳的键留到后续步骤重试，而不是整批放弃。该重试只覆盖同一组内从首个未容纳分块起的键，请求结束前仍无空间的部分不会写入。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #66719",
+                "url": "https://github.com/vllm-project/vllm/pull/66719"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注卸载存储空间不足时，未能写入的键如何被保留并在后续步骤重试。"
+    },
+    {
+      "key": "prefill",
+      "title": "五 Prefill 输入上下文处理",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "pd_transfer",
+      "title": "六 P/D 分离部署的缓存交接",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "decode",
+      "title": "七 Decode 常规生成",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "解码阶段的小规模算子调用存在并行度不足与启动开销，本节关注如何通过拆分、批量化和融合来改善这些调用的执行方式。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "拆分窄输出与融合投影计算"
+        },
+        {
+          "kind": "entry",
+          "number": "V2",
+          "title": "拆分窄输出、批量矩阵乘与融合投影加速解码",
+          "workId": "github:vllm-project/vllm#69168",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：解码时短卷积投影、循环混合和查询/键/值投影各走独立调用：窄输出列数太少填不满显卡，混合路径两次批量矩阵乘在批大小为 8 时耗时约 27.6 微秒，投影需三次启动。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：窄输出按缩减维确定性拆分并由最后到达的线程块按序归约，循环混合改用三维权重的批量矩阵乘，查询/键/值投影在一次启动内各读自身输入完成。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：RTX 5090 上的 Inkling-2-Mini，推测解码七词元配置中，并发 1、2 的平均词元间延迟分别降低约 7.5%、6.5%。并发 2 的接受长度不同，应比较延迟而非吞吐。SM121 设备虽被调度覆盖，但未调优或验证；B200（SM100）持续集成也不覆盖这些 SM12x 路径。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #69168",
+                "url": "https://github.com/vllm-project/vllm/pull/69168"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "解码阶段的小规模算子调用存在并行度不足与启动开销，本节关注如何通过拆分、批量化和融合来改善这些调用的执行方式。"
+    },
+    {
+      "key": "speculative",
+      "title": "八 推测解码",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "output_return",
+      "title": "九 输出返回与状态更新",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "resource_reclaim",
+      "title": "十 资源回收与缓存保留",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注存储与缓存路径中线程唤醒和淘汰顺序带来的额外开销。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "减少空闲工作线程的无效唤醒"
+        },
+        {
+          "kind": "entry",
+          "number": "V3",
+          "title": "拆分空闲等待条件以减少文件系统工作线程唤醒",
+          "workId": "github:vllm-project/vllm#68451",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：文件系统卸载线程池中，任务完成通知与空闲等待共用同一条件变量，每次作业完成都会唤醒正在等待任务的空闲工作线程，造成不必要的线程唤醒和处理器开销。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在同一把锁下为空闲等待者增设独立条件变量，仅在最后一个在途作业完成时通知；关闭时同时通知两个条件，任务队列优先级、入队通知和输入输出路径保持不变。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：GB10 上以 BF16 测试 SmolLM2-135M，每批八个 1024 输入、32 输出请求，最多四并发。存储批延迟由 785.8 降至 762.6 毫秒，引擎 CPU 时间由 825.2 降至 797.5 毫秒，文件系统线程 CPU 时间由 39.6 降至 19.9 毫秒。端到端重载收益尚未确立。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #68451",
+                "url": "https://github.com/vllm-project/vllm/pull/68451"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "调整复用前缀在淘汰队列中的位置"
+        },
+        {
+          "kind": "entry",
+          "number": "V4",
+          "title": "将复用前缀纳入 ARC 请求尾部优先淘汰",
+          "workId": "github:vllm-project/vllm#69110",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在并发存储压力下，ARC 只跟踪新插入的块，复用前缀加载完成后可能先于同一请求的新后缀被淘汰，导致剩余后缀无法用于前缀查找，重放命中为零。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：通过请求访问钩子，把已驻留且位置已知的复用前缀登记到现有未完成请求的排序中，使其与新后缀一同按尾部优先老化；保留原有归属，不转移共享键，并复用现有淘汰与清理路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：GB10 上以 ARC、240 MiB CPU 与 2 GiB GPU KV 缓存测试四个错峰 3073 词元请求，重放缓存词元由 0 增至 1664，单词元重放延迟中位数由 268.3 降至 133.9 毫秒，并发生成时间由 2.856 变为 2.868 秒，基本持平。生成词元与对数概率一致。收益依赖部分请求内容仍驻留，若整个请求被淘汰则无法提升后续命中率。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #69110",
+                "url": "https://github.com/vllm-project/vllm/pull/69110"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注存储与缓存路径中线程唤醒和淘汰顺序带来的额外开销。"
+    },
+    {
+      "key": "papers",
+      "title": "十一 论文",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "upstream": 4,
+    "ascend": 0,
+    "papers": 0
+  },
+  "warnings": [],
+  "pipelineStatus": "completed_program_checks",
+  "publicationStatus": "reviewed"
+}

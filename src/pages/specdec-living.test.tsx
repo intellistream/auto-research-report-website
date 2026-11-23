@@ -87,7 +87,7 @@ describe("SpecDec novice-to-research reading contract", () => {
     expect(html).toContain("服务运行时：图执行、调度与容量约束");
     expect(html).toContain("跨层证据综合：瓶颈迁移与因果边界");
     expect(html).toContain("自适应验证：预算选择器的执行成本");
-    expect(html).toContain("当前网站候选索引共 125 条");
+    expect(html).toContain(`当前网站候选索引共 ${spec.entries.length} 条`);
   });
 
   it("uses ACLGraph's exact two-level disclosure contract in brief and full modes", () => {
@@ -124,7 +124,9 @@ describe("SpecDec novice-to-research reading contract", () => {
     const html = renderToStaticMarkup(<MemoryRouter initialEntries={["/topics/speculative-decoding?view=report"]}>
       <Routes><Route path="/topics/:topicId" element={<TopicPages index={nextIndex} />} /></Routes>
     </MemoryRouter>);
-    expect(html).toContain("新入候选：21 条 PR");
+    const baseline = new Set(reviewedSurvey.candidateBaseline);
+    const incomingCount = next.entries.filter(entry => !baseline.has(entry.workId)).length;
+    expect(html).toContain(`新入候选：${incomingCount} 条 PR`);
     expect(html).toContain("dynamic speculative verification");
     expect(html).toContain("不代表已确认性能收益");
   });

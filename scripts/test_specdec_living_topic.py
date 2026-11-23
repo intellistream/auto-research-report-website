@@ -37,7 +37,11 @@ class SpecDecLivingTopic(unittest.TestCase):
         self.assertEqual(len(report["researchQuestions"]), 4)
         self.assertEqual(len(report["evidenceDetails"]), 10)
         self.assertEqual(len(self.topic["survey"]["candidateBaseline"]), 105)
-        self.assertEqual(len(self.topic["entries"]), 125)
+        entries = self.topic["entries"]
+        work_ids = {entry["workId"] for entry in entries}
+        self.assertEqual(len(work_ids), len(entries))
+        self.assertEqual(self.topic["counts"]["total"], len(entries))
+        self.assertTrue(set(self.survey["candidateBaseline"]) <= work_ids)
         self.assertEqual(len(report["bottleneckMigration"]), 4)
         self.assertEqual(len(self.survey["update"]["evidence"]), 4)
         refs = {x["id"] for x in report["references"]}
