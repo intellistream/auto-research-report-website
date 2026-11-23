@@ -1,7 +1,7 @@
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { filterResearch, kvResearch } from "./kv-research";
+import { kvResearch } from "./kv-research";
 import { DailyCitations } from "./KvMaterialLibrary";
 import { safeTopicSource } from "./topic-report";
 import study from "./kv-cache-study.json";
@@ -28,7 +28,7 @@ const cacheStates = {
 };
 type CacheState = keyof typeof cacheStates;
 
-function CacheExample() {
+export function CacheExample() {
   const [state, setState] = useState<CacheState>("resident");
   const selected = cacheStates[state];
   return <section className="kv-cache-example" aria-labelledby="kv-example-title">
@@ -51,48 +51,6 @@ function CacheExample() {
   </section>;
 }
 
-const lifecycle = [
-  ["查找可复用前缀", "调度器将请求前缀交给缓存管理器，按前缀与附加身份信息匹配已有块。"],
-  ["接入已有缓存块", "保护命中块的引用，检查新增块所需空间，把块表交给本轮执行。"],
-  ["补算并继续生成", "Prefill 处理未命中的输入，Decode 读取历史 KV 并继续写入新的 KV。"],
-  ["释放引用与保留历史", "请求结束后释放引用。可复用块保留在缓存中，需要空间时再按规则淘汰。"],
-];
-
-export function KvCacheGuide() {
-  const materials = filterResearch(kvResearch.entries, new URLSearchParams());
-  return <article className="kv-study kv-guide">
-    <header className="kv-study-intro"><h2>KV Cache 问题导引</h2><p>KV Cache 保存注意力层已经算好的 Key / Value 张量。Prefill 处理新增输入并写入缓存，Decode 读取已有历史并继续追加。相同模型与计算语义下，前缀复用让新请求从尚未计算的部分继续。</p><div className="kv-sources"><Source id="apc-feature" /><Source id="apc-design" /></div></header>
-    <section aria-labelledby="kv-lifecycle-title">
-      <h3 id="kv-lifecycle-title">一个请求怎样用上这些缓存？</h3>
-      <ol className="kv-lifecycle">{lifecycle.map(([title, text]) => <li key={title}><strong>{title}</strong><p>{text}</p></li>)}</ol>
-      <p>vLLM 的前缀键包含父块、当前块 token 及 LoRA、多模态等附加信息。普通完整块匹配与混合模型的状态恢复各有条件，实际规则需要对应到版本。</p>
-      <div className="kv-sources"><Source id="apc-design" /><Source id="hybrid" /></div>
-    </section>
-    <CacheExample />
-    <section aria-labelledby="kv-problems-title">
-      <h3 id="kv-problems-title">按五组研究问题组织材料</h3>
-      <p className="kv-muted">专题按主要技术问题确定主主题，同时保留关联主题。材料可以来自原始 PR、论文与实现文档。</p>
-      <div className="kv-question-grid">{kvResearch.taxonomy.map((question) => <article className="kv-question-card" key={question.id}>
-        <span className="kv-direction">{question.label}</span>
-        <h4>{question.question}</h4>
-        <p>{question.description}</p>
-        <p className="kv-muted">{question.check}</p>
-        <div className="kv-question-links">
-          <Link to={{ search: `view=evidence&topic=${question.id}` }}>
-            查看 {materials.filter((entry) => entry.topics.includes(question.id)).length} 份材料 <ArrowRight size={13} aria-hidden="true" />
-          </Link>
-          <Source id={question.source}>机制依据</Source>
-        </div>
-      </article>)}</div>
-      <p className="kv-muted">一份材料可以关联多个问题，主题数量存在交叉。材料库的总量按来源身份去重。</p>
-    </section>
-    <section className="kv-study-focus" aria-labelledby="kv-focus-title">
-      <p className="kv-direction">首轮研究 · 前缀感知调度</p><h3 id="kv-focus-title">{study.focus}</h3><p>{study.summary}</p>
-      <Link className="kv-action" to={{ search: "view=compare" }}>比较本轮四条 PR <ArrowRight size={16} aria-hidden="true" /></Link>
-    </section>
-  </article>;
-}
-
 export function KvStudyProvenance() {
   return <details className="kv-provenance"><summary>核对范围与版本依据</summary>
     <p>{study.scope}</p><p>{study.verification}</p><p>核对日期为 {study.asOf}。PR 状态取核对当日，官方文档为当日读取的 main 文件快照。</p>
@@ -105,7 +63,8 @@ const statuses: Record<string, string> = { merged: "已合并", draft: "草稿",
 
 export function KvMethodComparison() {
   return <article className="kv-study">
-    <header className="kv-study-intro"><h2>前缀感知调度的方法对比</h2><p>{study.focus} 本轮把排序信号、额外处理、公平性与验证条件放在同一组字段下比较。</p><p className="kv-muted">核对至 {study.asOf} · 四条 vLLM PR · 专题解读首版</p></header>
+    <Link className="kv-comparison-return" to={{ search: "view=report" }}>返回动态报告</Link>
+    <header className="kv-study-intro"><p className="kv-direction">社区 PR · 专项分析</p><h2>前缀感知调度的方法对比</h2><p>{study.focus} 本轮把排序信号、额外处理、公平性与验证条件放在同一组字段下比较。</p><p className="kv-muted">机制分析基于 {study.asOf} · 四条 vLLM PR；2026-11-23 回查状态与代码版本未变</p></header>
     <div className="kv-comparison-table" role="region" aria-label="四条 PR 的方法与状态对比，可横向滚动" tabIndex={0}><table><thead><tr><th scope="col">工作</th><th scope="col">排序看什么</th><th scope="col">要付出的代价</th><th scope="col">当前状态</th></tr></thead><tbody>
       {study.methods.map((method) => <tr key={method.number}><th scope="row"><a href={method.url} target="_blank" rel="noreferrer">#{method.number}</a><span>{method.title}</span></th><td>{method.signal}</td><td>{method.cost}</td><td><span className={`kv-pr-status ${method.status}`}>{statuses[method.status]}</span></td></tr>)}
     </tbody></table></div>
@@ -116,7 +75,7 @@ export function KvMethodComparison() {
       <p className="kv-muted">{study.verification}</p>
       <div className="kv-method-cards">{study.methods.map((method) => {
         const entry = kvResearch.entries.find((row) => row.id === method.workId);
-        return <article className="kv-method-card" key={method.number} id={`kv-pr-${method.number}`}>
+        return <article className="kv-method-card" key={method.number} id={`kv-pr-${method.number}`} tabIndex={-1}>
           <div className="kv-method-meta"><span>vLLM #{method.number}</span><span className={`kv-pr-status ${method.status}`}>{statuses[method.status]}</span><span>head {method.headSha.slice(0, 7)}</span></div><h4>{method.title}</h4>
           <dl className="kv-method-fields"><div><dt>要解决什么</dt><dd>{method.problem}</dd></div><div><dt>具体怎样处理</dt><dd>{method.flow}</dd></div><div><dt>额外处理与边界</dt><dd>{method.cost} {method.boundary}</dd></div></dl>
           <details className="kv-method-evidence"><summary>效果与适用条件</summary><dl className="kv-method-fields"><div><dt>适用配置</dt><dd><ul>{method.conditions.map((condition) => <li key={condition}>{condition}</li>)}</ul></dd></div><div><dt>证据类型</dt><dd>{method.evidenceKind}</dd></div><div><dt>验证环境</dt><dd>{method.environment}</dd></div><div><dt>作者报告</dt><dd>{method.result}</dd></div><div><dt>证据范围</dt><dd>{method.evidenceLimit}</dd></div></dl></details>
@@ -126,26 +85,15 @@ export function KvMethodComparison() {
         </article>;
       })}</div>
     </section>
-    <p><Link className="kv-action" to={{ search: "view=report" }}>查看本轮观察与待验证问题 <ArrowRight size={15} aria-hidden="true" /></Link></p>
+    <p><Link className="kv-action" to={{ search: "view=report&edition=2026-11-17" }}>查看该版观察与待验证问题 <ArrowRight size={15} aria-hidden="true" /></Link></p>
     <KvStudyProvenance />
   </article>;
 }
 
-export function KvProgressReport() {
-  const materials = filterResearch(kvResearch.entries, new URLSearchParams());
-  const prs = materials.filter((entry) => entry.kind === "pr");
-  const papers = materials.filter((entry) => entry.kind === "paper");
-  const reviewed = kvResearch.entries.filter((entry) => entry.kind === "pr" && entry.reviewLevel !== "pending").length;
-  const excluded = kvResearch.entries.filter((entry) => entry.decision === "excluded").length;
+export function KvHistoricalReport() {
   return <article className="kv-study kv-progress">
-    <header className="kv-study-intro"><p className="kv-direction">动态报告 · 专题研究</p><h2>{study.focus}</h2><p>{study.summary}</p><p className="kv-muted">更新于 {study.asOf} · 修订 {study.revision} · 当前聚焦前缀感知调度</p></header>
-    <dl className="kv-review-summary">
-      <div><dt>纳入 PR</dt><dd>{prs.length}</dd></div>
-      <div><dt>纳入论文</dt><dd><Link to={{ search: "view=papers" }}>{papers.length}</Link></dd></div>
-      <div><dt>深入方法对比</dt><dd>{study.methods.length}</dd></div>
-    </dl>
-    <p className="kv-muted">论文材料更新于 {kvResearch.asOf}，可在<Link to={{ search: "view=papers" }}>论文板块</Link>阅读简介与原文。</p>
-    <p className="kv-muted">本轮审阅 {reviewed} 条 PR 候选，依据原始说明与选定补丁核对归属，其中 {excluded} 条记录为未纳入。深入对比的四条 PR 均有说明与代码依据。</p>
+    <Link className="kv-comparison-return" to={{ search: "view=report" }}>返回本期动态报告</Link><header className="kv-study-intro"><p className="kv-direction">历史报告 · 首轮调度观察</p><h2>{study.focus}</h2><p>{study.summary}</p><p className="kv-muted">更新于 {study.asOf} · 修订 {study.revision} · 当前聚焦前缀感知调度</p></header>
+    <p className="kv-muted">本页保留 2026-11-17 对四条调度 PR 的阶段判断与实验设想。2026-11-23 已回查这四条的状态、版本和说明，未发现变化；新增工作见本期动态报告。</p>
     <p className="kv-muted">{study.scope} {study.verification}</p>
     <section aria-labelledby="kv-observations-title"><h3 id="kv-observations-title">本轮材料支持哪些观察？</h3><div className="kv-report-notes">{study.observations.map((observation) => <article key={observation.title}><h4>{observation.title}</h4><p>{observation.body}</p><PRSources numbers={observation.numbers} /></article>)}</div></section>
     <section aria-labelledby="kv-research-title"><h3 id="kv-research-title">下一步可以验证什么？</h3><p className="kv-muted">以下是基于本轮材料提出的研究问题与实验设想。</p><div className="kv-research-questions">{study.questions.map((question) => <article key={question.title}><span className="kv-direction">待验证</span><h4>{question.title}</h4><p>{question.observation}</p><h5>怎样验证</h5><p>{question.experiment}</p><PRSources numbers={question.numbers} /></article>)}</div></section>

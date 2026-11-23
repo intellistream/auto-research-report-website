@@ -102,6 +102,7 @@ function PaperCard({ entry, collection }: { entry: PaperEntry; collection: Paper
     <div className="kv-reading-links">
       {source && <a href={source} target="_blank" rel="noreferrer">原始论文 <ArrowUpRight size={13} aria-hidden="true" /></a>}
       <Link to={{ search: `view=papers&part=${id}` }} aria-label={`定位 ${paper.shortName} 解读`}>本篇链接</Link>
+      {primary && <Link to={{ search: `view=survey&topic=${primary.id}` }}>查看主主题的方法比较</Link>}
     </div>
     <details className="kv-reading-basis"><summary>原文核对范围</summary>
       <p>{paper.readingScope}</p>
@@ -137,6 +138,7 @@ export default function KvPapers() {
       <p className="kv-direction">论文阅读 · {all.length} 篇</p>
       <h2>从论文理解 KV Cache</h2>
       <p>每篇解读说明问题从哪里来、方法怎样运行，以及结论在什么条件下成立。</p>
+      <p><Link to={{ search: "view=survey" }}>比较不同论文的方法与条件</Link></p>
     </header>
     {!collection && !topic && !keyword.trim() && recommended.length > 0 &&
       <PaperRecommendations papers={recommended} />}

@@ -131,7 +131,7 @@ export function paperCollectionFilter(query: URLSearchParams): PaperCollection {
 export function paperViewQuery(query: URLSearchParams): URLSearchParams {
   const next = new URLSearchParams(query);
   const topic = researchTopicFilter(query);
-  for (const key of ["repo", "month", "kind", "label"]) next.delete(key);
+  for (const key of ["repo", "month", "kind", "label", "state", "review", "edition"]) next.delete(key);
   if (topic) next.set("topic", topic);
   next.set("view", "papers");
   return next;

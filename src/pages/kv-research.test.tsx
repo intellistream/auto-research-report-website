@@ -32,7 +32,7 @@ describe("independent KV research library", () => {
   it("renders the normal KV entry point before any daily catalog or topic index is available", () => {
     const html = render("/topics/kv-cache", "archive unavailable");
     expect(html).toContain("独立技术专题");
-    expect(html).toContain("KV Cache 问题导引");
+    expect(html).toContain("KV Cache 缓存了什么，为什么会成为推理瓶颈？");
     expect(html).not.toContain("archive unavailable");
     const app = renderToStaticMarkup(
       <MemoryRouter initialEntries={["/topics/kv-cache?view=guide"]}><DocxPreview /></MemoryRouter>,
@@ -62,10 +62,10 @@ describe("independent KV research library", () => {
     expect(researchTopicFilter(new URLSearchParams({ label: "layout" }))).toBe("representation");
     expect(researchTopicFilter(new URLSearchParams({ label: "reuse", topic: "scheduling" }))).toBe("scheduling");
     const html = render("/topics/kv-cache?repo=vllm&label=reuse");
-    expect(html).toContain("专题材料");
+    expect(html).toContain("PR 记录");
     expect(html).toContain("收录 PR 的创建时间分布");
     expect(html).toContain("view=compare");
-    expect(html).not.toContain("KV Cache 问题导引");
+    expect(html).not.toContain("KV Cache 缓存了什么，为什么会成为推理瓶颈？");
   });
 
   it("validates unique source identities, reviewed classifications and optional report citations", () => {
@@ -101,7 +101,7 @@ describe("independent KV research library", () => {
 
   it("serves direct papers with their own dates and source links", () => {
     const html = render("/topics/kv-cache?view=evidence&kind=paper");
-    expect(html.match(/class="kv-material-card"/g)).toHaveLength(kvResearch.entries.filter((entry) => entry.kind === "paper" && entry.decision === "included").length);
+    expect(html.match(/class="kv-reading-card"/g)).toHaveLength(kvResearch.entries.filter((entry) => entry.kind === "paper" && entry.decision === "included").length);
     expect(html).toContain("原始论文");
     expect(html).toContain("2023-09-12");
     expect(html).toContain("2312.07104v2");
@@ -130,17 +130,20 @@ describe("independent KV research library", () => {
     const library = render("/topics/kv-cache?view=evidence&topic=lifecycle");
     expect(library).toContain("已关闭");
     expect(library).toContain("已合并");
-    expect(library).toContain("本轮未纳入的候选");
+    expect(library).toContain("历史审阅中未纳入的候选");
   });
 
-  it("reports independent material counts and labels research proposals", () => {
-    const html = render("/topics/kv-cache?view=report");
-    for (const text of ["动态报告 · 专题研究", "纳入论文", "深入方法对比", "研究问题与实验设想", "0"]) {
-      expect(html).toContain(text);
-    }
-    expect(html).toContain("日报可作为引用记录");
-    expect(html).not.toContain("专题初筛线索");
-    expect(html).toContain("<dd>4</dd>");
+  it("separates current community progress from the dated research observations", () => {
+    const current = render("/topics/kv-cache?view=report");
+    expect(current).toContain("社区 PR · 动态报告");
+    expect(current).toContain("本期新纳入 PR");
+    expect(current).toContain("2026-11-23");
+    expect(current).toContain("相较 2026-11-17");
+    const history = render("/topics/kv-cache?view=report&edition=2026-11-17");
+    expect(history).toContain("历史报告 · 首轮调度观察");
+    expect(history).toContain("研究问题与实验设想");
+    expect(history).toContain("日报可作为引用记录");
+    expect(history).not.toContain("新纳入 HF3FS");
   });
 
   it("filters and sorts month-precision paper dates without adding them to PR trends", () => {

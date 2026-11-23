@@ -1,0 +1,172 @@
+{
+  "revision": 1,
+  "editedAt": "2026-11-23",
+  "basis": "已收录论文的相关章节解读与已有 PR 核对记录",
+  "groups": [
+    {
+      "id": "reuse",
+      "shortLabel": "复用与匹配",
+      "hint": "哪些历史可以直接用？",
+      "question": "同样是复用，必须有一模一样的前缀吗？",
+      "summary": "先区分完整前缀相同和部分片段重复。SGLang 查找连续前缀，Prompt Cache 预先定义模块，CacheSlide 则为位置和上下文变化增加对齐与部分重算。",
+      "takeaway": "复用范围扩大时，通常也要增加结构约束或质量验证。缓存里有相同文字，并不足以证明那份 KV 能直接接上当前计算。",
+      "measurement": "比较相同模型和提示负载下的可复用长度、补算量与首 token 等待；涉及模块重组或近似复用时，还要保持输出质量的评价条件一致。",
+      "rows": [
+        {
+          "slug": "sglang",
+          "lever": "查找最长的连续 token 前缀",
+          "benefit": "已有前缀不必再次预填充；适合重复系统提示、多轮对话和共享前缀请求。",
+          "boundary": "依赖 token 前缀匹配。中间内容改写后，后续片段不能沿原前缀直接复用。"
+        },
+        {
+          "slug": "prompt-cache",
+          "lever": "预先定义可缓存的提示模块",
+          "benefit": "固定片段提前编码，请求到来时组装并补算参数；适合结构稳定的模板。",
+          "boundary": "独立编码会改变模块间的上下文依赖。联合缓存需要额外空间。"
+        },
+        {
+          "slug": "cacheslide",
+          "lever": "对齐片段位置，再做部分重算",
+          "benefit": "让移动位置的固定片段仍能利用部分历史计算；适合可预先适配的任务模板。",
+          "boundary": "依赖模板和适配训练。误差阈值与重算比例会影响输出质量。"
+        }
+      ],
+      "engineeringIds": [
+        "github:vllm-project/vllm#63454",
+        "github:vllm-project/vllm-ascend#19755"
+      ]
+    },
+    {
+      "id": "representation",
+      "shortLabel": "表示与压缩",
+      "hint": "显存到底省在哪里？",
+      "question": "同样是省显存，三种方法分别改变什么？",
+      "summary": "PagedAttention 减少预留和重复存储，H₂O 减少保留的历史 token，KIVI 降低历史 KV 的数值位宽。它们分别改变分配方式、历史范围和表示精度。",
+      "takeaway": "分页仍保留原有 KV 的精度和历史；淘汰会改变以后能读取哪些历史；量化会引入数值误差与恢复计算。相近的显存下降，不代表相同的行为。",
+      "measurement": "先固定模型、上下文和质量要求，再比较峰值显存、可承载并发及执行时间。量化还要计入残留区和反量化开销，淘汰则要验证被删除内容对任务的影响。",
+      "rows": [
+        {
+          "slug": "pagedattention",
+          "lever": "分配方式：按小块申请与共享",
+          "benefit": "减少整段预留、尾部浪费和共有前缀的重复存储；适合长度不一且持续增长的请求。",
+          "boundary": "不改变模型的 KV 精度。块太大仍有尾部空位，块太小会增加索引和访问开销。"
+        },
+        {
+          "slug": "h2o",
+          "lever": "历史范围：只保留部分 token",
+          "benefit": "保留近期 token 与累计注意力较高的历史，在有限 KV 预算中继续生成。",
+          "boundary": "被淘汰的内容不能再参与注意力。质量影响取决于任务和保留预算。"
+        },
+        {
+          "slug": "kivi",
+          "lever": "数值表示：让历史 KV 用更少位",
+          "benefit": "Key 按通道、Value 按 token 量化，降低历史 KV 的字节数；适合 KV 占用较高的负载。",
+          "boundary": "近期 KV 仍暂留全精度，还有尺度等开销。分组、残留区与反量化共同影响质量和速度。"
+        }
+      ],
+      "engineeringIds": [
+        "github:vllm-project/vllm#59774",
+        "github:vllm-project/vllm#59131"
+      ]
+    },
+    {
+      "id": "lifecycle",
+      "shortLabel": "容量与生命周期",
+      "hint": "淘汰的是哪一种缓存？",
+      "question": "删掉一块 KV，会影响当前回答还是下次命中？",
+      "summary": "H₂O 和 StreamingLLM 管理当前序列还可以读取的历史；SAECache 管理未来请求可能再次命中的前缀块。淘汰对象不同，后续影响也不同。",
+      "takeaway": "请求内淘汰要评估历史信息损失；请求间前缀缓存淘汰要评估以后需要多少重算。比较策略前，先明确缓存由谁读取、何时不再使用。",
+      "measurement": "对请求内压缩，观察质量和历史访问范围；对请求间前缀块保留，观察命中、重算与等待。两类结果应分别比较。",
+      "rows": [
+        {
+          "slug": "h2o",
+          "lever": "当前序列：按注意力保留历史",
+          "benefit": "在近期保护区之外，继续保留部分较早的高分 token。",
+          "boundary": "过去分数低的信息以后仍可能重要；有限预算会改变模型可访问的历史。"
+        },
+        {
+          "slug": "streamingllm",
+          "lever": "当前序列：开头 token 加近期窗口",
+          "benefit": "用固定保留范围持续处理输入流；适合主要依赖近期内容的任务。",
+          "boundary": "能持续处理长流，不等于能回看全部历史。窗口外的信息不可访问。"
+        },
+        {
+          "slug": "saecache",
+          "lever": "后续请求：按复用反馈保留前缀块",
+          "benefit": "依据访问模式和淘汰反馈调整保留次序；适合缓存常满且重复请求较多的服务。",
+          "boundary": "低重复率或容量宽裕时，评分与队列管理开销更难换来延迟收益。"
+        }
+      ],
+      "engineeringIds": [
+        "github:vllm-project/vllm#63851",
+        "github:vllm-project/vllm#63808"
+      ]
+    },
+    {
+      "id": "movement",
+      "shortLabel": "放置与传输",
+      "hint": "缓存怎样回到计算位置？",
+      "question": "缓存移出设备之后，存取、重建和交接怎样分工？",
+      "summary": "LMCache 提供独立的存取管理层，HCache 用隐藏态重建 KV，DistServe 则为分离部署的预填充和解码实例安排交接。三者解决的问题层次不同。",
+      "takeaway": "远处有可复用状态，还需要把它及时变成计算能够读取的 KV。传输字节、可用算力和实例之间的带宽，共同决定恢复是否划算。",
+      "measurement": "比较相同负载下的回读字节、重建计算、可重叠时间和首 token 等待。跨实例场景还要考虑网络拓扑与阶段间同步。",
+      "rows": [
+        {
+          "slug": "lmcache",
+          "lever": "存取职责：引擎之外的 KV 管理层",
+          "benefit": "通过连接器查找、保留和搬运 KV，服务多级缓存、后续复用或跨实例交接。",
+          "boundary": "接入能力依赖引擎与版本。块大小影响传输的固定开销、写出时机与缓冲占用。"
+        },
+        {
+          "slug": "hcache",
+          "lever": "恢复表示：回读隐藏态，再重建 KV",
+          "benefit": "用额外投影计算换取更少的数据回读；适合完整 KV 搬运昂贵且有可用重建算力的环境。",
+          "boundary": "MHA 下的容量关系不能直接推广到 KV 头更少的 GQA/MQA，必须重新核算。"
+        },
+        {
+          "slug": "distserve",
+          "lever": "实例放置：预填充与解码分别部署",
+          "benefit": "分别扩容两阶段、减少相互干扰，同时把 KV 交接计入部署选择。",
+          "boundary": "需要多 GPU。慢链路上的等待可能抵消减少干扰的收益。"
+        }
+      ],
+      "engineeringIds": [
+        "github:vllm-project/vllm-ascend#20489",
+        "github:vllm-project/vllm#64475"
+      ]
+    },
+    {
+      "id": "scheduling",
+      "shortLabel": "缓存感知调度",
+      "hint": "有缓存的请求一定先跑吗？",
+      "question": "命中更长、等待更久、空间更紧，先照顾哪一个？",
+      "summary": "SGLang 用匹配长度增加复用机会，k-LPM 给最早到达者固定的处理机会，gLLM 按 KV 空闲量调节预填充预算。排序和准入信号对应不同目标。",
+      "takeaway": "命中率、请求等待和抢占风险需要一起观察。缓存感知调度既要看少算了多少，也要看谁因此等得更久、缓存是否还在设备内。",
+      "measurement": "固定到达轨迹、缓存容量与硬件，联合观察重算量、抢占、回载字节和首 token 等待分布，尤其关注长请求及低命中请求。",
+      "rows": [
+        {
+          "slug": "sglang",
+          "lever": "命中长度：优先使用更长已有前缀",
+          "benefit": "重复前缀较多时，排序可增加缓存复用，减少重复预填充。",
+          "boundary": "在线请求持续到达时，低命中请求可能等待较久。"
+        },
+        {
+          "slug": "k-lpm",
+          "lever": "等待公平性：定期服务最早到达者",
+          "benefit": "每轮先服务最早到达请求，再选择 k−1 次最长前缀匹配，用参数调节复用和等待。",
+          "boundary": "理论采用 batch=1、只缓存上一条提示等条件。真实批处理与有限容量需要另行评估。"
+        },
+        {
+          "slug": "gllm",
+          "lever": "容量压力：调节预填充准入额度",
+          "benefit": "按 KV 空闲比例和等待 token 数设定额度，减少挤压已有解码请求带来的抢占。",
+          "boundary": "节流过强会增加首 token 等待，阈值要随模型、负载和流水规模调整。"
+        }
+      ],
+      "engineeringIds": [
+        "github:vllm-project/vllm#66361",
+        "github:vllm-project/vllm#66558"
+      ]
+    }
+  ]
+}
