@@ -8,8 +8,13 @@ export type PaperReading = {
   venue: string;
   year: number;
   order: number;
+  collection?: "notes-supplement";
+  recommendedReason?: string;
+  format?: "survey";
+  takeaway?: string;
   problem: string;
   method: string;
+  result?: string;
   boundary: string;
   readingScope: string;
   sources: { label: string; url: string }[];
@@ -22,7 +27,8 @@ export type ResearchEntry = {
   originalTitle?: string;
   summary: string;
   url: string;
-  sourceDay: string;
+  sourceDay: string | null;
+  sourceMonth?: string;
   sourceVersion?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -81,6 +87,10 @@ export function researchTopicFilter(query: URLSearchParams): string {
   return query.get("topic") ?? legacyTopics[query.get("label") ?? ""] ?? "";
 }
 
+export function researchSourceDate(entry: ResearchEntry): string {
+  return entry.sourceDay ?? entry.sourceMonth ?? "";
+}
+
 export function filterResearch(entries: ResearchEntry[], query: URLSearchParams): ResearchEntry[] {
   const topic = researchTopicFilter(query);
   const kind = query.get("kind") ?? "";
@@ -92,15 +102,15 @@ export function filterResearch(entries: ResearchEntry[], query: URLSearchParams)
     (!topic || entry.topics.includes(topic as ResearchTopicId)) &&
     (!kind || entry.kind === kind) &&
     (!repository || entry.repository === repository) &&
-    (!month || entry.sourceDay.startsWith(month)))
-    .sort((left, right) => right.sourceDay.localeCompare(left.sourceDay) || left.id.localeCompare(right.id));
+    (!month || researchSourceDate(entry).startsWith(month)))
+    .sort((left, right) => researchSourceDate(right).localeCompare(researchSourceDate(left)) || left.id.localeCompare(right.id));
 }
 
 export function researchTimeline(entries: ResearchEntry[]) {
   const months = new Map<string, number>();
   const unique = new Map(entries.map((entry) => [entry.id, entry]));
   for (const entry of unique.values()) {
-    if (entry.kind !== "pr" || entry.decision !== "included") continue;
+    if (entry.kind !== "pr" || entry.decision !== "included" || !entry.sourceDay) continue;
     const month = entry.sourceDay.slice(0, 7);
     months.set(month, (months.get(month) ?? 0) + 1);
   }
@@ -110,11 +120,18 @@ export function researchTimeline(entries: ResearchEntry[]) {
 
 export type PaperEntry = ResearchEntry & { kind: "paper"; paper: PaperReading };
 
+export type PaperCollection = "" | "recommended" | "notes-supplement";
+
+export function paperCollectionFilter(query: URLSearchParams): PaperCollection {
+  const value = query.get("collection");
+  return value === "recommended" || value === "notes-supplement" ? value : "";
+}
+
 // Paper reading shares the material inventory, with its own search and topic scope.
 export function paperViewQuery(query: URLSearchParams): URLSearchParams {
   const next = new URLSearchParams(query);
   const topic = researchTopicFilter(query);
-  for (const key of ["repo", "month", "kind", "label"]) next.delete(key);
+  for (const key of ["repo", "month", "kind", "label", "state", "review", "edition"]) next.delete(key);
   if (topic) next.set("topic", topic);
   next.set("view", "papers");
   return next;
@@ -124,10 +141,15 @@ export function filterPapers(entries: ResearchEntry[], query: URLSearchParams): 
   const scope = new URLSearchParams({ kind: "paper" });
   const topic = researchTopicFilter(query);
   if (topic) scope.set("topic", topic);
+  const collection = paperCollectionFilter(query);
   const term = (query.get("q") ?? "").normalize("NFKC").trim().toLocaleLowerCase();
   return filterResearch(entries, scope)
     .filter((entry): entry is PaperEntry => entry.kind === "paper" && !!entry.paper)
+    .filter(({ paper }) => {
+      if (collection === "recommended") return Boolean(paper.recommendedReason);
+      return !collection || paper.collection === collection;
+    })
     .filter((entry) => !term || [entry.title, entry.originalTitle, entry.summary, entry.paper.shortName,
-      entry.paper.problem, entry.paper.method, entry.paper.boundary].join(" ").normalize("NFKC").toLocaleLowerCase().includes(term))
+      entry.paper.takeaway, entry.paper.problem, entry.paper.method, entry.paper.result, entry.paper.boundary].join(" ").normalize("NFKC").toLocaleLowerCase().includes(term))
     .sort((left, right) => left.paper.order - right.paper.order || left.id.localeCompare(right.id));
 }

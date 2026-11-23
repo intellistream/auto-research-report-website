@@ -1,0 +1,2056 @@
+{
+  "schemaVersion": 1,
+  "edition": "2026-11-23",
+  "baselineDate": "2026-11-17",
+  "periodStart": "2026-11-17",
+  "periodEnd": "2026-11-23",
+  "title": "本期关注：在途块保护、存储开销与跨实例复用",
+  "summary": "本期回查既有 55 条 PR 的状态与代码版本，并选读近期新增工作。NIXL Push 保护已合入；新的保存、分配和跨实例复用提案进一步说明，命中收益还取决于数据正确性、实际占用与交接成本。",
+  "scopeNote": "覆盖 vLLM 与 vLLM Ascend。既有 55 条 PR 完成状态及 head 回查；检索 11 月 17–23 日创建、标题含 KV 或 prefix 的线索，每组最多 60 条，按最近更新排序。KV 检索达到上限；这是本轮取材范围，不是完整社区清单。",
+  "verification": "状态与版本来自 GitHub 核对。HF3FS 条目另核对讨论和补丁，其余本期解读以 PR 当前说明为依据。测试和性能数字均为作者报告，本轮未独立运行 GPU、NPU 或存储实验。",
+  "newEntries": [
+    {
+      "id": "github:vllm-project/vllm#69132",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "跳过没有接收方的 P2P 保存任务",
+      "summary": "在任务准入时记录各存储层是否需要级联，创建 P2P 保存任务前先跳过没有目标 Decoder 的情况，减少空任务的固定、释放与完成处理，并纠正未传输数据仍累计写入字节的问题。",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "lifecycle"
+      ],
+      "rationale": "直接调整 KV 卸载层的任务生成及传输计量。作者报告的 4 GiB 下降是错误计数被消除，不是节省了 4 GiB 实际内存。",
+      "reviewLevel": "pr-description",
+      "originalTitle": "[Bugfix][KV Offload][P2P] Eliminate no-op store jobs and inflated write metrics",
+      "url": "https://github.com/vllm-project/vllm/pull/69132",
+      "createdAt": "2026-11-21T13:07:59Z",
+      "updatedAt": "2026-11-23T08:15:09Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "e51497fcb2a719a65c92af3a1a7d5f14280e086d",
+      "decision": "included",
+      "sourceDay": "2026-11-21",
+      "sourceVersion": "e51497fcb2a719a65c92af3a1a7d5f14280e086d",
+      "checkedAt": "2026-11-23",
+      "dailyReferences": []
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#22312",
+      "kind": "pr",
+      "repository": "vllm-ascend",
+      "title": "按实际访问范围缩减分层 Memcache 对象分配",
+      "summary": "在支持的混合预填充/解码布局中，根据传输起始偏移与已注册 KV 段长度，为新对象分配实际所需空间。无法确定完整访问范围时继续使用原分配规则，已有池对象保持原大小。",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "movement"
+      ],
+      "rationale": "直接修正外部 KV 池的对象容量规划；明确限定 kv_both 和可确定完整范围的布局，未改变模型 KV 精度。",
+      "reviewLevel": "pr-description",
+      "originalTitle": "[Performance][KV Pool] Automatically right-size layerwise Memcache GVA objects",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/22312",
+      "createdAt": "2026-11-18T09:50:33Z",
+      "updatedAt": "2026-11-23T08:09:01Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "7997c0a667345cbbe9134d9b87f645bcd12810d1",
+      "decision": "included",
+      "sourceDay": "2026-11-18",
+      "sourceVersion": "7997c0a667345cbbe9134d9b87f645bcd12810d1",
+      "checkedAt": "2026-11-23",
+      "dailyReferences": []
+    },
+    {
+      "id": "github:vllm-project/vllm#68430",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "通过查询和租约保护复用其他实例的前缀 KV",
+      "summary": "较空闲的实例向持有前缀的实例查询，后者保护可命中块并等待先前调度步完成，再返回块地址供 NIXL 拉取。命中失败或超时回退为本地计算，读取结束或租约到期后释放保护。",
+      "primaryTopic": "movement",
+      "topics": [
+        "movement",
+        "reuse",
+        "scheduling"
+      ],
+      "rationale": "连接跨实例前缀匹配、块保护和路由选择。限定显式开启、pull 模式、受支持的缓存组与并行配置。",
+      "reviewLevel": "pr-description",
+      "originalTitle": "[KV Connector][NIXL] Peer prefix lookup-and-pin (RFC 65967)",
+      "url": "https://github.com/vllm-project/vllm/pull/68430",
+      "createdAt": "2026-11-18T14:33:21Z",
+      "updatedAt": "2026-11-18T19:41:18Z",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "9f9865610800c6865c5d60b28e18951e51e9c79b",
+      "decision": "included",
+      "sourceDay": "2026-11-18",
+      "sourceVersion": "9f9865610800c6865c5d60b28e18951e51e9c79b",
+      "checkedAt": "2026-11-23",
+      "dailyReferences": []
+    },
+    {
+      "id": "github:vllm-project/vllm#69271",
+      "kind": "pr",
+      "repository": "vllm",
+      "title": "在复用被抢占的 KV 块前等待异步保存读完",
+      "summary": "HF3FS 保存先入队、稍后才读取 GPU KV，抢占可能让物理块先被其他请求覆盖。本 PR 在本步计算和加载前等待被抢占请求的 gather 完成，并保护部分 gather 后异常的路径。",
+      "primaryTopic": "lifecycle",
+      "topics": [
+        "lifecycle",
+        "movement"
+      ],
+      "rationale": "直接协调抢占、异步 KV 读取和块重新分配，修复错误缓存内容。已核对正文、讨论与三个文件补丁，未独立运行 GPU 或真实 3FS。",
+      "reviewLevel": "pr-code",
+      "originalTitle": "[Bugfix][KV Connector] Finish HF3FS saves of preempted requests before reuse",
+      "url": "https://github.com/vllm-project/vllm/pull/69271",
+      "createdAt": "2026-11-22T17:01:21Z",
+      "updatedAt": "2026-11-23T08:13:30Z",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "7528cc07f44ca7f864118fad29e08ea36abf19ef",
+      "decision": "included",
+      "sourceDay": "2026-11-23",
+      "sourceVersion": "7528cc07f44ca7f864118fad29e08ea36abf19ef",
+      "checkedAt": "2026-11-23",
+      "dailyReferences": []
+    }
+  ],
+  "stories": [
+    {
+      "slug": "nixl-lifetime",
+      "id": "github:vllm-project/vllm#66795",
+      "change": "本期合入",
+      "title": "NIXL Push 的在途 KV 块保护已合入",
+      "changeText": "11 月 17 日记录为开放中；11 月 19 日已合入，代码版本也有变化。当前说明包含 Push 提交线程配置、NIXL agent 同步，以及在 WRITE 提交或传输结束前保留发送租约和缓存块。",
+      "mechanism": "提交尚未返回时，传输句柄还可能没有进入在途表。修复同时检查“正在提交”和“已经在途”，防止租约到期提前释放源块；对端连接的 TTL 回收也跳过仍有写入的实例。",
+      "evidence": "作者报告 GB200 / NIXL 1.5.2 下 396 项通过、1 项因受限模型失败。B300 端到端运行来自较早修订，且两组修复前运行并未隔离所有配置差异；不能把整套运行表现归因于某一项改动。",
+      "analysis": "本期从“待合入提案”推进到上游实现。它说明缓存交接需要把提交、传输完成和块释放连成一致的生命周期。合入状态能确认交付进度，性能与故障覆盖仍要按具体证据判断。",
+      "next": "继续跟踪 pull 模式加锁的端到端成本，以及底层 WRITE 永不完成时的块占用和告警行为。",
+      "basis": "已复核当前 PR 说明与合入状态；未独立复现。",
+      "readingScope": "当前正文、状态与 head；原始说明与各修订的验证范围分别保留。",
+      "topic": "movement",
+      "paperSlugs": [
+        "distserve",
+        "lmcache"
+      ]
+    },
+    {
+      "slug": "hf3fs-preemption",
+      "id": "github:vllm-project/vllm#69271",
+      "change": "新纳入 · 正确性修复",
+      "title": "抢占之后，旧保存任务仍可能读到新请求的 KV",
+      "changeText": "新纳入 HF3FS 抢占保存修复。后台保存尚未读取物理块时，这些块可能已经释放给另一个请求，导致新请求的数据被存到旧请求的缓存标识下面。",
+      "mechanism": "在抢占发生的调度步中，先等待相关保存任务完成 gather（从 KV 块复制到暂存区），再允许前向和加载继续。当前版本还补上部分 gather 后异常的同步保护；等待点不直接等待该次 gather 之后的 3FS 写入和元数据确认。",
+      "evidence": "作者在单 A10G、torch 2.14.0+cu130、CUDA 13.0 与 mock HF3FS 上报告当前 7528cc07 版本 2 项测试通过。测试检查存储页误差及异常同步，尚未验证真实 3FS、同一步加载、多保存任务或后续命中后的完整输出链路。",
+      "analysis": "这是缓存内容正确性的推进。缩短等待范围可以减少不必要的串行依赖，但当前证据不足以判断真实部署吞吐收益；抢占时的主机等待没有超时，也可能被前序保存任务阻塞。",
+      "next": "跟踪当前版本 CI、真实 3FS 上的等待分布、同一步 load 和一个请求跨多个 save task 的测试。",
+      "basis": "已核对说明、讨论与三个文件补丁；未独立复现。",
+      "readingScope": "当前 head 的 HF3FS connector、公共异步状态及抢占回归测试。",
+      "topic": "lifecycle",
+      "paperSlugs": [
+        "lmcache",
+        "cacheflow"
+      ]
+    },
+    {
+      "slug": "p2p-empty-jobs",
+      "id": "github:vllm-project/vllm#69132",
+      "change": "新纳入 · 存储开销",
+      "title": "先确认有接收方，再创建 P2P 保存任务",
+      "changeText": "新纳入 P2P 卸载修复。没有 remote_decoder 的请求也曾创建空保存任务，并把名义数据量累计进写入指标。",
+      "mechanism": "在请求准入时记录每一层是否参与级联，在建立任务和固定源块之前检查退出条件。其他存储层默认仍参与，生产者及显式请求的对等传输继续使用原有路径。",
+      "evidence": "作者报告 513 项测试通过；在 GB10、Mistral-7B、FP16、16 GiB GPU KV 与 8 GiB CPU cache 的 16 个测量请求中，空任务从 20 个降到 0，消除错误累计的 4 GiB P2P 写入。该数字是指标纠正，不是实传流量或缓存容量下降。",
+      "analysis": "本期新增了一个必须先核对指标口径的例子。减少任务创建和块固定有明确机制依据，但写入计数下降本身不能说明节省了相同大小的网络传输或内存。",
+      "next": "跟踪多存储层、生产者和显式 peer 请求的回归，以及真实负载下的主机调度开销。",
+      "basis": "已审阅当前 PR 说明；测试与运行数字采用作者报告。",
+      "readingScope": "Overview、Validation、Details；未进行完整代码审计。",
+      "topic": "movement",
+      "paperSlugs": [
+        "lmcache"
+      ]
+    },
+    {
+      "slug": "memcache-sizing",
+      "id": "github:vllm-project/vllm-ascend#22312",
+      "change": "新纳入 · 容量管理",
+      "title": "KV 池对象按实际注册范围分配",
+      "changeText": "新纳入 Ascend 分层 Memcache 容量优化。部分缓存组只注册模型的一部分层，原分配下限仍按全模型层数计算，造成对象尾部预留过多。",
+      "mechanism": "当本地能确定整个对象的访问范围时，用起始偏移加已注册 KV 段总长度为新对象分配空间，并让传输构建与分配使用同一布局。独立对象键的流水段可支持非零偏移；范围不确定的共享键及 P/D 分离布局继续回退。",
+      "evidence": "作者报告 2 张 Ascend NPU、Qwen3.6-35B-A3B BF16、MTP3、kv_both、TP2/PP1、300 GiB 池下的 40 请求对照：运行后池 DRAM 从 241.62 降到 62.18 GiB，输入吞吐差异 0.75%。这些是同一实验 checkout 的特定前缀负载结果。",
+      "analysis": "这里节省的是外部池对象的过量预留，模型 KV 精度保持原设置。它与论文中的分页管理同样关注分配浪费，但作用对象和适用布局不同，不能直接套用其收益比例。",
+      "next": "跟踪 PP、DCP 等布局的回退覆盖，以及已有大对象逐步退出池后，实际内存释放的过程。",
+      "basis": "已审阅当前 PR 说明；性能数字采用作者报告。",
+      "readingScope": "分配规则、回退条件、详细改动及 AISBench 实验说明。",
+      "topic": "lifecycle",
+      "paperSlugs": [
+        "pagedattention"
+      ]
+    },
+    {
+      "slug": "peer-prefix",
+      "id": "github:vllm-project/vllm#68430",
+      "change": "新纳入 · 跨实例复用",
+      "title": "让较空闲的实例拉取另一实例的前缀",
+      "changeText": "新纳入 NIXL peer lookup-and-pin 草稿。路由器可将请求交给较空闲的实例，由它向持有前缀的实例查询并拉取 KV。",
+      "mechanism": "持有方查询最长可用前缀，增加引用保护，并等待查询之前已调度的步完成后返回地址。接收方拉取已有前缀、计算剩余输入；读取完成或租约到期后释放保护。查找失败、身份不符或超时则本地重算。",
+      "evidence": "作者在 2×A100-80GB、Qwen3-8B 与配套 router 上报告多种长度的输出一致和拉取对照。仅支持显式开启、pull 模式、单个完整注意力或 MLA 缓存组，不支持 DCP/PCP；文中 588 项测试结果早于 11 月 18 日合并 main，尚未在该次合并后复跑。",
+      "analysis": "这把复用决策与实例负载联系起来：有缓存的实例排队较长时，搬运可能比等待或重算更合适；已有命中能立即服务时，额外查询和搬运也可能更慢。仍需把等待、传输和块保护一起计入决策。",
+      "next": "跟踪合并 main 后的完整测试、配套 router 联调、并行布局支持及租约失效边界。",
+      "basis": "已审阅当前 PR 说明；未复跑实验或审计完整实现。",
+      "readingScope": "请求流程、功能限制、作者实验及测试版本说明。",
+      "topic": "movement",
+      "paperSlugs": [
+        "sglang",
+        "distserve"
+      ]
+    }
+  ],
+  "focusIds": [
+    "github:vllm-project/vllm#54625",
+    "github:vllm-project/vllm#66361",
+    "github:vllm-project/vllm#66558",
+    "github:vllm-project/vllm#66705"
+  ],
+  "observations": [
+    {
+      "title": "块能否重新分配，取决于所有读取是否结束",
+      "body": "NIXL Push 已合入的保护和 HF3FS 新修复都指向缓存生命周期：任务排入队列、提交返回和数据读取完成是不同时间点。",
+      "storySlugs": [
+        "nixl-lifetime",
+        "hf3fs-preemption"
+      ]
+    },
+    {
+      "title": "占用和写入下降，需要先弄清省掉的是什么",
+      "body": "Memcache 优化缩减对象预留，P2P 修复消除空任务和错误写入计数。两者的收益对象不同，评估时应分别看实际占用、传输和主机工作。",
+      "storySlugs": [
+        "memcache-sizing",
+        "p2p-empty-jobs"
+      ]
+    },
+    {
+      "title": "跨实例复用需要同时比较排队、搬运和重算",
+      "body": "Peer lookup-and-pin 新草稿把前缀位置与实例负载连接起来。已有四条调度 PR 本期状态和版本均未变化，原先对尾延迟和公平性的判断继续保留。",
+      "storySlugs": [
+        "peer-prefix"
+      ]
+    }
+  ],
+  "followUps": [
+    {
+      "title": "等待和故障边界",
+      "body": "补充真实存储、并发抢占、传输无法完成等条件下的正确性与等待分布。",
+      "ids": [
+        "github:vllm-project/vllm#69271",
+        "github:vllm-project/vllm#66795"
+      ]
+    },
+    {
+      "title": "同条件下的收益",
+      "body": "分别记录池内存、有效传输、空任务和主机时间，再评估吞吐与尾延迟；保留模型、硬件、请求长度及并行布局。",
+      "ids": [
+        "github:vllm-project/vllm#69132",
+        "github:vllm-project/vllm-ascend#22312"
+      ]
+    },
+    {
+      "title": "当前版本的复测",
+      "body": "跟踪 Peer lookup-and-pin 合并 main 后的测试与 router 联调；原调度专项等待新的代码或验证证据后再更新判断。",
+      "ids": [
+        "github:vllm-project/vllm#68430",
+        "github:vllm-project/vllm#66558"
+      ]
+    }
+  ],
+  "snapshots": [
+    {
+      "id": "github:vllm-project/vllm#63851",
+      "url": "https://github.com/vllm-project/vllm/pull/63851",
+      "number": 63851,
+      "repository": "vllm",
+      "title": "[Bugfix][Prefix Caching] Keep hybrid evictions on a prefix every KV cache group can hit",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "2f11e7f3e04552ca060be589559ad47ae88e3a0f",
+      "createdAt": "2026-10-26T23:10:55Z",
+      "updatedAt": "2026-11-20T19:46:38Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": true,
+        "headSha": "c48be694b52c1ddff5ead90afe747cb338044b24"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#52921",
+      "url": "https://github.com/vllm-project/vllm/pull/52921",
+      "number": 52921,
+      "repository": "vllm",
+      "title": "[Bugfix] Align CPU offload pool size across PP/spec-decode workers",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "ab25ae723a24e978abad2dcb33c19d52a4d67919",
+      "createdAt": "2026-08-19T09:34:34Z",
+      "updatedAt": "2026-10-22T00:22:11Z",
+      "mergedAt": "2026-10-22T00:22:11Z",
+      "closedAt": "2026-10-22T00:22:11Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "ab25ae723a24e978abad2dcb33c19d52a4d67919"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#60130",
+      "url": "https://github.com/vllm-project/vllm/pull/60130",
+      "number": 60130,
+      "repository": "vllm",
+      "title": "[KV Offload] SimpleCPUOffload: one host buffer per rank, opt-in HugeTLB pages",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "e5cccbd74027f1f3ca333cc47abe6a3c1a156c94",
+      "createdAt": "2026-10-05T21:35:34Z",
+      "updatedAt": "2026-11-07T07:12:22Z",
+      "mergedAt": "2026-11-07T07:12:22Z",
+      "closedAt": "2026-11-07T07:12:22Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "e5cccbd74027f1f3ca333cc47abe6a3c1a156c94"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#62384",
+      "url": "https://github.com/vllm-project/vllm/pull/62384",
+      "number": 62384,
+      "repository": "vllm",
+      "title": "[Feature][PCP] Support decoder-side SWA bounded replay with APC for DeepSeek-V4.1-Flash",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "e5202fe7caa14682ef362b8ee46f41d012055c69",
+      "createdAt": "2026-10-19T03:13:52Z",
+      "updatedAt": "2026-10-24T02:05:47Z",
+      "mergedAt": "2026-10-23T22:10:15Z",
+      "closedAt": "2026-10-23T22:10:15Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "e5202fe7caa14682ef362b8ee46f41d012055c69"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#63386",
+      "url": "https://github.com/vllm-project/vllm/pull/63386",
+      "number": 63386,
+      "repository": "vllm",
+      "title": "[Perf][GLM-5.3] GLM-5.3 latency-specialized decode on B200 (CuTe DSL)",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "45a0bf1c13f8cd8368ea2bf042edfd27228f542a",
+      "createdAt": "2026-10-23T18:05:17Z",
+      "updatedAt": "2026-11-06T20:39:16Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "45a0bf1c13f8cd8368ea2bf042edfd27228f542a"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#63438",
+      "url": "https://github.com/vllm-project/vllm/pull/63438",
+      "number": 63438,
+      "repository": "vllm",
+      "title": "[Perf][MRV2] Pickle new requests' block ids as int32 arrays",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "1e62048065811c8ba643374f274dbffbe27482cf",
+      "createdAt": "2026-10-24T03:22:02Z",
+      "updatedAt": "2026-11-04T03:23:03Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "1e62048065811c8ba643374f274dbffbe27482cf"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#63494",
+      "url": "https://github.com/vllm-project/vllm/pull/63494",
+      "number": 63494,
+      "repository": "vllm",
+      "title": "[Attention] Reuse block tables in FlashInfer prefill planning",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "9ff6b87b16f87d71957749faa6991a44a5352803",
+      "createdAt": "2026-10-24T16:02:18Z",
+      "updatedAt": "2026-10-24T16:02:55Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "9ff6b87b16f87d71957749faa6991a44a5352803"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#63796",
+      "url": "https://github.com/vllm-project/vllm/pull/63796",
+      "number": 63796,
+      "repository": "vllm",
+      "title": "[Spec Decode][DCP] DSpark: run sliding-window MLA drafts under DCP",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "2bdd2d108008c42a2ccc174649366ccc354553f1",
+      "createdAt": "2026-10-26T17:19:04Z",
+      "updatedAt": "2026-11-11T12:33:31Z",
+      "mergedAt": "2026-11-11T12:33:30Z",
+      "closedAt": "2026-11-11T12:33:30Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "2bdd2d108008c42a2ccc174649366ccc354553f1"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#63933",
+      "url": "https://github.com/vllm-project/vllm/pull/63933",
+      "number": 63933,
+      "repository": "vllm",
+      "title": "[Perf][NIXL] Fuse cached-block counting and pull block-ID collection",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "657df176fe9124db902e07aff836fec12637494f",
+      "createdAt": "2026-10-27T04:14:36Z",
+      "updatedAt": "2026-11-10T10:08:07Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "657df176fe9124db902e07aff836fec12637494f"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#64475",
+      "url": "https://github.com/vllm-project/vllm/pull/64475",
+      "number": 64475,
+      "repository": "vllm",
+      "title": "[MiniMax-M3.1][P/D] NIXL KV-head re-sharding for per-head-contiguous NVFP4 pages",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "8fd9b4bd93ef3862d2ec762aadbef2e1c4d76d48",
+      "createdAt": "2026-10-29T07:45:40Z",
+      "updatedAt": "2026-11-02T20:31:25Z",
+      "mergedAt": "2026-11-02T20:31:23Z",
+      "closedAt": "2026-11-02T20:31:23Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "8fd9b4bd93ef3862d2ec762aadbef2e1c4d76d48"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#64693",
+      "url": "https://github.com/vllm-project/vllm/pull/64693",
+      "number": 64693,
+      "repository": "vllm",
+      "title": "[ROCm][MoRIIO] Support PP for prefill instance in PD disaggregated serving with MoRI WRITE mode",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "55bfa8efe95d0f593bc9da0bf27738288e568d97",
+      "createdAt": "2026-10-30T07:45:14Z",
+      "updatedAt": "2026-11-09T14:34:16Z",
+      "mergedAt": "2026-11-09T14:34:16Z",
+      "closedAt": "2026-11-09T14:34:16Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "55bfa8efe95d0f593bc9da0bf27738288e568d97"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#66954",
+      "url": "https://github.com/vllm-project/vllm/pull/66954",
+      "number": 66954,
+      "repository": "vllm",
+      "title": "[Bugfix][KV Cache] Shrink warmup's KV cache to max_model_len before CUDA graph capture on SM100",
+      "state": "closed",
+      "merged": false,
+      "draft": false,
+      "headSha": "54c740018b67c73c529c1497bfd40ad39dc816d3",
+      "createdAt": "2026-11-11T04:37:02Z",
+      "updatedAt": "2026-11-12T19:15:00Z",
+      "mergedAt": null,
+      "closedAt": "2026-11-12T19:08:50Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": false,
+        "draft": false,
+        "headSha": "54c740018b67c73c529c1497bfd40ad39dc816d3"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19251",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19251",
+      "number": 19251,
+      "repository": "vllm-ascend",
+      "title": "[BugFix][KV Pool] Remove layerwise RPC result caches and scheduler hit cache",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "d1d74953ab624b509ac6ddcf0e6c61472531eb57",
+      "createdAt": "2026-10-20T06:20:52Z",
+      "updatedAt": "2026-10-22T10:51:38Z",
+      "mergedAt": "2026-10-22T10:51:38Z",
+      "closedAt": "2026-10-22T10:51:38Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "d1d74953ab624b509ac6ddcf0e6c61472531eb57"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19480",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19480",
+      "number": 19480,
+      "repository": "vllm-ascend",
+      "title": "[BugFix][KVTransfer] Sync physical layer count for layerwise PP pooling",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "5e5118b9cae78da07fd2b0065c0b6f36a443007e",
+      "createdAt": "2026-10-22T08:31:33Z",
+      "updatedAt": "2026-10-22T12:57:42Z",
+      "mergedAt": "2026-10-22T10:49:23Z",
+      "closedAt": "2026-10-22T10:49:23Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "5e5118b9cae78da07fd2b0065c0b6f36a443007e"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19719",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19719",
+      "number": 19719,
+      "repository": "vllm-ascend",
+      "title": "[Feature] Support Direct MLAPO KV outputs and fused CPU writeback for sparse offload",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "4400e052efc5c51dca76b360ba11f37b18fabc13",
+      "createdAt": "2026-10-24T13:51:12Z",
+      "updatedAt": "2026-11-16T03:04:08Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "4400e052efc5c51dca76b360ba11f37b18fabc13"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19869",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19869",
+      "number": 19869,
+      "repository": "vllm-ascend",
+      "title": "[Performance][Attention] Add zero-copy views for strided KV cache",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "000485230e48f493abd769463f72fcea8db26d9f",
+      "createdAt": "2026-10-26T12:49:43Z",
+      "updatedAt": "2026-10-27T02:31:07Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": true,
+        "headSha": "000485230e48f493abd769463f72fcea8db26d9f"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#20369",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20369",
+      "number": 20369,
+      "repository": "vllm-ascend",
+      "title": "[Feature] Enable prefix caching for GLM KDA RecoverSSM",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "02fdb550f07074c699f25f0ecd8f094dd637a093",
+      "createdAt": "2026-10-30T10:09:42Z",
+      "updatedAt": "2026-10-31T02:22:26Z",
+      "mergedAt": "2026-10-31T02:20:32Z",
+      "closedAt": "2026-10-31T02:20:32Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "02fdb550f07074c699f25f0ecd8f094dd637a093"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#20489",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20489",
+      "number": 20489,
+      "repository": "vllm-ascend",
+      "title": "[Feature][PD] Add LayerwisePoolConnector with shared AscendStore I/O",
+      "state": "closed",
+      "merged": false,
+      "draft": false,
+      "headSha": "34cced27504d3d19b89a434f1fa4c7c7404eb1c1",
+      "createdAt": "2026-10-31T10:14:55Z",
+      "updatedAt": "2026-11-09T06:46:32Z",
+      "mergedAt": null,
+      "closedAt": "2026-11-09T06:46:14Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": false,
+        "draft": false,
+        "headSha": "34cced27504d3d19b89a434f1fa4c7c7404eb1c1"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#21622",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/21622",
+      "number": 21622,
+      "repository": "vllm-ascend",
+      "title": "[Feature] Support bilateral DCP in MooncakePushConnector",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "14eedc2175eb7936511ad1ebbff7b8bb7f22eb5b",
+      "createdAt": "2026-11-11T12:57:52Z",
+      "updatedAt": "2026-11-16T13:23:13Z",
+      "mergedAt": "2026-11-16T13:23:13Z",
+      "closedAt": "2026-11-16T13:23:13Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "14eedc2175eb7936511ad1ebbff7b8bb7f22eb5b"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#59131",
+      "url": "https://github.com/vllm-project/vllm/pull/59131",
+      "number": 59131,
+      "repository": "vllm",
+      "title": "[Perf][DSv4.1] Gather the compressed KV once per KV-source group in prefill",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "c4e1c2bebce86990e94efa0cd24e023f3b883386",
+      "createdAt": "2026-09-29T03:51:08Z",
+      "updatedAt": "2026-10-29T17:41:09Z",
+      "mergedAt": "2026-10-29T17:41:09Z",
+      "closedAt": "2026-10-29T17:41:09Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "c4e1c2bebce86990e94efa0cd24e023f3b883386"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#63102",
+      "url": "https://github.com/vllm-project/vllm/pull/63102",
+      "number": 63102,
+      "repository": "vllm",
+      "title": "[Perf][GLM-5.3-Flash] Specialized decode for GB300 TP4",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "4540b2339efa784ad93bd22c37d27e550ba61ec2",
+      "createdAt": "2026-10-22T11:07:38Z",
+      "updatedAt": "2026-11-10T07:08:41Z",
+      "mergedAt": "2026-11-10T07:08:41Z",
+      "closedAt": "2026-11-10T07:08:41Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "4540b2339efa784ad93bd22c37d27e550ba61ec2"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#63401",
+      "url": "https://github.com/vllm-project/vllm/pull/63401",
+      "number": 63401,
+      "repository": "vllm",
+      "title": "[Bugfix][ROCm] Size the extensible KV cache from exact VRAM use, not 2 MB-rounded free memory",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "8129bd0c4922e2aa81ecb627f5bd724569575db6",
+      "createdAt": "2026-10-23T19:43:24Z",
+      "updatedAt": "2026-11-08T20:39:24Z",
+      "mergedAt": "2026-11-08T20:39:24Z",
+      "closedAt": "2026-11-08T20:39:24Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "8129bd0c4922e2aa81ecb627f5bd724569575db6"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#63441",
+      "url": "https://github.com/vllm-project/vllm/pull/63441",
+      "number": 63441,
+      "repository": "vllm",
+      "title": "[Perf][KV Events] Batch BlockRemoved events per allocation",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "2ecb5472ea13f13628d5b35cffe947c1a7aceb02",
+      "createdAt": "2026-10-24T03:36:40Z",
+      "updatedAt": "2026-11-09T06:14:58Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "2ecb5472ea13f13628d5b35cffe947c1a7aceb02"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#63808",
+      "url": "https://github.com/vllm-project/vllm/pull/63808",
+      "number": 63808,
+      "repository": "vllm",
+      "title": "[Perf][Core] Add mamba_aware_lru GPU prefix-cache eviction policy for hybrid models",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "237b7f56bf6bb5b0c6a5ee268843cfe99d6f0c9a",
+      "createdAt": "2026-10-26T18:14:21Z",
+      "updatedAt": "2026-11-05T08:26:16Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "237b7f56bf6bb5b0c6a5ee268843cfe99d6f0c9a"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#64296",
+      "url": "https://github.com/vllm-project/vllm/pull/64296",
+      "number": 64296,
+      "repository": "vllm",
+      "title": "[Perf][P/D] Skip prompt block hashing for KV connectors that don't use it",
+      "state": "closed",
+      "merged": false,
+      "draft": false,
+      "headSha": "1d51a1c9e8125311253107d62f7435b1a889ad5e",
+      "createdAt": "2026-10-28T15:03:39Z",
+      "updatedAt": "2026-11-03T01:39:27Z",
+      "mergedAt": null,
+      "closedAt": "2026-11-03T01:39:27Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": false,
+        "draft": false,
+        "headSha": "1d51a1c9e8125311253107d62f7435b1a889ad5e"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#64611",
+      "url": "https://github.com/vllm-project/vllm/pull/64611",
+      "number": 64611,
+      "repository": "vllm",
+      "title": "[Core][Spec Decode] Give the DFlash/DSpark drafter's KV its own block pool",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "2d599b8e3219ace0348b126aa3acd4f34c94d335",
+      "createdAt": "2026-10-29T22:58:34Z",
+      "updatedAt": "2026-11-20T23:52:05Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "a71d0fb3d873cbb038acf473595659954b133863"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#65137",
+      "url": "https://github.com/vllm-project/vllm/pull/65137",
+      "number": 65137,
+      "repository": "vllm",
+      "title": "[Bugfix][KV Connector] Keep same-host NIXL on NVLink with the extensible KV cache",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "4423f5cf7b288fe5265b9472b4ab4952f6d9a4e8",
+      "createdAt": "2026-11-02T10:08:37Z",
+      "updatedAt": "2026-11-13T23:01:56Z",
+      "mergedAt": "2026-11-08T19:11:13Z",
+      "closedAt": "2026-11-08T19:11:13Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "4423f5cf7b288fe5265b9472b4ab4952f6d9a4e8"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#65831",
+      "url": "https://github.com/vllm-project/vllm/pull/65831",
+      "number": 65831,
+      "repository": "vllm",
+      "title": "[Perf][Core] Reduce per-block CPU cost of KV block allocation and caching",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "d75039e7cbd8da240fd12c5a3b5ad1823e407cf0",
+      "createdAt": "2026-11-05T06:36:06Z",
+      "updatedAt": "2026-11-06T05:53:20Z",
+      "mergedAt": "2026-11-06T01:07:22Z",
+      "closedAt": "2026-11-06T01:07:22Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "d75039e7cbd8da240fd12c5a3b5ad1823e407cf0"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#66583",
+      "url": "https://github.com/vllm-project/vllm/pull/66583",
+      "number": 66583,
+      "repository": "vllm",
+      "title": "[KV Offload] Set the CPU tier up in the background under async_init",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "9c8968611a7692ae89dd3678ae31c3927c6cf1ac",
+      "createdAt": "2026-11-09T13:42:29Z",
+      "updatedAt": "2026-11-16T19:10:36Z",
+      "mergedAt": "2026-11-16T19:10:36Z",
+      "closedAt": "2026-11-16T19:10:36Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "9c8968611a7692ae89dd3678ae31c3927c6cf1ac"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#66970",
+      "url": "https://github.com/vllm-project/vllm/pull/66970",
+      "number": 66970,
+      "repository": "vllm",
+      "title": "[KV Connector][NIXL] Opt-in whole-row regions for GQA caches under block-outermost layouts",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "0b49f6a683dcd6e2ca2a0e970114e609201b68ce",
+      "createdAt": "2026-11-11T06:08:37Z",
+      "updatedAt": "2026-11-14T04:55:32Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "0b49f6a683dcd6e2ca2a0e970114e609201b68ce"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19264",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19264",
+      "number": 19264,
+      "repository": "vllm-ascend",
+      "title": "[BugFix][Worker] Restore Gemma 4 KV cache capacity on Model Runner V2",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "58b55edfbfdc3c7ce10388198354a587a8595bbd",
+      "createdAt": "2026-10-20T07:41:07Z",
+      "updatedAt": "2026-10-22T07:38:13Z",
+      "mergedAt": "2026-10-22T07:38:12Z",
+      "closedAt": "2026-10-22T07:38:13Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "58b55edfbfdc3c7ce10388198354a587a8595bbd"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19708",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19708",
+      "number": 19708,
+      "repository": "vllm-ascend",
+      "title": "[Feature][Proxy] Add opt-in prefill session affinity",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "6c021269699820d87238a499af9a928038830319",
+      "createdAt": "2026-10-24T09:26:23Z",
+      "updatedAt": "2026-10-30T02:23:26Z",
+      "mergedAt": "2026-10-30T02:23:26Z",
+      "closedAt": "2026-10-30T02:23:26Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "6c021269699820d87238a499af9a928038830319"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19755",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19755",
+      "number": 19755,
+      "repository": "vllm-ascend",
+      "title": "[BugFix][KV Pool] Skip probes for HBM-cached prefixes",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "97da698f6b4f13802bb14c97a9d42273a8cda1f8",
+      "createdAt": "2026-10-25T13:29:03Z",
+      "updatedAt": "2026-10-26T10:51:57Z",
+      "mergedAt": "2026-10-26T10:51:57Z",
+      "closedAt": "2026-10-26T10:51:57Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "97da698f6b4f13802bb14c97a9d42273a8cda1f8"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#20755",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20755",
+      "number": 20755,
+      "repository": "vllm-ascend",
+      "title": "[Feature][KVTransfer] Enable cross-TP hybrid decode-history reuse on Ascend",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "d1d3a8ff5d33bc4b973c9e377b1c9af4808c3873",
+      "createdAt": "2026-11-03T07:44:02Z",
+      "updatedAt": "2026-11-18T01:47:50Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "5ffae9a568bf1b9c0dd245f812916a4e5ea93317"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#56192",
+      "url": "https://github.com/vllm-project/vllm/pull/56192",
+      "number": 56192,
+      "repository": "vllm",
+      "title": "[Feature][KV Offload] Add RDMA-capable OBJ tier (#55855)",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "5185d96702e04a3771cbcbbde6a445a879a8908e",
+      "createdAt": "2026-09-10T04:11:25Z",
+      "updatedAt": "2026-11-09T10:45:23Z",
+      "mergedAt": "2026-11-09T10:45:22Z",
+      "closedAt": "2026-11-09T10:45:22Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "5185d96702e04a3771cbcbbde6a445a879a8908e"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#59774",
+      "url": "https://github.com/vllm-project/vllm/pull/59774",
+      "number": 59774,
+      "repository": "vllm",
+      "title": "[ROCm] Octave KV (`ROCM_OCTAVE`): native 3-bit KV cache backend for AMD GPUs",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "678cc6e19d26fad082649268969d9eb942897574",
+      "createdAt": "2026-10-02T12:31:52Z",
+      "updatedAt": "2026-11-11T20:00:50Z",
+      "mergedAt": "2026-10-26T04:35:00Z",
+      "closedAt": "2026-10-26T04:35:00Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "678cc6e19d26fad082649268969d9eb942897574"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#63454",
+      "url": "https://github.com/vllm-project/vllm/pull/63454",
+      "number": 63454,
+      "repository": "vllm",
+      "title": "[Perf][Core] Add sha256_int32 prefix-cache hash over int32 token buffers",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "b642886168892df5500209cfe48032a7bbb6d43a",
+      "createdAt": "2026-10-24T05:55:36Z",
+      "updatedAt": "2026-10-25T03:44:53Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": true,
+        "headSha": "b642886168892df5500209cfe48032a7bbb6d43a"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#63527",
+      "url": "https://github.com/vllm-project/vllm/pull/63527",
+      "number": 63527,
+      "repository": "vllm",
+      "title": "[ROCm][Perf][Muse Spark] fp8 KV cache for the specialized decode (draft, stacked on #63246)",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "c16b3756e0e4fff00d0ec8f21fad7edea313b4b5",
+      "createdAt": "2026-10-25T01:06:42Z",
+      "updatedAt": "2026-10-26T07:39:11Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": true,
+        "headSha": "c16b3756e0e4fff00d0ec8f21fad7edea313b4b5"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#63746",
+      "url": "https://github.com/vllm-project/vllm/pull/63746",
+      "number": 63746,
+      "repository": "vllm",
+      "title": "[Perf][Attention] Larger prefill Q tile for Triton unified attention on sm80/sm89",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "56b690a2e46cffb66a2390a68461adf0811c3fe7",
+      "createdAt": "2026-10-26T12:41:00Z",
+      "updatedAt": "2026-11-23T01:50:20Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "6edca6c98bd8371233a620f57e19f34567b840a1"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#64397",
+      "url": "https://github.com/vllm-project/vllm/pull/64397",
+      "number": 64397,
+      "repository": "vllm",
+      "title": "[KV Connector][NIXL] Pull KV from pipeline-parallel prefill stages, with the hybrid KV cache manager",
+      "state": "closed",
+      "merged": false,
+      "draft": false,
+      "headSha": "1d8b1f52f31dc25ccf54803812bfe086b89681b2",
+      "createdAt": "2026-10-29T02:07:59Z",
+      "updatedAt": "2026-11-03T08:37:47Z",
+      "mergedAt": null,
+      "closedAt": "2026-11-03T08:37:47Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": false,
+        "draft": false,
+        "headSha": "1d8b1f52f31dc25ccf54803812bfe086b89681b2"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#64612",
+      "url": "https://github.com/vllm-project/vllm/pull/64612",
+      "number": 64612,
+      "repository": "vllm",
+      "title": "[GLM5.3 Perf] Switching dlfash fp8 kv cache draft model, 2.85 GB memory saved per rank",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "a9c94596e848d85df29205f031f7b683e229ed7e",
+      "createdAt": "2026-10-29T23:16:22Z",
+      "updatedAt": "2026-10-30T15:22:14Z",
+      "mergedAt": "2026-10-30T15:22:11Z",
+      "closedAt": "2026-10-30T15:22:11Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "a9c94596e848d85df29205f031f7b683e229ed7e"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#65217",
+      "url": "https://github.com/vllm-project/vllm/pull/65217",
+      "number": 65217,
+      "repository": "vllm",
+      "title": "[Spec Decode][MRV2] Add prefill_context_kv_only for P/D prefill instances",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "5018312c8e5f306dff276fc14d5f1b1c607d6eed",
+      "createdAt": "2026-11-02T19:14:57Z",
+      "updatedAt": "2026-11-10T17:01:37Z",
+      "mergedAt": "2026-11-10T17:01:37Z",
+      "closedAt": "2026-11-10T17:01:37Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "5018312c8e5f306dff276fc14d5f1b1c607d6eed"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#65888",
+      "url": "https://github.com/vllm-project/vllm/pull/65888",
+      "number": 65888,
+      "repository": "vllm",
+      "title": "[HiSparse] Alternative to #55398: promote P/D imports into GPU pages without NIXL changes",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "d1fba6bb75195a5b2d9c3a324a4088cf875cb1e0",
+      "createdAt": "2026-11-05T10:09:31Z",
+      "updatedAt": "2026-11-09T22:39:17Z",
+      "mergedAt": "2026-11-09T22:39:17Z",
+      "closedAt": "2026-11-09T22:39:17Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "d1fba6bb75195a5b2d9c3a324a4088cf875cb1e0"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#66595",
+      "url": "https://github.com/vllm-project/vllm/pull/66595",
+      "number": 66595,
+      "repository": "vllm",
+      "title": "[KDA][Spec Decode] RecoverSSM: replay the accepted tokens in the next verify",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "cdced7fb9741c8eca9661c56883ea9828b90fcd3",
+      "createdAt": "2026-11-09T15:05:39Z",
+      "updatedAt": "2026-11-13T05:09:25Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": true,
+        "headSha": "cdced7fb9741c8eca9661c56883ea9828b90fcd3"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#66795",
+      "url": "https://github.com/vllm-project/vllm/pull/66795",
+      "number": 66795,
+      "repository": "vllm",
+      "title": "[Bugfix][NIXL] Push: stop WRITE submission stalls and early block release; lock the NIXL agent",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "7bbe46045a8907eb1e41b7d52692a720b3aa4d97",
+      "createdAt": "2026-11-10T10:59:08Z",
+      "updatedAt": "2026-11-19T04:06:48Z",
+      "mergedAt": "2026-11-19T04:06:48Z",
+      "closedAt": "2026-11-19T04:06:48Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "e098ca96bdbb47d060dec73f862c6a632295d39f"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#67048",
+      "url": "https://github.com/vllm-project/vllm/pull/67048",
+      "number": 67048,
+      "repository": "vllm",
+      "title": "[KV Connector] Support KV Sharing across Non-Divisible Tensor Parallel Sizes",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "8dd88cba0add79fdb9f33c6f9a5c84d61f230cd2",
+      "createdAt": "2026-11-11T15:21:18Z",
+      "updatedAt": "2026-11-13T05:03:49Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "8dd88cba0add79fdb9f33c6f9a5c84d61f230cd2"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19457",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19457",
+      "number": 19457,
+      "repository": "vllm-ascend",
+      "title": "[BugFix] Preserve GLM-Next shared-pool KV budget",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "921f111de01683d6446c3b0ee7005e8c0963326d",
+      "createdAt": "2026-10-22T07:29:36Z",
+      "updatedAt": "2026-10-22T13:16:54Z",
+      "mergedAt": "2026-10-22T13:16:53Z",
+      "closedAt": "2026-10-22T13:16:54Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "921f111de01683d6446c3b0ee7005e8c0963326d"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19714",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19714",
+      "number": 19714,
+      "repository": "vllm-ascend",
+      "title": "[Feature][KV Cache] Extend fine-grained prefix reuse to sparse hybrid caches",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "4c97a8171388b1819979e7b980087467a9251437",
+      "createdAt": "2026-10-24T10:18:26Z",
+      "updatedAt": "2026-11-05T07:59:07Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "4c97a8171388b1819979e7b980087467a9251437"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#19884",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19884",
+      "number": 19884,
+      "repository": "vllm-ascend",
+      "title": "[Feature] Decoder Append-Prefill for Agentic Scenario Prefiller Offloading",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "7cae48cb97c52bee4aacfe97e942461350efecbd",
+      "createdAt": "2026-10-27T01:28:19Z",
+      "updatedAt": "2026-11-19T12:34:20Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "003989ac5f0e54847020d43a36a4a439fbfdddf3"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#20474",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/20474",
+      "number": 20474,
+      "repository": "vllm-ascend",
+      "title": "[Performance] Optimize KDA RecoverSSM aligned state commit",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "d294bbc2f331d31ac1daabdde59719139b4178b1",
+      "createdAt": "2026-10-31T09:08:12Z",
+      "updatedAt": "2026-11-01T07:12:22Z",
+      "mergedAt": "2026-11-01T07:12:22Z",
+      "closedAt": "2026-11-01T07:12:22Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "d294bbc2f331d31ac1daabdde59719139b4178b1"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#66523",
+      "url": "https://github.com/vllm-project/vllm/pull/66523",
+      "number": 66523,
+      "repository": "vllm",
+      "title": "[Bugfix] Extensible KV cache: release warmup's blocks before CUDA graph capture",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "19dcc38f6befa839e955717d9dd24af6021a4c21",
+      "createdAt": "2026-11-09T09:22:44Z",
+      "updatedAt": "2026-11-12T05:30:57Z",
+      "mergedAt": "2026-11-12T00:55:52Z",
+      "closedAt": "2026-11-12T00:55:52Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "19dcc38f6befa839e955717d9dd24af6021a4c21"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#54625",
+      "url": "https://github.com/vllm-project/vllm/pull/54625",
+      "number": 54625,
+      "repository": "vllm",
+      "title": "[Core] Add cache-aware admission ordering",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "headSha": "f1b9e5b8900258a3fbc59b39f7cbe0470bb7f27c",
+      "createdAt": "2026-08-31T20:08:51Z",
+      "updatedAt": "2026-11-04T17:53:04Z",
+      "mergedAt": "2026-11-04T17:53:03Z",
+      "closedAt": "2026-11-04T17:53:03Z",
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "headSha": "f1b9e5b8900258a3fbc59b39f7cbe0470bb7f27c"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#66361",
+      "url": "https://github.com/vllm-project/vllm/pull/66361",
+      "number": 66361,
+      "repository": "vllm",
+      "title": "[Core][Scheduler] Add opt-in aging to cache-aware admission",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "376cd0583f5b4f6a74769afb1c8cca0a12da8854",
+      "createdAt": "2026-11-08T07:41:47Z",
+      "updatedAt": "2026-11-08T07:42:26Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "headSha": "376cd0583f5b4f6a74769afb1c8cca0a12da8854"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#66558",
+      "url": "https://github.com/vllm-project/vllm/pull/66558",
+      "number": 66558,
+      "repository": "vllm",
+      "title": "[Core] Count KV connector hits in cache-aware admission",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "6075903ef5e8fff6af54a0d90f822329d8945cad",
+      "createdAt": "2026-11-09T11:36:29Z",
+      "updatedAt": "2026-11-09T13:13:20Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": true,
+        "headSha": "6075903ef5e8fff6af54a0d90f822329d8945cad"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#66705",
+      "url": "https://github.com/vllm-project/vllm/pull/66705",
+      "number": 66705,
+      "repository": "vllm",
+      "title": "[Core][Scheduler] Add shortest_prefill_first scheduling policy",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "b427c8b9594c2c97365cd3af1eae96ef2b39414e",
+      "createdAt": "2026-11-10T03:31:26Z",
+      "updatedAt": "2026-11-11T19:03:16Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": {
+        "checkedAt": "2026-11-17",
+        "state": "open",
+        "merged": false,
+        "draft": true,
+        "headSha": "b427c8b9594c2c97365cd3af1eae96ef2b39414e"
+      }
+    },
+    {
+      "id": "github:vllm-project/vllm#69132",
+      "url": "https://github.com/vllm-project/vllm/pull/69132",
+      "number": 69132,
+      "repository": "vllm",
+      "title": "[Bugfix][KV Offload][P2P] Eliminate no-op store jobs and inflated write metrics",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "e51497fcb2a719a65c92af3a1a7d5f14280e086d",
+      "createdAt": "2026-11-21T13:07:59Z",
+      "updatedAt": "2026-11-23T08:15:09Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": null
+    },
+    {
+      "id": "github:vllm-project/vllm-ascend#22312",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/22312",
+      "number": 22312,
+      "repository": "vllm-ascend",
+      "title": "[Performance][KV Pool] Automatically right-size layerwise Memcache GVA objects",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "7997c0a667345cbbe9134d9b87f645bcd12810d1",
+      "createdAt": "2026-11-18T09:50:33Z",
+      "updatedAt": "2026-11-23T08:09:01Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": null
+    },
+    {
+      "id": "github:vllm-project/vllm#68430",
+      "url": "https://github.com/vllm-project/vllm/pull/68430",
+      "number": 68430,
+      "repository": "vllm",
+      "title": "[KV Connector][NIXL] Peer prefix lookup-and-pin (RFC 65967)",
+      "state": "open",
+      "merged": false,
+      "draft": true,
+      "headSha": "9f9865610800c6865c5d60b28e18951e51e9c79b",
+      "createdAt": "2026-11-18T14:33:21Z",
+      "updatedAt": "2026-11-18T19:41:18Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": null
+    },
+    {
+      "id": "github:vllm-project/vllm#69271",
+      "url": "https://github.com/vllm-project/vllm/pull/69271",
+      "number": 69271,
+      "repository": "vllm",
+      "title": "[Bugfix][KV Connector] Finish HF3FS saves of preempted requests before reuse",
+      "state": "open",
+      "merged": false,
+      "draft": false,
+      "headSha": "7528cc07f44ca7f864118fad29e08ea36abf19ef",
+      "createdAt": "2026-11-22T17:01:21Z",
+      "updatedAt": "2026-11-23T08:13:30Z",
+      "mergedAt": null,
+      "closedAt": null,
+      "checkedAt": "2026-11-23",
+      "baseline": null
+    }
+  ],
+  "search": {
+    "terms": [
+      "KV",
+      "prefix"
+    ],
+    "perQueryLimit": 60,
+    "returned": 91,
+    "unique": 88,
+    "capped": true,
+    "candidates": [
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69132",
+        "title": "[Bugfix][KV Offload][P2P] Eliminate no-op store jobs and inflated write metrics",
+        "number": 69132
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69271",
+        "title": "[Bugfix][KV Connector] Finish HF3FS saves of preempted requests before reuse",
+        "number": 69271
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69317",
+        "title": "[KV Offload] Register KVCR's kvcr_unserved_blocks metric",
+        "number": 69317
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22312",
+        "title": "[Performance][KV Pool] Automatically right-size layerwise Memcache GVA objects",
+        "number": 22312
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22514",
+        "title": "[BugFix] Fix missing AscendStore CPU KV events",
+        "number": 22514
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22849",
+        "title": "[Test] Add KV pool hit watch to A3 P1/P5/P6 e2e cases",
+        "number": 22849
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22205",
+        "title": "[Test] Add A2 TP8 KV-pool A/B protection cases to the nightly matrix",
+        "number": 22205
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22680",
+        "title": "[BugFix][KV Transfer] Ignore EOS and stop tokens on truncated prefill",
+        "number": 22680
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22837",
+        "title": "[Refactor][KV Cache] Use shared V2 allocation for Step5-Preview",
+        "number": 22837
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69048",
+        "title": "[Bugfix][KV Offload] Store the chunk containing a partial-tail CPU hit",
+        "number": 69048
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22892",
+        "title": "[Spec Decode][MRV2] Support prefill_context_kv_only for DFlash-family P/D prefill",
+        "number": 22892
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69359",
+        "title": "[Perf][KV Offload] Prioritize fenced stores before background stores",
+        "number": 69359
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22885",
+        "title": "[Bugfix][KV Pool] Preserve readmitted requests across forced prefix-cache resets",
+        "number": 22885
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69349",
+        "title": "[Bugfix][Core] Reconcile lagging sliding-window hits before KV connector lookup",
+        "number": 69349
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69348",
+        "title": "[Bugfix][KV Offloading] Size CPU offload chunks by the largest pipeline stage",
+        "number": 69348
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22793",
+        "title": "[Performance] Publish A3 FSA KV plans via shared DDR and Notify",
+        "number": 22793
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22886",
+        "title": "[Feature][KV Pool] Support DeepSeek-V4-Flash Mooncake layerwise offload",
+        "number": 22886
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69346",
+        "title": "[Bugfix][KV Offload] Fail fast when cpu_bytes_to_use is smaller than one chunk in TieringOffloadingSpec",
+        "number": 69346
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68138",
+        "title": "[Bugfix][Distributed] Account for PCIe IPC workspace before KV sizing",
+        "number": 68138
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22881",
+        "title": "[Refactor][KV Transfer] Wait for pending Mooncake Push writes by source layer",
+        "number": 22881
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22391",
+        "title": "[Feature][KV Pool] Add Mooncake cache_prefix support to AscendStoreConnector",
+        "number": 22391
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22174",
+        "title": "[Feature][DeepseekV41] Add opt-in A3 INT8 CSA packed KV cache path",
+        "number": 22174
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69343",
+        "title": "[CP] Fetch only selected-row union in DCP KV prefetch for top-k reusing layers",
+        "number": 69343
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22871",
+        "title": "[CI] Avoid MiniMax-M3 PP PD producer KV port collisions",
+        "number": 22871
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22727",
+        "title": "[Doc] Align DeepSeek V4.1 Flash PD and KV cache pool guides",
+        "number": 22727
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22502",
+        "title": "[Feature] Opt-in owner-sharded PCP KV cache for DeepSeek V4.1 Flash on A3",
+        "number": 22502
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22621",
+        "title": "[BugFix][KV Transfer] Allocate unique AscendStore save event IDs",
+        "number": 22621
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22879",
+        "title": "[Feature][KV Pool] Support BF16 GLM-5.3 prefill KV offload",
+        "number": 22879
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69340",
+        "title": "[CP] Overlap DCP historical MLA KV gather with previous layer attention",
+        "number": 69340
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22664",
+        "title": "[Doc] [KVPool]Clarify numerical expressions and update the Yuron config path in KV Cache Pool guide",
+        "number": 22664
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22834",
+        "title": "[BugFix][KV Pool] Allow joint TP and PCP for sharded Mamba state",
+        "number": 22834
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22099",
+        "title": "[Test] Add KV pool hit watch to A3 nightly e2e cases",
+        "number": 22099
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22782",
+        "title": "[Performance][Model] Fuse DeepSeek V4.1 Long KV writes on A2",
+        "number": 22782
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68646",
+        "title": "[ROCm][MiniMax] Enable UMBP KV offloading with M3 and M3.1 mono decode",
+        "number": 68646
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22713",
+        "title": "[Feature][KV Pool] Unify Decode cache saving and role-based lookup",
+        "number": 22713
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69273",
+        "title": "[Perf][TurboQuant] Parallel split reduction and small-batch KV splits for decode",
+        "number": 69273
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69059",
+        "title": "[Feature][HiSparse] Reuse GPU Main KV buffers across prefill layers",
+        "number": 69059
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22855",
+        "title": "[BugFix] Save layerwise DSpark draft KV after speculation",
+        "number": 22855
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22742",
+        "title": "[Feature][KV Pool] Enable prefill KV offload for GLM-5.3",
+        "number": 22742
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68837",
+        "title": "[Bugfix][Mamba] Offer the coarse prompt-end checkpoint to KV connectors",
+        "number": 68837
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68836",
+        "title": "[Bugfix][KV Offload] Offload the prompt tail of every attention group",
+        "number": 68836
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69315",
+        "title": "[Bugfix][KV Offload][OBJ] Allow startup with write-only credentials",
+        "number": 69315
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22830",
+        "title": "[BugFix][KV Pool] Isolate sharded Mamba state by parallel layout",
+        "number": 22830
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68440",
+        "title": "[Perf][Qwen4Exp] Fold the PLE state into a GDN KV cache group",
+        "number": 68440
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22582",
+        "title": "[Performance][KV Transfer] Merge partial-page Mooncake cache spans including internal padding",
+        "number": 22582
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22717",
+        "title": "[CI] Change MiniMax-M3 PP PD prefill KV port for nightly retry",
+        "number": 22717
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68559",
+        "title": "[KV Connector][UMBP] Support pipeline-parallel prefill producers",
+        "number": 68559
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22649",
+        "title": "[BugFix][Attention] Fix the HND/LBHNC KV cache read path (FIA EZ0037 crash at first page-attention read)",
+        "number": 22649
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22827",
+        "title": "[BugFix][KV Cache] Use unified allocation for Qwen4Exp caches",
+        "number": 22827
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22197",
+        "title": "[BugFix][KV Pool] Enable SSD prefetch for standalone Mooncake storage",
+        "number": 22197
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68262",
+        "title": "[KV Connector][Bugfix] Mooncake store: do not count scheduled spec-decode drafts in a new request's save length",
+        "number": 68262
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22784",
+        "title": "[Performance][KV Pool] Right-size layerwise GVA group allocations",
+        "number": 22784
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69299",
+        "title": "[Bugfix][KV Connector] Evict failed sync-load prefix-cache blocks",
+        "number": 69299
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68945",
+        "title": "[Feature][Quantization]: Add 2-bit Kitty KV quantization with dynamic precision boosting.",
+        "number": 68945
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22808",
+        "title": "[Feature][KV Cache] Support HND for GLM-MoE-DSA with DFlash",
+        "number": 22808
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22792",
+        "title": "[Performance][Attention] Avoid query concatenation in fused sparse KV offload",
+        "number": 22792
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22624",
+        "title": "[Refactor]use upstream KV planning for DeepSeek V4.1",
+        "number": 22624
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22791",
+        "title": "[BugFix] Resolve hybrid KV replay boundaries in a single lookup",
+        "number": 22791
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69261",
+        "title": "[KV Offload] Add opt-in filesystem access-time tracking",
+        "number": 69261
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69200",
+        "title": "[Bugfix][Kernel] Round fp32 -> e4m3 once in the Triton FP8 KV cache store on SM89",
+        "number": 69200
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69321",
+        "title": "[Perf][ROCm][Attention] Use smaller tiles in the prefix_prefill kernel on RDNA (ROCM_ATTN prefill)",
+        "number": 69321
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22829",
+        "title": "[Performance][GDN] Add opt-in prefix-only checkpoint reuse on MRV2",
+        "number": 22829
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68820",
+        "title": "[HiSparse] Reuse finished requests' GPU copies before cached prefixes",
+        "number": 68820
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68545",
+        "title": "[Doc] Explain shared-prefix retention for teacher scoring",
+        "number": 68545
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69239",
+        "title": "[Bugfix][Benchmark] Preserve shared token prefixes in prefix_repetition",
+        "number": 69239
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68966",
+        "title": "[Core] Decode states at prefix-match boundaries for hybrid prefix caching",
+        "number": 68966
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69110",
+        "title": "[Bugfix][KV Offload] Preserve reused ARC prefixes during running-request eviction",
+        "number": 69110
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68279",
+        "title": "[Feature][Structured Output] Track Kimi K3 protocol prefixes with XGrammar",
+        "number": 68279
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22760",
+        "title": "[RFC]: Reuse HiSparse prefixes with AscendStore in colocated serving",
+        "number": 22760
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/69102",
+        "title": "[Bugfix][Benchmark] Fix --sort in prefix-caching benchmark",
+        "number": 69102
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68670",
+        "title": "[Bugfix][UMBP] Restore hybrid draft prefixes at partial boundaries",
+        "number": 68670
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68244",
+        "title": "[Perf][Core] Hash prompt-embeds blocks in parallel for prefix caching",
+        "number": 68244
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68035",
+        "title": "[Core] Hit prefix cache on the hash unit when an attention block is coarser than Mamba's",
+        "number": 68035
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68934",
+        "title": "[Core][KV Cache] Auto-select a supported prefix match unit",
+        "number": 68934
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68821",
+        "title": "[Feature][KV Connector] Add PeerL1Connector to restore prefix KV from peer DP ranks",
+        "number": 68821
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68846",
+        "title": "[KVConnector] Expose passive prefix hints for SimpleCPU and UMBP",
+        "number": 68846
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22491",
+        "title": "[v0.32.0rc][BugFix][KVPool] Order synchronous Mooncake prefix restores after NPU block zeroing",
+        "number": 22491
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22488",
+        "title": "[BugFix][KVPool] Order synchronous Mooncake prefix restores after NPU block zeroing",
+        "number": 22488
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68756",
+        "title": "[Bugfix] Release olmo3 streamed text that is still a function_calls prefix",
+        "number": 68756
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22453",
+        "title": "[BugFix][PCP] Compact decoder replay across PCP ranks on prefix hits",
+        "number": 22453
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68617",
+        "title": "[CI][XPU] Add Hybrid SSM NixlConnector PD prefix cache test to Intel CI",
+        "number": 68617
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68721",
+        "title": "[ROCm][Perf] gfx942: shared-prefix (cascade) attention for hd512 decode",
+        "number": 68721
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68656",
+        "title": "[Perf][Core] Refresh skipped SWA cache blocks after external prefix hits",
+        "number": 68656
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68538",
+        "title": "[Core][Feature] Add TTL-based prefix cache eviction",
+        "number": 68538
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68430",
+        "title": "[KV Connector][NIXL] Peer prefix lookup-and-pin (RFC 65967)",
+        "number": 68430
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22255",
+        "title": "[Feature] Adapt Qwen4Exp GDN RecoverSSM for PD prefix caching",
+        "number": 22255
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68356",
+        "title": "[CI][Test] Expect the decode-crossed Mamba hit in test_qwen_mtp_mamba_prefix_cache_hit_is_bounded",
+        "number": 68356
+      },
+      {
+        "url": "https://github.com/vllm-project/vllm/pull/68285",
+        "title": "Use Dflash prefix pattern for DSpine and LiLiCorr",
+        "number": 68285
+      }
+    ]
+  }
+}
