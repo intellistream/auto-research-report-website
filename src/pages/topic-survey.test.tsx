@@ -23,10 +23,10 @@ describe("continuous survey presentation", () => {
     expect(html).not.toContain(survey.thesis);
     const map = html.slice(html.indexOf('<figure class="acl-taxonomy">'), html.indexOf("</figure>"));
     expect(survey.routes).toHaveLength(4);
-    expect(survey.routes.flatMap((route) => route.subcategories!)).toHaveLength(13);
+    expect(survey.routes.flatMap((route) => route.subcategories!)).toHaveLength(12);
     expect(map).toContain('<table class="acl-taxonomy-table"');
     expect(map.match(/scope="rowgroup"/g)).toHaveLength(4);
-    expect(map.match(/scope="row"/g)).toHaveLength(13);
+    expect(map.match(/scope="row"/g)).toHaveLength(12);
     for (const route of survey.routes) {
       expect(map).toContain(`#${route.paperAnchor}"`);
       for (const subcategory of route.subcategories!) {
