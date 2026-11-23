@@ -103,6 +103,18 @@ describe("academic manuscript branch", () => {
     expect(heading.focus).toHaveBeenCalledWith({ preventScroll: true });
     expect(revealPaperHeading({ getElementById: () => ({ tagName: "A" }) } as unknown as Document, "ref-a")).toBe(false);
   });
+  it("includes and focuses third-level analytical subsections in the paper navigation", () => {
+    const heading = { id: "section-3-1-1", tagName: "H4", textContent: "3.1.1 区域切分与不兼容操作", tabIndex: 0, scrollIntoView: vi.fn(), focus: vi.fn() };
+    const querySelectorAll = vi.fn().mockReturnValue([heading]);
+    const doc = { querySelectorAll, getElementById: vi.fn().mockReturnValue(heading) } as unknown as Document;
+    expect(academicPaperHeadings(doc)).toEqual([{ id: heading.id, title: heading.textContent }]);
+    expect(querySelectorAll).toHaveBeenCalledWith("h1[id], h2[id], h3[id], h4[id]");
+    expect(revealPaperHeading(doc, heading.id, true)).toBe(true);
+    expect(heading.tabIndex).toBe(-1);
+    expect(heading.scrollIntoView).toHaveBeenCalledWith({ behavior: "instant", block: "start" });
+    expect(heading.focus).toHaveBeenCalledWith({ preventScroll: true });
+    expect(revealPaperHeading({ getElementById: () => ({ tagName: "H5" }) } as unknown as Document, "unsupported")).toBe(false);
+  });
   it("links all reviewed routes and downloads to the current frozen paper", () => {
     const actual = publishedTopic.academicPaper!;
     const hrefs = academicPaperHrefs("aclgraph", actual)!;

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "reportVersion": "6dd5554a521e6faeb3477353dd6258a54089733402109dec9c3555eb67ba1d66",
-  "paperVersion": "794f4e5dcf314483c6ff6739225448a56cff478103fa5e3233cb01fac9e7571e",
+  "paperVersion": "ade0c1e9b1c9082b5e6e38086043a87dac7182349d5bb03df000a6538ba35d57",
   "reviewedAt": "2026-11-23",
-  "thesis": "本综述围绕执行图构建与低开销提交、动态负载适配与图复用、并行执行与资源协调、图实例准备缓存与恢复四大类展开，按具体执行决策划分十二个小类。任务粒度、设备范围和决策时机作为横向属性比较，并区分昇腾直接证据、CUDA Graph机制与相邻系统方法。",
+  "thesis": "执行图通过提前保存可复用工作减少重复开销。本文保留四类、十二个子类，逐项比较构建、动态适配、并行协调与准备恢复改变的决策、转移的成本和成立条件；直接图机制、相邻系统方法、版本化工程接口与服务评测分别归因。",
   "routes": [
     {
       "id": "capture",
@@ -14,8 +14,8 @@
         "由预执行捕获或显式描述建立可重复提交的执行计划",
         "在合法候选之间实测选优，并计入额外准备成本"
       ],
-      "assessment": "xLLM以部分图和算子参数化提供昇腾ACLGraph直接证据；GraCE修复编译区域中的捕获障碍，Relax通过存储规划形成合格子图。Nimble（2020）与Taskflow分别展示预执行捕获和显式构图，GraCE进一步比较无图、普通图与参数间接访问图的实际代价。",
-      "limitation": "捕获合法性、计划形成和性能选优是不同决策。GraCE的EOS实验中普通CUDA Graph低于无图基线，而选优还增加编译准备成本；按形状选择兼容图不能自动视为已完成收益搜索。GPU结果仍需在目标昇腾配置下验证。",
+      "assessment": "xLLM通过部分图和参数化建立昇腾可复用路径，GraCE通过兼容性改造与候选实测决定哪些图值得启用。Nimble（2020）和Taskflow分别获得预运行或显式计划；DISC与Nimble（2021）的对照进一步区分编译主机控制和运行时解释。",
+      "limitation": "合法捕获不保证净收益。固定输入位置仍需写入当前值，指针间接访问也有更新和解引用成本；GraCE的EOS反例及含捕获的编译慢路径必须与稳态分开。GPU方法组合需重新满足目标栈的接口和状态合同。",
       "sourceIds": [
         "D1",
         "D3",
@@ -84,11 +84,11 @@
           "works": [
             {
               "label": "xLLM部分图（昇腾）",
-              "reference": 5
+              "reference": 4
             },
             {
               "label": "GraCE兼容性变换",
-              "reference": 6
+              "reference": 16
             },
             {
               "label": "Relax存储规划后卸载",
@@ -105,7 +105,7 @@
             },
             {
               "label": "Taskflow显式图与调用捕获",
-              "reference": 12
+              "reference": 20
             }
           ]
         },
@@ -114,7 +114,7 @@
           "works": [
             {
               "label": "GraCE候选实测选优",
-              "reference": 6
+              "reference": 16
             }
           ]
         }
@@ -129,8 +129,8 @@
         "将动态路径组织为可复用区域或数据驱动的结构",
         "在所选方案内更新数据、计划元数据与地址"
       ],
-      "assessment": "xLLM处理动态维度并以固定偏移池稳定图内位置；FlashInfer分离图配置与逐轮计划，Hydragen通过特定后缀内核保持变长解码的图兼容。Nimble（2021）、DISC等提供动态编译支撑；GraCE的指针间接访问与完整输入复制形成机制对照。",
-      "limitation": "形状变化、任务路径变化与状态更新需要分别判断。Hydragen的共享前缀收益不是图兼容性的单独收益，Nimble（2021）的通用动态执行也不是CUDA Graph缓存。固定工作区、计划更新和指针入口仍受容量、内核配置及更新先后顺序约束。",
+      "assessment": "形状、执行路径和本轮状态需要分别处理。FlashInfer用当前计划与兼容层共享，GraCE用稳定指针入口，xLLM用固定偏移缓冲；ChunkAttention只在特定结构事件后复制context，不能把这一规则扩展成所有主机准备都按事件发生。",
+      "limitation": "地址稳定不等于数据、范围和寿命正确；计划共享需要兼容消费者并保持读写顺序。验证树的可见性变化不必然改变执行图拓扑，迁移协议也不必然触发重捕获；应先检查变化能否由已有表示表达。",
       "sourceIds": [
         "D4",
         "E1",
@@ -198,19 +198,19 @@
           "works": [
             {
               "label": "xLLM参数化与模式选择（昇腾）",
-              "reference": 5
+              "reference": 4
             },
             {
               "label": "FlashInfer配置选图",
-              "reference": 13
+              "reference": 17
             },
             {
               "label": "Hydragen变长后缀兼容",
-              "reference": 14
+              "reference": 21
             },
             {
               "label": "Nimble（2021）形状处理（编译支撑）",
-              "reference": 15
+              "reference": 22
             }
           ]
         },
@@ -223,15 +223,15 @@
             },
             {
               "label": "Sequoia预定树结构",
-              "reference": 16
+              "reference": 25
             },
             {
               "label": "Cortex线性化（编译支撑）",
-              "reference": 17
+              "reference": 23
             },
             {
               "label": "ACRoBat动态批处理（编译支撑）",
-              "reference": 18
+              "reference": 24
             }
           ]
         },
@@ -240,15 +240,15 @@
           "works": [
             {
               "label": "xLLM固定偏移池（昇腾）",
-              "reference": 5
+              "reference": 4
             },
             {
               "label": "FlashInfer计划工作区",
-              "reference": 13
+              "reference": 17
             },
             {
               "label": "GraCE参数间接访问",
-              "reference": 6
+              "reference": 16
             }
           ]
         }
@@ -263,8 +263,8 @@
         "根据静态计划或事件就绪状态分派任务",
         "组织资源共置、计算通信重叠与子批次流水"
       ],
-      "assessment": "Nimble（2020）、Opara、AutoGraph与Mustard改进图的并行计划或依赖推进，IOS提供算子计划比较。Rammer静态分配细粒度任务，MPK与Mustard动态场景在运行时决定就绪任务的执行位置。NanoFlow、POD-Attention与xLLM分别研究子批次流水、线程块共置及昇腾Cube/Vector资源协调。",
-      "limitation": "任务粒度和设备数量不是独立分类目标。并发仍会引入同步、数据移动与资源竞争；NanoFlow只拆小批而不重叠的对照出现退化，Mustard的部分规模也不优于专门库。xLLM资源协调属于昇腾系统优化，不能全部归为ACLGraph收益。",
+      "assessment": "并行计划决定就绪顺序，任务分配决定执行位置，资源共置决定并发工作怎样共享计算与通信。IOS、Opara、Rammer、MPK、Mustard和NanoFlow对应不同决策；更细粒度或更多设备本身不构成收益。",
+      "limitation": "Mustard的跨节点静态归属与节点内动态均衡具有不同数据条件，非LLM结果不能直接迁移为服务提升。NanoFlow拆分后未重叠的退化表明，流水需要抵消拆分和同步代价；整系统对照不能全部归为图提交减少。",
       "sourceIds": [
         "D1",
         "D5",
@@ -325,19 +325,19 @@
             },
             {
               "label": "Opara资源感知顺序",
-              "reference": 19
+              "reference": 27
             },
             {
               "label": "AutoGraph并行图改写",
-              "reference": 20
+              "reference": 28
             },
             {
               "label": "Mustard跨设备依赖",
-              "reference": 21
+              "reference": 30
             },
             {
               "label": "IOS阶段选择（调度支撑）",
-              "reference": 22
+              "reference": 26
             }
           ]
         },
@@ -346,15 +346,15 @@
           "works": [
             {
               "label": "Mustard设备端子图分派",
-              "reference": 21
+              "reference": 30
             },
             {
               "label": "Rammer静态rProgram（执行支撑）",
-              "reference": 23
+              "reference": 29
             },
             {
               "label": "MPK事件驱动任务分派（执行支撑）",
-              "reference": 24
+              "reference": 18
             }
           ]
         },
@@ -363,15 +363,15 @@
           "works": [
             {
               "label": "NanoFlow子批次流水（调度支撑）",
-              "reference": 25
+              "reference": 19
             },
             {
               "label": "POD-Attention线程块共置（调度支撑）",
-              "reference": 26
+              "reference": 31
             },
             {
               "label": "xLLM Cube/Vector分配（昇腾系统支撑）",
-              "reference": 5
+              "reference": 4
             }
           ]
         }
@@ -386,8 +386,8 @@
         "比较新地址重绑定与原虚拟布局重现",
         "以兼容模板或预热环境消除重复准备"
       ],
-      "assessment": "xLLM复用多缓存部分图，但未给出通用在线淘汰算法；Hybrid预印本讨论按需捕获与滚动缓存。Medusa按分配索引重绑定新地址，Foundry重建虚拟布局与内核环境，并共享同拓扑模板。DEEPSERVE和PhoenixOS提供环境准备或通用恢复支撑。",
-      "limitation": "图实例、图模板和整进程状态不是同一恢复对象。Medusa和Foundry均需恢复内核与必要状态；其准备与加载窗口也不同，Foundry评测明确排除权重加载并使用暖环境。GPU恢复结果不能直接证明ACLGraph跨进程恢复，Hybrid的长生成表格也未显示一致尾延迟优势。",
+      "assessment": "实例创建、跨进程绑定和多规格共享是三个问题。Hybrid将捕获放在首次使用或后台，Medusa记录分配关系后重绑定，Foundry重现地址与代码环境并共享模板；DEEPSERVE和PhoenixOS提供不同层次的环境准备支撑。",
+      "limitation": "暖缓存命中不能替代空缓存首次请求，恢复子阶段不能与重叠阶段重复相加。Foundry需要暖环境、编译缓存和已有归档；DeepServe的NPU-fork需运行中的来源引擎。访问集追踪覆盖也不足以单独确认图对象重建和多轮回放正确性。",
       "sourceIds": [
         "D1",
         "D4",
@@ -445,11 +445,11 @@
           "works": [
             {
               "label": "xLLM多缓存部分图（昇腾）",
-              "reference": 5
+              "reference": 4
             },
             {
               "label": "Hybrid按需捕获与滚动缓存",
-              "reference": 27
+              "reference": 32
             }
           ]
         },
@@ -458,11 +458,11 @@
           "works": [
             {
               "label": "Medusa分配索引重绑定",
-              "reference": 28
+              "reference": 14
             },
             {
               "label": "Foundry地址布局与内核环境重建",
-              "reference": 29
+              "reference": 15
             }
           ]
         },
@@ -471,15 +471,15 @@
           "works": [
             {
               "label": "Foundry同拓扑模板与参数集",
-              "reference": 29
+              "reference": 15
             },
             {
               "label": "DEEPSERVE预热引擎（昇腾环境支撑）",
-              "reference": 30
+              "reference": 34
             },
             {
               "label": "PhoenixOS上下文准备（环境支撑）",
-              "reference": 31
+              "reference": 33
             }
           ]
         }
@@ -487,7 +487,7 @@
     }
   ],
   "update": {
-    "summary": "本版学术综述对应2026-11-23修订稿v2：保留四大类，按执行决策重整十二个小类，共47项参考来源（42篇论文、3项官方文档、2项工程材料），9张表、3幅图和32页同版Word/PDF。新增15篇工作的评测条件汇总，区分图机制、系统整体收益及计时边界。工程报告仍为修订3、资料截至2026-11-14；下列分项记录属于既有工程证据，不是本次新增实测。",
+    "summary": "本版学术综述对应2026-11-23逐节重构稿v3：保留四大类、十二小类和九章，展开36个三级分析小节；正文实际引用52篇研究与综述、7项官方材料，共59项来源，5张比较表、3幅图和26页同版Word/PDF。各节按技术问题、方法比较、原文证据与适用条件组织，并保留原始数字、退化情形和版本边界。工程报告仍为修订3、资料截至2026-11-14；下列分项属于既有工程证据，不是本次新增实测。",
     "previousRevision": 2,
     "evidence": [
       {

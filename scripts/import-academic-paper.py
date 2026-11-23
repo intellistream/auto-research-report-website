@@ -10,16 +10,18 @@ from html.parser import HTMLParser
 import io
 import json
 from datetime import date
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import shutil
 import tempfile
 from urllib.parse import unquote, urlsplit
 import zipfile
+from xml.etree import ElementTree
 
 REPO = Path(__file__).resolve().parents[1]
 FILES = {"html": "paper.html", "pdf": "paper.pdf", "markdown": "paper.md", "latex": "paper.tex", "bibtex": "references.bib", "sources": "sources.zip"}
-SOURCE_FILES = ("paper.md", "paper.tex", "references.bib", "paper-header.tex", "paper.css", "numeric.csl")
+SOURCE_FILES = ("paper.md", "paper.tex", "references.bib", "paper-header.tex", "paper.css", "numeric.csl", "paper.docx")
+WORD_SOURCE_FILES = ("build_web.py", "build_word.py", "publication-reference-map.json", "reference-identities.json", "source-register.json", "REVISION-NOTES.md")
 FIGURE_SUFFIXES = {".tex", ".svg", ".pdf", ".png", ".jpg", ".jpeg"}
 
 
@@ -75,7 +77,7 @@ class PaperHTML(HTMLParser):
         if attrs.get("id"):
             require(attrs["id"] not in self.ids, f"Duplicate HTML id: {attrs['id']}")
             self.ids.add(attrs["id"])
-            if tag in {"h1", "h2", "h3"}:
+            if tag in {"h1", "h2", "h3", "h4"}:
                 self.headings.append(attrs["id"])
         self.citations.extend(attrs.get("data-cites", "").split())
         if tag == "math":
@@ -135,8 +137,79 @@ def metadata_from_markdown(data, cutoff, revision):
     return {"schemaVersion": 1, "title": fields["title"], "titleEn": fields["subtitle"], "abstract": abstract[1].strip(), "keywords": [word.strip() for word in re.split(r"[；;]", keywords[1]) if word.strip()], "literatureCutoff": cutoff, "manuscriptRevision": revision}
 
 
+def inspect_docx(data):
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as package:
+            require({"[Content_Types].xml", "word/document.xml"} <= set(package.namelist()), "DOCX requires Word document parts")
+            require(package.testzip() is None, "Corrupt DOCX package")
+            if "docProps/custom.xml" in package.namelist():
+                properties = ElementTree.fromstring(package.read("docProps/custom.xml"))
+                for prop in properties:
+                    if prop.get("name") not in {"bibliography", "csl"}:
+                        continue
+                    value = "".join(prop.itertext()).strip()
+                    require(not (PureWindowsPath(value).is_absolute() or PurePosixPath(value).is_absolute() or value.lower().startswith("file://")),
+                            "DOCX bibliography/csl property must use a portable relative path")
+    except ElementTree.ParseError as error:
+        raise ValueError("Invalid DOCX custom properties XML") from error
+    except (zipfile.BadZipFile, RuntimeError, NotImplementedError) as error:
+        raise ValueError("Invalid DOCX package") from error
+
+
 def source_readme(metadata, files):
     html_options = (" --csl=numeric.csl" if "numeric.csl" in files else "") + (" --css=paper.css" if "paper.css" in files else "")
+    if "paper.docx" in files:
+        return f"""# {metadata['title']} — editable source snapshot
+
+Literature cutoff: {metadata['literatureCutoff']}
+Manuscript revision: {metadata['manuscriptRevision']}
+
+This package contains the editable Word manuscript, Markdown, independently
+editable TeX, bibliography, PNG figures and formatting resources. It does not
+contain downloaded third-party papers, authentication receipts or workflow logs.
+The supplied build scripts and source registers preserve the current export
+steps, citation-number map and versioned source identities.
+
+## Word and PDF
+
+The published PDF was exported from paper.docx. Open that file in Microsoft Word
+to edit it and export a new PDF. Native equations, figure captions, table headers
+and bibliography are editable. Word/font versions may change pagination and bytes.
+
+To rebuild with the supplied Word formatting repairs, install Pandoc and Python
+with python-docx, then run:
+
+    python build_word.py --reference-doc paper.docx --output rebuilt.docx --pdf rebuilt.pdf
+
+Review and render the result before replacing the published files. Later manual
+Word edits are not copied back into Markdown automatically. The --pdf option
+requires Windows and Microsoft Word; omit it to create only the editable DOCX.
+Run python build_word.py --help for tool and path overrides.
+
+## TeX alternative
+
+paper.tex contains its rendered bibliography and references the PNG figures.
+With XeLaTeX, ctex and the fonts named in paper.tex installed, run:
+
+    xelatex -interaction=nonstopmode -halt-on-error paper.tex
+    xelatex -interaction=nonstopmode -halt-on-error paper.tex
+
+This produces a separate layout; its pagination need not match the Word PDF.
+
+## HTML from Markdown
+
+With Pandoc and Python with beautifulsoup4 installed, run:
+
+    python build_web.py
+
+This builds HTML and TeX from the same cited Markdown, applies the exporter's
+compatibility handling, removes legacy active-content comments, normalizes
+bibliography anchors to ref-1, ref-2, etc., and writes the citation-number map.
+The headings already contain their numbers. HTML uses embedded figures and native
+MathML. The exporter derives and checks citation and heading targets from the
+Markdown source. Rebind the website's representative-work links to the new map
+before import. Reimport completed outputs for a new immutable version.
+""".encode("utf-8")
     return f"""# {metadata['title']} — editable source snapshot
 
 Literature cutoff: {metadata['literatureCutoff']}
@@ -174,7 +247,7 @@ This source snapshot does not state editorial acceptance or expert certification
 
 
 def source_zip(snapshot, metadata):
-    files = {name: data for name, data in snapshot.items() if name in SOURCE_FILES or name.startswith("figures/")}
+    files = {name: data for name, data in snapshot.items() if name in SOURCE_FILES or ("paper.docx" in snapshot and name in WORD_SOURCE_FILES) or name.startswith("figures/")}
     files["README.md"] = source_readme(metadata, files)
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
@@ -200,8 +273,14 @@ def stage_paper(source, output, index_path, topic_id, cutoff, revision):
     require(index.get("schemaVersion") in {1, 2}, "Unsupported topic index")
     topics = [topic for topic in index["topics"] if topic["id"] == topic_id]
     require(len(topics) == 1, "Topic must exist exactly once")
-    names = {"paper.html", "paper.pdf", "paper.md", "paper.tex", "references.bib"}
+    paper_files = dict(FILES)
+    word = source / "paper.docx"
+    if word.exists() or word.is_symlink():
+        paper_files["word"] = "paper.docx"
+    names = {name for name in paper_files.values() if name != "sources.zip"}
     names.update(name for name in SOURCE_FILES if (source / name).exists())
+    if "word" in paper_files:
+        names.update(name for name in WORD_SOURCE_FILES if (source / name).exists())
     figures = source / "figures"
     if figures.exists():
         require(not figures.is_symlink(), "Figure directory must not be symlinked")
@@ -212,6 +291,8 @@ def stage_paper(source, output, index_path, topic_id, cutoff, revision):
         names.update(path.relative_to(source).as_posix() for path in figures.rglob("*") if path.is_file() and path.suffix.lower() in FIGURE_SUFFIXES and str(path.relative_to(source).with_suffix("")) in figure_stems)
     snapshot = {name: read_source(source, name) for name in sorted(names)}
     require(snapshot["paper.pdf"].startswith(b"%PDF-"), "Invalid PDF signature")
+    if "paper.docx" in snapshot:
+        inspect_docx(snapshot["paper.docx"])
     html_checks = inspect_html(snapshot["paper.html"])
     metadata = metadata_from_markdown(snapshot["paper.md"], cutoff, revision)
     require(metadata["title"] in snapshot["paper.html"].decode("utf-8"), "Markdown/HTML titles differ")
@@ -219,7 +300,7 @@ def stage_paper(source, output, index_path, topic_id, cutoff, revision):
     # Do not freeze a mixed snapshot while the author is rebuilding it.
     for name, data in snapshot.items():
         require(read_source(source, name) == data, f"Source changed during import; retry after author build: {name}")
-    artifacts = {name: snapshot[name] for name in FILES.values() if name != "sources.zip"}
+    artifacts = {name: snapshot[name] for name in paper_files.values() if name != "sources.zip"}
     artifacts["sources.zip"] = archive
     hashes = {name: digest(data) for name, data in sorted(artifacts.items())}
     identity = {"schemaVersion": 1, "topicId": topic_id, "metadata": metadata, "assets": hashes}
@@ -227,7 +308,7 @@ def stage_paper(source, output, index_path, topic_id, cutoff, revision):
     manifest = {**identity, "version": version}
     artifacts["manifest.json"] = canonical(manifest) + b"\n"
     relative = f"topic-papers/{topic_id}/{version}"
-    paper = {**metadata, "version": version, "assets": {kind: {"path": f"{relative}/{name}", **hashes[name]} for kind, name in FILES.items()}, "manifestPath": f"{relative}/manifest.json"}
+    paper = {**metadata, "version": version, "assets": {kind: {"path": f"{relative}/{name}", **hashes[name]} for kind, name in paper_files.items()}, "manifestPath": f"{relative}/manifest.json"}
     destination = output / "word-reports" / relative
     require(destination.resolve().is_relative_to(output), "Staging path escapes output root")
     for parent in destination.relative_to(output).parents:
