@@ -1,3 +1,5 @@
+import { createResearchApiResolver } from "./research-endpoint";
+
 type ResearchStatus = "queued" | "running" | "complete" | "failed";
 export type ResearchStage = "searching" | "supplementing_1" | "supplementing_2"
   | "synthesizing" | "reviewing" | "revising" | "rendering";
@@ -18,6 +20,7 @@ export type ResearchJob = {
 };
 
 const connectionError = "无法连接调研服务。请确认网站已接入调研接口，再试一次。";
+const uncertainSubmission = "连接中断，无法确认任务是否已提交。请勿立即重复提交；若已获得任务链接，请通过链接查看。";
 const statuses: ResearchStatus[] = ["queued", "running", "complete", "failed"];
 const stages: ResearchStage[] = [
   "searching", "supplementing_1", "supplementing_2", "synthesizing", "reviewing", "revising", "rendering",
@@ -100,19 +103,80 @@ export function mergeResearchJobProgress(previous: ResearchJob | undefined, next
   return { ...next, observedStages: observedStages.slice(-32) };
 }
 
-async function requestResearchJob(path: string, options: RequestInit, expectedId?: string) {
+class ResearchRequestError extends Error {
+  constructor(message: string, readonly retryable: boolean) { super(message); }
+}
+
+export function isRetryableResearchError(cause: unknown) {
+  return cause instanceof ResearchRequestError && cause.retryable;
+}
+
+let resolverKey = "";
+let resolver: ReturnType<typeof createResearchApiResolver>;
+function serviceResolver() {
   const base = researchApiBase(import.meta.env.VITE_RESEARCH_API_BASE, window.location.origin);
-  const response = await fetch(`${base}/api/research/jobs${path}`, { ...options, cache: "no-store" })
-    .catch(() => { throw new Error(connectionError); });
-  if (!response.headers.get("content-type")?.includes("application/json")) {
-    throw new Error(connectionError);
+  const configUrl = import.meta.env.VITE_RESEARCH_API_CONFIG_URL;
+  const key = JSON.stringify([base, configUrl]);
+  if (!resolver || resolverKey !== key) {
+    resolver = createResearchApiResolver(configUrl, base);
+    resolverKey = key;
   }
-  const data: unknown = await response.json().catch(() => { throw new Error(connectionError); });
+  return resolver;
+}
+
+async function requestAt(base: string, path: string, options: RequestInit, expectedId?: string) {
+  const submitting = options.method === "POST";
+  const signal = options.signal;
+  signal?.throwIfAborted();
+  let response: Response;
+  try {
+    response = await fetch(`${base}/api/research/jobs${path}`, {
+      ...options, cache: "no-store", credentials: "omit",
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),
+    });
+  } catch {
+    signal?.throwIfAborted();
+    throw new ResearchRequestError(submitting ? uncertainSubmission : connectionError, !submitting);
+  }
+  signal?.throwIfAborted();
+  if (!response.headers.get("content-type")?.includes("application/json")) {
+    throw new ResearchRequestError(submitting ? uncertainSubmission : connectionError, !submitting);
+  }
+  let data: unknown;
+  try { data = await response.json(); }
+  catch {
+    signal?.throwIfAborted();
+    throw new ResearchRequestError(submitting ? uncertainSubmission : connectionError, !submitting);
+  }
+  signal?.throwIfAborted();
   if (!response.ok) {
     const detail = (data as { detail?: unknown } | null)?.detail;
-    throw new Error(typeof detail === "string" && detail ? detail : connectionError);
+    const temporary = response.status >= 500 || response.status === 408 || response.status === 429;
+    throw new ResearchRequestError(submitting && temporary && response.status !== 429 ? uncertainSubmission
+      : typeof detail === "string" && detail ? detail : connectionError, !submitting && temporary);
   }
-  return parseResearchJob(data, base, expectedId);
+  try { return parseResearchJob(data, base, expectedId); }
+  catch (cause) {
+    if (submitting) throw new ResearchRequestError(uncertainSubmission, false);
+    throw cause;
+  }
+}
+
+async function requestResearchJob(path: string, options: RequestInit, expectedId?: string) {
+  const discovery = serviceResolver();
+  options.signal?.throwIfAborted();
+  const base = await discovery.resolve();
+  options.signal?.throwIfAborted();
+  try { return await requestAt(base, path, options, expectedId); }
+  catch (cause) {
+    options.signal?.throwIfAborted();
+    if (options.method === "POST" || !isRetryableResearchError(cause)) throw cause;
+    discovery.invalidate();
+    const nextBase = await discovery.resolve(true);
+    options.signal?.throwIfAborted();
+    if (nextBase === base) throw cause;
+    return requestAt(nextBase, path, options, expectedId);
+  }
 }
 
 export function submitResearchJob(query: string, days: number, signal: AbortSignal) {

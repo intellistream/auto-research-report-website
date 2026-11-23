@@ -37,6 +37,10 @@ npm run dev -- --host 127.0.0.1
 GitHub Pages 使用独立的 HTTPS 调研服务。将服务地址设为网站仓库的 Actions 变量 `VITE_RESEARCH_API_BASE`，在后端通过 `RESEARCH_ALLOWED_ORIGINS` 放行站点的 Origin（如 `https://lab.sage.org.ai`），再从 `main` 运行 Website 工作流重建页面。GitHub 和模型凭据由后端配置。
 Pages 工作流在该接口变量存在时启用公开模式；组内构建默认使用当前页等待模式。
 
+服务地址会变化时，可另设 Actions 变量 `VITE_RESEARCH_API_CONFIG_URL`，指向受维护的公开 HTTPS JSON 文件（例如 `https://lab.sage.org.ai/auto-research-report-runtime/research-api.json`）。文件格式为 `{"version":1,"apiBase":"https://example-tunnel.trycloudflare.com","updatedAt":"2026-11-23T00:00:00Z"}`，只接受 HTTPS Quick Tunnel 根地址。配置文件不能包含凭据，更新权限只应交给负责发布服务地址的维护者。首次启用后从 `main` 重建一次页面；此后隧道重启只需更新该文件，不需要重建网站，原任务链接保持不变。该变量也会启用 Pages 公开模式。
+
+页面请求任务时，服务地址最多缓存 10 秒；读取配置超时或失败时沿用最近的有效地址，没有有效缓存时使用构建时的接口地址。任务状态查询断线后会自动重连，持续约四分钟仍不可用时可手动重试；任务提交不会自动重发。重新打开已完成任务或切回该标签页时会读取服务地址，并更新报告预览和下载链接。
+
 ### 贡献者
 
 首页主导航的“贡献者”进入 `/#/contributors`，展示曹哲（xmdhb）、Changwu Li（Li-changwu）和 ruicheng（KimmoZAG）的介绍与 GitHub 主页。姓名、头像和个人签名来自公开 GitHub 资料；项目贡献介绍依据本仓库 README 与提交记录。三位当前均未在 GitHub 公开资料中填写独立个人网站。
