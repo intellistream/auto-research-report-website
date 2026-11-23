@@ -41,7 +41,9 @@ class SpecDecResearchContract(unittest.TestCase):
         self.assertEqual(len({r["workId"] for r in rows}), 105)
         self.assertEqual({r["workId"] for r in rows}, {e["workId"] for e in original})
         self.assertEqual(len(self.topic["survey"]["candidateBaseline"]), 105)
-        self.assertEqual(len(self.topic["entries"]), 125)
+        work_ids = {entry["workId"] for entry in self.topic["entries"]}
+        self.assertEqual(len(work_ids), len(self.topic["entries"]))
+        self.assertEqual(self.topic["counts"]["total"], len(self.topic["entries"]))
         self.assertEqual(
             {x["workId"] for x in self.topic["entries"]} - set(self.topic["survey"]["candidateBaseline"]),
             {x["workId"] for x in self.topic["entries"] if x["day"] >= "2026-11-12"},

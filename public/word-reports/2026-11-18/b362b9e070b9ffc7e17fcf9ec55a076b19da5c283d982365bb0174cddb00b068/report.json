@@ -1,0 +1,1437 @@
+{
+  "schemaVersion": 1,
+  "day": "2026-11-18",
+  "sha256": "b362b9e070b9ffc7e17fcf9ec55a076b19da5c283d982365bb0174cddb00b068",
+  "title": "vLLM 与 vLLM Ascend 性能优化日报",
+  "intro": [
+    [
+      {
+        "text": "工程 PR 从 vLLM 与 vLLM Ascend 两仓北京时间当日合入的条目中筛选。"
+      }
+    ]
+  ],
+  "sections": [
+    {
+      "key": "summary",
+      "title": "一 本日归纳",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "以异步传输和按需回读减少多模态路径的主机等待。视觉塔元数据改经固定内存异步拷贝，掩码边界在设备上生成，避免逐步阻塞主机。多模态步骤依据编码器模态标签，仅音视频同现时才回读输入标识，其余步骤跳过同步。\n\n按实际需求安排内存与分片，减少重复准备和无效搬运。GDN 预填充适配器直接复用头优先存储，仅在存在间隙时打包，省去六次布局往返拷贝。草稿层滑动窗口只从目标令牌尾部区间分配，预留量按窗口上界与实际跨度取小，释放草稿池占用。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "flow",
+      "title": "二 推理流程与优化位置",
+      "figure": "2026-11-18/b362b9e070b9ffc7e17fcf9ec55a076b19da5c283d982365bb0174cddb00b068/flow.png",
+      "blocks": []
+    },
+    {
+      "key": "startup",
+      "title": "三 服务启动与模型准备",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注启动与重载阶段因设备、路径或内存注册差异导致的初始化失败，以及量化嵌入表在加载和查表时的格式适配。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "修正分片与设备索引初始化"
+        },
+        {
+          "kind": "entry",
+          "number": "V1",
+          "title": "按 MXFP4 块对齐 gpt-oss 流式专家分片以修复重载偏差",
+          "workId": "github:vllm-project/vllm#65353",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：重载 gpt-oss 流式专家分片时，旧加载器按补齐后的尺寸切分，MXFP4 后端又对每个并行进程的中间尺寸补齐，导致除 0 号 rank 外都取错检查点行，1 号 rank 甚至拿到空切片。现在改为按 MXFP4 块对齐分片，使重载结果与全新启动一致。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：按完整量化块划分流式专家分片，长度为一的逐通道缩放不分片；偏置需清零时改用新建零张量，避免修改调用方共享缓冲。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：GB200上以gpt-oss-20b、两路张量并行经进程间共享传权重，重载后与新启动不同的专家张量由240降为0，新增分片与逐通道缩放测试由失败转通过。未改的冷启动路径对照两组GSM8K均0.8832、吞吐14697至14778词元/秒。偏置保护覆盖冷启动与各重载路径，尚无专门测试。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #65353",
+                "url": "https://github.com/vllm-project/vllm/pull/65353"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "entry",
+          "number": "V2",
+          "title": "补齐昇腾设备索引初始化以恢复异步专家负载均衡",
+          "workId": "github:vllm-project/vllm#66376",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在昇腾 NPU 上启用异步专家负载均衡时，设备索引初始化只覆盖 CUDA 和 XPU，NPU 上该值保持为空。异步工作线程启动时立即触发断言失败，导致各并行秩上的异步负载均衡无法推进。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：把 NPU 加入设备索引初始化的设备类型白名单，使其与 CUDA、XPU 走同一条取值路径：优先取设备自身索引，缺失时回退到加速器当前设备索引。CUDA 与 XPU 路径不变，不涉及接口或通信器改动。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在昇腾 A3 的 505B 分离式部署上应用同等改动后，预填充与解码实例均完成启动，集群日志中不再出现该断言或回溯。该验证在容器内以等效补丁完成，且仓库持续集成没有昇腾运行器，NPU 运行时验证仍在持续集成之外。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #66376",
+                "url": "https://github.com/vllm-project/vllm/pull/66376"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "调整内核编译与主机内存注册路径"
+        },
+        {
+          "kind": "entry",
+          "number": "V3",
+          "title": "将 top-512 内核构建移至扩展目录以恢复非 root 服务器路径",
+          "workId": "github:vllm-project/vllm#67936",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在 gfx942 上，DeepSeek-V4.1 启用单内核模式时会在启动阶段就地编译 top-512 内核，并把中间文件写回已安装的 vLLM 目录。非 root 或只读安装无法写入，编译失败后稀疏索引器的全部 top-512 钩子回退到通用算子。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：把内核源文件复制到扩展的构建目录，在其中完成转换与编译，写入不再落在安装树；并发张量并行进程用原子替换共享同一副本，源文件未变时不重复编译。仅 gfx942 上的 DeepSeek-V4.1 单内核模式走此路径，缺少可用编译器时仍回退到通用算子。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：非 root 或只读安装下，内核编译不再因写入安装目录失败而回退到通用算子。该结果适用于 gfx942 上的 DeepSeek-V4.1 单内核模式；缺少可用编译器时仍会回退。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #67936",
+                "url": "https://github.com/vllm-project/vllm/pull/67936"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "entry",
+          "number": "A1",
+          "title": "为共享 Engram 表启用本地主机 VMM 以规避注册失败",
+          "workId": "github:vllm-project/vllm-ascend#21623",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在 A3 上以 DeepSeek-V4.1 Flash、TP1/DP16 运行共享 CPU 卸载 Engram 时，注册第二张表的缩放参数会因主机注册返回内存不足而失败，导致该配置无法启动。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：符合条件的 A3 共享 Engram 表改用节点本地主机 VMM，每层一次分配容纳编码与 FP32 缩放，0 号进程发布检查点行、各进程导入映射；选用前做 1 GiB 对齐探测，失败则协调清理后回退主机注册，清理或集合通信失败则中止。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在 A3 上以 vLLM ba15685 实测该版本构建，仅解码的 TP1/DP16 通过 16/16 健康检查并完成一次请求，日志显示一次探测、两层分配、32 个映射且未回退。分配采用通用主机放置，未验证 NUMA 本地性，也未声称达到原分配器性能；收到终止信号后有 13 个输出处理报引擎已停止，未声称无错关闭。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #21623",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/21623"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "支持量化 PLE 嵌入查表"
+        },
+        {
+          "kind": "entry",
+          "number": "A2",
+          "title": "新增量化 PLE 嵌入支持",
+          "workId": "github:vllm-project/vllm-ascend#22077",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：此前 PLE 嵌入表以 BF16 常驻 NPU 或注册主机内存，整表展开占用容量大；开启 CPU 卸载时也只支持 BF16 权重，无法直接加载 INT8 或 MXFP8 检查点。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：新增量化 PLE 嵌入方法，按检查点描述推断 INT8 或 MXFP8 格式，查表时只对选中行反量化为 BF16 写入调用方输出，非本 rank 行先清零。保留原有 BF16 路径与主机缓冲归属清理，异步固定内存预取不支持。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在 A3 的 INT8 算子对照中，4096 与 65536 个 ID 的查表延迟分别降低约 29.3% 和 30.3%；A5 的 MXFP8 在 65536 和 131072 个 ID 时降低约 10.3% 和 9.8%，但 4096 个 ID 时略慢 0.38%，小形状存在回退。A5 端到端 128K 输入、1K 输出下，量化 PLE 相对同值 BF16 展开的吞吐提升约 3.1% 至 3.8%，仅覆盖所测两种并发。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #22077",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/22077"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注启动与重载阶段因设备、路径或内存注册差异导致的初始化失败，以及量化嵌入表在加载和查表时的格式适配。"
+    },
+    {
+      "key": "scheduling",
+      "title": "四 请求接入与调度",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注多模态推理前的资源与主机同步开销：一方面补齐模态数量校验以限制请求展开，另一方面减少视觉与多模态步骤中不必要的主机读取和算子拆分。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "补齐未配置模态的数量上限"
+        },
+        {
+          "kind": "entry",
+          "number": "V4",
+          "title": "为未配置模态补上默认上限以阻止推理前内存耗尽",
+          "workId": "github:vllm-project/vllm#52602",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：Rust 前端把未在每提示多模态上限中列出的模态当作不限量，与 Python 前端默认 999 的行为不一致。单个请求在 32 MiB 请求体限制内即可触发无界的媒体任务展开，在推理开始前就耗尽内存。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：为未显式配置数量的模态补上 999 的默认回退值，使计数校验不再跳过该模态，与 Python 前端行为对齐，并阻断已复现的推理前分配路径。显式配置的模态仍按各自数量上限校验，只有未列出的模态走这条默认路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：未配置模态的请求现在会在推理前按 999 上限被拦截，不再出现无界媒体任务展开导致的内存耗尽。该默认值只约束单次提示的条目数量，显式配置的模态仍以配置值为准。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #52602",
+                "url": "https://github.com/vllm-project/vllm/pull/52602"
+              }
+            ]
+          ],
+          "needsReview": false,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "减少视觉步骤中的主机同步"
+        },
+        {
+          "kind": "entry",
+          "number": "V5",
+          "title": "消除视觉塔主机同步以加速视觉步骤",
+          "workId": "github:vllm-project/vllm#66783",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：Dots3Note 视觉塔在每次视觉步骤中都会阻塞主机：元数据经可分页内存做非异步拷贝，注意力掩码又用 CUDA 标量作切片边界，逐段触发主机读取。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：元数据改经固定内存暂存后异步拷贝到设备；每段编号改在设备上用搜索定位生成，掩码随之变为一次向量化比较。仅改动会构建稠密掩码的两条注意力实现，按段切分和直接传段长的实现不受影响。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：RTX 3090上，两处修复缺一不可，全部完成后视觉路径同步检查不再报错。各轮及关闭检查的参考运行输出校验值均为4.776419。验证覆盖单一显卡与版本的同步行为和数值摘要，未给出吞吐或延迟对照。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #66783",
+                "url": "https://github.com/vllm-project/vllm/pull/66783"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "entry",
+          "number": "V6",
+          "title": "按模态标签跳过输入标识回读以消除多模态同步",
+          "workId": "github:vllm-project/vllm#68099",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：Qwen3-Omni 等模型在多模态步骤中，为判断音视频交错，每步都把输入标识复制到主机，触发设备与主机同步。在开启同步检查的 ROCm 测试镜像上，Qwen3-Omni 的每日生成困惑度测试因此报错失败。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：新增辅助判断，依据编码器已标注的模态标签，仅当同一步同时含音频和视频嵌入时才回读输入标识；纯图、纯视频、纯音频和纯文本步骤直接跳过。Qwen3-Omni 编码器的视觉与音频长度改由主机侧网格和音频长度计算，去掉逐层同步。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在 MI355X 上关闭同步白名单实测，Qwen3-Omni 每请求同步次数由图像或视频 27 次、音频 38 次、音视频交错 66 次分别降至 0、0、1 次，输出与主分支逐位一致。剩余 1 次来自音视频交错步骤的输入标识回读，需后续改动移除；直接向音频编码器传入设备侧长度的外部调用方将收到设备不匹配错误。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #68099",
+                "url": "https://github.com/vllm-project/vllm/pull/68099"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "融合视觉编码中的归一化与位置编码算子"
+        },
+        {
+          "kind": "entry",
+          "number": "V7",
+          "title": "融合视觉归一化与旋转位置编码以降低图像编码延迟",
+          "workId": "github:vllm-project/vllm#68097",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：旧做法在图像编码时分别执行视觉归一化、查询与键的旋转位置编码和打包空间合并，带来额外延迟。现改用 Triton 将这三步分别融合为单个算子，并保持参考实现的归约顺序与舍入行为。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：用 Triton 将视觉归一化、Q/K 旋转位置编码和打包空间合并分别融合为单个算子，并保持参考实现的归约顺序与舍入行为。非 CUDA 平台仍走原有 PyTorch 回退路径，V4 与 V4.1 共用同一套集成。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在单张 H20-3e 上，四张测试图的视觉塔加对齐器 CUDA 图延迟降低 13.4%–21.0%，四图打包时降低 15.8%，且输出与基线逐位一致。该计时只覆盖 GPU 常驻输入上的视觉塔与对齐器，不含图像预处理、主机到设备拷贝和语言解码。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #68097",
+                "url": "https://github.com/vllm-project/vllm/pull/68097"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注多模态推理前的资源与主机同步开销：一方面补齐模态数量校验以限制请求展开，另一方面减少视觉与多模态步骤中不必要的主机读取和算子拆分。"
+    },
+    {
+      "key": "prefill",
+      "title": "五 Prefill 输入上下文处理",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注线性注意力预填充阶段的前缀缓存检查点导出与分片、布局处理，涉及检查点对齐、头分片切分和核内外计算位置调整。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "导出对齐的预填充检查点"
+        },
+        {
+          "kind": "entry",
+          "number": "V8",
+          "title": "为 Kimi 线性注意力预填充导出对齐检查点",
+          "workId": "github:vllm-project/vllm#68157",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：开启前缀缓存时，Kimi 线性注意力层无法导出预填充检查点，8000 词元提示在最后一个 Mamba 块边界被切成两段，首步只处理 7680 词元，需第二步才能完成。分词器保留的越界词元还会触发设备断言，直接杀死引擎。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：让该层声明 64 对齐并在 Triton 预填充后导出检查点，仅在 align 模式预留按序列的检查点缓冲；ROCm 融合门路径补传检查点参数，避免被静默丢弃。越界词元改为校验报错，多模态占位符仍按分词器词表放行。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在 GB300 上以 Kimi-Linear-48B-A3B 单卡（TP1、BF16、开启前缀缓存、ISL 8000/OSL 32）实测，并发 1/4/16 时首词等待分别下降约 22%/23%/15%，提示不再被切分；代价是并发 4 时每词输出耗时上升约 16%，并发 16 时约 3%。ROCm 单卡对应首词等待下降约 30%/23%/12%，并发 4 时每词输出耗时上升约 12%。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #68157",
+                "url": "https://github.com/vllm-project/vllm/pull/68157"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "entry",
+          "number": "V9",
+          "title": "为 ROCm 上的 Qwen GDN 预填充导出对齐检查点",
+          "workId": "github:vllm-project/vllm#68310",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在 ROCm 上开启前缀缓存时，AITER FlyDSL 预填充只返回最终状态，无法保存检查点，提示词会在最后一个 Mamba 块边界被切开，导致前缀命中不完整、首字延迟偏高。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：让 FlyDSL 后端在需要携带检查点的预填充步骤改走 Triton/FLA 路径，在循环内写入检查点，并预留与 Triton 相同的每序列检查点缓冲；不携带检查点的步骤仍留在 FlyDSL。Triton 后端在 ROCm 上也声明 64 的检查点对齐。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：单卡MI355X、Qwen3-Next-80B-A3B FP8、对齐前缀缓存、块64、8000输入/64输出、无推测，并发1/4/8时首词延迟较原路径降41%/62%/66%。携带检查点步骤改走逐词元路径，开销已计入。另一方案#60659在块64时反而快4%至8%；各自默认块大小下两方案差异属噪声。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #68310",
+                "url": "https://github.com/vllm-project/vllm/pull/68310"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "联合张量并行与上下文并行分片KDA头"
+        },
+        {
+          "kind": "entry",
+          "number": "A3",
+          "title": "联合张量并行与预填充上下文并行分片 KDA 头",
+          "workId": "github:vllm-project/vllm-ascend#21510",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：此前预填充上下文并行只在张量并行度为 1 时参与 KDA 头分片，张量并行大于 1 时投影、卷积权重与循环状态无法按预填充上下文并行进一步切分，单卡显存占用偏高。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：KDA 头分片改为按张量并行与预填充上下文并行联合切分，投影、卷积权重和循环状态按张量并行优先分布，输出投影先合并预填充上下文并行贡献再走可选张量并行归约；预填充生产端同步放开该组合，头数需能被两者乘积整除，预填充上下文并行的解码消费端与同址执行仍不支持。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：早期版本在A3单主机、预填充TP2/PCP4、解码TP8、100并发下，每版198题三轮GPQA平均73.06%，较主线加状态传输修复基线高1.85个百分点。首词等待4.211降至3.663秒，预填充每卡加载分配少3.24 GiB，逐词元时间增0.34%。这些数字不属于变基后版本；仅覆盖原生KDA，RecoverSSM多卡仍待验证，64K输出上限截断计错。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #21510",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/21510"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "减少GDN预填充QKV布局拷贝"
+        },
+        {
+          "kind": "entry",
+          "number": "A4",
+          "title": "消除 GDN 预填充中 QKV 布局往返拷贝",
+          "workId": "github:vllm-project/vllm-ascend#22010",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：GDN 预填充的卷积输出以序列优先视图暴露查询、键、值，底层存储却是头优先。基础适配器先把三者各拷成序列优先，再各拷回头优先供分块 GDN 使用，一次调用产生六次布局拷贝。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：适配器改为把每个输入转成头优先视图，仅在存在间隙或存储顺序不同时打包；密集头优先输入直接复用原存储，带间隙的词元切片按分块 GDN 所需布局直接打包，符合条件的预填充输入自动跳过六次拷贝，无需改配置。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：A3 上 2,048 词元切片单次调用查询、键、值拷贝核总时间由 110.04 微秒降至 24.46 微秒，输出与最终循环状态逐元素一致；16,435 词元预填充的 36 层 180 个 GDN 窗口内拷贝核由 6 个降为 0，该 rank 累计省约 20.37 毫秒。服务侧 128K 端到端平均首词元时间由 10.667 秒降至 6.469 秒，但两个 16K 负载首词元时间分别上升约 1.70% 和 1.61%，短队列是 128K 首词元时间下降的主要来源。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #22010",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/22010"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "将Q/K L2归一化移入KDA内核"
+        },
+        {
+          "kind": "entry",
+          "number": "A5",
+          "title": "将 GLM 分块 KDA 的 Q/K L2 归一化移入内核",
+          "workId": "github:vllm-project/vllm-ascend#22048",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：GLM 分块 KDA 预填充此前在核外单独执行 Q/K 的 L2 归一化，归一化未随内核完成。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：启用分块KDA内核自带的查询、键二范数归一化，不再外部单独调用。该路径要求FLA-NPU 26.10.0依赖；封装断言改为启用核内归一化，且外部调用次数为零。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：11月16日基准为16个昇腾逻辑设备、GLM-5.3-Flash-W8A8-1010-V1、DP1/TP1/PCP16、专家并行与负载均衡、批词元上限8192、16384输入/1输出。两个稳态轮均值吞吐1.360380增至1.564883请求/秒，首词等待2.207653降至1.924641秒，全部请求成功；未覆盖其他负载。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #22048",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/22048"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注线性注意力预填充阶段的前缀缓存检查点导出与分片、布局处理，涉及检查点对齐、头分片切分和核内外计算位置调整。"
+    },
+    {
+      "key": "pd_transfer",
+      "title": "六 P/D 分离部署的缓存交接",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注 NIXL 拉取路径在失败与重连场景下的处理边界，涉及多缓存组模型、分离式推理启动配置以及取数状态记录。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "限制多缓存组模型的失败块上报"
+        },
+        {
+          "kind": "entry",
+          "number": "V10",
+          "title": "隔离传输外缓存组以阻止解码引擎因拉取失败退出",
+          "workId": "github:vllm-project/vllm#61499",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在带多个 KV 缓存组的模型上，只要一次 NIXL 拉取失败，解码引擎就会退出。HiSparse 解码会额外加入不参与传输的缓存组，而调度器对多组模型收到失败块编号时直接抛错，导致整个引擎核心停止。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：把失败块编号的上报限制在只有一个 KV 缓存组时，多组模型只通过失败接收列表上报，让请求以错误结束或按重算策略重算，引擎继续服务。单组模型和 HMA 布局保持原有行为。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：新增的 CPU 单元用例覆盖传输之外多一个缓存组的情形，改动前该用例因调度器拒绝块编号而失败，改动后通过。生产环境 GLM-5.3 在 H100 上以 NIXL 1.5.0 运行，此前 4 小时内 15 个解码引擎因远端断连后的拉取失败退出；应用该条件后启动的 36 个引擎未再因此退出，其中一组两个引擎在 101 次请求失败后仍继续服务。连接为何断开是另一问题，需另行恢复。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #61499",
+                "url": "https://github.com/vllm-project/vllm/pull/61499"
+              }
+            ]
+          ],
+          "needsReview": false,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "调整分离式推理的显存与握手配置"
+        },
+        {
+          "kind": "entry",
+          "number": "V11",
+          "title": "修复 NIXL 分离式推理的显存与握手配置",
+          "workId": "github:vllm-project/vllm#66514",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在镜像自带的 UCX 1.23 上，DeepSeek-V3 的 NIXL 分离式推理用例无法启动：张量并行 8 路启动时显存耗尽，专家并行 8 路和 16 路报 HIP 错误 209。侧信道主机默认指向本机，解码端与自身握手，每次负载都静默重算。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：关闭 UCX 的 ROCm DMA缓冲注册，移除TCP与回环回退并启用全部网卡；侧信道取节点地址，避免自握手。按拓扑调整评测并发，并修正相关模型的显存、序列和批量上限。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：六种NIXL组合修后均跑通，五示例GSM8K准确率0.9409至0.9469且无传输失败；修前五种因显存或设备错误失败，EP16推送未运行。缓存仅走RDMA并均分到八张网卡，TP8每137MB传输由31至38毫秒降至7毫秒；EP8每144MB仍为93至102毫秒。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #66514",
+                "url": "https://github.com/vllm-project/vllm/pull/66514"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "记录预填充解码取数以抑制重复取数"
+        },
+        {
+          "kind": "entry",
+          "number": "V12",
+          "title": "记录首次非空预填充解码取数以消除二次取数超时",
+          "workId": "github:vllm-project/vllm#67497",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：解码端被抢占，或主层容量已满导致提升只完成一部分后，预填充解码层仍会报告缓存命中，触发无法满足的第二次取数并等待约三十秒超时。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在请求状态中记录首次非空预填充解码取数已提交，此后该请求的预填充解码层查询一律返回未命中，缺失块改为重算。主层或其他层已有的缓存仍可加载，对称探测路径不变。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在单张 GB10 上用 SmolLM2-135M-Instruct 和 OPT-125M 实测，修复后失败提升由 3 至 10 次降为 0，预填充解码完成时间由约 45 至 49 秒降至约 14 至 28 秒，输出匹配词元数不变。该结果来自小模型与固定块容量场景，更大模型和不同负载下的表现尚未验证。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #67497",
+                "url": "https://github.com/vllm-project/vllm/pull/67497"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "按远端断连错误失效拉取对端"
+        },
+        {
+          "kind": "entry",
+          "number": "V13",
+          "title": "按远端断连错误失效拉取模式对端以触发重连",
+          "workId": "github:vllm-project/vllm#68047",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：拉取模式下，远端传输因连接断开失败后，对端元数据仍处于加载状态，元数据探测因此认为对端有效，对端不会被失效。此后路由到该对端的每次读取都会以同一错误失败，直到重启。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在传输失败处理中接收异常，识别为远端断连错误时把该对端记入断连集合，清理时跳过元数据探测直接标记失效；待进行中的读取排空后移除其代理，下次读取重新握手。其他传输错误仍按元数据缺失判定，推送模式不变。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：单元测试中，元数据仍在加载时发生远端断连，对端会被失效并移除代理，普通错误则保留对端。端到端数据来自 #66795 的早期版本（按错误名匹配，而非本分支的 isinstance），条件为 B300 分离部署、并发 480 回放 30 分钟：断连错误与 KV 加载失败由 987 和 905 降至 0，失败请求由 1,858 降至 21,512 中的 10 个空响应。重连期间租约可能过期，需配合 #66011 的心跳轮次修正，否则可能读到已回收的块。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #68047",
+                "url": "https://github.com/vllm-project/vllm/pull/68047"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注 NIXL 拉取路径在失败与重连场景下的处理边界，涉及多缓存组模型、分离式推理启动配置以及取数状态记录。"
+    },
+    {
+      "key": "decode",
+      "title": "七 Decode 常规生成",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注解码与专家混合路径上的重复计算和主机侧开销，涉及通信、视图重建、量化反量化及掩码构建等环节。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "减少张量并行下的重复通信与计算"
+        },
+        {
+          "kind": "entry",
+          "number": "V14",
+          "title": "合并 MoE 收尾分块以减少张量并行下的通信次数",
+          "workId": "github:vllm-project/vllm#63254",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在 ROCm 张量并行下，专家混合收尾对至少 256 个令牌的批次按 1024 令牌分块，每块各做一次归约散射和全收集。使用 BF16 归约精度时，分块并不限制内存，却让每层专家混合重复多次通信，拖慢长提示的首次等待。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：当每路由输出已是归约精度、无需复制时，把整批合并为一块，每层只做一次归约散射和一次全收集；无需填充时全收集直接在输出缓冲上原地进行。超过一个默认块且令牌数不能被张量并行数整除时，超出部分仍走原有的全归约加收尾路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：八卡MI355X、Muse-Spark-Open四位浮点检查点、八路张量并行搭配七词元草稿，当前重测的2K/8K/16K单请求及四个8K突发首次等待下降7%至8%。早期版本并发16/32吞吐升2%至6.9%，该版收集后另做复制，当前已原地收集。十六位归约且超过1024词元时不逐位相同；默认单精度归约和专家并行路径不变。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #63254",
+                "url": "https://github.com/vllm-project/vllm/pull/63254"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "entry",
+          "number": "V15",
+          "title": "对 HY4 的 iHC 与归一化启用序列并行以消除冗余计算",
+          "workId": "github:vllm-project/vllm#67659",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：改动前，iHC 残差与归一化在张量并行的各秩间重复计算同一隐藏状态，造成冗余计算。现在用序列并行消除该冗余。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：把 iHC 残差按词元分片保留在各解码层，注意力与前馈前后分别用全收集和归约散射衔接，注意力与专家并行的布局不变。该路径按模型自身的资格与词元阈值启用，与注意力分片解耦；不足阈值的步仍走原有复制路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：早期版本与查询分片同开，H200八卡、八路张量并行、八位缓存，2K/8K/32K预填充吞吐增15.04%/27.18%/26.84%。8K步残差处理GPU时间193.6降至24.4毫秒，通信161增至318次，GSM8K得分0.896变0.892。最终版已解耦启用资格，仅重跑两路并行生成功能，未重测上述吞吐、剖析或准确率。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #67659",
+                "url": "https://github.com/vllm-project/vllm/pull/67659"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "扩展低精度量化内核的位宽与后端支持"
+        },
+        {
+          "kind": "entry",
+          "number": "V16",
+          "title": "为 GLM 低延迟矩阵乘法表引入 warp split-K 并修复单词元打包",
+          "workId": "github:vllm-project/vllm#65706",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：GLM 低延迟矩阵乘法表按投影和词元数选择后端，但单词元时融合归一化与旋转位置编码的输出沿用了列切片的行跨度，使查询与索引器权重无法进入打包行路径，只能回退到通用矩阵乘法库。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：按投影和 1 至 32 的词元数逐点计时选后端，在瘦矩阵乘法与通用库之外加入 FlashInfer 的分片归约 BF16 矩阵乘法，并把融合算子的查询输出改为打包分配，使单词元也走表内路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：VR200上216个计划点的调用加速几何均值1.21倍，201个改动点为1.16倍。GLM-5.3-NVFP4四卡服务在并发1/2/4时吞吐升6.9%/6.8%/1.8%，8起属噪声。求和顺序变化，输出非逐位一致，贪心文本可漂移，误差与通用库十六位计算相当。准确率仅在较早版本测过，最终表有19/224行变化；仅四卡服务实测。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #65706",
+                "url": "https://github.com/vllm-project/vllm/pull/65706"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "entry",
+          "number": "V17",
+          "title": "扩展 Triton 权重内核以支持 ROCm 上的 8 位量化",
+          "workId": "github:vllm-project/vllm#67302",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：ROCm原先拒绝ModelOpt八位检查点；既有八位GPTQ内核仅支持不分组或128值一组，十六位激活配16或32分组时无可用内核。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：让 Triton WNA16 内核把位宽作为编译期常量，解包与重打包按位宽计算掩码和每字打包数，从而接受 8 位权重与 16 分组；该路径仅在 ROCm 启用，CUDA 内核选择不变，4 位代码编译结果保持一致。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：MI300X、Qwen2.5-1.5B-Instruct-GPTQ-Int8、半精度、512输入/128输出/1000请求，Conch改走新内核后吞吐107.6/107.7增至117.6/120.9请求/秒，准确率0.590变0.591。另自量化ModelOpt组32模型原先被拒，500题得分0.554，同权重反量化稠密对照0.552，无主线吞吐基线；gfx950未本地实测。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #67302",
+                "url": "https://github.com/vllm-project/vllm/pull/67302"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "缓存或跳过每步重复的视图与掩码构建"
+        },
+        {
+          "kind": "entry",
+          "number": "V18",
+          "title": "缓存注意力视图，省去每步重建",
+          "workId": "github:vllm-project/vllm#66541",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在 ROCm 的注意力后端中，每次注意力和缓存更新都要重新切分缓存张量生成视图，每层每步两次，主机开销可观。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：以 KV 缓存张量对象及其数据指针为键缓存切分出的 K/V 视图，命中时直接复用；FP8 KV 缓存同时缓存重解释后的视图。张量被重新绑定或缓存被清理时重建，原地改指针也会触发重建。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：切分 K/V 缓存的主机时间从 2.63微秒降到 0.10微秒，FP8 调用点从 4.01微秒降到 0.09微秒；MI325X 上即时执行模式服务 Qwen3-8B 吞吐提升 4.6–4.8%、每个输出词元耗时降低 4.2%。默认编译模式变化在 1% 以内，均匀解码走整图不经过该路径；服务读数早于数据指针检查和 FP8 视图缓存。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #66541",
+                "url": "https://github.com/vllm-project/vllm/pull/66541"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "entry",
+          "number": "A6",
+          "title": "为单令牌解码批次跳过冗余注意力掩码构建",
+          "workId": "github:vllm-project/vllm-ascend#17682",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：仅解码批次中每个查询令牌都会关注全部已缓存键，因果掩码本可省略，但融合推理注意力路径仍显式传入掩码并启用稀疏模式三，迫使算子重复构建掩码，在 A2、A3 上拖累端到端解码性能约一成。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在融合推理注意力的即时执行、分块预填的解码子调用和图捕获重放路径中，对真正的单令牌解码批次改为不传掩码并采用稀疏模式零。滑动窗口解码、推测解码验证与草稿扩展等多令牌批次仍保留因果掩码和稀疏模式三。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在 A2、A3 上，单令牌解码批次省去冗余掩码构建后，端到端解码性能提升约一成，且输出与改动前逐位一致。该收益仅适用于无滑动窗口的单令牌解码批次，多令牌验证批次仍走带掩码路径。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #17682",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/17682"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "融合量化与激活计算以减少内核启动"
+        },
+        {
+          "kind": "entry",
+          "number": "V19",
+          "title": "将 MXFP8 量化并入 DeepSeek-V4.1 生产内核以减少独立启动",
+          "workId": "github:vllm-project/vllm#67906",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：gfx950上AITER的MXFP8线性路径须为DeepSeek-V4.1每层单独量化输入，增加三次启动，共享专家激活还要经历十六位往返。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：把两个线性输入的量化并入前序内核，另将共享专家激活与量化融合。仅限点积缩放或调优八位线性后端且无序列并行；前两处需Mega-MHC，第二处还需共享专家未融合的MegaMoE。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：两卡MI355X、数据/专家并行2路、DeepSeek-V4.1-Flash、五词元草稿，16K/8K预填充及每秩128请求的六词元验证步耗时分别降0.23%/0.37%/0.38%。输出逐位一致，1319题八示例得分相近，256并发AgentX吞吐与交互性持平。每秩最多128词元的整图解码若走重叠路径，本改动不适用。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #67906",
+                "url": "https://github.com/vllm-project/vllm/pull/67906"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "按批去重专家以降低反量化开销"
+        },
+        {
+          "kind": "entry",
+          "number": "V20",
+          "title": "按批去重路由专家以加速 MXFP4 反量化",
+          "workId": "github:vllm-project/vllm#68086",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在 ROCm 上以 BF16 激活运行 MXFP4 权重的 MoE 时，此前的模拟路径按每个 top-k 槽位各反量化一次专家，同一专家被多次路由就要重复反量化；槽位多而不同专家少的批次因此出现明显回退。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：新增融合 Triton 路径：在 GPU 上统计本批不同专家并重新编号，只反量化这些专家，跳过未用槽位，全程不同步主机，可被 CUDA 图捕获。仅限 ROCm、BF16 激活、MXFP4 权重且无动态 FP8 激活缩放；其余仍走原有路径。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：MI355X、Qwen1.5-MoE-A2.7B的MXFP4权重，输入512/输出128且专家与线性均模拟时，相对#68050并发4/32吞吐约2.1/1.2倍，GSM8K得分相近。专家中间维度2048、至少32词元、偏斜路由的即时执行峰值临时显存约21GB，旧主线同步路径约5GB；图执行下未比主线或#68050增加。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #68086",
+                "url": "https://github.com/vllm-project/vllm/pull/68086"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "将专家权重卸载至主机内存"
+        },
+        {
+          "kind": "entry",
+          "number": "A7",
+          "title": "为单卡昇腾引入精确专家卸载以容纳超显存 MoE 模型",
+          "workId": "github:vllm-project/vllm-ascend#18604",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在单卡昇腾上，大 MoE 模型的全部专家权重超出 NPU 显存，此前无法直接运行。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：将路由专家权重和量化尺度放在锁页主机内存，按路由精确载入每层固定NPU槽位，不替换或丢弃专家；预填充、混合批次和解码溢出时复用全专家池。默认关闭，需设常驻槽位数；仅V2单工作进程的即时执行或解码ACL图。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：单卡昇腾950PR的历史验证中，DeepSeek-V4-Flash-0731卸载与四卡参考在198题GPQA均答对183题（92.42%）。其并发1、65536输入/1024输出、约九成前缀命中的离线接口运行记录首词13.60秒、逐词40.22毫秒，另含#20429缓存块修复。最新修订未重跑完整性能或准确率，A5本地套件仅部分完成。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #18604",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/18604"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注解码与专家混合路径上的重复计算和主机侧开销，涉及通信、视图重建、量化反量化及掩码构建等环节。"
+    },
+    {
+      "key": "speculative",
+      "title": "八 推测解码",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注推测解码草稿路径在显存预留、图捕获与数据并行路由上的适配问题。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "按尾部窗口收紧草稿层块预留"
+        },
+        {
+          "kind": "entry",
+          "number": "V21",
+          "title": "收紧 DFlash 草稿层滑动窗口分配以释放 KV 缓存",
+          "workId": "github:vllm-project/vllm#64109",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：DFlash 与 DSpark 草稿器的滑动窗口层此前按目标滑动窗口层管理：每个预填充分块都为整块分配草稿块，每请求预留量随批处理令牌上限增长，启动检查也按此放大，导致混合模型上草稿池占用偏高。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：为这类草稿层引入专用滑动窗口管理器，只从目标令牌末尾的尾部区间起分配草稿块，预留量取窗口上界与已处理前缀窗口加每个在途步尾部中的较小值，短提示按实际跨度预留。释放与前缀命中沿用普通滑动窗口规则，连接器加载时跳过空块。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：早期版本在单卡 GB300、Qwen3.8-27B 配草稿推测时，启动报告KV词元1256723增至1390712，32K请求理论并发容量约38.35增至42.44个请求。当前尾部预算与后续释放、加载改动未在GPU复测。24 GiB探针两组峰值运行请求均11，吞吐、抢占和命中率变化在波动内，未证明运行时收益。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #64109",
+                "url": "https://github.com/vllm-project/vllm/pull/64109"
+              }
+            ]
+          ],
+          "needsReview": false,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "放宽非因果草稿的重排阈值"
+        },
+        {
+          "kind": "entry",
+          "number": "V22",
+          "title": "放宽非因果多令牌草稿在解码上下文并行下的重排阈值",
+          "workId": "github:vllm-project/vllm#64261",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：旧做法在非因果多令牌草稿配合解码上下文并行时，把重排阈值压到一，导致七令牌草稿块无法整图捕获，启动即报错。现在后端声明支持该能力时保留原阈值，使该配置能正常启动。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：公共元数据构建器在非因果组且后端声明支持非因果多令牌解码上下文并行时，保留推测解码阈值；TRITON_MLA 仅在 gfx942 声明该能力，其他 ROCm 目标仍按原样在启动时拒绝。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：八卡MI325X、Kimi-K3配七词元草稿时，DCP8可启动，1319题五示例GSM8K得分0.9560，平均接受长度4.63。性能比较为同一修后版本的单路与八路上下文并行，单并发、1024输出、随机接受长度1.36至1.44；8K输入时八路逐词元耗时较高，64K时较低，报告KV词元容量约2.8倍。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #64261",
+                "url": "https://github.com/vllm-project/vllm/pull/64261"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        },
+        {
+          "kind": "group",
+          "title": "对齐数据并行副本的候选路由"
+        },
+        {
+          "kind": "entry",
+          "number": "A8",
+          "title": "对齐 DFlash2 候选路由并保留细粒度 LM-head 张量并行",
+          "workId": "github:vllm-project/vllm-ascend#22074",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：启用细粒度词表头张量并行时，候选路由会绕过常规草稿逻辑钩子，导致数据并行各卡上的请求无法对齐，构造阶段直接失败。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在细粒度词表头张量并行下，把各数据并行副本的隐藏状态补齐汇总后再计算词表分片，并用全交换把分片内的候选结果送回请求所属副本，不再交换完整词表得分。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：修复后16个解码rank均健康，32个冒烟请求通过；四服务器800/800请求成功、零抢占，每解码设备模型内存从73.15降至70.05 GiB，KV容量从123710增至160170词元，但这只说明功能与显存余量，不是受控吞吐或质量对照。单次评测1283/1319题正确（97.27%），该结果由15个改动文件覆盖到既有服务检出得到，并非完整升级到主线，也不是相对主线的匹配质量对照。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "Ascend #22074",
+                "url": "https://github.com/vllm-project/vllm-ascend/pull/22074"
+              }
+            ]
+          ],
+          "needsReview": false,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注推测解码草稿路径在显存预留、图捕获与数据并行路由上的适配问题。"
+    },
+    {
+      "key": "output_return",
+      "title": "九 输出返回与状态更新",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注省略解析器参数时服务启动与请求处理被误判为显式关闭的问题。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "放行省略解析器选择以恢复服务"
+        },
+        {
+          "kind": "entry",
+          "number": "V23",
+          "title": "放行省略解析器选择以恢复 gpt-oss 服务",
+          "workId": "github:vllm-project/vllm#66998",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在 Rust 前端下用 vllm serve 启动 gpt-oss 且不指定解析器参数时，服务会把省略的参数当作显式关闭传给 Harmony 校验，而该校验只接受自动选择，于是每个对话与响应请求都返回 500，普通命令完全无法服务该模型。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：Harmony 解析器校验同时放行省略和自动选择，未指定解析器时沿用模型自带的 Harmony 输出解析；显式指定通用解析器仍被拒绝，命令行显式关闭也接受并继续走 Harmony 解析，与 Python 前端忽略该参数一致。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：省略解析器参数时，Rust 前端不再返回 500，而是沿用模型自带的 Harmony 输出解析，对话与工具调用请求可正常返回。该结果在 H100 MIG 环境、gpt-oss-20b 且未指定解析器参数的条件下成立。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #66998",
+                "url": "https://github.com/vllm-project/vllm/pull/66998"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注省略解析器参数时服务启动与请求处理被误判为显式关闭的问题。"
+    },
+    {
+      "key": "resource_reclaim",
+      "title": "十 资源回收与缓存保留",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注在线束搜索中已完成假设历史随解码步数累积所带来的主机内存占用问题。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "限制已完成假设的保留数量"
+        },
+        {
+          "kind": "entry",
+          "number": "V24",
+          "title": "限制在线束搜索保留的已完成假设数量",
+          "workId": "github:vllm-project/vllm#66841",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在线束搜索最多只返回束宽个候选，却会把每个已完成的假设连同其词元与对数概率历史一直保留到生成结束。长生成中若持续出现结束符候选，这些历史的总长度会随解码步数呈平方增长，占用大量主机内存。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在每一步之间按现有最终排序键只保留最优的束宽个已完成假设：已完成假设的分数不再变化，一旦有足够多更优者，它就不可能进入结果；同分时沿用稳定排序保持先后顺序。活跃搜索、引擎请求和离线实现的行为不变，改动只针对在线服务的主机内存。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在固定引擎客户端、每步都有结束符、束宽为 4 的测试中，峰值 Python 分配由 128 步的约 1.03 MiB 降至约 0.14 MiB，512 步由约 10.04 MiB 降至约 0.44 MiB。在 SmolLM2-135M 的 96 步在线请求中，保留的已完成假设最多由 68 个降至 4 个，但部分提示从未超过束宽，节省幅度随负载而异，且只计列表容器本身，不含服务常驻内存与显存。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #66841",
+                "url": "https://github.com/vllm-project/vllm/pull/66841"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false
+        }
+      ],
+      "intro": "本章关注在线束搜索中已完成假设历史随解码步数累积所带来的主机内存占用问题。"
+    },
+    {
+      "key": "papers",
+      "title": "十一 论文",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "upstream": 24,
+    "ascend": 8,
+    "papers": 0
+  },
+  "warnings": [],
+  "pipelineStatus": "completed_program_checks",
+  "publicationStatus": "reviewed"
+}
