@@ -37,14 +37,14 @@ export function academicPaperHrefs(topicId: string, paper: AcademicPaper) {
 }
 
 export function academicPaperHeadings(doc: Document) {
-  return Array.from(doc.querySelectorAll<HTMLElement>("h1[id], h2[id], h3[id]"))
+  return Array.from(doc.querySelectorAll<HTMLElement>("h1[id], h2[id], h3[id], h4[id]"))
     .filter((heading) => heading.id && heading.textContent?.trim())
     .map((heading) => ({ id: heading.id, title: heading.textContent!.trim() }));
 }
 
 export function revealPaperHeading(doc: Document, id: string, reducedMotion = false) {
   const heading = doc.getElementById(id);
-  if (!heading || !/^H[123]$/.test(heading.tagName)) return false;
+  if (!heading || !/^H[1234]$/.test(heading.tagName)) return false;
   heading.tabIndex = -1;
   heading.scrollIntoView({ behavior: reducedMotion ? "instant" : "smooth", block: "start" });
   heading.focus({ preventScroll: true });

@@ -35,9 +35,22 @@ class AcademicImportTests(unittest.TestCase):
     def stage(self, **kwargs):
         return module.stage_paper(self.source, kwargs.get("output", self.output), self.index, "aclgraph", "2026-11-15", kwargs.get("revision", "review-pending"))
 
+    def write_word(self, text="Synthetic manuscript"):
+        parts = {
+            "[Content_Types].xml": '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>',
+            "_rels/.rels": '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="document" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>',
+            "word/document.xml": f'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>{text}</w:t></w:r></w:p></w:body></w:document>',
+        }
+        path = self.source / "paper.docx"
+        with zipfile.ZipFile(path, "w") as package:
+            for name, value in parts.items():
+                package.writestr(zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0)), value)
+        return path.read_bytes()
+
     def test_freezes_exact_bytes_hashes_and_preserves_index_and_source(self):
         before = {p.relative_to(self.source): p.read_bytes() for p in self.source.rglob("*") if p.is_file()}
         result = self.stage()
+        self.assertEqual(set(result["academicPaper"]["assets"]), set(module.FILES))
         destination = Path(result["destination"])
         for kind, asset in result["academicPaper"]["assets"].items():
             data = (self.output / "word-reports" / asset["path"]).read_bytes()
@@ -55,6 +68,69 @@ class AcademicImportTests(unittest.TestCase):
         self.assertEqual(before, {p.relative_to(self.source): p.read_bytes() for p in self.source.rglob("*") if p.is_file()})
         self.assertEqual(result["htmlChecks"]["mathML"], 1)
         self.assertEqual(result["status"], "staging_only_not_published")
+
+    def test_optional_word_is_frozen_in_identity_and_editable_source_zip(self):
+        legacy = self.stage()
+        (self.source / "build_web.py").write_bytes(b"print('portable export')\n")
+        (self.source / "publication-reference-map.json").write_text('{"a":1}', encoding="utf-8")
+        (self.source / "workflow-private.txt").write_text("not a source", encoding="utf-8")
+        self.assertEqual(self.stage()["version"], legacy["version"])
+        word = self.write_word()
+        result = self.stage()
+        self.assertNotEqual(legacy["version"], result["version"])
+        self.assertEqual(set(result["academicPaper"]["assets"]), set(module.FILES) | {"word"})
+        destination = Path(result["destination"])
+        asset = result["academicPaper"]["assets"]["word"]
+        self.assertEqual(asset["path"], f'topic-papers/aclgraph/{result["version"]}/paper.docx')
+        self.assertEqual(asset["sha256"], hashlib.sha256(word).hexdigest())
+        self.assertEqual(asset["bytes"], len(word))
+        self.assertEqual((destination / "paper.docx").read_bytes(), word)
+        manifest = json.loads((destination / "manifest.json").read_bytes())
+        self.assertEqual(manifest["assets"]["paper.docx"], {"bytes": len(word), "sha256": asset["sha256"]})
+        self.assertEqual(manifest["version"], hashlib.sha256(module.canonical({key: value for key, value in manifest.items() if key != "version"})).hexdigest())
+        with zipfile.ZipFile(destination / "sources.zip") as archive:
+            self.assertEqual(archive.read("paper.docx"), word)
+            self.assertEqual(archive.read("build_web.py"), b"print('portable export')\n")
+            self.assertEqual(archive.read("publication-reference-map.json"), b'{"a":1}')
+            self.assertNotIn("workflow-private.txt", archive.namelist())
+            readme = archive.read("README.md").decode("utf-8")
+            self.assertIn("exported from paper.docx", readme)
+            self.assertNotIn("--number-sections", readme)
+        self.assertEqual(self.stage()["version"], result["version"])
+        self.write_word("Changed manuscript")
+        self.assertNotEqual(self.stage()["version"], result["version"])
+        self.assertEqual((destination / "paper.docx").read_bytes(), word)
+        (self.source / "paper.docx").unlink()
+        self.assertEqual(self.stage()["version"], legacy["version"])
+
+    def test_invalid_optional_word_is_refused_before_staging(self):
+        word = self.source / "paper.docx"
+        word.write_bytes(b"not a Word package")
+        with self.assertRaisesRegex(ValueError, "DOCX"):
+            self.stage()
+        with zipfile.ZipFile(word, "w") as package:
+            package.writestr("unrelated.txt", "not a Word document")
+        with self.assertRaisesRegex(ValueError, "Word document parts"):
+            self.stage()
+        self.assertFalse(self.output.exists())
+
+    def test_word_citation_metadata_requires_portable_paths_without_scanning_body_examples(self):
+        def with_property(name, value):
+            self.write_word(r"A normal path example C:\example\input.txt")
+            xml = f'<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><property name="{name}"><vt:lpwstr>{value}</vt:lpwstr></property></Properties>'
+            with zipfile.ZipFile(self.source / "paper.docx", "a") as package:
+                package.writestr("docProps/custom.xml", xml)
+            return (self.source / "paper.docx").read_bytes()
+        for name in ("bibliography", "csl"):
+            for value in (r"C:\private\references.bib", "/home/private/references.bib", "file:///private/references.bib"):
+                with self.subTest(name=name, value=value):
+                    with_property(name, value)
+                    with self.assertRaisesRegex(ValueError, "portable relative path"):
+                        self.stage()
+        self.assertFalse(self.output.exists())
+        module.inspect_docx(with_property("bibliography", "references.bib"))
+        module.inspect_docx(with_property("csl", "numeric.csl"))
+        module.inspect_docx(with_property("title", r"A path example C:\example\input.txt"))
 
     def test_idempotent_and_new_content_or_metadata_creates_new_version(self):
         initial = self.stage()
