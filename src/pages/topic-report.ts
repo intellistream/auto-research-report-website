@@ -108,8 +108,8 @@ export function revealTopicPart(doc: Document, id: string, reducedMotion = false
   return true;
 }
 
-export function evidenceTimeline(topic: Topic, report: ResearchReport) {
-  const cited = new Set(report.synthesizedWorkIds ?? report.references.flatMap((ref) => ref.workId ? [ref.workId] : []));
+export function evidenceTimeline(topic: Topic, report?: ResearchReport) {
+  const cited = new Set(report?.synthesizedWorkIds ?? report?.references.flatMap((ref) => ref.workId ? [ref.workId] : []) ?? []);
   const days = new Map<string, { day: string; synthesized: number; pending: number }>();
   for (const entry of new Map(topic.entries.map((entry) => [entry.workId, entry])).values()) {
     const row = days.get(entry.day) ?? { day: entry.day, synthesized: 0, pending: 0 };

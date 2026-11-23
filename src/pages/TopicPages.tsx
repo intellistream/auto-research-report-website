@@ -6,6 +6,8 @@ import type { ResearchReport } from "./topic-report";
 import TopicAcademicPaper, { AcademicPaperCard } from "./TopicAcademicPaper";
 import type { AcademicPaper } from "./academic-paper";
 import type { TopicSurvey } from "./topic-survey";
+import KvCacheTopic, { KvCacheTopicCard } from "./KvCacheTopic";
+import { communityEntries } from "./kv-community";
 import AclGraphTopic, { AclGraphTopicCard } from "./AclGraphTopic";
 import SpecDecTopic, { SpecDecTopicCard } from "./SpecDecTopic";
 import EngineeringTopicWorkbench, { EngineeringTopicCard } from "./EngineeringTopicWorkbench";
@@ -45,23 +47,14 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
   const [query] = useSearchParams();
   const view = query.get("view");
 
-  if (error) {
-    return (
-      <div className="overview-status-card error" role="alert">
-        暂无可用的专题索引。<Link to="/reports">查看日报档案</Link>
-      </div>
-    );
-  }
-  if (!index) return <div className="overview-status-card" role="status">正在加载专题…</div>;
-  if (![1, 2].includes(index.schemaVersion) || !Array.isArray(index.topics)) {
-    return (
-      <div className="overview-status-card error" role="alert">
-        专题索引格式不受支持。
-      </div>
-    );
-  }
+  if (topicId === "kv-cache") return <div className="topic-page"><KvCacheTopic /></div>;
+  const validIndex = index && [1, 2].includes(index.schemaVersion) && Array.isArray(index.topics);
+  if (topicId && error) return <div className="overview-status-card error" role="alert">暂无可用的专题索引。<Link to="/reports">查看日报档案</Link></div>;
+  if (topicId && !index) return <div className="overview-status-card" role="status">正在加载专题…</div>;
+  if (topicId && !validIndex) return <div className="overview-status-card error" role="alert">专题索引格式不受支持。</div>;
+  const archiveTopics = validIndex ? index.topics.filter(row => row.id !== "kv-cache") : [];
 
-  const topic = index.topics.find((row) => row.id === topicId);
+  const topic = archiveTopics.find((row) => row.id === topicId);
   if (topicId && !topic) {
     return (
       <div className="overview-status-card">
@@ -70,7 +63,7 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
     );
   }
 
-  const totalTopicPRs = index.topics.reduce((sum, t) => sum + (t.counts?.total ?? 0), 0);
+  const totalTopicPRs = archiveTopics.reduce((sum, t) => sum + (t.counts?.total ?? 0), communityEntries.length);
 
   return (
     <div className="topic-page">
@@ -81,7 +74,7 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
           <SpecDecTopic topic={topic} />
         ) : topic.academicPaper && (view !== "report" || !topic.report) ? (
           <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} />
-        ) : index.schemaVersion === 2 && topic.report ? (
+        ) : index?.schemaVersion === 2 && topic.report ? (
           <TopicResearchReport key={topic.report.version} topic={topic} report={topic.report} />
         ) : (
           <EngineeringTopicWorkbench key={topic.id} topic={topic} />
@@ -98,7 +91,7 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
             </div>
             <div className="topic-dir-summary">
               <div>
-                <strong>{index.topics.length}</strong>
+                <strong>{archiveTopics.length + 1}</strong>
                 <span>核心专题</span>
               </div>
               <div>
@@ -109,20 +102,24 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
           </header>
 
           <ul className="topic-directory">
-            {index.topics.map((row) =>
+            <KvCacheTopicCard />
+            {archiveTopics.map((row) =>
               row.id === "aclgraph" ? (
                 <AclGraphTopicCard key={row.id} topic={row} />
               ) : row.id === "speculative-decoding" ? (
                 <SpecDecTopicCard key={row.id} topic={row} />
               ) : row.academicPaper ? (
                 <AcademicPaperCard key={row.id} topic={row} paper={row.academicPaper} />
-              ) : row.report && index.schemaVersion === 2 ? (
+              ) : row.report && index?.schemaVersion === 2 ? (
                 <TopicReportCard key={row.id} topic={row} report={row.report} />
               ) : (
                 <EngineeringTopicCard key={row.id} topic={row} />
               ),
             )}
           </ul>
+          {error && <p className="overview-status-card error" role="alert">其他专题索引暂不可用。</p>}
+          {!error && !index && <p className="overview-status-card" role="status">正在加载其他专题…</p>}
+          {!error && index && !validIndex && <p className="overview-status-card error" role="alert">其他专题索引格式不受支持。</p>}
         </>
       )}
     </div>

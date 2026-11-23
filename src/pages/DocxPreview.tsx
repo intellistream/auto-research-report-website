@@ -13,7 +13,8 @@ const Contributors = lazy(() => import("./Contributors"));
 const ResearchQuery = lazy(() => import("./ResearchQuery"));
 
 function ReaderRoute({ catalog, days }: { catalog: Catalog; days: string[] }) {
-  const { day = days[0] } = useParams();
+  const { day: requestedDay } = useParams();
+  const day = !requestedDay || requestedDay === "latest" ? days[0] : requestedDay;
   const [query] = useSearchParams();
   const record = catalog.days[day];
   const requested = query.get("version") ?? record?.current;
@@ -36,17 +37,19 @@ function ReaderRoute({ catalog, days }: { catalog: Catalog; days: string[] }) {
 }
 
 export default function DocxPreview() {
-  const result = useJson<Catalog>("catalog.json");
+  const { pathname } = useLocation();
+  const topicRoute = /^\/topics(?:\/|$)/.test(pathname);
+  const kvTopicRoute = /^\/topics\/kv-cache\/?$/.test(pathname);
+  const result = useJson<Catalog>(topicRoute ? undefined : "catalog.json");
   const catalog = result?.data;
   const days = useMemo(
     () => (catalog?.schemaVersion === 1 ? Object.keys(catalog.days).sort().reverse() : []),
     [catalog],
   );
-  const { pathname } = useLocation();
   const research = useMatch("/research");
   const overview = pathname === "/";
   const flow = useJson<FlowIndex>(overview ? "flow-index.json" : undefined);
-  const topics = useJson<TopicIndex>(pathname.startsWith("/topics") ? "topics.json" : undefined);
+  const topics = useJson<TopicIndex>(topicRoute && !kvTopicRoute ? "topics.json" : undefined);
 
   return (
     <SiteLayout catalog={catalog} days={days} wide={overview}>
@@ -57,6 +60,10 @@ export default function DocxPreview() {
       ) : research ? (
         <Suspense fallback={<div className="overview-status-card" role="status">正在打开研究查询…</div>}>
           <ResearchQuery />
+        </Suspense>
+      ) : topicRoute ? (
+        <Suspense fallback={<div className="overview-status-card" role="status">正在打开专题…</div>}>
+          <Routes><Route path="/topics/:topicId?" element={<TopicPages index={topics?.data} error={topics?.error} />} /></Routes>
         </Suspense>
       ) : result?.error ? (
         <div className="overview-status-card error" role="alert">
@@ -77,7 +84,6 @@ export default function DocxPreview() {
             <Route path="/" element={<OverviewPage catalog={catalog} days={days} result={flow} />} />
             <Route path="/reports" element={<ArchivePage catalog={catalog} days={days} />} />
             <Route path="/reports/:day" element={<ReaderRoute catalog={catalog} days={days} />} />
-            <Route path="/topics/:topicId?" element={<TopicPages index={topics?.data} error={topics?.error} />} />
             <Route
               path="*"
               element={

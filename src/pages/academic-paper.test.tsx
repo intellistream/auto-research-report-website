@@ -58,7 +58,7 @@ describe("academic manuscript branch", () => {
   it("names the topic in the directory and keeps the manuscript inside its own section", () => {
     const html = render("/topics");
     expect(html).toContain("ACL Graph");
-    expect(html).not.toContain("PR 与趋势");
+    expect(html).not.toContain('/topics/aclgraph?view=evidence');
     expect(html).not.toContain(paper.title);
     expect(html).not.toContain(paper.abstract);
   });

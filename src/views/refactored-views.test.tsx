@@ -83,7 +83,7 @@ describe("refactored website views", () => {
     expect(html).toContain("vLLM #61788");
   });
 
-  it("renders interactive mechanism guides, route maps, analytics, and PR workbenches for KV Cache and Speculative Decoding", () => {
+  it("preserves independent KV learning and the current Speculative Decoding guide", () => {
     const kvHtml = renderToStaticMarkup(
       <MemoryRouter initialEntries={["/topics/kv-cache"]}>
         <Routes>
@@ -91,11 +91,12 @@ describe("refactored website views", () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(kvHtml).toContain("一次推理请求中，KV Cache 怎样省空间、免重算、跨卡搬运？");
-    expect(kvHtml).toContain("核心技术路线与工程边界");
-    expect(kvHtml).toContain("块与容量管理");
-    expect(kvHtml).toContain("每日收录趋势");
-    expect(kvHtml).toContain("涉及的推理生命周期环节");
+    expect(kvHtml).toContain('aria-label="KV Cache 三大板块"');
+    expect(kvHtml).toContain("KV Cache 缓存了什么，为什么会成为推理瓶颈？");
+    expect(kvHtml).toContain("一个请求怎样使用 KV？");
+    expect(kvHtml).toContain("估算 KV 存储量");
+    expect(kvHtml).toContain("view=papers");
+    expect(kvHtml).toContain("view=report");
 
     const specHtml = renderToStaticMarkup(
       <MemoryRouter initialEntries={["/topics/speculative-decoding"]}>

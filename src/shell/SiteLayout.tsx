@@ -130,12 +130,10 @@ export default function SiteLayout({
               <Search size={15} aria-hidden />
               研究查询
             </NavLink>
-            {latestDay && (
-              <Link to={`/reports/${latestDay}`} aria-current={reading ? "page" : undefined}>
-                <Activity size={15} aria-hidden />
-                研报阅读
-              </Link>
-            )}
+            <Link to="/reports/latest" aria-current={reading ? "page" : undefined}>
+              <Activity size={15} aria-hidden />
+              研报阅读
+            </Link>
             <NavLink to="/contributors">
               <Users size={15} aria-hidden />
               贡献者
@@ -194,12 +192,10 @@ export default function SiteLayout({
               <Search size={16} aria-hidden />
               研究查询
             </NavLink>
-            {latestDay && (
-              <Link to={`/reports/${latestDay}`} aria-current={reading ? "page" : undefined}>
-                <Activity size={16} aria-hidden />
-                研报阅读（{latestDay}）
-              </Link>
-            )}
+            <Link to="/reports/latest" aria-current={reading ? "page" : undefined}>
+              <Activity size={16} aria-hidden />
+              研报阅读{latestDay ? `（${latestDay}）` : ""}
+            </Link>
             <NavLink to="/contributors">
               <Users size={16} aria-hidden />
               贡献者
