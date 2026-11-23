@@ -196,6 +196,33 @@ class TopicSurveyTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "predecessor"):
             validate_survey(survey, topic(), self.root)
 
+    def test_taxonomy_citations_must_resolve_in_the_bound_manuscript(self):
+        survey = document()
+        survey["routes"][0]["subcategories"] = [
+            {"title": "Graph capture", "works": [{"label": "A representative paper", "reference": 5}]}
+        ]
+        validate_survey(survey, topic())
+        with self.assertRaisesRegex(ValueError, "reference: absent"):
+            validate_survey(survey, topic(), self.root)
+        with (self.root / "paper/report.html").open("a", encoding="utf-8") as stream:
+            stream.write('<p id="ref-5">A representative paper</p>')
+        validate_survey(survey, topic(), self.root)
+        for invalid in (0, -1, 1.5, "5", True, None):
+            with self.subTest(reference=invalid):
+                survey["routes"][0]["subcategories"][0]["works"][0]["reference"] = invalid
+                with self.assertRaisesRegex(ValueError, "positive integer"):
+                    validate_survey(survey, topic())
+
+    def test_taxonomy_requires_nonempty_categories_and_named_works(self):
+        for invalid in (None, [], [{"title": " ", "works": []}],
+                        [{"title": "Capture", "works": []}],
+                        [{"title": "Capture", "works": [{"label": " ", "reference": 1}]}]):
+            with self.subTest(subcategories=invalid):
+                survey = document()
+                survey["routes"][0]["subcategories"] = invalid
+                with self.assertRaisesRegex(ValueError, "subcategories"):
+                    validate_survey(survey, topic())
+
     def test_rejects_unknown_pending_work_routes_and_feedback(self):
         for field, value in (("workId", "github:vllm-project/vllm#999"), ("routeIds", ["unknown"])):
             survey = document()

@@ -208,7 +208,7 @@ export default function InferenceMap({ entries, intros = {}, selection, select, 
           {selected && selected !== "classification_conflict" && <InferenceStageDemo key={selected} stage={selected} onSelect={choose} />}
           {selected && selected !== "classification_conflict" && <div className="map-v2-report-context"><ChapterIntro chapter={intros[selected]} omitIntroPrefix /></div>}
           {selected ? (
-            <details key={selected + scope} className="map-v2-evidence">
+            <details key={selected + scope} className="map-v2-evidence" open={count(selected) > 0}>
               <summary><List size={16} aria-hidden />查看 {count(selected)} 条实际 PR <ChevronDown size={17} aria-hidden /></summary>
               <PRList items={grouped.get(selected)?.items ?? []} />
             </details>

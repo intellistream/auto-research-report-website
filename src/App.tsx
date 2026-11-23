@@ -1,12 +1,14 @@
 import "./style.css";
 import { useEffect, useState, type ReactNode } from "react";
 import Dashboard from "./Dashboard";
+import ResearchQuery from "./pages/ResearchQuery";
 import {
   Link,
   NavLink,
   Route,
   Routes,
   useLocation,
+  useMatch,
   useParams,
   useSearchParams,
 } from "react-router-dom";
@@ -170,6 +172,7 @@ export default function App() {
     [error, setError] = useState(""),
     [mobile, setMobile] = useState(false);
   const location = useLocation();
+  const research = useMatch("/research");
   const routeReportId = location.pathname.split("/")[2];
   const currentReportId = catalog?.items.some(
     (i) => i.id === routeReportId && i.status === "available",
@@ -220,6 +223,10 @@ export default function App() {
           <NavLink to="/reports" end>
             <CalendarDays size={18} />
             日报档案
+          </NavLink>
+          <NavLink to="/research">
+            <Search size={18} />
+            研究查询
           </NavLink>
           <NavLink to={"/reports/" + currentReportId}>
             <BookOpen size={18} />
@@ -300,7 +307,7 @@ export default function App() {
             </Link>{" "}
             <ChevronRight size={13} />
             <span>
-              {location.pathname === "/"
+              {research ? "研究查询" : location.pathname === "/"
                 ? "优化总览"
                 : location.pathname === "/reports"
                   ? "日报档案"
@@ -321,7 +328,7 @@ export default function App() {
           </div>
         </header>
         <main id="main-content" tabIndex={-1}>
-          {error ? (
+          {research ? <ResearchQuery /> : error ? (
             <State title="日报索引加载失败" error>
               {error}
             </State>

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "topicId": "speculative-decoding",
+  "version": "e5a303f8d4534cc4d0ff3ed17051e44bf26c9dc952df51e9a3a8ace7dcee399d",
+  "previousVersion": null,
+  "asOf": "2026-11-18",
+  "status": "research-draft",
+  "assets": {
+    "report.json": {
+      "bytes": 88838,
+      "sha256": "f13a97179d1a5c83b2306138e14f110423efb9a3d2b57215465f27ce1febbc06"
+    },
+    "report.md": {
+      "bytes": 73420,
+      "sha256": "a60627eb06692daef707ba091186763f0a932c89394cdade9624ce2f9635a81a"
+    },
+    "report.html": {
+      "bytes": 89115,
+      "sha256": "cab074f4d708b517cb7de610a3b15bdcff856903ebff59a95571028c4fa60cde"
+    }
+  }
+}

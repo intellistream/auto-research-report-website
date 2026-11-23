@@ -1,8 +1,8 @@
 # 社区研报网站
 
-只读展示社区每日研究报告（`auto-research-report` 的产物）。本仓库只包含前端与已发布的数据快照，不包含采集、分析、组稿或模型调用代码。
+展示社区每日研究报告（`auto-research-report` 的产物）。本仓库包含网站前端和已发布的数据快照，实时研究查询由上游调研服务执行。
 
-负责人：Changwu Li / @Li-changwu。对应 issue #45、#51—#53。当前是只读网站与显式报告导入，不代表三组设计评审、生产接入或发布验收已完成。
+负责人：Changwu Li / @Li-changwu。日报归档对应 issue #45、#51—#53，支持只读展示和显式导入。三组设计评审、生产接入和发布验收状态以对应 issue 为准。
 
 ## 启动
 
@@ -18,6 +18,28 @@ npm run dev
 `npm test` 验证版本、日期、正文、身份、图覆盖、安全链接、产物哈希和运行身份；`npm run build` 执行 TypeScript 检查及静态构建。静态结果在 `dist/`，用 `npm run preview` 预览，不能双击 `index.html` 代替 HTTP 服务。使用 HashRouter，刷新与深链接无需额外的服务器回退配置。
 
 ## 页面
+
+### 研究查询
+
+在「研究查询」输入研究方向，选择最近 7、30、90、180 或 365 天，生成包含论文进展、近期 PR 时间线及 Research Gap 的调研报告。完成后可在页内预览、单独打开或下载 HTML。服务提供 PDF 时页面也提供下载，HTML 同样可通过浏览器的打印功能另存为 PDF。
+
+组内模式在当前页显示生成进度和结果。公开模式（`VITE_RESEARCH_MODE=public`）提交后立即提供任务链接，重新打开 `/#/research?task=<任务 UUID>` 可继续查看进度和报告。任务页只读取已有任务，提交新查询使用「发起新调研」。
+
+本地联调时，先启动上游调研服务，再在网站仓库根目录运行：
+
+```powershell
+$env:RESEARCH_API_PROXY = "http://127.0.0.1:8765"
+npm run dev -- --host 127.0.0.1
+```
+
+打开 `http://127.0.0.1:5173/#/research`。Vite 将 `/api/research` 转发给调研服务。同源部署可通过网关转发此路径。
+
+GitHub Pages 使用独立的 HTTPS 调研服务。将服务地址设为网站仓库的 Actions 变量 `VITE_RESEARCH_API_BASE`，在后端通过 `RESEARCH_ALLOWED_ORIGINS` 放行站点的 Origin（如 `https://lab.sage.org.ai`），再从 `main` 运行 Website 工作流重建页面。GitHub 和模型凭据由后端配置。
+Pages 工作流在该接口变量存在时启用公开模式；组内构建默认使用当前页等待模式。
+
+服务地址会变化时，可另设 Actions 变量 `VITE_RESEARCH_API_CONFIG_URL`，指向受维护的公开 HTTPS JSON 文件（例如 `https://lab.sage.org.ai/auto-research-report-runtime/research-api.json`）。文件格式为 `{"version":1,"apiBase":"https://example-tunnel.trycloudflare.com","updatedAt":"2026-11-23T00:00:00Z"}`，只接受 HTTPS Quick Tunnel 根地址。配置文件不能包含凭据，更新权限只应交给负责发布服务地址的维护者。首次启用后从 `main` 重建一次页面；此后隧道重启只需更新该文件，不需要重建网站，原任务链接保持不变。该变量也会启用 Pages 公开模式。
+
+页面请求任务时，服务地址最多缓存 10 秒；读取配置超时或失败时沿用最近的有效地址，没有有效缓存时使用构建时的接口地址。任务状态查询断线后会自动重连，持续约四分钟仍不可用时可手动重试；任务提交不会自动重发。重新打开已完成任务或切回该标签页时会读取服务地址，并更新报告预览和下载链接。
 
 ### 贡献者
 
@@ -108,6 +130,8 @@ python scripts/import-docx.py "/path/to/daily-reports.zip" --web-only --output p
 
 首次部署前需在仓库 Settings → Pages → Source 选择 “GitHub Actions”。项目站点地址为 `https://intellistream.github.io/auto-research-report-website/`，因此构建时把 `VITE_BASE_PATH` 设为 `/<repo>/`；改用自定义域名时改为 `/`。
 
+右下角的「AI 提问」使用 [研报助手后端](https://github.com/intellistream/auto-research-report-super-intelligence-backend)。在仓库的 Actions variables 中设置 `VITE_CHAT_API_URL` 为完整的 HTTPS 接口地址（含 `/api/chat`），然后重新运行 Website 工作流。开发环境默认请求 `http://127.0.0.1:8765/api/chat`，也可通过同名环境变量指定地址。
+
 ## v2.0 系统日报
 
 系统日报覆盖北京时间已结束的自然日，来源为 vLLM 和 vLLM Ascend 的当日合入 PR。网站接收运行目录中的 `manifest.json`、`report.json`、`flow.png`。这三个文件须来自同一次生成。
@@ -188,4 +212,4 @@ ACL Graph 的问题路线、证据判断与研究反馈由 [`topics/aclgraph/sur
 
 ## 已知范围
 
-本版已经实现统计首页、四类阅读/档案页面、下载和显式真实报告导入。没有后端、账号、任务触发、在线编辑或审批。浏览器 UI 检查与上游交接说明见上游仓库的 `docs/website-preview.md`。
+本版支持统计首页、阅读与归档、下载、显式导入日报和研究查询。浏览器 UI 检查与上游交接说明见上游仓库的 `docs/website-preview.md`。

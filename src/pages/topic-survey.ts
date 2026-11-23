@@ -1,10 +1,17 @@
 import type { Topic } from "./TopicPages";
 import { safeTopicSource } from "./topic-report";
 
+export type PlatformExample = string | {
+  detail: string;
+  works: { label: string; url: string }[];
+};
+
 export type SurveyRoute = {
   id: string; title: string; problem: string; mechanism: string[];
   assessment: string; limitation: string; sourceIds: string[]; evidenceIds: string[]; gapIds: string[];
   paperSection?: string; paperAnchor?: string;
+  examples?: { ascend: PlatformExample; gpu: PlatformExample };
+  subcategories?: { title: string; works: { label: string; reference: number }[] }[];
 };
 export type SurveyUpdateEvidence = {
   title: string; change: string; sourceIds: string[]; evidenceIds: string[];
@@ -12,7 +19,7 @@ export type SurveyUpdateEvidence = {
 };
 export type TopicSurvey = {
   schemaVersion: 1; reportVersion: string; paperVersion?: string; reviewedAt: string; thesis: string;
-  routes: SurveyRoute[];
+  routes: SurveyRoute[]; candidateBaseline?: string[];
   update: { summary: string; previousRevision?: number; evidence: SurveyUpdateEvidence[]; nextGapIds: string[] };
   researchAssessment?: { asOf: string; scope: string; summary: string; decisions: {
     gapId: string; decision: string; reason: string; reopenWhen: string; sourceUrls: string[];
@@ -24,16 +31,35 @@ const text = (value: unknown): value is string => typeof value === "string" && v
 const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every(text);
 const hash = (value: unknown): value is string => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 
+function validExample(value: PlatformExample | undefined) {
+  if (typeof value === "string") return text(value);
+  return !!value && text(value.detail) && Array.isArray(value.works) && value.works.length > 0
+    && value.works.every((work) => work && text(work.label) && text(work.url) && safeTopicSource(work.url));
+}
+
+function validSubcategories(value: SurveyRoute["subcategories"]) {
+  return Array.isArray(value) && value.length > 0 && value.every((subcategory) => subcategory
+    && text(subcategory.title) && Array.isArray(subcategory.works) && subcategory.works.length > 0
+    && subcategory.works.every((work) => work && text(work.label)
+      && Number.isInteger(work.reference) && work.reference > 0));
+}
+
 /** Reject stale editorial judgments and broken citations before displaying them. */
 export function validatedSurvey(topic: Topic): TopicSurvey | undefined {
   const report = topic.report;
   const survey = topic.survey;
   if (!report || !survey || survey.schemaVersion !== 1 || !hash(survey.reportVersion)
-    || survey.reportVersion !== report.version || !hash(survey.paperVersion)
-    || survey.paperVersion !== topic.academicPaper?.version
+    || survey.reportVersion !== report.version
+    || (topic.academicPaper ? !hash(survey.paperVersion) || survey.paperVersion !== topic.academicPaper.version : survey.paperVersion !== undefined)
     || !text(survey.thesis) || !text(survey.reviewedAt) || !Array.isArray(survey.routes) || !survey.routes.length
     || !survey.update || !text(survey.update.summary) || !Array.isArray(survey.update.evidence)
     || !strings(survey.update.nextGapIds)) return;
+  if (survey.candidateBaseline) {
+    const baseline = survey.candidateBaseline;
+    const available = new Set(topic.entries.map(item => item.workId));
+    if (!strings(baseline) || baseline.length !== new Set(baseline).size
+      || !baseline.every(id => /^github:vllm-project\/(?:vllm|vllm-ascend)#[1-9][0-9]*$/.test(id) && available.has(id))) return;
+  }
   const sources = new Set(report.references.map((item) => item.id));
   const evidence = new Map((report.evidenceDetails ?? []).map((item) => [item.id, item]));
   const gaps = new Map(report.gaps.map((item) => [item.id, item]));
@@ -47,7 +73,9 @@ export function validatedSurvey(topic: Topic): TopicSurvey | undefined {
   for (const route of survey.routes) {
     if (!route || !text(route.id) || !/^[a-z0-9][a-z0-9-]*$/.test(route.id) || routeIds.has(route.id)
       || ![route.title, route.problem, route.assessment, route.limitation].every(text)
-      || !strings(route.mechanism) || !route.mechanism.length || !strings(route.gapIds) || !linksValid(route)) return;
+      || !strings(route.mechanism) || !route.mechanism.length || !strings(route.gapIds) || !linksValid(route)
+      || (route.subcategories !== undefined && !validSubcategories(route.subcategories))
+      || (route.examples !== undefined && (!validExample(route.examples?.ascend) || !validExample(route.examples?.gpu)))) return;
     routeIds.add(route.id);
   }
   if (!survey.update.evidence.every((item) => item && text(item.title) && text(item.change) && linksValid(item))

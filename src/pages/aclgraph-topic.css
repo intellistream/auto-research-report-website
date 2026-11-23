@@ -1,55 +1,122 @@
 .acl-topic {
-  max-width: 72rem;
+  /* Grid children with auto inline margins otherwise shrink to the paper iframe's intrinsic width. */
+  width: 100%;
+  max-width: 74rem;
   min-width: 0;
+  box-sizing: border-box;
   margin-inline: auto;
-  color: #1c352a;
+  color: var(--ink-primary);
 }
+
 .acl-topic-header {
-  margin: 1rem 0 0;
-  padding: clamp(1.1rem, 4vw, 2rem);
-  border: 1px solid #d4e3d9;
-  border-radius: .9rem .9rem 0 0;
-  background: linear-gradient(115deg, #e5f1e8, #f7fbf8 76%);
+  margin: 0.85rem 0 0;
+  padding: clamp(1.25rem, 3.2vw, 2.2rem);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background:
+    radial-gradient(circle at 90% 10%, var(--brand-soft), transparent 52%),
+    var(--bg-surface);
 }
+
 .acl-topic-header h1 {
-  margin: .24rem 0 .35rem;
-  font-size: clamp(1.9rem, 5vw, 3rem);
+  margin: 0.3rem 0 0.45rem;
+  font-size: clamp(2rem, 4.5vw, 2.9rem);
+  font-weight: 800;
   line-height: 1.15;
 }
-.acl-topic-kicker, .acl-topic-subtitle { margin: 0; color: #466254; }
-.acl-topic-kicker { font-size: .82rem; font-weight: 700; }
-.acl-topic-subtitle { line-height: 1.6; }
+
+.acl-topic-kicker,
+.acl-topic-subtitle {
+  margin: 0;
+  color: var(--ink-secondary);
+}
+
+.acl-topic-kicker {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-soft);
+  color: var(--brand-primary);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.acl-topic-subtitle {
+  font-size: 15px;
+  line-height: 1.65;
+}
+
 .acl-topic-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: .25rem clamp(.1rem, 2.5vw, 1rem);
-  margin: 0 0 1.35rem;
-  padding: 0 clamp(.2rem, 2vw, 1.15rem);
-  border: 1px solid #d4e3d9;
+  gap: 0.35rem 0.6rem;
+  margin: 0 0 1.5rem;
+  padding: 0.45rem clamp(0.6rem, 2.2vw, 1.4rem);
+  border: 1px solid var(--border-default);
   border-top: 0;
-  border-radius: 0 0 .9rem .9rem;
-  background: #fff;
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  background: var(--bg-subtle);
+  box-shadow: var(--shadow-xs);
 }
+
 .acl-topic-nav a {
-  padding: .75rem clamp(.45rem, 2vw, .85rem);
-  border-bottom: 3px solid transparent;
-  color: #466254;
-  font-size: .9rem;
-  font-weight: 600;
-  text-decoration: none;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-sm);
+  color: var(--ink-secondary) !important;
+  font-size: 0.9rem;
+  font-weight: 650;
+  text-decoration: none !important;
   white-space: nowrap;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
-.acl-topic-nav a:hover, .acl-topic-nav a[aria-current="page"] {
-  border-bottom-color: #368261;
-  color: #1b6247;
-  background: #f2f7f2;
+
+.acl-topic-nav a:hover {
+  background: var(--bg-hover);
+  color: var(--ink-primary) !important;
 }
-.acl-topic-nav a:focus-visible, .acl-topic-card-sections a:focus-visible {
-  outline: 2px solid #276749;
-  outline-offset: -2px;
+
+.acl-topic-nav a[aria-current="page"] {
+  background: var(--bg-surface);
+  color: var(--brand-primary) !important;
+  font-weight: 750;
+  box-shadow: var(--shadow-xs);
 }
-.acl-topic-card-sections { display: flex; flex-wrap: wrap; gap: .45rem .9rem; margin-top: 1rem; font-size: .84rem; }
-.acl-topic .topic-heading h2 { font-size: clamp(1.35rem, 3vw, 1.9rem); margin: .4rem 0; }
-.acl-topic .survey-title-row h2 { margin: 0; font-size: clamp(1.35rem, 3vw, 1.9rem); line-height: 1.5; }
-.acl-topic .survey-title-row { flex-wrap: wrap; }
-.acl-topic .survey-downloads { flex-wrap: wrap; }
+
+.acl-topic-card-sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 1rem;
+  font-size: 0.82rem;
+}
+
+.acl-topic-card-sections a {
+  padding: 5px 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background: var(--bg-subtle);
+  color: var(--ink-primary) !important;
+  font-weight: 650;
+  text-decoration: none !important;
+}
+
+.acl-topic-card-sections a:hover {
+  border-color: var(--border-accent);
+  background: var(--brand-soft);
+  color: var(--brand-primary) !important;
+}
+
+.acl-topic .topic-heading h2,
+.acl-topic .survey-title-row h2 {
+  margin: 0.3rem 0;
+  font-size: clamp(1.35rem, 2.8vw, 1.85rem);
+  font-weight: 780;
+  line-height: 1.4;
+}
+
+.acl-topic .survey-title-row,
+.acl-topic .survey-downloads {
+  flex-wrap: wrap;
+}

@@ -1,19 +1,23 @@
 .chapter-intro {
-  margin: 0 0 16px;
-  color: #244e3e;
+  margin: 0.75rem 0;
+  line-height: 1.72;
   font-size: 14px;
-  line-height: 1.8;
-  overflow-wrap: anywhere;
 }
-.chapter-intro-text { white-space: pre-wrap; }
-.chapter-intro a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  text-decoration-thickness: 1px;
+
+.chapter-intro-text {
+  color: var(--ink-primary) !important;
+  text-decoration: none !important;
+  transition: color 140ms ease;
 }
-.chapter-intro a:hover { text-decoration-thickness: 2px; }
-.chapter-intro a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 2px; }
-.chapter-intro-missing { margin: 0 0 14px; font-size: 12px; line-height: 1.8; }
-.map-v2-workbench .chapter-intro { color: #244e3e; }
-.map-v2-workbench .chapter-intro a { color: inherit; }
+
+.chapter-intro-text:hover {
+  color: var(--brand-primary) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+}
+
+.chapter-intro-missing {
+  margin: 0;
+  color: var(--ink-tertiary);
+  font-size: 13px;
+}

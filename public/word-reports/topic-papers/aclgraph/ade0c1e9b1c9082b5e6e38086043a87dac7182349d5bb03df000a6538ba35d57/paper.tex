@@ -1,0 +1,1408 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+  11pt,
+  UTF8]{ctexart}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={面向大语言模型推理的执行图优化研究综述},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[a4paper,margin=2.3cm]{geometry}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{booktabs,longtable,array,caption,xurl,etoolbox,setspace,needspace}
+\setstretch{1.25}
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.15em}
+\setlength{\emergencystretch}{3em}
+\AtBeginEnvironment{longtable}{\fontsize{9}{12}\selectfont\setlength{\tabcolsep}{3pt}}
+\AtBeginEnvironment{CSLReferences}{\fontsize{9.5}{12}\selectfont}
+\AtBeginDocument{\renewcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth-\csllabelwidth-.5em}{#1}\break}}
+\captionsetup{font=small,labelfont=bf,labelsep=quad}
+\ctexset{section={format=\large\bfseries,beforeskip=1.3em,afterskip=.6em},subsection={format=\normalsize\bfseries,beforeskip=1em,afterskip=.4em}}
+\urlstyle{same}
+\hypersetup{hidelinks,pdfauthor={},pdftitle={面向大语言模型推理的执行图优化研究综述}}
+\pretocmd{\section}{\Needspace{7\baselineskip}}{}{}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newenvironment{CSLReferences}[2] % #1 hanging-ident, #2 entry spacing
+ {% don't indent paragraphs
+  \setlength{\parindent}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1 \everypar{\setlength{\hangindent}{\cslhangindent}}\ignorespaces\fi
+  % set entry spacing
+  \ifnum #2 > 0
+  \setlength{\parskip}{#2\baselineskip}
+  \fi
+ }%
+ {}
+\usepackage{calc}
+\newcommand{\CSLBlock}[1]{#1\hfill\break}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{#1}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{#1}\break}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
+
+\title{面向大语言模型推理的执行图优化研究综述}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{A Survey of Execution Graph Optimization for Large Language
+Model Inference}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\hypertarget{abstract}{%
+\subsection*{摘要}\label{abstract}}
+\addcontentsline{toc}{subsection}{摘要}
+
+大语言模型推理反复执行相近计算，同时不断改变请求成员、上下文长度、注意力可见性和输入地址。执行图把可复用的任务组织提前完成，但减少提交并不自动消除状态维护、资源竞争或首次准备。本文以面向昇腾的ACLGraph应用为中心，按主要改变的执行决策，将相关方法划分为执行图构建与低开销提交、动态负载适配与图复用、并行执行与资源协调、图实例准备缓存与恢复四类十二个子类。文章围绕各类方法需要掌握的信息、转移的成本及成立条件组织比较，并区分直接图机制、编译与运行时支撑、服务负载背景，以及固定版本的工程接口证据。对代表研究的评测设置和数值复核表明，图模式开关、后端替换与整系统对照具有不同归因范围；提高覆盖、共享计划和提前恢复均需在同一计时及资源窗口内衡量净收益。面向昇腾，GPU机制的借鉴应落实到目标运行时的更新合同、缓冲区寿命和依赖维护。本文据此提出可被后续同栈比较检验的问题，不将尚缺实验直接认定为已经确认的研究空白。
+
+\textbf{关键词：} 大语言模型推理；ACLGraph；CUDA
+Graph；动态状态；任务调度；图恢复
+
+\hypertarget{section-1}{%
+\section{1 引言}\label{section-1}}
+
+\hypertarget{section-1-1}{%
+\subsection{1.1 重复计算中的变化与成本}\label{section-1-1}}
+
+执行图优化面对的是重复计算与持续变化并存的服务。自回归解码反复调用相似算子，但每轮参与的请求、有效token和KV历史可以不同。Orca用迭代级调度容纳请求进度差异，PagedAttention用块表维护逻辑位置与物理存储的对应关系。Sarathi-Serve的分块预填充又使同一轮包含不同角色和长度的工作。因而，模型相同、token总数相同，都不足以确定本轮执行需要的全部状态。{[}\protect\hyperlink{ref-yu2022orca}{1}{]}
+{[}\protect\hyperlink{ref-kwon2023vllm}{2}{]}
+{[}\protect\hyperlink{ref-agrawal2024sarathi}{3}{]}
+
+执行图通过提前准备任务、参数绑定和依赖，减少后续反复完成的主机工作。复用的同时，系统仍需提供当前输入、更新地址目录，并使消费者在正确时刻读取这些状态。xLLM的部分图、参数化和固定偏移内存池说明，这些责任可以由多个层次共同承担。图覆盖更大范围，既可能减少边界提交，也可能增加状态维护与常驻空间。本文据此把问题分成计划怎样形成、变化怎样适配、工作怎样并行以及实例怎样再次可用四组决策。{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+{[}\protect\hyperlink{ref-kwon2023vllm}{2}{]}
+
+\hypertarget{section-1-2}{%
+\subsection{1.2 综述问题与阅读路径}\label{section-1-2}}
+
+执行图专题需要从广义推理优化中识别出直接相关的接口问题。已有综述分别按照数据、模型与系统层次，实例与集群服务层次，以及Roofline约束整理领域。这些视角能够定位计算、存储和服务瓶颈，但不能独立说明一个任务计划如何被捕获、更新或恢复。本文采用它们作为范围与文献追索入口，进而比较执行图研究实际改变的对象。量化、模型压缩和通用请求调度仅在影响执行接口时进入讨论。{[}\protect\hyperlink{ref-zhou2024survey}{5}{]}
+{[}\protect\hyperlink{ref-zhen2025titans}{6}{]}
+{[}\protect\hyperlink{ref-yuan2024unveiled}{7}{]}
+
+本文围绕四类方法的联系组织已有研究，并对每条路线保留运行条件和证据范围。第2章定义执行对象与分类判据，第3至6章比较构建、动态适配、资源协调和实例管理。第7章把GPU机制与昇腾直接证据分开，结合原论文设置、消融及负面结果判断收益。第8章在已有方案之后讨论仍需核验的问题，第9章给出结论。这样的组织使新文献能够改变相应比较轴及其适用条件，而不必以系统名或最大加速比追加成一串条目。
+
+\hypertarget{section-2}{%
+\section{2 研究对象与分类体系}\label{section-2}}
+
+\hypertarget{section-2-1}{%
+\subsection{2.1 执行图及其基本过程}\label{section-2-1}}
+
+\hypertarget{section-2-1-1}{%
+\subsubsection{2.1.1 编译表示与运行时任务}\label{section-2-1-1}}
+
+本文关注运行时怎样组织和提交具体任务。基本模型记为依赖图\(G=(V,E)\)：节点可表示计算、拷贝或同步，边约束执行关系；参数、地址与资源共同决定任务能否执行。CUDA规范中的图模板及可执行实例属于这一层，基础依赖图示不排除特定版本提供条件节点等扩展。{[}\protect\hyperlink{ref-nvidia2026cuda1303}{8}{]}
+
+编译器表示承担程序提取、变换与代码生成等工作。PyTorch
+2从Python中抽取FX图并用守卫条件判断编译缓存能否复用，Relax则连接计算图、张量程序与外部库中的符号关系。Kwon等人的Nimble再通过预运行记录GPU任务和预留内存，说明编译产生的计算还需要形成具体执行计划。因此，编译缓存有效、代码生成更快和运行时提交减少应分别分析，整套编译系统的收益也不能只归给图回放。{[}\protect\hyperlink{ref-ansel2024pytorch2}{9}{]}
+{[}\protect\hyperlink{ref-lai2025relax}{10}{]}
+{[}\protect\hyperlink{ref-kwon2020nimble}{11}{]}
+
+\hypertarget{section-2-1-2}{%
+\subsubsection{2.1.2 捕获更新回放与恢复}\label{section-2-1-2}}
+
+捕获、更新和回放操作的是准备好的任务组织，每次仍需提供当前数据。CUDA将图定义、实例化与执行区分；CANN
+9.0.0概览则以流任务捕获、运行实例执行和销毁说明基本流程。本文按这些功能解释生命周期，不要求两平台具有一一对应的调用序列。Nimble载入新输入后回放已记录任务，也说明复用执行计划并非复用旧输出。{[}\protect\hyperlink{ref-nvidia2026cuda1303}{8}{]}
+{[}\protect\hyperlink{ref-cann900overview}{12}{]}
+{[}\protect\hyperlink{ref-kwon2020nimble}{11}{]}
+
+变化能否沿用同一实例，取决于接口允许更新哪些对象以及访问顺序。CANN
+9.1.0任务组更新要求任务数量和类型对应，并限制并发更新，不能由存在更新接口推导出任意拓扑变化都可处理。跨进程恢复还会改变地址和代码环境，Medusa与Foundry因此分别修补引用或重现绑定条件。下文将每轮状态更新与跨进程恢复分章比较，避免混合两个时间尺度。{[}\protect\hyperlink{ref-cann910update}{13}{]}
+{[}\protect\hyperlink{ref-zeng2025medusa}{14}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+
+\hypertarget{section-2-2}{%
+\subsection{2.2 分类依据与层次}\label{section-2-2}}
+
+\hypertarget{section-2-2-1}{%
+\subsubsection{2.2.1 四类决策与十二个子类}\label{section-2-2-1}}
+
+本文按方法主要改变的执行决策，综合形成四类、十二个子类，具体判据见表1。第一类依次讨论捕获区域与兼容性、重复提交计划的形成、合法候选中的性能选择；第二类区分规格变化、执行路径变化和所选结构内的状态更新。例如xLLM按输入形状选择模式，GraCE则实测候选收益，两种选择分别回答适配性与经济性问题。FlashInfer的配置选图和元数据准备也可分别进入对应子类。{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+
+第三类区分依赖推进、任务分配、资源共置与流水三个决策。MPK的设备端分派与NanoFlow的子批次流水改变不同的执行安排，任务更细或设备更多本身不单独构成类别。第四类区分实例创建与缓存、跨进程绑定恢复、多个规格共享准备；Foundry的环境恢复和模板去重因而在不同问题下讨论。这套分类用于组织机制和证据，同一系统可贡献多项机制，平台、粒度与验证负载则作为横向属性，不把系统名称当成互斥类别。{[}\protect\hyperlink{ref-cheng2026mpk}{18}{]}
+{[}\protect\hyperlink{ref-zhu2025nanoflow}{19}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+
+\textbf{表1　按主要执行决策划分的四类十二个子类}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.33}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.33}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.33}}@{}}
+\toprule
+大类 & 子类及其决定的问题 & 代表机制 \\
+\midrule
+\endhead
+构建与提交 & 3.1 捕获区域与兼容性：哪些工作能够入图 &
+xLLM部分图；GraCE兼容性变换；Relax存储准备
+{[}\protect\hyperlink{ref-liu2025xllm}{4},\protect\hyperlink{ref-lai2025relax}{10},\protect\hyperlink{ref-ghosh2026grace}{16}{]} \\
+构建与提交 & 3.2 执行计划：从哪里获得可重复提交的计划 & Nimble
+2020预运行；Taskflow显式构图与捕获
+{[}\protect\hyperlink{ref-kwon2020nimble}{11},\protect\hyperlink{ref-huang2022taskflow}{20}{]} \\
+构建与提交 & 3.3 性能选择：合法方案中采用哪个版本 &
+GraCE逐区域实测候选模式
+{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]} \\
+动态适配 & 4.1 形状专门化：怎样覆盖输入规格 &
+FlashInfer选配置；Hydragen不规则后缀；Nimble 2021动态编译
+{[}\protect\hyperlink{ref-ye2025flashinfer}{17},\protect\hyperlink{ref-juravsky2024hydragen}{21},\protect\hyperlink{ref-shen2021nimble}{22}{]} \\
+动态适配 & 4.2 路径适配：怎样表达变化的执行结构 &
+Cortex线性化；ACRoBat批处理；Sequoia验证树
+{[}\protect\hyperlink{ref-fegade2021cortex}{23}--\protect\hyperlink{ref-chen2024sequoia}{25}{]} \\
+动态适配 & 4.3 回放状态：已有方案怎样读取本轮值 &
+xLLM固定偏移；GraCE指针入口；FlashInfer计划共享
+{[}\protect\hyperlink{ref-liu2025xllm}{4},\protect\hyperlink{ref-ghosh2026grace}{16},\protect\hyperlink{ref-ye2025flashinfer}{17}{]} \\
+并行协调 & 5.1 并行计划：哪些工作按何种顺序推进 &
+IOS阶段选择；Opara发射顺序；AutoGraph并行改写
+{[}\protect\hyperlink{ref-ding2021ios}{26}--\protect\hyperlink{ref-zhao2023autograph}{28}{]} \\
+并行协调 & 5.2 任务分配：由哪个执行单元执行 &
+Rammer静态分派；MPK事件驱动；Mustard设备调度
+{[}\protect\hyperlink{ref-cheng2026mpk}{18},\protect\hyperlink{ref-ma2020rammer}{29},\protect\hyperlink{ref-turimbetov2025mustard}{30}{]} \\
+并行协调 & 5.3 资源共置：并发工作怎样共享资源 &
+NanoFlow子批次流水；POD线程块共置
+{[}\protect\hyperlink{ref-zhu2025nanoflow}{19},\protect\hyperlink{ref-kamath2025pod}{31}{]} \\
+准备与恢复 & 6.1 创建与缓存：何时生成、保留实例 &
+Hybrid按需捕获与缓存；xLLM图族
+{[}\protect\hyperlink{ref-liu2025xllm}{4},\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]} \\
+准备与恢复 & 6.2 地址与绑定：新进程怎样恢复有效图 &
+Medusa地址重绑定；Foundry重现地址布局
+{[}\protect\hyperlink{ref-zeng2025medusa}{14},\protect\hyperlink{ref-liu2026foundry}{15}{]} \\
+准备与恢复 & 6.3 共享与去重：怎样减少重复准备 &
+Foundry模板共享；PhoenixOS与DEEPSERVE环境准备支撑
+{[}\protect\hyperlink{ref-liu2026foundry}{15},\protect\hyperlink{ref-wei2025phoenixos}{33},\protect\hyperlink{ref-hu2025deepserve}{34}{]} \\
+\bottomrule
+\end{longtable}
+
+\hypertarget{section-2-2-2}{%
+\subsubsection{2.2.2 贯穿示例与交叉属性}\label{section-2-2-2}}
+
+图1设置两个相邻解码轮次：活动请求由3变5，已有请求的KV长度增长，输入张量也可能位于新地址。3和5是解释决策的概念设定，不对应实测模型、设备或时延。Orca的迭代级成员调度和PagedAttention的KV映射支持这些变化类型的存在，但不验证这组特定配置。{[}\protect\hyperlink{ref-yu2022orca}{1}{]}
+{[}\protect\hyperlink{ref-kwon2023vllm}{2}{]}
+
+在该例中，第一类决定哪些模块入图，第二类判断是否换图并准备当前长度、目录或地址。第三类安排就绪任务，第四类处理缺失实例的准备以及重启后的复用；恢复分支并非每轮必经过程。MPK的设备端任务分配与Foundry的跨进程物化发生于不同阶段，说明平台、任务粒度和决策时机需要交叉比较。图中箭头只表达这些关系，不代表固定API顺序、耗时比例或已经成立的服务收益。{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+{[}\protect\hyperlink{ref-cheng2026mpk}{18}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+
+\begin{figure}
+\centering
+\includegraphics{figures/execution-flow.png}
+\caption{图1　四类决策在相邻解码轮次中的关系。请求数3→5为概念示例；虚线为首次准备或恢复分支，不表示实测耗时或固定API顺序。}
+\end{figure}
+
+\hypertarget{section-2-3}{%
+\subsection{2.3 文献范围与比较口径}\label{section-2-3}}
+
+\hypertarget{section-2-3-1}{%
+\subsubsection{2.3.1 文献筛选与证据角色}\label{section-2-3-1}}
+
+本文以截至2026年11月23日取得的材料开展问题导向筛选。直接研究图构建、回放、适配、调度或准备机制的论文构成核心，沿其相关工作检查编译、运行时与恢复支撑，再用固定版本的官方材料核对接口。Yuan等人的广义推理分类和Zhen等人的实例层、集群层分类用于检查相邻主题的边界，技术判断仍回到原始研究。{[}\protect\hyperlink{ref-yuan2024unveiled}{7}{]}
+{[}\protect\hyperlink{ref-zhen2025titans}{6}{]}
+
+纳入材料的用途决定可以作出的判断。支撑工作提供替代机制或成立条件，背景工作交代服务负载，不能把其整体收益改记为图机制收益。阅读针对方法、评测和版本相关段落展开，收集到全文不等于逐页精读；全文未得的条目只保留为追索线索。既有综述的引用列表也不自动成为本文已读集合，因此本文不声称完成穷尽检索或获得全领域召回率。
+
+\hypertarget{section-2-3-2}{%
+\subsubsection{2.3.2 计时边界与收益摊销}\label{section-2-3-2}}
+
+收益摊销应在相同模型、配置与观察窗口内计算。设新增一次性准备为\(T_p\)，即时路径与图路径的平均端到端单轮时间为\(t_e\)、\(t_g\)，重复\(N\)轮时，图路径有总时间收益需满足\(T_p+N t_g<N t_e\)。当\(T_p\geq0\)且\(t_e>t_g\)，才有\(N>T_p/(t_e-t_g)\)的普通摊销解释；该式是本文的简化记账，不是实测预测。Nimble的预运行与GraCE的慢路径测量表明，准备支付在哪里也属于比较条件。{[}\protect\hyperlink{ref-kwon2020nimble}{11}{]}
+{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+
+\(t_g\)应包含选择、数据与参数维护、提交、设备执行及同步，重叠阶段按关键路径计量。Medusa的加载缩短同时包含多阶段物化与重叠，不能将内部阶段再次相加；Hybrid的暖缓存和Foundry的已有归档也不能替代空缓存准备成本。动态负载下，未命中、后台准备、排队与干扰会改变每轮时间，应结合请求轨迹另报。后文因此保留冷热状态、原始计时范围和退化情形，区分系统整体收益与图机制单项收益。{[}\protect\hyperlink{ref-zeng2025medusa}{14}{]}
+{[}\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+
+\hypertarget{section-3}{%
+\section{3 执行图构建与低开销提交}\label{section-3}}
+
+\hypertarget{section-3-1}{%
+\subsection{3.1 捕获区域选择与兼容性改造}\label{section-3-1}}
+
+\hypertarget{section-3-1-1}{%
+\subsubsection{3.1.1 区域切分与不兼容操作}\label{section-3-1-1}}
+
+区域切分需要区分程序提取的边界与运行时捕获的边界。TorchDynamo在Python执行过程中提取可编译区域，遇到无法安全处理的操作时形成图中断，并通过原字节码与后续编译区域衔接。已经提取出的区域还要接受后端检查：GraCE所扩展的Inductor会根据CPU标量、CPU--GPU复制及输入修改等信息判断CUDA
+Graph资格。因此，程序已进入编译器，并不表示其中所有操作已经适合捕获；FX图数量也不足以直接推算实际回放次数。{[}\protect\hyperlink{ref-ansel2024pytorch2}{9}{]}
+{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+
+切分的价值在于保留动态决策，同时扩大决策之间可复用的计算。GraCE针对导致捕获失败的具体操作继续改造区域，而xLLM在Ascend上结合部分图、维度参数化与图外执行，承接不同模块的动态程度。两者共同说明，区域大小取决于操作接口和实现条件，不能只按模型层次或节点数量确定。xLLM将某些复杂模块留在图外，是该方案所选的执行边界；评价改造是否有效，还需考察扩大区域之后增加的状态准备与边界交互。{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+
+\hypertarget{section-3-1-2}{%
+\subsubsection{3.1.2 代码改造与存储准备}\label{section-3-1-2}}
+
+兼容性改造要同时处理操作的位置、参数形式和存储准备。对于CPU标量或不兼容复制阻断捕获的区域，GraCE将标量转为设备tensor，或把复制移到候选区域之前，再重新生成相应IR。xLLM则改造依赖主机即时形状计算的定制算子，使尺寸和循环范围等信息经显式参数进入设备执行。这些方法改变的是动态信息进入区域的方式，而不是取消信息准备；移到图外的操作及其结果仍要先于消费者完成。{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+
+存储规划决定改造后的区域能否获得稳定的执行条件。Relax利用符号等价与活跃期分析复用存储，将低层workspace提升到图层管理，并在已知尺寸上界时提前分配容量，随后提取满足CUDA
+Graph条件的子图。xLLM的共享HBM池以固定偏移管理内部tensor，外部输入输出则在图启动前后复制。前者借助编译信息安排存储，后者以受控布局承接外部地址变化；扩大覆盖范围时，两者都需要把预留容量或复制工作纳入成本，而不能仅比较捕获成功的节点数。{[}\protect\hyperlink{ref-lai2025relax}{10}{]}
+{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+
+\hypertarget{section-3-2}{%
+\subsection{3.2 执行计划构建与重复提交}\label{section-3-2}}
+
+\hypertarget{section-3-2-1}{%
+\subsubsection{3.2.1 预运行记录与固定计划}\label{section-3-2-1}}
+
+固定计划把任务发现、流映射和存储安排从重复执行中前移。Kwon等的Nimble以相同计算集合和输入形状为前提，使用虚拟输入预运行模型，截获GPU任务及内存请求，并保留后续执行所需的内存。运行时将新输入写入既定存储，再重复提交记录下来的任务。这里保存的是设备任务轨迹及其执行条件，区别于仅记录算子来构建供优化使用的计算图。{[}\protect\hyperlink{ref-kwon2020nimble}{11}{]}
+
+计划也可以由应用直接描述，再与既有库调用的捕获结合。Taskflow的cudaFlow允许显式指定内核、复制及依赖；对于内部内核不可见、仅暴露流接口的库，capturer通过流与事件记录其设备工作。相较于从模型轨迹自动获得计划，这种入口保留了应用对任务和设备存储的直接控制，也要求应用承担相应内存与上下文管理。两条路线都复用已经完成的准备，其适用性仍取决于计算集合、地址及相关配置持续有效，不能仅凭输入token总数相同就判断可重用同一计划。{[}\protect\hyperlink{ref-huang2022taskflow}{20}{]}
+{[}\protect\hyperlink{ref-kwon2020nimble}{11}{]}
+
+\hypertarget{section-3-2-2}{%
+\subsubsection{3.2.2 编译程序与运行时子图复用边界}\label{section-3-2-2}}
+
+编译程序与运行时子图的复用保护不同假设。Shen等2021年的Nimble以未知维度、形状函数和虚拟机指令承接动态执行，复用的是能够计算形状、分配存储和分派内核的程序，与前述Kwon等的固定任务轨迹不同。与保留VM的这一路线不同，DISC只针对静态rank的动态形状，将形状计算、缓冲分配与发射流程编译为主机控制代码。编译避免了这部分流程的VM解释，但形状求值、存储管理和发射仍在运行时执行。{[}\protect\hyperlink{ref-zhu2021disc}{35}{]}
+PyTorch
+2则用guard重查编译时采用的动态属性，决定是否重用缓存产物。这些检查服务于程序专化；命中编译缓存之后，后端仍需维持所选执行方式依赖的状态与存储条件。{[}\protect\hyperlink{ref-shen2021nimble}{22}{]}
+{[}\protect\hyperlink{ref-ansel2024pytorch2}{9}{]}
+
+程序复用和子图回放可以在同一执行流程中组合。Relax在内存规划后提取合格子图，第一次运行时捕获，随后回放，而整个模块仍由图层调用、虚拟机指令和设备代码共同组成。Taskflow同样允许外层条件任务组织CPU与GPU子图间的控制，设备子图执行并不代替全部程序决策。因而，分析动态程序时应分别说明哪些代码被重用、哪些条件仍在运行时判断，以及哪些设备任务被捕获；一个层次的命中不能替代另一个层次的有效性判断。{[}\protect\hyperlink{ref-lai2025relax}{10}{]}
+{[}\protect\hyperlink{ref-huang2022taskflow}{20}{]}
+
+\hypertarget{section-3-3}{%
+\subsection{3.3 图模式性能选择}\label{section-3-3}}
+
+\hypertarget{section-3-3-1}{%
+\subsubsection{3.3.1 提交收益与状态维护成本}\label{section-3-3-1}}
+
+减少提交次数是否有利，取决于新增维护工作能否被省去的开销覆盖。Kwon等的Nimble保留预运行地址后仍需写入新输入，xLLM的固定偏移池也保留启动前输入复制和结束后输出复制。GraCE进一步指出，向静态placeholder复制数据以及重建CPU输出对象都可能侵蚀回放收益。因此，地址稳定只是复用的执行条件之一，评价时还要计入使当前数据到达这些地址的工作。{[}\protect\hyperlink{ref-kwon2020nimble}{11}{]}
+{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+
+减少数据副本又会引入另一种更新成本。GraCE的参数间接访问让内核经固定入口读取当前指针，但小对象的指针经PCIe更新时，可能比设备内复制数据更贵。在其H100
+NVL上的EOS实验中，以无图速度为1，普通图模式为0.71×，GraCE为1.00×，展示了捕获合法却不值得启用的具体情形。这是指定HPC工作负载的对照，其分析意义在于要求把对象大小、传输路径与实际维护成本带入候选比较，而不是为所有图预设同一种最快更新方式。{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+
+\hypertarget{section-3-3-2}{%
+\subsubsection{3.3.2 逐区域选择与准备摊销}\label{section-3-3-2}}
+
+性能选择应针对目标区域和硬件比较候选，并区分准备与执行两个时间窗口。GraCE在编译阶段运行无图、普通图、带参数间接访问的图等至多三个候选，缓存最快模块，使同一应用中的不同区域能够采用不同方式。候选测量也增加准备成本：其工作负载集合的编译时间平均为PyTorch2-CG的2.21×，包含捕获及相关代码变换与测量。这一慢路径成本需要由后续执行摊销，不能加到每轮回放，也不能从稳态速度中视为已经消失。{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+
+摊销成立还要求准备的计划能够持续使用。Kwon等的Nimble在固定计算与形状下重复执行；Hybrid则在匹配图命中时回放，未命中时先以JIT执行并异步捕获，因而准备可能随规格变化再次发生。若在相同执行条件和未变化的负载下比较，只有重复执行累计节省的时间超过新增准备成本，图方案才有总时间收益；失效或重捕获会改变这笔账。Hybrid的暖启动缓存实验也说明，已有图命中的时延和首次获得该图的代价应分别记录，具体缓存保留策略还需结合实际命中与失效过程判断。{[}\protect\hyperlink{ref-kwon2020nimble}{11}{]}
+{[}\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]}
+
+\hypertarget{section-4}{%
+\section{4 动态负载适配与图复用}\label{section-4}}
+
+\hypertarget{section-4-1}{%
+\subsection{4.1 形状专门化与图变体选择}\label{section-4-1}}
+
+\hypertarget{section-4-1-1}{%
+\subsubsection{4.1.1 形状专化分桶与变体覆盖}\label{section-4-1-1}}
+
+形状覆盖的关键是确定哪些变化需要另一种执行实现，哪些变化可以留给当前实现处理。FlashInfer按平均query长度、KV组织等配置选择编译和捕获的实现，而选定实现后，CPU
+plan仍根据当前长度安排工作。图选择与逐步计划因而处在不同尺度，一组图并不意味着每个实际长度都要重新捕获。{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+xLLM则结合局部图和维度参数化，把部分动态尺寸作为显式参数传入，并允许复杂模块保留eager执行。两者扩大覆盖范围的方式不同：前者保留配置选择与逐步规划的分工，后者调整图区域及其参数接口。{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+
+长度增长是否使图失效，还取决于图内kernel能够表达什么。Hydragen的suffix实现允许序列长度改变并保持CUDA
+graphs兼容，说明不能仅按实际长度变化推断换图频率；其结论受所用kernel和布局约束。{[}\protect\hyperlink{ref-juravsky2024hydragen}{21}{]}
+在编译程序层，Shen Nimble以Any和shape
+function处理未知尺寸，区分数据无关、数据相关及上界处理，其复用对象也不同于已捕获的任务实例。{[}\protect\hyperlink{ref-shen2021nimble}{22}{]}
+因此，比较专化路线应同时记录可覆盖的配置、运行期检查和规划，以及编译捕获与区域切换成本。图的数量与覆盖比例只有连同这些成本解释，才能说明专化是否值得。
+
+\hypertarget{section-4-1-2}{%
+\subsubsection{4.1.2 不规则表示填充与内存布局}\label{section-4-1-2}}
+
+不规则请求可以通过代码和布局表达，统一填充只是其中一种取舍。CoRa显式表示ragged循环，允许循环padding与存储padding分别指定，以辅助索引换取较少无效计算；其CPU
+prelude和正确存储分配仍属于准备责任。{[}\protect\hyperlink{ref-fegade2022cora}{36}{]}
+KV管理也有类似的表示选择：PagedAttention通过块表把逻辑位置映射到分散物理块，vAttention则预留连续虚拟区域，再按当前长度保证物理页就绪。{[}\protect\hyperlink{ref-kwon2023vllm}{2}{]}
+{[}\protect\hyperlink{ref-prabhu2025vattention}{37}{]}
+前者把目录带入算子访问，后者把连续性保留在虚拟地址层，二者都没有免除映射维护和数据就绪要求。因此，物理布局、可供kernel读取的索引和图规格需要分别描述。
+
+多LoRA进一步说明，总token数不足以刻画一次执行的配置。S-LoRA用统一分页池容纳不同rank的权重及不同长度的KV，并通过异构kernel减少padding；Punica先合批主干计算，再按适配器分段完成低秩更新。{[}\protect\hyperlink{ref-sheng2024slora}{38}{]}
+{[}\protect\hyperlink{ref-chen2024punica}{39}{]}
+这里的rank是低秩维度，适配器身份决定读取哪些权重，即使长度相同也存在不同的参数状态。相应成本包括分组、索引、权重驻留或加载以及低秩计算，不能只记入长度桶的命中率。这些工作提供的是异构状态和布局的对照，并未据此证明任意CUDA或ACL
+Graph更新协议已成立。
+
+\hypertarget{section-4-2}{%
+\subsection{4.2 动态路径与执行结构适配}\label{section-4-2}}
+
+\hypertarget{section-4-2-1}{%
+\subsubsection{4.2.1 输入结构控制与中间值控制}\label{section-4-2-1}}
+
+动态控制能够前移多少，取决于分支所需信息何时可知。Cortex利用控制仅依赖输入数据结构的前提，先线性化结构，组织叶子和内部批次及分支分区，再生成循环和融合代码。输入结构已知后，部分运行路径便可预先组织，但这一前提不覆盖中间tensor值决定的任意分支。{[}\protect\hyperlink{ref-fegade2021cortex}{23}{]}
+ACRoBat把静态分析与AOT工作前移，同时在运行时惰性形成DFG；遇到tensor-dependent分支时，程序实例通过fiber让出，待所需批次执行后恢复。{[}\protect\hyperlink{ref-fegade2024acrobat}{24}{]}
+二者的区别在于依赖何种信息组织后续计算，因而分别承担线性化与布局准备，或动态建图、暂停恢复和合批成本。
+
+区域表示还需要区分整个程序的表达能力与区域内部的优化条件。Relax的dataflow块是无副作用、无控制流的纯直线区域，而整体抽象支持符号形状与跨层调用，因此动态程序可以包含适用条件更窄的优化区域。{[}\protect\hyperlink{ref-lai2025relax}{10}{]}
+对图执行而言，应先确定控制决策所在位置，再确定可复用区域的输入输出及区域间接口，不能用语言支持动态控制替代具体图对象的控制流合同。Cortex与ACRoBat也表明，编译前移可以减少一部分运行期工作，却不必消除全部运行时组织。上述机制支持按信息依赖选择区域及准备方式；它们的整体编译收益不能直接解释为减少CUDA或ACL图提交的收益。
+
+\hypertarget{section-4-2-2}{%
+\subsubsection{4.2.2 验证树拓扑可见性与图选择}\label{section-4-2-2}}
+
+固定验证token数并不固定验证树的可见性关系。SpecInfer以拓扑感知mask隔离不同分支的KV，其主要扩张配置使用预设分支向量；EAGLE-2则在线扩张并选择top-m连通树，展平后按当轮祖先关系生成mask。{[}\protect\hyperlink{ref-miao2024specinfer}{40}{]}
+{[}\protect\hyperlink{ref-li2024eagle2}{41}{]}
+即使m不变，父子关系仍可变化，token验证树的边也不能直接当作设备任务图的依赖边。Sequoia在位置接受率假设下离线选择结构，并明确利用预定结构使用CUDA
+graphs。{[}\protect\hyperlink{ref-chen2024sequoia}{25}{]}
+这组对照揭示的是在线选择和mask准备，与离线求解及固定结构适应限制之间的取舍，并未证明固定树普遍更快。
+
+mask能否留作图内数据，还受表示能力及准备方式约束。FlexAttention将mask和score函数与块目录结合，预计算BlockMask并区分完整块和部分块；编译时准备不能据此解释为频繁动态mask已无构造成本。{[}\protect\hyperlink{ref-dong2025flexattention}{42}{]}
+FlashMask以受连续区间前提约束的四向量表示mask，不能表示任意可见性关系，其推理附录也只支持所列前向kernel比较。{[}\protect\hyperlink{ref-wang2025flashmask}{43}{]}
+因而，判断树变化是否影响图计划，需要检查mask缓冲、kernel配置及更新接口是否容纳新关系，同时计入选择、构造、传输与消费成本。mask变化本身不足以推出必须重捕获，也不足以保证沿同一张图无成本执行。
+
+\hypertarget{section-4-3}{%
+\subsection{4.3 回放状态与地址更新}\label{section-4-3}}
+
+\hypertarget{section-4-3-1}{%
+\subsubsection{4.3.1 固定入口指针与物理地址}\label{section-4-3-1}}
+
+稳定图的输入绑定可以固定数据位置，也可以固定指针入口，两者承担不同维护成本。xLLM在共享HBM池中以固定偏移组织图内tensor，并在执行前后复制外部输入输出，以内部布局承接外部地址变化。{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+GraCE则让kernel通过稳定指针入口间接读取实际数据地址，将数据搬运转为指针更新及解引用。{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+间接层减少传输字节并不必然减少时间：GraCE指出，小对象的H2D指针更新可能比D2D数据复制更贵，因而逐图比较普通执行、普通图和间接图。复制与间接访问的选择需要结合对象大小、传输方向、链路和kernel适配成本，不能由两种异机系统的总加速比决定。
+
+虚拟地址稳定解决的是另一层连续性问题。vAttention为reqId预留虚拟区域，但仍须按当前长度映射物理页，并在请求完成后回收；稳定基址不意味着容量已经全部分配。{[}\protect\hyperlink{ref-prabhu2025vattention}{37}{]}
+因此，输入采用复制或指针入口后，物理映射与数据就绪责任仍然存在，两层机制也并非天然互斥。地址可复用还要求当前值、有效范围和寿命正确，不能只由地址数值不变证明并发读取正确。这里的对照定位了数据绑定与容量管理的责任，未将GraCE的kernel改写能力或vAttention的CUDA虚拟内存能力直接转作CANN已有能力。
+
+\hypertarget{section-4-3-2}{%
+\subsubsection{4.3.2 计划生成共享与失效频率}\label{section-4-3-2}}
+
+计划是否逐步生成、能被谁共享，以及什么变化触发传输，应分别决定维护成本。FlashInfer由CPU
+plan生成CTA队列和归约映射，再异步复制到设备workspace；配置匹配的层可以共享计划，图中捕获run而不捕获plan。{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+ChunkAttention在CPU维护prefix树并生成chunk及query区间context，由GPU缓存context；原文明示的lazy机制是在chunk填满、序列加入或完成等结构变化时才复制context。{[}\protect\hyperlink{ref-ye2024chunkattention}{44}{]}
+该事件条件限制的是复制，不能扩大为所有CPU生成和树维护都只在这些事件发生。比较两者应记录生成、复用、失效和传输频率，以及与其他计算重叠后仍暴露给消费者的等待，而非预设每层每步都完整重建。
+
+共享还需要区分存储复用与读取复用。Hydragen的prefix/suffix分解本身增加结果合并，跨序列query
+batching才减少共享KV读取；其原型要求用户指定共享关系，未自动解决持续在线关系识别与变更。{[}\protect\hyperlink{ref-juravsky2024hydragen}{21}{]}
+设备生产则是另一种组织：MPK的起始设备任务移除完成请求、接纳新请求并更新KV元数据，同时仍按当前batch选择二次幂tGraph族。{[}\protect\hyperlink{ref-cheng2026mpk}{18}{]}
+因此，CPU计划的设备驻留不能当作设备生产，而设备生产也仍需承担状态任务、队列和同步资源。MPK的tGraph并非CUDA或ACL
+Graph对象，这一对照用于定位生产者和维护责任，具体收益仍取决于共享比例、事件频率及实际执行成本。
+
+\textbf{表2　动态信息进入可复用计划的不同路径}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.33}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.33}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.33}}@{}}
+\toprule
+路径 & 保留与更新的对象 & 主要成本与条件 \\
+\midrule
+\endhead
+固定内部缓冲 & 保留图内偏移，复制外部输入输出；xLLM
+{[}\protect\hyperlink{ref-liu2025xllm}{4}{]} &
+支付数据复制；内部布局与本轮有效范围仍须一致 \\
+稳定指针入口 & 更新指针，由kernel间接读取；GraCE
+{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]} &
+支付入口更新及解引用；小对象可能不如D2D复制 \\
+CPU计划与共享 & 按KV结构生成计划，可跨层复用；FlashInfer
+{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]} &
+CPU工作与更新仍存在；相同规划条件才可共享 \\
+事件触发复制 & ChunkAttention在特定结构事件后复制context
+{[}\protect\hyperlink{ref-ye2024chunkattention}{44}{]} &
+事件限定复制时机，不等于所有主机准备只在事件时发生 \\
+虚拟地址稳定 & vAttention保留虚拟区域，映射、回收物理页
+{[}\protect\hyperlink{ref-prabhu2025vattention}{37}{]} &
+稳定基址不等于容量已分配或数据已就绪 \\
+\bottomrule
+\end{longtable}
+
+\begin{figure}
+\centering
+\includegraphics{figures/state-update.png}
+\caption{图2　固定缓冲复制、CPU计划准备与稳定指针入口的比较。示意路径不表示实测耗时比例；计划共享不等于消除本轮状态维护。}
+\end{figure}
+
+\hypertarget{section-5}{%
+\section{5 并行执行与资源协调}\label{section-5}}
+
+\hypertarget{section-5-1}{%
+\subsection{5.1 并行计划与依赖约束}\label{section-5-1}}
+
+\hypertarget{section-5-1-1}{%
+\subsubsection{5.1.1 依赖阶段划分与融合代价}\label{section-5-1-1}}
+
+依赖关系限定了可行计划，选择更快的执行方式还需要引入实际成本。Kwon等的Nimble在保持最大逻辑并发的前提下减少跨流同步，其目标并未直接描述多个内核争用资源后的时延。IOS把这一选择推进到实测阶段：各阶段依次执行，阶段内比较同类算子合并与组间并发，由目标设备上的阶段时延驱动搜索。阶段内部能够形成怎样的分组，仍受算子类型及搜索剪枝限制；这里的阶段服务于调度选择，其边界与运行时图捕获范围分别确定。{[}\protect\hyperlink{ref-kwon2020nimble}{11}{]}
+{[}\protect\hyperlink{ref-ding2021ios}{26}{]}
+
+融合改变设备工作本身，也可能改变原有并行关键路径。TASO验证算子规约下的代数替换并检查应用后的图是否有环，但用不同配置下单算子实测时间之和估计图成本。AutoGraph展示了这种求和模型的局限：融合可以缩短串行总时间，同时合并原本可并发的分支，因而未必得到更短的多流执行时间。它先用混合关键路径成本筛选，再通过CUDA
+Graph测量候选端到端时延，使运行时反馈参与选择。由此应分别检查语义等价、依赖合法性和执行收益，不能用其中一项代替另外两项。{[}\protect\hyperlink{ref-jia2019taso}{45}{]}
+{[}\protect\hyperlink{ref-zhao2023autograph}{28}{]}
+
+\hypertarget{section-5-1-2}{%
+\subsubsection{5.1.2 发射顺序干扰与中间内存}\label{section-5-1-2}}
+
+确定并行关系之后，发射顺序仍会改变可利用资源和实际重叠。Opara先分配执行流，再根据线程、寄存器及共享内存需求优先发射较轻任务，并交替考虑计算密集与访存密集操作。这样可以减少大任务先占资源对后续工作的阻碍，但其规则仍是启发式选择。NanoFlow同样发现，独立运行时较快的内核在并发中会争用执行单元、cache和内存控制器，因此流水结构确定后还要利用干扰测量调整实现。两种方法分别在就绪操作排序和流水资源配置处处理竞争，说明拓扑上独立的任务仍需依据共同执行时的表现安排。{[}\protect\hyperlink{ref-chen2025opara}{27}{]}
+{[}\protect\hyperlink{ref-zhu2025nanoflow}{19}{]}
+
+并发还有同时保留更多中间数据的空间代价。Opara报告其并行执行的峰值显存高于顺序执行，较大batch也会占用更多设备资源，使剩余并发余量缩小；这两项因素都限制了只追求更多重叠的策略。解释其比较时，还要保留Rammer−仅移植BFS/Wavefront算子策略的身份，它并非完整Rammer实现。Mirage则从程序层确定kernel、block和thread层中间tensor的存储偏移，改变的是布局与存储规划。前者考察并发增加的驻留数据，后者优化生成程序的存储安排，比较时需要同时说明所执行程序和活跃数据范围，而不是只对齐峰值显存一个数字。{[}\protect\hyperlink{ref-chen2025opara}{27}{]}
+{[}\protect\hyperlink{ref-wu2025mirage}{46}{]}
+
+\hypertarget{section-5-2}{%
+\subsection{5.2 任务分配与负载均衡}\label{section-5-2}}
+
+\hypertarget{section-5-2-1}{%
+\subsubsection{5.2.1 算子内任务与静态动态分配}\label{section-5-2-1}}
+
+调度进入算子内部，需要先暴露足以拆分、排序和同步的接口。Rammer以同质独立的rTask表示算子工作，依赖已有实现或外部工具给定粒度，再将任务及屏障映射为静态rProgram。TensorIR在编译层提供另一类接口：块签名记录迭代域和读写区域，使外层循环变换可以依赖明确约束，而不必展开内部tensor计算。Mirage进一步跨kernel、block和thread搜索程序，连同融合与存储一起改变设备工作。相应验证也有范围：概率方法针对论文定义的LAX程序，当前实现仅做单次模数随机测试，理论所需的参数与重复条件不能自动归于该实现。扩展至其他算子时还需人工提供数学性质，因而搜索、实现与验证成本都是获得程序的一部分。{[}\protect\hyperlink{ref-ma2020rammer}{29}{]}
+{[}\protect\hyperlink{ref-feng2023tensorir}{47}{]}
+{[}\protect\hyperlink{ref-wu2025mirage}{46}{]}
+
+任务粒度与分配时机需要分别选择。Rammer利用编译期性能和资源信息安排rTask，必要时分成多个rProgram；MPK则在预生成tGraph中混合使用提前与即时分派。耗时较稳定的区域可以预先入队并等待依赖，数据相关的注意力及其下游采用就绪后分派，直到全局屏障消除累积不均衡后再恢复提前策略。这种按区间选择保留了适应性，也支付worker、scheduler、队列和同步的资源成本。rProgram与持久内核中的tGraph均是相邻执行模型，其贡献应按任务实现和控制机制理解，而不合并为CUDA
+Graph回放接口的收益。{[}\protect\hyperlink{ref-ma2020rammer}{29}{]}
+{[}\protect\hyperlink{ref-cheng2026mpk}{18}{]}
+
+\hypertarget{section-5-2-2}{%
+\subsubsection{5.2.2 跨设备依赖推进与数据所有权}\label{section-5-2-2}}
+
+跨设备任务就绪还需要数据可读性和存储责任与之对应。Mustard在固定任务归属下插入依赖更新、等待和传输节点，由本地CUDA
+Graph与远端通知共同推进，跨节点使用NVSHMEM。在节点内动态分配场景，它预先在各设备构建子图，由设备scheduler从就绪队列取工作并发射；这一场景要求数据可容纳于单卡，通用所有权迁移和局部性策略仍不在其实现范围内。MPK则在持久内核中以事件连接计算与通信任务，两者的执行载体及工作粒度不同。Mustard的合成DAG、LU和Cholesky实验说明了相应多GPU机制，但跨节点静态归属的规模不能与节点内动态均衡合并为同一种已验证能力。{[}\protect\hyperlink{ref-turimbetov2025mustard}{30}{]}
+{[}\protect\hyperlink{ref-cheng2026mpk}{18}{]}
+
+服务KV交接进一步明确了任务分配之外的提交与释放条件。Llumnix利用KV追加写特性分阶段复制，源实例可继续生成，但每阶段都要先预留目的块，异常时中止清理，最终源释放后通知目的提交并恢复请求。DistServe也需要在独立prefill与decode实例间交接KV和首token，其放置受到带宽及权重副本成本约束。这些协议处理的是请求状态归属，并不等同于更细粒度的设备任务调度。就图复用而言，若目的缓冲与间接目录保持兼容，交接可能仅更新内容；若改变不可参数化的地址或通信配置，则需重新检查计划，这属于条件分析，两篇服务论文并未测得迁移必然触发重捕获。{[}\protect\hyperlink{ref-sun2024llumnix}{48}{]}
+{[}\protect\hyperlink{ref-zhong2024distserve}{49}{]}
+
+\hypertarget{section-5-3}{%
+\subsection{5.3 资源共置与流水组织}\label{section-5-3}}
+
+\hypertarget{section-5-3-1}{%
+\subsubsection{5.3.1 SM共置与跨操作流水}\label{section-5-3-1}}
+
+资源互补需要落实到合适的执行粒度，流级并发与同SM共置解决不同等待。NanoFlow将batch拆为nano-batches，在依赖约束下搜索跨操作流水，再根据干扰profile选择内核与资源配置。运行时以多个stream执行nano-operations，用事件落实先后关系，尝试重叠计算、访存和通信。这里被组织的是不同子批次上的操作序列，拆分提供了交错执行机会，也削弱了大批量的计算效率，因此必须与流水安排共同选择。{[}\protect\hyperlink{ref-zhu2025nanoflow}{19}{]}
+
+attention内部的资源重叠还取决于操作是否落到同一SM。POD-Attention指出，普通多流和朴素CTA并行都不能保证prefill与decode共置，而更细的warp融合又可能受慢任务及barrier拖延。它让CTA先接受硬件分配，再读取SMID和计数器，绑定本次执行prefill还是decode，从而在不指定CTA物理落点的情况下组织同SM工作。tile、每SM的CTA数量、共享内存及split配置进一步控制共置后的干扰。跨操作流水与专用内核共置因而可以分别分析：前者改变操作间的时间安排，后者改变attention内部的资源共享，二者收益都需要与减少图提交的贡献区分。{[}\protect\hyperlink{ref-kamath2025pod}{31}{]}
+{[}\protect\hyperlink{ref-zhu2025nanoflow}{19}{]}
+
+\hypertarget{section-5-3-2}{%
+\subsubsection{5.3.2 资源代理瓶颈迁移与重叠边界}\label{section-5-3-2}}
+
+资源模型描述的是测量条件下的性能关系，不能直接当作硬件隔离保证。NanoFlow以GEMM相对性能定义资源代理量，再用成对计算---访存、计算---通信的干扰测量近似三类操作重叠；搜索中资源代理之和的约束，并不表示硬件能独占分配相同比例的带宽。xLLM的Cube/Vector完成时间对齐模型也有明确假定，即操作同时开始且不考虑依赖和通信。这些模型在不同层次帮助选择资源安排，但其有效性依赖被建模的竞争与等待，不能仅凭目标式或资源比例推导完整服务最优性。{[}\protect\hyperlink{ref-zhu2025nanoflow}{19}{]}
+{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+
+优化环境改变后，单个操作的高效实现也可能需要调整。POD中，decode-only内核的冗余计算可能不影响其带宽饱和，却会在融合时争用prefill的计算资源，因此需要重新选择tile及每SM工作比例。NanoFlow只拆小批的负结果同样表明，更多交错机会须覆盖批量效率损失；其请求充足等负载条件也是流水收益成立的前提。服务层还可能存在另一条关键路径：Chung等在已开启图优化的vLLM
+V1中观察到有限CPU配额下分词与引擎进程的争用。因而，判断瓶颈是否迁移需要重新剖析实际负载中的设备竞争、主机准备和通信等待，而不能把某个资源指标提高直接等同于请求时延下降。{[}\protect\hyperlink{ref-kamath2025pod}{31}{]}
+{[}\protect\hyperlink{ref-zhu2025nanoflow}{19}{]}
+{[}\protect\hyperlink{ref-chung2026cpu}{50}{]}
+
+\hypertarget{section-6}{%
+\section{6 图实例准备缓存与恢复}\label{section-6}}
+
+\hypertarget{section-6-1}{%
+\subsection{6.1 图实例创建与缓存管理}\label{section-6-1}}
+
+\hypertarget{section-6-1-1}{%
+\subsubsection{6.1.1 首次准备在线捕获与缓存}\label{section-6-1-1}}
+
+首次准备是否进入请求等待，决定了图缓存收益应从哪个时间点计算。Kwon等人的Nimble通过预运行收集任务并保留内存，后续载入新输入再回放，把重复调度前移到准备阶段。Hybrid则同时采用提前捕获与按需捕获：初始化时准备长度1--50的图，未命中时先以JIT执行静态段，再异步形成新图，供后续相同规格使用。xLLM的参数化、多缓存部分图也用有限预编译结果服务请求，但其方法没有单列后台捕获或在线淘汰算法。三者复用的都是已经支付的准备，区别在于准备发生的时点以及未命中时请求如何继续。{[}\protect\hyperlink{ref-kwon2020nimble}{11}{]}
+{[}\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]}
+{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+
+后台捕获仍可能进入在线关键路径。Hybrid所用PyTorch与cuBLAS集成会串行化部分捕获，其单H100、LLaMA-2
+7B、批量1评测采用预热缓存；命中后的时延不能直接解释为空缓存首次请求的时延。生成长度500时，其每token
+P99为23.68毫秒，高于TensorRT--LLM的16.65毫秒，说明准备完成后也并非所有规格都更快。判断准备是否值得，还需比较实际省去的重复工作：GraCE在编译慢路径逐图测量无图、普通回放及参数间接寻址回放，再保留最快版本。因此，同一请求轨迹应分别记录首次准备、未命中等待、后台干扰与重复命中，稳态优势才能与实际复用窗口对应。{[}\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]}
+{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+
+\hypertarget{section-6-1-2}{%
+\subsubsection{6.1.2 图族空间覆盖与重捕获}\label{section-6-1-2}}
+
+图族覆盖应与保留空间和再准备代价共同决定。Hybrid按长度匹配图，滚动缓存淘汰较少使用的成员；旧长度再次出现时，仍可能重新支付捕获成本。xLLM以参数化和多缓存部分图减少需要预编译的规格，并用固定偏移内存池容纳输入输出，但模式选择与前后复制仍在。两条路线分别调整保留哪些实例、一个实例可以表达哪些变化，不能只用缓存命中率判断总体代价。{[}\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]}
+{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+
+保留图对象、保留成员参数和共享工作区，也应分别计量。Hybrid共享激活工作区，Foundry则让同拓扑规格共享模板并保留各自参数集；减少完整构图并不意味着相关数据、代码和内存依赖都被删除。vLLM揭示了KV容量与可容纳请求数的联系，因此在固定设备容量下，图资产若挤占KV空间，就可能改变服务并发条件。这是需要联合测量的容量关系，现有引文没有直接证明某个图池已经造成服务下降；比较策略时应同时报告请求分布、保留字节、未命中准备、可用KV容量与服务时延。{[}\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+{[}\protect\hyperlink{ref-kwon2023vllm}{2}{]}
+
+\hypertarget{section-6-2}{%
+\subsection{6.2 跨进程图恢复与地址策略}\label{section-6-2}}
+
+\hypertarget{section-6-2-1}{%
+\subsubsection{6.2.1 分配事件指针及函数绑定}\label{section-6-2-1}}
+
+跨进程图恢复必须重建引用关系，原拓扑并不能保证地址和函数在新进程中有效。Medusa把数据指针关联到分配事件，在线重放分配后，将新地址填回节点；同一旧地址可能先后属于不同分配，因此还要结合内核使用时的分配历史。Foundry采用另一条地址路线：重现确定性虚拟布局，并补放跳过捕获后不会自然发生的分配，使保存的参数继续指向所需位置。前者要求识别并修补引用，后者要求重建布局与分配过程；Medusa所读原型的主机侧分配、直接指针和单GPU范围也限定了其适用对象。{[}\protect\hyperlink{ref-zeng2025medusa}{14}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+
+地址成立后，代码入口和必要内容仍需恢复。Medusa按符号名解析函数，并借模块枚举和首层触发处理延迟加载；Foundry把所用二进制、加载选项与函数目录纳入存档，再重建模块环境。Medusa在Qwen1.5-4B、单A100上的加载阶段由2.85秒降至1.67秒，其中原0.90秒的图准备改为0.31秒预热和0.26秒恢复。总降幅还包含KV初始化物化及与权重加载的重叠。其离线物化平均39.2秒另计，不能把在线缩短解释为准备成本消失。两条路线应按保存对象、在线剩余工作及兼容条件比较；Foundry未在同一评测中纳入Medusa，现有数字不足以给出通用优劣排名。{[}\protect\hyperlink{ref-zeng2025medusa}{14}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+
+\begin{figure}
+\centering
+\includegraphics{figures/restoration.png}
+\caption{图3　跨进程复用中的两种地址策略：记录分配关系后重绑定，以及重现既有地址布局。图示区分图对象、内核绑定和运行环境，不代表通用进程快照能够直接回放图。}
+\end{figure}
+
+\hypertarget{section-6-2-2}{%
+\subsubsection{6.2.2 权重请求和进程状态恢复的区别}\label{section-6-2-2}}
+
+恢复时间只有在恢复对象相同时才具有可比性。ServerlessLLM的加载路径恢复参数布局与张量绑定，活请求迁移则传送token，在目标端重算KV并切换路由；这是利用LLM语义继续请求。DeepServe的NPU-fork从运行中的引擎向预热引擎传权重，所测Llama3-8B（TP1）、CodeLlama-34B（TP4）和Qwen-72B（TP8）在HCCS路径上的0.15--0.19秒只计权重加载，后面还有其他服务准备。从零实例起步时没有现存引擎可供复制，因而这一路径既不能代表完整冷启动，也不能作为ACLGraph句柄跨进程恢复的证据。{[}\protect\hyperlink{ref-fu2024serverlessllm}{51}{]}
+{[}\protect\hyperlink{ref-hu2025deepserve}{34}{]}
+
+进程级恢复还需要处理应用继续运行所依赖的控制状态。CRIUgpu协调GPU接口锁定与CPU线程暂停，恢复映射、流和上下文后再继续执行，避免CPU超时处理与设备快照不一致；其NCCL限制应绑定所读v1使用的驱动。GCR则将GPU控制状态交给驱动，单独复制数据缓冲区，并通过保留虚拟地址、重建物理映射维持指针关系。它们与token重算、权重加载及图专项物化的保存范围和暂停条件不同。比较时应先明确需要继续哪个请求或进程、允许重算哪些状态，再测从该状态到可服务的等待。{[}\protect\hyperlink{ref-stoyanov2025criugpu}{52}{]}
+{[}\protect\hyperlink{ref-zeng2026gcr}{53}{]}
+{[}\protect\hyperlink{ref-fu2024serverlessllm}{51}{]}
+
+\hypertarget{section-6-3}{%
+\subsection{6.3 图模板共享与重复准备消除}\label{section-6-3}}
+
+\hypertarget{section-6-3-1}{%
+\subsubsection{6.3.1 确定性环境与模板共享}\label{section-6-3-1}}
+
+减少重复准备，首先要明确共享的是图结构还是运行环境。Foundry按节点、依赖与相关属性识别同拓扑图，构建模板并保留规格参数，执行时更新参数，从而避免为每个批量重复构建完整实例。跨rank共享还要求执行流等价，在线替换真实通信入口及rank参数；不同阶段执行不同模型部分的流水线并行不在该共享范围。其Qwen3-14B、H200、DP1--8实验将引擎初始化从36--48秒降至1.7--1.8秒，但前提是暖环境、暖编译缓存和已有归档，并排除权重加载。该结果说明特定兼容条件下能够消除重复准备，不表示任意配置可共用同一存档。{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+
+环境池复用的是另一组初始化结果。DeepServe提前准备Python库、NPU状态和HCCL连接，权重就位仍是独立阶段；PhoenixOS则在常驻进程中预建CUDA、cuBLAS上下文及部分同节点通信资源，后续通过进程映射访问。它们减少了请求到来后才执行的准备，却仍需常驻资源、状态恢复和相应访问路径。Foundry还显式固定KV缓存大小以维持跨运行布局，表明模板、代码、地址及通信环境必须共同满足使用条件。组合评价应分别记录离线准备、池资源、首次可用时间和后续调用成本，才能识别节省发生在哪个阶段。{[}\protect\hyperlink{ref-hu2025deepserve}{34}{]}
+{[}\protect\hyperlink{ref-wei2025phoenixos}{33}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+
+\hypertarget{section-6-3-2}{%
+\subsubsection{6.3.2 一致性增量写集与验证范围}\label{section-6-3-2}}
+
+一致性协议决定复制与计算能够重叠的范围。CRIUgpu通过协调暂停取得快照；PhoenixOS则推测内核访问的缓冲区，并以PTX插桩版本验证，用写入隔离、重复制和按需恢复争取并发。验证失败时可能丢弃快照或回滚后停止式重试，读取尚未恢复的数据也仍会等待。GCR把可表达的写地址计算转成CPU端写集模板；间接寻址或复杂地址计算退回整缓冲区标脏，未文档闭源内核还可能使应用关闭增量。其所读原型未实现并发检查点与恢复，因此写集更细、可设计扩展和已经实现并发必须分别判断。{[}\protect\hyperlink{ref-stoyanov2025criugpu}{52}{]}
+{[}\protect\hyperlink{ref-wei2025phoenixos}{33}{]}
+{[}\protect\hyperlink{ref-zeng2026gcr}{53}{]}
+
+图支持还应区分作者声明、对象协议和实际验证。PhoenixOS最终稿明确声明能够追踪CUDA
+Graph内部内核读写，原论文表3中的vLLM覆盖66种内核、13,625个任务实例，但这属于访问集追踪测试；该文另有推测失败实例，也未单列图对象重建及启用图后跨进程恢复、多轮回放的端到端配置。未单列不能证明实现不存在，追踪覆盖也不足以确认任意图资产恢复。GCR对PhOS的覆盖和性能限制来自commit
+\texttt{47d64ab}，可比负载对齐Transformers
+4.30.0，不能外推为PhoenixOS最终稿全部能力。因此恢复评价应明确图启用状态、绑定对象、重复回放正确性和首次服务等待，使结论对应实际版本与测试对象。{[}\protect\hyperlink{ref-wei2025phoenixos}{33}{]}
+{[}\protect\hyperlink{ref-zeng2026gcr}{53}{]}
+
+\hypertarget{section-7}{%
+\section{7 综合比较与昇腾适用性}\label{section-7}}
+
+\hypertarget{section-7-1}{%
+\subsection{7.1 跨类别特征与方法选择}\label{section-7-1}}
+
+\hypertarget{section-7-1-1}{%
+\subsubsection{7.1.1 方法选择的已知条件与成本转移}\label{section-7-1-1}}
+
+方法选择应从实际暴露的成本出发，而非从捕获覆盖率出发。xLLM通过选择部分区域和参数化形成可复用路径，GraCE则改造阻断捕获的代码，并在合法候选之间测量收益。两者提示兼容性改造和模式选择可以分阶段安排，具体组合仍需满足同一软件栈的接口与状态合同。如果主要等待来自区域间提交，扩大图化范围有意义；如果主要成本是每轮数据搬运，则需要比较复制、间接访问或计划维护。捕获成功只是后续比较的起点。{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+
+适配策略还会改变实例准备和空间成本。FlashInfer保留固定执行入口，通过当前计划描述工作；Hybrid用多个长度实例换取专化执行，未命中时又要支付创建和缓存管理成本。MPK将请求管理移到设备，仍保留有限批量计划族。更细规格可以少做填充，却可能增加准备次数和保留资源；共享计划可以减少重复生成，却需要兼容的消费者。选择应在同一负载窗口内比较这些代价，而不是分别优化命中率、图数量或单次回放速度。{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+{[}\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]}
+{[}\protect\hyperlink{ref-cheng2026mpk}{18}{]}
+
+\hypertarget{section-7-1-2}{%
+\subsubsection{7.1.2 证据角色与跨层组合}\label{section-7-1-2}}
+
+横向比较首先要对齐复用对象和决策时机。Kwon
+Nimble保留预运行得到的任务轨迹，FlashInfer保留可消费当前队列的执行结构，MPK把调度推进到设备任务层，Foundry重建归档图成立的环境。它们都减少重复工作，却没有相同的节点含义和准备边界。POD进一步改变同一SM内的计算共置，其收益也不是主机提交减少的另一种计数。后文评测表中的单卡或多卡属性只能补充执行范围，不能替代这些机制区别。{[}\protect\hyperlink{ref-kwon2020nimble}{11}{]}
+{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+{[}\protect\hyperlink{ref-cheng2026mpk}{18}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+{[}\protect\hyperlink{ref-kamath2025pod}{31}{]}
+
+机制组合时，需要检查共享状态是否能够同时满足各消费者。FlashInfer的工作区与归约映射可以被兼容层复用，但下一次写入仍应在相关读取结束后生效。实例恢复也要使地址、代码和参数在当前环境中重新对应，而不是只把图结构加载到内存。因而，组合收益既取决于省去了多少重复准备，也取决于增加的同步、空间和失效检查。直接图设计、相邻调度模型、官方合同和部署观察应分别标记，避免把接口存在或整系统结果转成单项机制的性能证明。{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+{[}\protect\hyperlink{ref-cheng2026mpk}{18}{]}
+
+\hypertarget{section-7-2}{%
+\subsection{7.2 昇腾工程证据与迁移条件}\label{section-7-2}}
+
+\hypertarget{section-7-2-1}{%
+\subsubsection{7.2.1 运行时包装器与后端合同}\label{section-7-2-1}}
+
+昇腾侧的比较需要落到固定版本的捕获与更新合同。CANN
+9.0概述区分捕获得到的运行实例与后续执行，9.1跨流文档则要求关联流在结束捕获前把依赖闭合回主流。9.1任务组更新要求捕获组与更新组的任务数量、类型一致，并限制同一组被多个线程或流并发更新。torch\_npu公开的任务组接口及ExternalEvent提供了相应组织入口。由此能够确认的是受约束的更新与排序能力，不能仅凭``支持更新''推断任意拓扑或并发组合。{[}\protect\hyperlink{ref-cann900overview}{12}{]}
+{[}\protect\hyperlink{ref-cann910multi}{54}{]}
+{[}\protect\hyperlink{ref-cann910update}{13}{]}
+{[}\protect\hyperlink{ref-gitee20264}{55}{]}
+
+框架把这些入口组织成具体的回放路径。vLLM-Ascend
+v0.13.0文档描述分桶、阈值回退和不同图模式；对应提交6281c120中的包装器按批次描述符缓存实例，并将持久输入缓冲和输入复制交给外层。源码在注意力更新后记录事件，回放侧通常执行设备同步，并只豁免其明确限定的完整图草稿模型路径。调试地址检查与这些同步说明，图对象存在并不代替缓冲管理和前后轮顺序维护。本文用各自版本的规范、接口和源码核实职责，不把它们拼成一套已经测过的通用部署配置。{[}\protect\hyperlink{ref-vllmascend0130}{56}{]}
+{[}\protect\hyperlink{ref-vllmascend0130impl}{57}{]}
+{[}\protect\hyperlink{ref-cann910update}{13}{]}
+
+\hypertarget{section-7-2-2}{%
+\subsubsection{7.2.2 Ascend局部消融与部署边界}\label{section-7-2-2}}
+
+直接Ascend证据应区分设计、局部消融和部署观察。xLLM报告部分图、维度参数化及固定偏移内存池，并在所列Qwen3配置中给出图模式开关结果。这个对照比整框架比较更接近图模式贡献，但仍包含模式内部多个机制，不能进一步拆出每项独立收益。Ascend
+field
+study则记录指定0.13系列栈在不同负载中的full-decode或eager选择。它说明部署条件会影响可用模式，不足以概括所有后续版本的稳定性。{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+{[}\protect\hyperlink{ref-yu2026ascendfield}{58}{]}
+
+冷启动研究补充了另一个时间窗口。DeepServe通过预热引擎和权重传输缩短扩容准备，其中NPU-fork需要已有运行引擎作为来源，优化的是模型权重就位阶段。该阶段之后仍有加载后准备和服务宣告，不能把其结果当成ACLGraph实例跨进程恢复。GPU方法的迁移同样应先列出所需原语，例如可更新参数、地址布局、任务粒度与通信同步，再用直接实现检查是否具备。只有在目标软件版本和负载中计入新增准备、同步及空间成本，才能进一步判断迁移收益。{[}\protect\hyperlink{ref-hu2025deepserve}{34}{]}
+{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+
+\textbf{表3　昇腾证据分别能够支持的判断}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.33}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.33}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.33}}@{}}
+\toprule
+材料及固定版本 & 可以确认的内容 & 应用时需要核实的条件 \\
+\midrule
+\endhead
+CANN 9.0概述 {[}\protect\hyperlink{ref-cann900overview}{12}{]} &
+捕获、运行实例及执行等生命周期入口 &
+不能由接口存在推导模型覆盖或性能收益 \\
+CANN 9.1跨流与更新
+{[}\protect\hyperlink{ref-cann910update}{13},\protect\hyperlink{ref-cann910multi}{54}{]}
+& 跨流捕获闭合；任务组数量、类型与并发更新限制 &
+按所用CANN版本重新核对，不混用版本合同 \\
+torch\_npu PR \#20264 {[}\protect\hyperlink{ref-gitee20264}{55}{]} &
+任务组捕获/更新及ExternalEvent公开入口 &
+PR提供接口证据，不是服务消融或迁移性能证明 \\
+vLLM-Ascend v0.13.0及提交6281c120
+{[}\protect\hyperlink{ref-vllmascend0130}{56},\protect\hyperlink{ref-vllmascend0130impl}{57}{]}
+& 分桶与回退、描述符缓存、外层输入复制职责、更新事件与同步路径 &
+包装器职责、后端合同与特定路径豁免需共同检查 \\
+xLLM报告v2 {[}\protect\hyperlink{ref-liu2025xllm}{4}{]} &
+昇腾图机制及报告中的图模式组合消融 &
+不能拆成单项机制贡献，也不能推广到任意配置 \\
+Ascend部署观察预印本 {[}\protect\hyperlink{ref-yu2026ascendfield}{58}{]}
+& 其软件版本和部署条件下的现象 &
+与固定实现的源码事实、作者局部消融分别归因 \\
+\bottomrule
+\end{longtable}
+
+\hypertarget{section-7-3}{%
+\subsection{7.3 原论文评测设置与结果边界}\label{section-7-3}}
+
+\hypertarget{section-7-3-1}{%
+\subsubsection{7.3.1 评测操纵因素与计时口径}\label{section-7-3-1}}
+
+原论文结果应按操纵因素和计时边界解释。图模式开关、attention后端替换、任务分配策略和整系统替换，分别回答不同的因果问题。xLLM的指定图模式对照可以说明该模式组合的作用，FlashInfer在SGLang中的结果还改变了规划与kernel实现，NanoFlow则同时调整子批次和资源重叠。表中的设置和数值因此分列：前者固定证据对象，后者记录具体比较及允许的归因。不同硬件上的最大倍数不构成统一性能排名。{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+{[}\protect\hyperlink{ref-zhu2025nanoflow}{19}{]}
+
+准备与服务指标也应保留各自含义。GraCE把含捕获的编译慢路径与重复执行分开，Medusa另报离线物化，Foundry的引擎初始化实验依赖暖环境、编译缓存和已有归档。Hydragen所选实验明确排除分词与反分词，其余准备没有被同一数字单列；FlashInfer图7的ITL也不在这里重命名为均值或P99。表中未计某项准备，只限定所选数字的计时窗口，不能推断该成本为零或原论文从未讨论。首次请求、稳态和恢复后的服务结果，应在各自条件下比较。{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+{[}\protect\hyperlink{ref-zeng2025medusa}{14}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+{[}\protect\hyperlink{ref-juravsky2024hydragen}{21}{]}
+{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+
+原文定位均使用PDF页码。下表中的``未单列''表示所选证据没有独立列出该项计时，不能视为成本为零或原文明示排除。数值是所标版本的作者报告，不是本文重新复现的结果。
+
+\textbf{表4　代表研究的评测设置与操纵因素}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.25}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.25}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.25}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.25}}@{}}
+\toprule
+研究 & 对象硬件 & 操纵因素 & 计时条件 \\
+\midrule
+\endhead
+xLLM {[}\protect\hyperlink{ref-liu2025xllm}{4}{]}；PDF24、30、32表8 &
+Qwen3-1.7B/4B；Ascend，表8未单列卡数 & Adaptive
+Graph关/开；输入、输出各2048 token &
+图模式组合消融；该表未单列捕获、准备与重复次数 \\
+GraCE
+{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}；PDF11--14图10--13 &
+25项训练、推理与HPC应用；主单H100 NVL &
+noCG、PyTorch2-CG与选择性部署；另测TP1/2/4 &
+100次运行均值；运行与编译分开，编译包含捕获 \\
+Kwon
+Nimble（2020）{[}\protect\hyperlink{ref-kwon2020nimble}{11}{]}；PDF8--9表1
+& CNN；单V100；推理batch=1 & 固定规格预运行；多流与自身单流对照 &
+准备后重复推理；所引表未单列准备时间 \\
+Shen
+Nimble（2021）{[}\protect\hyperlink{ref-shen2021nimble}{22}{]}；PDF8--10表4
+& LSTM、Tree-LSTM、BERT；所选BERT为单T4 &
+动态编译；表4另测固定BERT长度128 &
+分解内核与其他指令；该表不测编译时间，未单列batch \\
+FlashInfer {[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}；PDF8
+§4.1、图7 & Llama3.1-8B/70B；1/4×H100 &
+SGLang替换Attention后端；ShareGPT变长请求 & 按P99
+TTFT\textless200ms调请求率；初始化JIT并缓存 \\
+Hydragen
+{[}\protect\hyperlink{ref-juravsky2024hydragen}{21}{]}；PDF10--12图6、23
+D.4 & CodeLlama-7B；8×A100-40GB；APPS &
+单/双层共享；batch为2或8道题，每题128候选 &
+明确排除分词、反分词；其他启动及捕获未单列 \\
+Rammer {[}\protect\hyperlink{ref-ma2020rammer}{29}{]}；PDF10--11
+§5、图11--12 & 6类网络；主图为单V100 &
+batch1为主；batch4/16仅ResNeXt与LSTM-TC &
+1000次推理均值；所引结果未单列编译/profile \\
+MPK v2 {[}\protect\hyperlink{ref-cheng2026mpk}{18}{]}；PDF9--12 §6 &
+Qwen3、Llama；A100/H100/B200，另测TP &
+离线批量推理；输入64、输出1024；BF16 &
+运行时性能；所选段落未分解预热/编译；预印本 \\
+NanoFlow {[}\protect\hyperlink{ref-zhu2025nanoflow}{19}{]}；PDF11--14
+§6、图9 & 主Llama2-70B；8×A100-80GB；FP16 &
+不重叠、仅拆小批、完整重叠；固定长度另有在线trace &
+图9为充足请求下吞吐；搜索在部署准备阶段，耗时未单列 \\
+Mustard
+{[}\protect\hyperlink{ref-turimbetov2025mustard}{30}{]}；PDF8--11
+§5、表2--4 & 随机DAG、LU/Cholesky；2/4/8×A100；非LLM &
+节点内动态分配的数据须容纳单卡；跨节点另测静态图 &
+5次均值；workspace预分配；未统一分解构图/捕获时间 \\
+Hybrid v1
+{[}\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]}；PDF5--7表I--II
+& Llama2-7B；单H100；FP16、batch=1 &
+生成长度10--500；图缓存；初始化预捕获短长度 &
+暖启动缓存、1000次；不能视为冷捕获；所读为v1预印本 \\
+Medusa {[}\protect\hyperlink{ref-zeng2025medusa}{14}{]}；PDF9--12
+§7、图8--9 & 10个0.5B--14B模型；主单A100-40GB &
+每模型35张批量图；trace用4张卡作独立实例 &
+在线加载与离线物化分开；预热可与权重加载重叠 \\
+Foundry v1 {[}\protect\hyperlink{ref-liu2026foundry}{15}{]}；PDF8--11
+§6、图7--11 & 稠密/MoE；主H200；DP/EP &
+每配置512张图，batch1--512；DP1/2/4/8 &
+暖环境、暖编译缓存、已有归档；排除环境初始化与权重加载 \\
+DEEPSERVE {[}\protect\hyperlink{ref-hu2025deepserve}{34}{]}；PDF11--13
+§6、图9--10 & Llama3-8B/CodeLlama-34B/Qwen-72B；TP1/4/8 &
+已运行TE向预热目标TE跨节点传权重；HCCS/RoCE &
+图10仅TE-Load；不等于完整扩容或首次请求时间 \\
+PhoenixOS {[}\protect\hyperlink{ref-wei2025phoenixos}{33}{]}；PDF10--11
+§8、18表4 & 训练/推理；各应用用单卡或8×A800-80GB &
+检查点/恢复；serverless推理与训练stall分别评测 &
+推理计启动加函数执行；前提为主存快照与预建context池 \\
+\bottomrule
+\end{longtable}
+
+\textbf{表5　代表性数值与允许的归因}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.25}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.25}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.25}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.25}}@{}}
+\toprule
+研究与原文定位 & 比较 & 报告结果 & 归因条件 \\
+\midrule
+\endhead
+xLLM {[}\protect\hyperlink{ref-liu2025xllm}{4}{]}；PDF30 §5.2、32表8 &
+Qwen3-1.7B；图模式关→开 & 吞吐2385.58→3038.88 token/s；平均TPOT
+39.27→30.63ms & 输入/输出各2048；图模式组合消融，不能拆归单项机制 \\
+xLLM {[}\protect\hyperlink{ref-liu2025xllm}{4}{]}；PDF32表8 &
+Qwen3-4B；图模式关→开 & 吞吐1539.93→1671.39 token/s；平均TPOT
+55.44→50.58ms & 同上；表中未单列卡数、并发及准备计时 \\
+GraCE {[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}；PDF12图10 &
+EOS；单H100 NVL；无图速度=1 & PyTorch2-CG为0.71×；GraCE为1.00× &
+非LLM推理；此配置普通图模式退化，选择性部署避免退化 \\
+GraCE {[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}；PDF14图13 &
+全体所列应用；对PyTorch2-CG编译 &
+含捕获的编译时间平均为2.21×，图末汇总标Gmean &
+准备慢路径的总体成本；不是EOS单项或每轮回放的代价 \\
+Kwon
+Nimble（2020）{[}\protect\hyperlink{ref-kwon2020nimble}{11}{]}；PDF9表1
+& 单V100、batch1；多流÷自身单流 & NASNet-A mobile 1.88×；large 1.31× &
+对应逻辑并发12/15；并发更多不保证更快，非图开关消融 \\
+Shen
+Nimble（2021）{[}\protect\hyperlink{ref-shen2021nimble}{22}{]}；PDF9表4
+& 单T4；BERT固定长度128；TVM与Nimble & TVM 5.58ms；Nimble
+5.86=内核5.60+其他0.26ms &
+动态编译通用性的静态场景代价；差值不全是VM，更非图退化 \\
+FlashInfer {[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}；PDF8图7 &
+SGLang；8B、单H100、ShareGPT；Triton→FlashInfer &
+图7所列ITL：21.7→13.5ms &
+后端整体替换；不补写mean/P99；P99仅用于TTFT服务约束 \\
+Hydragen
+{[}\protect\hyperlink{ref-juravsky2024hydragen}{21}{]}；PDF10--12图6、23
+D.4 & 同为2道题：单层→双层共享；再增至8道题 & 时间先降18\%，随后再降45\%
+& 第二步基准已变，不能相加；分别含共享效率与节省显存后的增批收益 \\
+MPK v2 {[}\protect\hyperlink{ref-cheng2026mpk}{18}{]}；PDF9--10 §6 &
+Qwen3-8B、单A100低批量；vLLM/SGLang→MPK & 解码逐token时延14.5→12.5ms &
+离线输入64/输出1024；整体设备侧运行时结果，非仅移除launch \\
+NanoFlow {[}\protect\hyperlink{ref-zhu2025nanoflow}{19}{]}；PDF14图9 &
+70B、8×A100；输入512/输出1024；不重叠/仅拆小批/完整 & 1048/952/1277
+token/s/GPU；另offload柱为1244 &
+共用异步调度与内核库；仅拆分退化；不套用正文其他汇总百分数 \\
+Mustard
+{[}\protect\hyperlink{ref-turimbetov2025mustard}{30}{]}；PDF11表4 &
+Cholesky 60K、8×A100；共同以单GPU cuSolverPotrf为基线 & Mustard
+2.728×；cuSmGF 3.185× & 非LLM；分块为8×8与120×120，差距不是纯调度消融 \\
+Hybrid v1
+{[}\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]}；PDF7表II &
+H100、batch1；生成500 token；P99逐token时延 & Hybrid 23.68ms；HF
+18.38ms；TensorRT-LLM 16.65ms &
+暖启动；此长生成点并无尾延迟优势，不能推广短序列概括 \\
+Medusa {[}\protect\hyperlink{ref-zeng2025medusa}{14}{]}；PDF10图8 &
+Qwen1.5-4B、单A100；vLLM→Medusa & 加载阶段2.85→1.67s；KV初始化0.50→0.02s
+& 多机制共同作用；KV缩短来自离线显存profile复用，非单独图收益 \\
+Medusa {[}\protect\hyperlink{ref-zeng2025medusa}{14}{]}；PDF10--11
+§7.3、图8 & vLLM预热/捕获→Medusa首层预热与恢复 &
+0.90s→预热0.31s+图恢复0.26s &
+预热与权重加载重叠；0.57s不能再次整体加进1.67s \\
+Medusa {[}\protect\hyperlink{ref-zeng2025medusa}{14}{]}；PDF11 §7.4、图9
+& 10个模型的离线物化阶段 & 均值39.2s，其中捕获均值9.7s &
+与在线加载分开计；恢复已有图并不免除离线准备 \\
+Foundry v1 {[}\protect\hyperlink{ref-liu2026foundry}{15}{]}；PDF9图7 &
+Qwen3-14B、H200；DP1/2；带图vLLM→Foundry & DP1：36→1.7s；DP2：41→1.7s &
+引擎初始化；暖环境/编译缓存、已有归档；排除环境初始化与权重 \\
+Foundry v1 {[}\protect\hyperlink{ref-liu2026foundry}{15}{]}；PDF9图7 &
+同上；DP4/8 & DP4：43→1.8s；DP8：48→1.7s &
+同一暖缓存前提；图7整数精度，不混用图8更细分解 \\
+DEEPSERVE {[}\protect\hyperlink{ref-hu2025deepserve}{34}{]}；PDF13图10 &
+8B/34B/72B，TP1/4/8；HCCS与RoCE权重传输 &
+HCCS：0.15/0.16/0.19s；RoCE：0.71/0.76/0.91s &
+仅TE-Load；源TE已运行、目标预热；不含图对象或在途请求恢复 \\
+\bottomrule
+\end{longtable}
+
+上述运行、编译、在线加载、离线物化和TE-Load各有不同计时起点，不能按数值大小排成统一的冷启动榜单。PhoenixOS的训练stall与推理启动分开计时，也不与上述阶段直接比较。
+
+\hypertarget{section-7-3-2}{%
+\subsubsection{7.3.2 负面结果版本差异与输出正确性}\label{section-7-3-2}}
+
+负面结果能够确定机制成立的范围。Hybrid所读v1的长生成表格并不支持所有长度均有更低P99；NanoFlow的拆小批次对照甚至低于不重叠配置，说明流水收益需要与资源安排共同解释。Opara的Rammer−只是Wavefront策略移植，GCR使用的旧PhOS快照也不能代表PhoenixOS最终稿。版本、基线身份和被操纵因素应与数字一同保留。这样的核对保留方法价值，同时阻止局部结果被扩大为普遍胜负。{[}\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]}
+{[}\protect\hyperlink{ref-zhu2025nanoflow}{19}{]}
+{[}\protect\hyperlink{ref-chen2025opara}{27}{]}
+{[}\protect\hyperlink{ref-zeng2026gcr}{53}{]}
+
+正确性比较还需要说明检查的对象。Mirage的理论验证前提与其实际随机检验实现具有不同保证范围；后端研究也表明，任务总分相同仍可能有逐样本输出差异，反之亦不能把所有后端差值归于图模式。CPU研究则在采用CUDA
+Graph的栈中观察到主机配额和进程竞争，提醒性能归因还要包括图外路径。评测应报告后端版本、精度、采样与输入条件，并区分张量误差、逐序列输出和任务分数。发现差异后，再判断它来自状态绑定、数值路径还是服务配置，而不是用一个总分覆盖所有验证层次。{[}\protect\hyperlink{ref-wu2025mirage}{46}{]}
+{[}\protect\hyperlink{ref-pape2026backend}{59}{]}
+{[}\protect\hyperlink{ref-chung2026cpu}{50}{]}
+
+\hypertarget{section-8}{%
+\section{8 研究挑战与发展方向}\label{section-8}}
+
+\hypertarget{section-8-1}{%
+\subsection{8.1 面向负载分布的构建与缓存联合决策}\label{section-8-1}}
+
+构建与缓存联合决策的起点是已有方案之后仍暴露的成本。GraCE已有逐区域候选选择，FlashInfer支持计划共享，Hybrid可以在未命中后形成新实例；ChunkAttention又说明结构事件触发的context复制能够减少不必要传输。新的策略需要先保留这些普通强基线，再判断规格覆盖、创建时机和保留空间是否仍有联合优化价值。负载分布改变可能使原先选择失配，但图数和命中率只能描述中间状态。目标应是同一服务窗口内的实际等待与资源占用。{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+{[}\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]}
+{[}\protect\hyperlink{ref-ye2024chunkattention}{44}{]}
+
+比较可以固定请求轨迹，分别记录首次未命中、填充、后台捕获、淘汰和空间回收。若提高命中率同时增加无效计算或压缩KV容量，最终服务收益可能下降。若已有共享与重叠已经隐藏大部分准备，更复杂的联合策略也可能没有净收益。这样的相反结果应当能够否定候选方案，而不是被解释成仍需扩大捕获范围。缺少同栈比较本身不构成已经确认的研究空白。{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+{[}\protect\hyperlink{ref-ye2024chunkattention}{44}{]}
+{[}\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]}
+
+\hypertarget{section-8-2}{%
+\subsection{8.2 状态更新与并发执行的共同约束}\label{section-8-2}}
+
+状态更新与并发执行需要共同约束生产者、消费者和有效期。xLLM稳定内部位置，FlashInfer稳定工作区入口，GraCE稳定指针槽；它们允许变化的内容不同，却都依赖当前更新在消费前生效。事件触发复制还使失效频率成为重要变量，不能默认所有目录每轮都需要同样维护。CANN任务组更新及框架同步已经提供具体排序路径。后续方案应说明在哪些共享和重叠情景中，现有路径仍留下可测的等待或空间代价。{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+{[}\protect\hyperlink{ref-ye2024chunkattention}{44}{]}
+{[}\protect\hyperlink{ref-cann910update}{13}{]}
+{[}\protect\hyperlink{ref-vllmascend0130impl}{57}{]}
+
+可比较共享工作区、双缓冲与独立工作区，在相同语义下处理更新覆盖前轮读取、取消请求和未命中后的复用。首先要检查地址、目录内容与完成依赖是否对应正确轮次，再计算增加的同步和存储。若现有事件加双缓冲已消除冲突且成本很低，新合同或调度机制就需要另有理由。若减少复制却增加更长等待，字节数下降也不足以证明方案有效。这些条件将正确性验证与性能收益连接起来。{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+{[}\protect\hyperlink{ref-vllmascend0130impl}{57}{]}
+
+\hypertarget{section-8-3}{%
+\subsection{8.3 图存档的恢复条件与失效判定}\label{section-8-3}}
+
+图存档的失效需要按实际依赖对象判定。Medusa恢复分配关联和内核入口，Foundry重现地址环境并共享模板，二者已分别提供有效绑定策略。PhoenixOS和GCR又表明，数据一致性与控制状态覆盖是恢复的另一层前提。改变模型、代码、布局或通信配置时，应区分数据内容变化、参数重绑定和执行环境失配。保存拓扑只能覆盖其中一部分关系。{[}\protect\hyperlink{ref-zeng2025medusa}{14}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+{[}\protect\hyperlink{ref-wei2025phoenixos}{33}{]}
+{[}\protect\hyperlink{ref-zeng2026gcr}{53}{]}
+
+可以比较按需重捕获、恢复全部资产与检查后部分重建，在各类配置变化下记录成功率、错误检测和首次可服务时间。若检查成本超过重新准备，或变化频率极低，细分失效策略未必有收益。实验还应明确图启用状态，并在恢复后连续多轮执行，而不只检验单个kernel追踪成功。作者支持声明、对象重建协议与实际评测配置分别给出证据，才能判断可恢复范围。由此得到的是有既有基线的条件问题，而不是对任意图恢复均未解决的断言。{[}\protect\hyperlink{ref-zeng2025medusa}{14}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+{[}\protect\hyperlink{ref-wei2025phoenixos}{33}{]}
+
+\hypertarget{section-8-4}{%
+\subsection{8.4 多设备依赖与数据所有权协同}\label{section-8-4}}
+
+多设备优化应把依赖推进、任务位置和数据所有权分别建模。Mustard在不同范围采用静态或动态分配，MPK在设备上推进细粒度计算与通信，Foundry共享多rank模板又依赖结构相容。它们处理的任务单位和通信前提并不相同。Llumnix与DistServe进一步给出服务层的KV交接、目的准备和源释放条件，说明任务可迁移不等于服务状态已可用。张量、专家和流水线并行也不能仅以卡数归为同一种场景。{[}\protect\hyperlink{ref-turimbetov2025mustard}{30}{]}
+{[}\protect\hyperlink{ref-cheng2026mpk}{18}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+{[}\protect\hyperlink{ref-sun2024llumnix}{48}{]}
+{[}\protect\hyperlink{ref-zhong2024distserve}{49}{]}
+
+有解释力的比较应固定并行方式，分别计依赖通知、数据转移和重新分配的成本。若更好的任务平衡引入更长传输，局部等待减少也可能不缩短迭代。若目的实例本地缓冲与目录稳定，交接可能只更新内容；地址、通信或代码配置变化时，仍需检查对应计划的兼容条件，检查失败也不必然要求整图重捕获。节点内与跨节点、静态归属与动态分派的结果应分别报告。GPU非LLM任务图的结果为这些接口提供参照，不能直接替代ACLGraph服务实测。{[}\protect\hyperlink{ref-turimbetov2025mustard}{30}{]}
+{[}\protect\hyperlink{ref-sun2024llumnix}{48}{]}
+{[}\protect\hyperlink{ref-zhong2024distserve}{49}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+
+\hypertarget{section-8-5}{%
+\subsection{8.5 从稳态加速转向完整使用周期证据}\label{section-8-5}}
+
+完整使用周期的评测需要把准备、命中和恢复放回同一负载窗口。现有论文分别测量编译慢路径、重复回放、后端替换或启动阶段，这些窗口回答的问题不同。xLLM局部图开关、GraCE候选比较和Hybrid长序列反例说明，应同时保留改善与退化的条件。Medusa和Foundry的结果还依赖各自离线准备、环境及权重边界。把计时对象对齐，比把摘要中的加速倍数排列起来更有价值。{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+{[}\protect\hyperlink{ref-yadav2026hybridpreprint}{32}{]}
+{[}\protect\hyperlink{ref-zeng2025medusa}{14}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+
+共同评测可以区分无图、完全预热、按需捕获、恢复后执行以及配置变化后的回退。记录主机、设备和通信活动，报告额外空间、首次等待、稳态吞吐及尾部延迟。CPU配额和后端默认值也需固定，否则服务差值可能来自图外路径或生成语义差异。正确性则同时说明数值容差、逐样本行为和目标任务指标。只有这些条件相容，单项机制的节省才能被解释为持续服务中的净收益。{[}\protect\hyperlink{ref-chung2026cpu}{50}{]}
+{[}\protect\hyperlink{ref-pape2026backend}{59}{]}
+{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+
+\hypertarget{section-9}{%
+\section{9 结束语}\label{section-9}}
+
+执行图优化通过提前保存可复用工作减少重复开销，其效果由四类决策共同决定。构建策略确定可入图范围和提交路径，动态适配决定变化由规格、控制还是状态更新表达，并行协调决定就绪工作怎样分配资源，实例管理决定准备结果何时能够再次使用。已有研究在这些位置提供了不同机制，也留下了明确的适用前提。扩大覆盖、减少复制、增加并发或加速某段恢复，都需要在相同计时与资源条件下判断净收益。本文的分类与比较将这些联系组织为可持续修订的文献框架。{[}\protect\hyperlink{ref-ghosh2026grace}{16}{]}
+{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+{[}\protect\hyperlink{ref-cheng2026mpk}{18}{]}
+{[}\protect\hyperlink{ref-zeng2025medusa}{14}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+
+面向昇腾，直接设计、固定接口实现与部署观察分别支持不同层次的结论。GPU工作能够帮助定位表示、调度和恢复问题，迁移仍取决于目标栈中的实际原语和维护成本。后续证据应报告当前状态如何进入计划、准备与空间如何摊销，以及输出和依赖怎样被验证。这样的比较能够说明一种机制适合哪类服务条件，并在新文献出现时修订相应判断。本文没有新增硬件实验，也不把缺少对照自动认定为已确认的研究空白。{[}\protect\hyperlink{ref-liu2025xllm}{4}{]}
+{[}\protect\hyperlink{ref-ye2025flashinfer}{17}{]}
+{[}\protect\hyperlink{ref-liu2026foundry}{15}{]}
+
+\hypertarget{references}{%
+\section*{参考文献}\label{references}}
+\addcontentsline{toc}{section}{参考文献}
+
+\hypertarget{refs}{}
+\begin{CSLReferences}{0}{0}
+\leavevmode\vadjust pre{\hypertarget{ref-yu2022orca}{}}%
+\CSLLeftMargin{{[}1{]} }
+\CSLRightInline{G.-I. Yu, J. S. Jeong, G.-W. Kim, et al. {Orca: A
+Distributed Serving System for Transformer-Based Generative Models}.
+16th USENIX symposium on operating systems design and implementation,
+2022, 521--538.
+\url{https://www.usenix.org/conference/osdi22/presentation/yu}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-kwon2023vllm}{}}%
+\CSLLeftMargin{{[}2{]} }
+\CSLRightInline{W. Kwon, Z. Li, S. Zhuang, et al. {Efficient Memory
+Management for Large Language Model Serving with PagedAttention}.
+Proceedings of the 29th symposium on operating systems principles, 2023,
+611--626. doi:
+\href{https://doi.org/10.1145/3600006.3613165}{10.1145/3600006.3613165}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-agrawal2024sarathi}{}}%
+\CSLLeftMargin{{[}3{]} }
+\CSLRightInline{A. Agrawal, N. Kedia, A. Panwar, et al. Taming
+throughput-latency tradeoff in {LLM} inference with {Sarathi-Serve}.
+18th USENIX symposium on operating systems design and implementation,
+2024, 117--134.
+\url{https://www.usenix.org/conference/osdi24/presentation/agrawal}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-liu2025xllm}{}}%
+\CSLLeftMargin{{[}4{]} }
+\CSLRightInline{T. Liu, T. Peng, P. Yang, et al. xLLM technical report.
+2026. doi:
+\href{https://doi.org/10.48550/arXiv.2510.14686}{10.48550/arXiv.2510.14686}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-zhou2024survey}{}}%
+\CSLLeftMargin{{[}5{]} }
+\CSLRightInline{Z. Zhou, X. Ning, K. Hong, et al. A survey on efficient
+inference for large language models. 2024.
+\url{https://arxiv.org/abs/2404.14294v3}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-zhen2025titans}{}}%
+\CSLLeftMargin{{[}6{]} }
+\CSLRightInline{R. Zhen, J. Li, Y. Ji, et al. Taming the titans: A
+survey of efficient LLM inference serving. 2025.
+\url{https://aclanthology.org/2025.inlg-main.32/}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-yuan2024unveiled}{}}%
+\CSLLeftMargin{{[}7{]} }
+\CSLRightInline{Z. Yuan, Y. Shang, Y. Zhou, et al. LLM inference
+unveiled: Survey and roofline model insights. 2024.
+\url{https://arxiv.org/abs/2402.16363v6}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-nvidia2026cuda1303}{}}%
+\CSLLeftMargin{{[}8{]} }
+\CSLRightInline{NVIDIA Corporation. {CUDA C++ Programming Guide, Version
+13.0.3}.
+\url{https://docs.nvidia.com/cuda/archive/13.0.3/cuda-c-programming-guide/index.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-ansel2024pytorch2}{}}%
+\CSLLeftMargin{{[}9{]} }
+\CSLRightInline{J. Ansel, E. Yang, H. He, et al. PyTorch 2: Faster
+machine learning through dynamic python bytecode transformation and
+graph compilation. Proceedings of the 29th ACM international conference
+on architectural support for programming languages and operating
+systems, volume 2, 2024, 929--947. doi:
+\href{https://doi.org/10.1145/3620665.3640366}{10.1145/3620665.3640366}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-lai2025relax}{}}%
+\CSLLeftMargin{{[}10{]} }
+\CSLRightInline{R. Lai, J. Shao, S. Feng, et al. {Relax: Composable
+Abstractions for End-to-End Dynamic Machine Learning}. Proceedings of
+the 30th ACM international conference on architectural support for
+programming languages and operating systems, volume 2, 2025. doi:
+\href{https://doi.org/10.1145/3676641.3716249}{10.1145/3676641.3716249}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-kwon2020nimble}{}}%
+\CSLLeftMargin{{[}11{]} }
+\CSLRightInline{W. Kwon, G.-I. Yu, E. Jeong, and B.-G. Chun. Nimble:
+Lightweight and parallel GPU task scheduling for deep learning. Advances
+in neural information processing systems 33, 2020, 33, 8343--8354.
+\url{https://proceedings.neurips.cc/paper/2020/hash/5f0ad4db43d8723d18169b2e4817a160-Abstract.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-cann900overview}{}}%
+\CSLLeftMargin{{[}12{]} }
+\CSLRightInline{Huawei. {ACL Graph Overview}.
+\url{https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/900/programug/acldevg/runtime_doc_dev_0045.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-cann910update}{}}%
+\CSLLeftMargin{{[}13{]} }
+\CSLRightInline{Huawei. {Task Update}.
+\url{https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/others/acldevg/runtime_doc_dev_0032.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-zeng2025medusa}{}}%
+\CSLLeftMargin{{[}14{]} }
+\CSLRightInline{S. Zeng, M. Xie, S. Gao, et al. Medusa: Accelerating
+serverless LLM inference with materialization. Proceedings of the 30th
+ACM international conference on architectural support for programming
+languages and operating systems, volume 1, 2025, 653--668. doi:
+\href{https://doi.org/10.1145/3669940.3707285}{10.1145/3669940.3707285}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-liu2026foundry}{}}%
+\CSLLeftMargin{{[}15{]} }
+\CSLRightInline{X. Liu, Y. Wu, Y. Yao, et al. Foundry: Template-based
+CUDA graph context materialization for fast LLM serving cold start.
+arXiv preprint, 2604.06664v1, 2026. doi:
+\href{https://doi.org/10.48550/arXiv.2604.06664}{10.48550/arXiv.2604.06664}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-ghosh2026grace}{}}%
+\CSLLeftMargin{{[}16{]} }
+\CSLRightInline{A. Ghosh, A. Nayak, A. Panwar, and A. Basu. {GraCE}:
+Unlocking {CUDA} graphs with compiler support for {ML} workloads. 20th
+USENIX symposium on operating systems design and implementation, 2026,
+1927--1947.
+\url{https://www.usenix.org/conference/osdi26/presentation/ghosh}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-ye2025flashinfer}{}}%
+\CSLLeftMargin{{[}17{]} }
+\CSLRightInline{Z. Ye, L. Chen, R. Lai, et al. {FlashInfer: Efficient
+and Customizable Attention Engine for LLM Inference Serving}.
+Proceedings of machine learning and systems, 2025, 7.
+\url{https://proceedings.mlsys.org/paper_files/paper/2025/hash/dbf02b21d77409a2db30e56866a8ab3a-Abstract-Conference.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-cheng2026mpk}{}}%
+\CSLLeftMargin{{[}18{]} }
+\CSLRightInline{X. Cheng, Z. Zhang, Y. Zhou, et al. MPK: A compiler and
+runtime for mega-kernelizing tensor programs. 2026. doi:
+\href{https://doi.org/10.48550/arXiv.2512.22219}{10.48550/arXiv.2512.22219}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-zhu2025nanoflow}{}}%
+\CSLLeftMargin{{[}19{]} }
+\CSLRightInline{K. Zhu, Y. Gao, Y. Zhao, et al. {NanoFlow: Towards
+Optimal Large Language Model Serving Throughput}. 19th USENIX symposium
+on operating systems design and implementation, 2025, 749--765.
+\url{https://www.usenix.org/conference/osdi25/presentation/zhu-kan}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-huang2022taskflow}{}}%
+\CSLLeftMargin{{[}20{]} }
+\CSLRightInline{T.-W. Huang, D.-L. Lin, C.-X. Lin, and Y. Lin.
+{Taskflow: A Lightweight Parallel and Heterogeneous Task Graph Computing
+System}. IEEE Transactions on Parallel and Distributed Systems
+33(6):1303--1320, 2022. doi:
+\href{https://doi.org/10.1109/TPDS.2021.3104255}{10.1109/TPDS.2021.3104255}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-juravsky2024hydragen}{}}%
+\CSLLeftMargin{{[}21{]} }
+\CSLRightInline{J. Juravsky, B. Brown, R. Ehrlich, et al. Hydragen:
+High-throughput LLM inference with shared prefixes. arXiv preprint,
+2024. doi:
+\href{https://doi.org/10.48550/arXiv.2402.05099}{10.48550/arXiv.2402.05099}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-shen2021nimble}{}}%
+\CSLLeftMargin{{[}22{]} }
+\CSLRightInline{H. Shen, J. Roesch, Z. Chen, et al. {Nimble: Efficiently
+Compiling Dynamic Neural Networks for Model Inference}. Proceedings of
+machine learning and systems 3, 2021.
+\url{https://proceedings.mlsys.org/paper_files/paper/2021/hash/5b47430e24a5a1f9fe21f0e8eb814131-Abstract.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-fegade2021cortex}{}}%
+\CSLLeftMargin{{[}23{]} }
+\CSLRightInline{P. Fegade, T. Chen, P. B. Gibbons, and T. C. Mowry.
+{Cortex: A Compiler for Recursive Deep Learning Models}. Proceedings of
+machine learning and systems 3, 2021.
+\url{https://proceedings.mlsys.org/paper_files/paper/2021/hash/eca986d585a03890a412587a2f5ccb43-Abstract.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-fegade2024acrobat}{}}%
+\CSLLeftMargin{{[}24{]} }
+\CSLRightInline{P. Fegade, T. Chen, P. B. Gibbons, and T. C. Mowry.
+{ACRoBat: Optimizing Auto-batching of Dynamic Deep Learning at Compile
+Time}. Proceedings of machine learning and systems 6, 2024.
+\url{https://proceedings.mlsys.org/paper_files/paper/2024/hash/096b1019463f34eb241e87cfce8dfe16-Abstract-Conference.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-chen2024sequoia}{}}%
+\CSLLeftMargin{{[}25{]} }
+\CSLRightInline{Z. Chen, A. May, R. Svirschevski, et al. Sequoia:
+Scalable and robust speculative decoding. Advances in neural information
+processing systems 37, 2024. doi:
+\href{https://doi.org/10.52202/079017-4116}{10.52202/079017-4116}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-ding2021ios}{}}%
+\CSLLeftMargin{{[}26{]} }
+\CSLRightInline{Y. Ding, L. Zhu, Z. Jia, et al. IOS: Inter-operator
+scheduler for CNN acceleration. Proceedings of machine learning and
+systems 3, 2021, 3, 167--180.
+\url{https://proceedings.mlsys.org/paper_files/paper/2021/hash/1f8053a67ec8e0b57455713cefdd8218-Abstract.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-chen2025opara}{}}%
+\CSLLeftMargin{{[}27{]} }
+\CSLRightInline{A. Chen, F. Xu, L. Han, et al. Opara: Exploiting
+operator parallelism for expediting DNN inference on GPUs. IEEE
+Transactions on Computers, 2025, 74, (1), 325--333. doi:
+\href{https://doi.org/10.1109/TC.2024.3475589}{10.1109/TC.2024.3475589}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-zhao2023autograph}{}}%
+\CSLLeftMargin{{[}28{]} }
+\CSLRightInline{Y. Zhao, Q. Sun, Z. He, et al. AutoGraph: Optimizing DNN
+computation graph for parallel GPU kernel execution. Proceedings of the
+AAAI conference on artificial intelligence, 2023, 37, 11354--11362. doi:
+\href{https://doi.org/10.1609/aaai.v37i9.26343}{10.1609/aaai.v37i9.26343}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-ma2020rammer}{}}%
+\CSLLeftMargin{{[}29{]} }
+\CSLRightInline{L. Ma, Z. Xie, Z. Yang, et al. Rammer: Enabling holistic
+deep learning compiler optimizations with rTasks. 14th USENIX symposium
+on operating systems design and implementation (OSDI 20), 2020,
+881--897.
+\url{https://www.usenix.org/conference/osdi20/presentation/ma}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-turimbetov2025mustard}{}}%
+\CSLLeftMargin{{[}30{]} }
+\CSLRightInline{I. Turimbetov, M. Wahib, and D. Unat. {A Device-Side
+Execution Model for Multi-GPU Task Graphs}. Proceedings of the 39th ACM
+international conference on supercomputing, 2025, 384--396. doi:
+\href{https://doi.org/10.1145/3721145.3730426}{10.1145/3721145.3730426}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-kamath2025pod}{}}%
+\CSLLeftMargin{{[}31{]} }
+\CSLRightInline{A. K. Kamath, R. Prabhu, J. Mohan, et al.
+{POD-Attention: Unlocking Full Prefill-Decode Overlap for Faster LLM
+Inference}. Proceedings of the 30th ACM international conference on
+architectural support for programming languages and operating systems,
+volume 2, 2025, 897--912. doi:
+\href{https://doi.org/10.1145/3676641.3715996}{10.1145/3676641.3715996}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-yadav2026hybridpreprint}{}}%
+\CSLLeftMargin{{[}32{]} }
+\CSLRightInline{D. K. Yadav and T. Zhao. {Hybrid JIT-CUDA Graph
+Optimization for Low-Latency Large Language Model Inference}. 2026. doi:
+\href{https://doi.org/10.48550/arXiv.2604.23467}{10.48550/arXiv.2604.23467}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-wei2025phoenixos}{}}%
+\CSLLeftMargin{{[}33{]} }
+\CSLRightInline{X. Wei, Z. Huang, T. Sun, et al. PhoenixOS: Concurrent
+OS-level GPU checkpoint and restore with validated speculation.
+Proceedings of the ACM SIGOPS 31st symposium on operating systems
+principles (SOSP 25), 2025, 996--1013. doi:
+\href{https://doi.org/10.1145/3731569.3764813}{10.1145/3731569.3764813}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-hu2025deepserve}{}}%
+\CSLLeftMargin{{[}34{]} }
+\CSLRightInline{J. Hu, J. Xu, Z. Liu, et al. DEEPSERVE: Serverless large
+language model serving at scale. 2025 USENIX annual technical conference
+(USENIX ATC 25), 2025, 57--72.
+\url{https://www.usenix.org/conference/atc25/presentation/hu-junhao}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-zhu2021disc}{}}%
+\CSLLeftMargin{{[}35{]} }
+\CSLRightInline{K. Zhu, W. Zhao, Z. Zheng, et al. {DISC: A Dynamic Shape
+Compiler for Machine Learning Workloads}. Proceedings of the 1st
+workshop on machine learning and systems, 2021. doi:
+\href{https://doi.org/10.1145/3437984.3458888}{10.1145/3437984.3458888}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-fegade2022cora}{}}%
+\CSLLeftMargin{{[}36{]} }
+\CSLRightInline{P. Fegade, T. Chen, P. B. Gibbons, and T. C. Mowry. {The
+CoRa Tensor Compiler: Compilation for Ragged Tensors with Minimal
+Padding}. Proceedings of machine learning and systems 4, 2022.
+\url{https://www.pdl.cmu.edu/PDL-FTP/BigLearning/MLSys-2022-the-cora-tensor-compiler.pdf}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-prabhu2025vattention}{}}%
+\CSLLeftMargin{{[}37{]} }
+\CSLRightInline{R. Prabhu, A. Nayak, J. Mohan, et al. {vAttention}:
+Dynamic memory management for serving {LLMs} without {PagedAttention}.
+Proceedings of the 30th ACM international conference on architectural
+support for programming languages and operating systems, volume 2, 2025.
+doi:
+\href{https://doi.org/10.1145/3669940.3707256}{10.1145/3669940.3707256}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-sheng2024slora}{}}%
+\CSLLeftMargin{{[}38{]} }
+\CSLRightInline{Y. Sheng, S. Cao, D. Li, et al. S-LoRA: Serving
+thousands of concurrent LoRA adapters. 2024.
+\url{https://proceedings.mlsys.org/paper_files/paper/2024/hash/906419cd502575b617cc489a1a696a67-Abstract-Conference.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-chen2024punica}{}}%
+\CSLLeftMargin{{[}39{]} }
+\CSLRightInline{L. Chen, Z. Ye, Y. Wu, et al. Punica: Multi-tenant LoRA
+serving. 2024.
+\url{https://proceedings.mlsys.org/paper_files/paper/2024/hash/054de805fcceb78a201f5e9d53c85908-Abstract-Conference.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-miao2024specinfer}{}}%
+\CSLLeftMargin{{[}40{]} }
+\CSLRightInline{X. Miao, G. Oliaro, Z. Zhang, et al. SpecInfer:
+Accelerating large language model serving with tree-based speculative
+inference and verification. Proceedings of ASPLOS 2024, volume 3, 2024.
+doi:
+\href{https://doi.org/10.1145/3620666.3651335}{10.1145/3620666.3651335}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-li2024eagle2}{}}%
+\CSLLeftMargin{{[}41{]} }
+\CSLRightInline{Y. Li, F. Wei, C. Zhang, and H. Zhang. EAGLE-2: Faster
+inference of language models with dynamic draft trees. Proceedings of
+EMNLP 2024, 2024. doi:
+\href{https://doi.org/10.18653/v1/2024.emnlp-main.422}{10.18653/v1/2024.emnlp-main.422}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-dong2025flexattention}{}}%
+\CSLLeftMargin{{[}42{]} }
+\CSLRightInline{J. Dong, B. Feng, D. Guessous, et al. Flex attention: A
+programming model for generating optimized attention kernels.
+Proceedings of machine learning and systems 7, 2025.
+\url{https://proceedings.mlsys.org/paper_files/paper/2025/hash/61a9278dfef5f871b5e472389f8d6fa1-Abstract-Conference.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-wang2025flashmask}{}}%
+\CSLLeftMargin{{[}43{]} }
+\CSLRightInline{G. Wang, J. Zeng, X. Xiao, et al. FlashMask: Efficient
+and rich mask extension of FlashAttention. International conference on
+learning representations 2025, 2025. doi:
+\href{https://doi.org/10.48550/arXiv.2410.01359}{10.48550/arXiv.2410.01359}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-ye2024chunkattention}{}}%
+\CSLLeftMargin{{[}44{]} }
+\CSLRightInline{L. Ye, Z. Tao, Y. Huang, and Y. Li. ChunkAttention:
+Efficient self-attention with prefix-aware KV cache and two-phase
+partition. Proceedings of ACL 2024 (volume 1: Long papers), 2024. doi:
+\href{https://doi.org/10.18653/v1/2024.acl-long.623}{10.18653/v1/2024.acl-long.623}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-jia2019taso}{}}%
+\CSLLeftMargin{{[}45{]} }
+\CSLRightInline{Z. Jia, O. Padon, J. Thomas, et al. {TASO: Optimizing
+Deep Learning Computation with Automatic Generation of Graph
+Substitutions}. Proceedings of the 27th ACM symposium on operating
+systems principles, 2019. doi:
+\href{https://doi.org/10.1145/3341301.3359630}{10.1145/3341301.3359630}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-wu2025mirage}{}}%
+\CSLLeftMargin{{[}46{]} }
+\CSLRightInline{M. Wu, X. Cheng, S. Liu, et al. Mirage: A multi-level
+superoptimizer for tensor programs. 19th USENIX symposium on operating
+systems design and implementation (OSDI 25), 2025, 21--38.
+\url{https://www.usenix.org/conference/osdi25/presentation/wu-mengdi}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-feng2023tensorir}{}}%
+\CSLLeftMargin{{[}47{]} }
+\CSLRightInline{S. Feng, B. Hou, H. Jin, et al. {TensorIR: An
+Abstraction for Automatic Tensorized Program Optimization}. Proceedings
+of the 28th ACM international conference on architectural support for
+programming languages and operating systems, volume 2, 2023. doi:
+\href{https://doi.org/10.1145/3575693.3576933}{10.1145/3575693.3576933}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-sun2024llumnix}{}}%
+\CSLLeftMargin{{[}48{]} }
+\CSLRightInline{B. Sun, Z. Huang, H. Zhao, et al. Llumnix: Dynamic
+scheduling for large language model serving. Proceedings of OSDI 2024,
+2024.
+\url{https://www.usenix.org/conference/osdi24/presentation/sun-biao}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-zhong2024distserve}{}}%
+\CSLLeftMargin{{[}49{]} }
+\CSLRightInline{Y. Zhong, S. Liu, J. Chen, et al. DistServe:
+Disaggregating prefill and decoding for goodput-optimized large language
+model serving. Proceedings of OSDI 2024, 2024.
+\url{https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-chung2026cpu}{}}%
+\CSLLeftMargin{{[}50{]} }
+\CSLRightInline{E. Chung, Y. Jia, A. Jezghani, and H. Kim.
+Characterizing CPU-induced slowdowns in multi-GPU LLM inference. 2026.
+\url{https://arxiv.org/abs/2603.22774v3}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-fu2024serverlessllm}{}}%
+\CSLLeftMargin{{[}51{]} }
+\CSLRightInline{Y. Fu, L. Xue, Y. Huang, et al. ServerlessLLM:
+Low-latency serverless inference for large language models. 18th USENIX
+symposium on operating systems design and implementation (OSDI 24),
+2024, 135--153.
+\url{https://www.usenix.org/conference/osdi24/presentation/fu}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-stoyanov2025criugpu}{}}%
+\CSLLeftMargin{{[}52{]} }
+\CSLRightInline{R. Stoyanov, V. Spišaková, J. Ramos, et al. CRIUgpu:
+Transparent checkpointing of GPU-accelerated workloads. 2025. doi:
+\href{https://doi.org/10.48550/arXiv.2502.16631}{10.48550/arXiv.2502.16631}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-zeng2026gcr}{}}%
+\CSLLeftMargin{{[}53{]} }
+\CSLRightInline{S. Zeng, T. Ren, J. Shu, and Y. Lu. GPU
+checkpoint/restore made fast and lightweight. 24th USENIX conference on
+file and storage technologies (FAST 26), 2026, 239--254.
+\url{https://www.usenix.org/conference/fast26/presentation/zeng}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-cann910multi}{}}%
+\CSLLeftMargin{{[}54{]} }
+\CSLRightInline{Huawei. {Cross-Stream Capture}.
+\url{https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/others/acldevg/runtime_doc_dev_0031.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-gitee20264}{}}%
+\CSLLeftMargin{{[}55{]} }
+\CSLRightInline{Ascend PyTorch contributors. {Task-group capture and
+update interfaces and ExternalEvent: PR 20264}. 2025.
+\url{https://gitee.com/ascend/pytorch/pulls/20264}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-vllmascend0130}{}}%
+\CSLLeftMargin{{[}56{]} }
+\CSLRightInline{vLLM Ascend contributors. {ACL Graph feature guide
+(v0.13.0)}.
+\url{https://docs.vllm.ai/projects/ascend/en/v0.13.0/developer_guide/feature_guide/ACL_Graph.html}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-vllmascend0130impl}{}}%
+\CSLLeftMargin{{[}57{]} }
+\CSLRightInline{vLLM Ascend contributors. {ACLGraphWrapper
+implementation (commit 6281c120)}.
+\url{https://github.com/vllm-project/vllm-ascend/blob/6281c1207a7a499e9f23a42b3a1e7027469f2b10/vllm_ascend/compilation/acl_graph.py}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-yu2026ascendfield}{}}%
+\CSLLeftMargin{{[}58{]} }
+\CSLRightInline{Z. Yu. {On the Limitations of Non-GPU AI Accelerators
+for Large-Model Inference: A Field Study of MoE and Multimodal Serving
+on Huawei Ascend}. arXiv preprint, 2026. doi:
+\href{https://doi.org/10.48550/arXiv.2607.08215}{10.48550/arXiv.2607.08215}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-pape2026backend}{}}%
+\CSLLeftMargin{{[}59{]} }
+\CSLRightInline{D. Pape, J. Evertz, and L. Schönherr. The silent
+hyperparameter: Quantifying the impact of inference backends on LLM
+reproducibility. 2026. \url{https://arxiv.org/abs/2605.19537v4}.}
+
+\end{CSLReferences}
+
+\end{document}

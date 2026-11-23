@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import { academicPaperHeadings, academicPaperHrefs, revealPaperHeading, type AcademicPaper } from "./academic-paper";
 import AclGraphSurveyMap from "./AclGraphSurveyMap";
+import { validatedSurvey } from "./topic-survey";
 import "./topic-academic-paper.css";
 
 export function AcademicPaperCard({ topic, paper }: { topic: Topic; paper: AcademicPaper }) {
@@ -27,6 +28,12 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
   const observer = useRef<ResizeObserver | null>(null);
   const [headings, setHeadings] = useState<{ id: string; title: string }[]>([]);
   const [height, setHeight] = useState(1000);
+  const showTaxonomy = topic.id === "aclgraph" && !!validatedSurvey(topic)?.routes.every((row) => row.examples && row.paperAnchor && row.paperSection);
+  function syncCover(doc: Document | null | undefined, shownAbove: boolean) {
+    const cover = doc?.getElementById("taxonomy-overview")?.closest("figure");
+    if (cover) cover.hidden = shownAbove;
+  }
+  useEffect(() => { syncCover(frame.current?.contentDocument, showTaxonomy); }, [showTaxonomy]);
   useEffect(() => () => observer.current?.disconnect(), []);
   function loaded() {
     observer.current?.disconnect();
@@ -34,6 +41,7 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
     try {
       const doc = frame.current?.contentDocument;
       if (!doc || !hrefs || new URL(doc.URL).href !== new URL(hrefs.html, window.location.href).href) return;
+      syncCover(doc, showTaxonomy);
       setHeadings(academicPaperHeadings(doc));
       const resize = () => {
         const body = doc.body;
@@ -67,12 +75,13 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
         <Title>{paper.title}</Title>
         <div className="academic-paper-downloads">
           <a href={hrefs.pdf} download={`${topic.id}-${paper.version.slice(0, 12)}.pdf`}><Download size={16} aria-hidden="true" /> 下载同版 PDF</a>
+          {hrefs.word && <a href={hrefs.word} download={`${topic.id}-${paper.manuscriptRevision}.docx`}><Download size={16} aria-hidden="true" /> 下载 Word</a>}
           <button type="button" onClick={() => revealPaperHeading(document, "academic-paper-fulltext", window.matchMedia("(prefers-reduced-motion: reduce)").matches)}>跳到完整正文 <span aria-hidden="true">↓</span></button>
           {!embedded && topic.report && <Link to={{ search: "view=report" }}>查看动态报告</Link>}
         </div>
       </header>
 
-      {showMap && <AclGraphSurveyMap topic={topic} htmlHref={hrefs.html} revealSection={revealSection} />}
+      {showMap && <AclGraphSurveyMap topic={topic} htmlHref={hrefs.html} revealSection={revealSection} showTaxonomy={showTaxonomy} />}
 
       <section className="academic-paper-fulltext" aria-labelledby="academic-paper-fulltext">
         <div className="academic-paper-fulltext-heading">

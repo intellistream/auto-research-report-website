@@ -26,7 +26,7 @@ function render(path: string, topic = nextTopic) {
 describe("academic manuscript branch", () => {
   it("uses one topic title and navigation for the three sections", () => {
     const html = render("/topics/aclgraph");
-    expect(html).toContain("一次前向怎样用上 ACLGraph？");
+    expect(html).toContain("图回放省去了哪部分工作？");
     expect(html).toContain("view=paper");
     expect(html).toContain("view=report");
     expect(html).not.toContain("view=evidence");
@@ -84,6 +84,15 @@ describe("academic manuscript branch", () => {
     expect(render("/topics", { ...nextTopic, academicPaper: bad })).toContain("ACL Graph");
     expect(render("/topics/aclgraph?view=paper", { ...nextTopic, academicPaper: bad })).toContain("论文版本元数据无效");
   });
+  it("offers a version-bound Word original without accepting an unrelated download", () => {
+    const word = { path: prefix + "paper.docx", sha256: "e".repeat(64), bytes: 123 };
+    const withWord = { ...paper, assets: { ...paper.assets, word } };
+    expect(academicPaperHrefs("aclgraph", withWord)?.word).toBe(archiveBase + word.path);
+    expect(render("/topics/aclgraph?view=paper", { ...nextTopic, academicPaper: withWord })).toContain("下载 Word");
+    for (const path of ["https://example.com/paper.docx", prefix + "../paper.docx", prefix + "paper.pdf"]) {
+      expect(academicPaperHrefs("aclgraph", { ...withWord, assets: { ...withWord.assets, word: { ...word, path } } })).toBeUndefined();
+    }
+  });
   it("extracts existing paper headings and focuses only heading targets without injecting HTML", () => {
     const heading = { id: "section-1", tagName: "H2", textContent: "  论文第一节  ", tabIndex: 0, scrollIntoView: vi.fn(), focus: vi.fn() };
     const doc = { querySelectorAll: vi.fn().mockReturnValue([heading]), getElementById: vi.fn().mockReturnValue(heading) } as unknown as Document;
@@ -94,15 +103,33 @@ describe("academic manuscript branch", () => {
     expect(heading.focus).toHaveBeenCalledWith({ preventScroll: true });
     expect(revealPaperHeading({ getElementById: () => ({ tagName: "A" }) } as unknown as Document, "ref-a")).toBe(false);
   });
-  it("publishes the accepted R1 source snapshot as the current real paper", () => {
+  it("includes and focuses third-level analytical subsections in the paper navigation", () => {
+    const heading = { id: "section-3-1-1", tagName: "H4", textContent: "3.1.1 区域切分与不兼容操作", tabIndex: 0, scrollIntoView: vi.fn(), focus: vi.fn() };
+    const querySelectorAll = vi.fn().mockReturnValue([heading]);
+    const doc = { querySelectorAll, getElementById: vi.fn().mockReturnValue(heading) } as unknown as Document;
+    expect(academicPaperHeadings(doc)).toEqual([{ id: heading.id, title: heading.textContent }]);
+    expect(querySelectorAll).toHaveBeenCalledWith("h1[id], h2[id], h3[id], h4[id]");
+    expect(revealPaperHeading(doc, heading.id, true)).toBe(true);
+    expect(heading.tabIndex).toBe(-1);
+    expect(heading.scrollIntoView).toHaveBeenCalledWith({ behavior: "instant", block: "start" });
+    expect(heading.focus).toHaveBeenCalledWith({ preventScroll: true });
+    expect(revealPaperHeading({ getElementById: () => ({ tagName: "H5" }) } as unknown as Document, "unsupported")).toBe(false);
+  });
+  it("links all reviewed routes and downloads to the current frozen paper", () => {
     const actual = publishedTopic.academicPaper!;
-    expect(actual.manuscriptRevision).toBe("R1-content-review-accepted");
-    expect(actual.assets.markdown.sha256).toBe("382fe4bee7515b7487bdebda015306829939675fbece64a3672947f3f44d194b");
     const hrefs = academicPaperHrefs("aclgraph", actual)!;
     const html = render("/topics/aclgraph?view=paper", publishedTopic);
-    expect(html).toContain("技术路线与待验证问题");
-    expect(html.indexOf("技术路线与待验证问题")).toBeLessThan(html.indexOf("<iframe"));
-    expect(html).toContain(`href="${hrefs.html}#${encodeURIComponent("可组合的状态有效性契约")}"`);
+    expect(html).toContain("ACLGraph 技术分类与代表工作");
+    expect(html.indexOf("ACLGraph 技术分类与代表工作")).toBeLessThan(html.indexOf("<iframe"));
+    for (const route of publishedTopic.survey!.routes) {
+      expect(html).toContain(`href="${hrefs.html}#${encodeURIComponent(route.paperAnchor!)}"`);
+    }
+    for (const kind of Object.keys(actual.assets)) {
+      expect(html).toContain(`href="${hrefs[kind as keyof typeof PAPER_FILES]}"`);
+    }
+    expect(html).toContain("回放状态与地址更新");
+    expect(html).toContain("图模板共享与重复准备消除");
+    expect(html).toContain(`${hrefs.html}#ref-31`);
     expect(html).toContain(`src="${hrefs.html}"`);
     expect(html).toContain(`href="${hrefs.pdf}"`);
     expect(html).toContain(`href="${hrefs.sources}"`);

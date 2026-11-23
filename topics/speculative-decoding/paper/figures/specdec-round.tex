@@ -1,0 +1,40 @@
+\documentclass[tikz,border=7pt]{standalone}
+\usepackage[UTF8,fontset=none]{ctex}
+\setCJKmainfont{Noto Sans CJK SC}
+\usepackage{amsmath}
+\usetikzlibrary{arrows.meta,calc,positioning,fit}
+\definecolor{ink}{HTML}{1D3447}
+\definecolor{slate}{HTML}{506E83}
+\definecolor{bluewash}{HTML}{ECF3FB}
+\definecolor{greenwash}{HTML}{EAF6F0}
+\definecolor{lavwash}{HTML}{F1EFF9}
+\definecolor{orangewash}{HTML}{FFF5E7}
+\begin{document}
+\begin{tikzpicture}[
+  font=\small\sffamily,text=ink,
+  flow/.style={-{Latex[length=2.6mm]},line width=.85pt,draw=slate},
+  card/.style={draw=slate,line width=.9pt,rounded corners=3.6pt,
+     minimum width=35mm,minimum height=17.5mm,align=center},
+  info/.style={font=\footnotesize\sffamily,text=slate,align=center},
+  xs/.style={font=\scriptsize\sffamily,text=slate,align=center},
+]
+% Each stage has a distinct responsibility; colors indicate conceptual stages.
+\node[card,fill=bluewash] (draft) at (1.85,0) {\textbf{生成候选}\\草稿 $D$};
+\node[card,fill=bluewash] (verify) at (5.68,0) {\textbf{目标验证}\\链 $K$ / 树 $N$};
+\node[card,fill=lavwash] (accept) at (9.51,0) {\textbf{接受与纠正}\\提交输出 $R$};
+\node[card,fill=greenwash] (commit) at (13.34,0) {\textbf{更新有效状态}\\物化边界 $c'$};
+\draw[flow] (draft.east) -- (verify.west);
+\draw[flow] (verify.east) -- (accept.west);
+\draw[flow] (accept.east) -- (commit.west);
+% Shared execution constraints enter two different stages.
+\node[info] (budget) at (3.75,2.03) {共享批次与形状预算};
+\draw[flow] (budget.south west) to[out=-116,in=90] (draft.north);
+\draw[flow] (budget.south east) to[out=-64,in=90] (verify.north);
+\node[info] (consumer) at (13.34,2.03) {后续轮次读取\\合法前缀};
+\draw[flow] (commit.north) -- (consumer.south);
+% Accounting boundary, not an assertion that concurrent kernel durations add.
+\draw[slate,line width=.8pt] (0.1,-1.14) -- (0.1,-1.34) -- (15.11,-1.34) -- (15.11,-1.14);
+\node[xs,fill=white,inner sep=2.2mm] at (7.6,-1.34)
+   {\textbf{关键路径成本：}执行、调度等待与状态发布（按依赖关系计量）};
+\end{tikzpicture}
+\end{document}
