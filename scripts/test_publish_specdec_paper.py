@@ -49,6 +49,12 @@ class SpecDecPublisher(unittest.TestCase):
             self.assertEqual(importer.digest(data), manifest["assets"][Path(asset["path"]).name])
         checks = importer.inspect_html((root / paper["assets"]["html"]["path"]).read_bytes())
         self.assertEqual(checks["embeddedFigures"], 4)
+        html = (root / paper["assets"]["html"]["path"]).read_text(encoding="utf-8")
+        self.assertIn("math { max-width: 100%; overflow: visible; }", html)
+        self.assertNotIn("math { max-width: 100%; overflow-x: auto; }", html)
+        self.assertIn(".citation a, .citation a:visited { color: inherit; text-decoration: none;", html)
+        self.assertIn("a, a:visited { color: #116c56;", html)
+        self.assertIn("grid-template-columns: 2.6em minmax(0, 1fr)", html)
         self.assertGreaterEqual(checks["mathML"], 15)
         word = (root / paper["assets"]["word"]["path"]).read_bytes()
         importer.inspect_docx(word)
@@ -58,7 +64,7 @@ class SpecDecPublisher(unittest.TestCase):
         with zipfile.ZipFile(root / paper["assets"]["sources"]["path"]) as archive:
             self.assertIsNone(archive.testzip())
             self.assertEqual(set(archive.namelist()), {
-                "README.md", "paper.md", "paper.tex", "paper.docx", "references.bib", "numeric.csl",
+                "README.md", "paper.md", "paper.tex", "paper.docx", "references.bib", "numeric.csl", "paper.css",
                 *(f"figures/{figure}.{suffix}" for figure in
                   ("draft-dependencies", "execution-model", "state-recovery", "verification-cost")
                   for suffix in ("pdf", "svg"))
