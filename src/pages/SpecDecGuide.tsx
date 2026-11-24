@@ -48,8 +48,8 @@ function RoundDemo() {
       </div>
       <div className="specdec-mech-result"><strong>{round.output.length} 个输出 token</strong><span>接受 {accepted} 个草稿 + 1 个{round.allAccepted ? "额外" : "修正"} token</span><span>Target 调用：{round.targetCallsAR} → 1 次</span></div>
       <div className="specdec-mech-state">
-        <div><h3>注意力 KV</h3><p>保留前缀 <code>{retained}</code> 的 KV；{round.allAccepted ? "没有被拒绝的草稿条目。" : "丢弃未接受路径上的 KV。"}</p></div>
-        <div><h3>递推状态</h3><p>恢复或保留 <code>s<sub>{accepted}</sub></code>，而不是盲目继续使用候选末端的 <code>s<sub>3</sub></code>。</p></div>
+        <div><h3>注意力 KV</h3><p>保留前缀 <code>{retained}</code> 的 KV；{round.allAccepted ? "没有被拒绝的草稿条目。" : "使未接受路径上的 KV 条目失效。"}</p></div>
+        <div><h3>递推状态</h3><p>{round.allAccepted ? <>保留候选末端状态 <code>s<sub>3</sub></code>。</> : <>恢复或保留 <code>s<sub>{accepted}</sub></code>；候选末端的 <code>s<sub>3</sub></code> 不再有效。</>}</p></div>
       </div>
       <p className="specdec-mech-note">本示例中 {round.pending} 已输出，但对应的目标状态留待下一轮计算。输出序列为 <code>x {round.output.join(" ")}</code>，有效已计算前缀为 <code>{retained}</code>。</p>
     </div>

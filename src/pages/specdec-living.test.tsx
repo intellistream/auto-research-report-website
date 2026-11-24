@@ -43,6 +43,25 @@ describe("SpecDec novice-to-research reading contract", () => {
     expect(paper).not.toContain("specdec-manuscript");
   });
 
+  it("keeps the interactive mechanism guide separate and links the four reviewed paper chapters", () => {
+    const guide = render("/topics/speculative-decoding");
+    expect(guide).toContain("机制模型");
+    expect(guide).toContain("本轮接受的草稿数");
+    expect(guide).toContain("首次拒绝");
+    expect(guide).toContain("注意力 KV");
+    expect(guide).toContain("递推状态");
+    expect(guide).toContain("理论局部解码速率比");
+    expect(guide).toContain("1.61×");
+    expect(guide).toContain('id="specdec-k"');
+    expect(guide).toContain('id="specdec-alpha"');
+    expect(guide).toContain('id="specdec-verify-cost"');
+    for (const chapter of [3, 4, 5, 6]) {
+      expect(guide).toContain(spec.academicPaper!.assets.html.path + "#section-" + chapter);
+    }
+    expect(render("/topics/speculative-decoding?view=paper")).not.toContain("理论局部解码速率比");
+    expect(render("/topics/speculative-decoding?view=report")).not.toContain("理论局部解码速率比");
+  });
+
   it("keeps eight substantive chapters in the same nested collapsible reader as ACL", () => {
     const report = render("/topics/speculative-decoding?view=report");
     expect(report).toContain("本章综合判断");
