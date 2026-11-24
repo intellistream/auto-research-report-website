@@ -11,7 +11,7 @@ import "./aclgraph-topic.css";
 
 const path = "/topics/speculative-decoding";
 const sections = [
-  { id: "guide", label: "导引", search: "" },
+  { id: "guide", label: "机制模型", search: "" },
   { id: "paper", label: "综述", search: "view=paper" },
   { id: "report", label: "动态报告", search: "view=report" },
 ] as const;
