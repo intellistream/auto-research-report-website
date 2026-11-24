@@ -6217,8 +6217,8 @@
               "E8"
             ],
             "gapIds": [],
-            "paperSection": "4",
-            "paperAnchor": "drafting"
+            "paperSection": "3",
+            "paperAnchor": "section-3"
           },
           {
             "id": "verification",
@@ -6251,8 +6251,8 @@
               "adaptive-cost",
               "graph-budget"
             ],
-            "paperSection": "5",
-            "paperAnchor": "verification"
+            "paperSection": "4",
+            "paperAnchor": "section-4"
           },
           {
             "id": "accepted-state",
@@ -6288,8 +6288,8 @@
               "accepted-state",
               "kv-residency"
             ],
-            "paperSection": "6",
-            "paperAnchor": "runtime"
+            "paperSection": "5",
+            "paperAnchor": "section-5"
           },
           {
             "id": "runtime",
@@ -6323,8 +6323,8 @@
             "gapIds": [
               "serving-causality"
             ],
-            "paperSection": "7",
-            "paperAnchor": "serving"
+            "paperSection": "6",
+            "paperAnchor": "section-6"
           }
         ],
         "update": {
@@ -6489,56 +6489,61 @@
           "github:vllm-project/vllm-ascend#21444",
           "github:vllm-project/vllm-ascend#21512"
         ],
-        "paperVersion": "74da50339df79ab4f03bf027cc17c134023ead4aba33a4308d3970b7e81b838f"
+        "paperVersion": "fb929a22ef57cc9a696df3dadd3bd6aed68bb18dd37b8096c2c2bd05d5cc8f3b"
       },
       "academicPaper": {
         "schemaVersion": 1,
-        "title": "面向大语言模型服务的推测解码综述",
-        "titleEn": "Speculative Decoding for Large Language Model Serving: A Survey",
-        "abstract": "推测解码利用低成本候选与目标并行验证减少自回归生成的串行调用，但接受长度提高并不必然降低在线服务的单位输出成本。本文系统梳理截至 2026 年 11 月 18 日的代表性机制与服务实现，围绕候选如何成为符合目标输出语义、具有合法执行状态且能够持续生成的有效输出建立分析框架。首先区分模型因果关系、候选拓扑与设备执行形状，阐述贪心一致、精确采样、状态提交和单位有效输出时间的共同约束；其次比较草稿来源与依赖结构、目标验证预算、Transformer KV 与循环状态的接受路径恢复，以及动态服务中的资源共享和异步重叠；最后综合配对实验与主流推理框架的执行路径，分析候选质量、真实目标工作、状态可见性和 SLO 表现之间的关系。现有证据表明，增加候选或提高接受率未必减少实际执行时间，局部状态与算子优化也可能因缓存容量、等待和请求排队而失去服务收益。本文据此提出可通过强基线检验的状态生命周期、路由感知预算、服务效用训练与跨负载迁移问题。",
+        "title": "面向大语言模型推理的推测解码优化研究综述",
+        "titleEn": "A Survey of Speculative Decoding Optimization for Large Language Model Inference",
+        "abstract": "自回归解码受逐 token 生成的串行依赖约束，在低并发场景下往往面临访存带宽瓶颈。推测解码通过预先生成候选序列，由目标模型并行计算多个候选前缀下的条件分布，再依据验证规则确定输出，使单轮解码可以生成多个 token，减少目标模型的串行调用次数。额外的草稿生成、验证计算、状态恢复及资源协调也会引入新的开销。本文按主要优化对象，将现有研究划分为草稿生成优化、验证优化、状态与内存管理、系统级优化四类十二个子类，围绕生成进度、输出保真性与实际执行成本展开机制比较。代表性研究表明，提高接受率并不必然改善推理性能，减少验证工作即使伴随接受长度下降，也可能提高吞吐量。推测解码的实际收益取决于有效生成进度与执行成本之间的权衡，并受到模型架构、上下文长度和服务负载的影响。本文进一步讨论各类机制在推理引擎及昇腾平台上的实现条件，并展望验证成本预测、草稿与验证联合控制、混合架构状态恢复及分布式协调等研究方向。",
         "keywords": [
           "推测解码",
-          "目标验证",
-          "精确采样",
-          "合法前缀状态",
-          "大语言模型服务"
+          "大语言模型推理",
+          "验证优化",
+          "状态管理",
+          "推理服务"
         ],
-        "literatureCutoff": "2026-11-18",
-        "manuscriptRevision": "academic-survey-review-20261119",
-        "version": "74da50339df79ab4f03bf027cc17c134023ead4aba33a4308d3970b7e81b838f",
+        "literatureCutoff": "2026-11-24",
+        "manuscriptRevision": "zh-survey-final-20261124",
+        "version": "fb929a22ef57cc9a696df3dadd3bd6aed68bb18dd37b8096c2c2bd05d5cc8f3b",
         "assets": {
           "html": {
-            "path": "topic-papers/speculative-decoding/74da50339df79ab4f03bf027cc17c134023ead4aba33a4308d3970b7e81b838f/paper.html",
-            "bytes": 438634,
-            "sha256": "0e3941222d210d1c1f4c881e467c2543eaef9e5cea191778d676fc94fa68f92a"
+            "path": "topic-papers/speculative-decoding/fb929a22ef57cc9a696df3dadd3bd6aed68bb18dd37b8096c2c2bd05d5cc8f3b/paper.html",
+            "bytes": 258090,
+            "sha256": "3eaeff2ac56d1ed5dfcdb22489f07617afb40ba3f15284542017bd69da4c1d9e"
           },
           "pdf": {
-            "path": "topic-papers/speculative-decoding/74da50339df79ab4f03bf027cc17c134023ead4aba33a4308d3970b7e81b838f/paper.pdf",
-            "bytes": 539294,
-            "sha256": "0d5bfeeba6cd91a9e7e8e26fdb508790a829631cfc1f159afead771c9d85e003"
+            "path": "topic-papers/speculative-decoding/fb929a22ef57cc9a696df3dadd3bd6aed68bb18dd37b8096c2c2bd05d5cc8f3b/paper.pdf",
+            "bytes": 648828,
+            "sha256": "121f32199e361d8e457e3981ad01e092b520a4b25040243e966d4723aad2cdd3"
           },
           "markdown": {
-            "path": "topic-papers/speculative-decoding/74da50339df79ab4f03bf027cc17c134023ead4aba33a4308d3970b7e81b838f/paper.md",
-            "bytes": 90483,
-            "sha256": "318f368ed604eb045e894fea5aa37ec5069edebeaf0a486ca6f5850b0474c356"
+            "path": "topic-papers/speculative-decoding/fb929a22ef57cc9a696df3dadd3bd6aed68bb18dd37b8096c2c2bd05d5cc8f3b/paper.md",
+            "bytes": 105082,
+            "sha256": "72781e88cd5c560c836dedc4244c529ae00f33b2d2ab0c4de7352da076c87b38"
           },
           "latex": {
-            "path": "topic-papers/speculative-decoding/74da50339df79ab4f03bf027cc17c134023ead4aba33a4308d3970b7e81b838f/paper.tex",
-            "bytes": 129593,
-            "sha256": "b215a2b05a1341fbf4498381442d343f8cc41025ad52030491464ac3bf61dccb"
+            "path": "topic-papers/speculative-decoding/fb929a22ef57cc9a696df3dadd3bd6aed68bb18dd37b8096c2c2bd05d5cc8f3b/paper.tex",
+            "bytes": 155827,
+            "sha256": "0693f9d73c65b749959f5a9cc5d46ab42b25549a6cece57486124ce5d33d6783"
           },
           "bibtex": {
-            "path": "topic-papers/speculative-decoding/74da50339df79ab4f03bf027cc17c134023ead4aba33a4308d3970b7e81b838f/references.bib",
-            "bytes": 22829,
-            "sha256": "d83a0f9f0461596b2e6e1ccb3aab54e1759edb9cb0b6fe4f11efbbda056ad83c"
+            "path": "topic-papers/speculative-decoding/fb929a22ef57cc9a696df3dadd3bd6aed68bb18dd37b8096c2c2bd05d5cc8f3b/references.bib",
+            "bytes": 44361,
+            "sha256": "b0106817cf3bd52e5113a99d731e8b3543ac708c3c2e8b652350c1f55efd4e1d"
           },
           "sources": {
-            "path": "topic-papers/speculative-decoding/74da50339df79ab4f03bf027cc17c134023ead4aba33a4308d3970b7e81b838f/sources.zip",
-            "bytes": 343392,
-            "sha256": "f1f9c7bd20d4820646b4cd084e31174670b2d77ee060d7b4c188d15d8241d74f"
+            "path": "topic-papers/speculative-decoding/fb929a22ef57cc9a696df3dadd3bd6aed68bb18dd37b8096c2c2bd05d5cc8f3b/sources.zip",
+            "bytes": 614268,
+            "sha256": "8caec3b7981ee95fd69e07879271336de03f7ab4891b143abd2df1553c2ec83c"
+          },
+          "word": {
+            "path": "topic-papers/speculative-decoding/fb929a22ef57cc9a696df3dadd3bd6aed68bb18dd37b8096c2c2bd05d5cc8f3b/paper.docx",
+            "bytes": 83695,
+            "sha256": "984c86da97d53d5ac3b74205441c0d8995f8015cf928903189f3d3cc0012f7f4"
           }
         },
-        "manifestPath": "topic-papers/speculative-decoding/74da50339df79ab4f03bf027cc17c134023ead4aba33a4308d3970b7e81b838f/manifest.json"
+        "manifestPath": "topic-papers/speculative-decoding/fb929a22ef57cc9a696df3dadd3bd6aed68bb18dd37b8096c2c2bd05d5cc8f3b/manifest.json"
       }
     }
   ]
