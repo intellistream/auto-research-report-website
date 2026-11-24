@@ -118,7 +118,7 @@ def inspect_html(data):
 
 
 def metadata_from_markdown(data, cutoff, revision):
-    markdown = data.decode("utf-8")
+    markdown = data.decode("utf-8").replace("\r\n", "\n")
     front = re.match(r"\A---\s*\n(.*?)\n---\s*\n", markdown, re.S)
     require(front, "Markdown requires YAML title/subtitle front matter")
     fields = {}

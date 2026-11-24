@@ -1,0 +1,1968 @@
+\documentclass[11pt,a4paper,UTF8,fontset=none,scheme=plain,zihao=-4]{ctexart}
+
+% ---- 字体：优先使用常见中文字体，缺失时回退到开源字体 ----
+\usepackage{fontspec}
+\IfFontExistsTF{Times New Roman}
+  {\setmainfont{Times New Roman}}
+  {\IfFontExistsTF{TeX Gyre Termes}{\setmainfont{TeX Gyre Termes}}{\setmainfont{Latin Modern Roman}}}
+\IfFontExistsTF{SimSun}
+  {\setCJKmainfont{SimSun}[BoldFont=SimHei,ItalicFont=KaiTi]}
+  {\IfFontExistsTF{Noto Serif CJK SC}
+    {\setCJKmainfont{Noto Serif CJK SC}[BoldFont=Noto Sans CJK SC]}
+    {\setCJKmainfont{FandolSong-Regular}[BoldFont=FandolHei-Regular]}}
+\IfFontExistsTF{SimHei}
+  {\setCJKsansfont{SimHei}[BoldFont=SimHei]}
+  {\IfFontExistsTF{Noto Sans CJK SC}{\setCJKsansfont{Noto Sans CJK SC}}{\setCJKsansfont{FandolHei-Regular}}}
+\IfFontExistsTF{SimSun}
+  {\setCJKmonofont{SimSun}}
+  {\IfFontExistsTF{Noto Sans CJK SC}{\setCJKmonofont{Noto Sans CJK SC}}{\setCJKmonofont{FandolSong-Regular}}}
+
+\usepackage[a4paper,left=2.3cm,right=2.3cm,top=2.6cm,bottom=2.6cm]{geometry}
+\linespread{1.25}
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0pt plus 1pt}
+\setlength{\emergencystretch}{3em}
+\tolerance=2000
+\hbadness=2500
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+\widowpenalty=10000
+\clubpenalty=10000
+
+% 中文引号、破折号与省略号按 CJK 字符处理，避免西文字体带来的字距空隙
+\xeCJKDeclareCharClass{CJK}{"2014, "2018, "2019, "201C, "201D, "2026, "00B7}
+% 数值区间的短横线仍按西文处理，避免全角字形带来的空隙
+\xeCJKDeclareCharClass{Default}{"2013}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{float}
+\usepackage[section]{placeins}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[font=small,labelfont=bf,labelsep=quad]{caption}
+\usepackage{etoolbox}
+\usepackage{fancyhdr}
+\usepackage[hidelinks,unicode]{hyperref}
+
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
+\renewcommand{\refname}{参考文献}
+% citeproc 输出的参考文献环境（自定义模板需要自行定义）
+\newenvironment{CSLReferences}[2]{%
+  \footnotesize
+  \raggedright
+  \setlength{\leftskip}{3em}%
+  \setlength{\parindent}{-3em}%
+  \setlength{\parskip}{0.1\baselineskip}%
+  \sloppy
+}{}
+\newcommand{\CSLBlock}[1]{#1\par}
+\newcommand{\CSLLeftMargin}[1]{\makebox[3em][l]{#1}}
+\newcommand{\CSLRightInline}[1]{#1}
+\newcommand{\CSLIndent}[1]{\hspace{3em}#1}
+\setlength{\LTcapwidth}{\linewidth}
+\renewcommand{\contentsname}{目录}
+\setcounter{tocdepth}{2}
+\punctstyle{plain}
+
+% ---- 版式 ----
+\ctexset{
+  section = {
+    format = \Large\bfseries\sffamily,
+    beforeskip = 1.4ex plus 0.4ex minus 0.2ex,
+    afterskip = 1.0ex plus 0.2ex,
+  },
+  subsection = {
+    format = \large\bfseries\sffamily,
+    beforeskip = 1.2ex plus 0.3ex minus 0.2ex,
+    afterskip = 0.8ex plus 0.2ex,
+  },
+  subsubsection = {
+    format = \normalsize\bfseries\sffamily,
+    beforeskip = 1.0ex plus 0.3ex minus 0.2ex,
+    afterskip = 0.6ex plus 0.2ex,
+  },
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize 面向大语言模型推理的推测解码优化研究综述}
+\fancyhead[R]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\footnotesize\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+\begin{document}
+
+\begin{center}
+  {\zihao{2}\bfseries\sffamily 面向大语言模型推理的推测解码优化研究综述\par}
+  \vspace{8pt}
+  {\zihao{4}A Survey of Speculative Decoding Optimization for Large
+Language Model Inference\par}
+\end{center}
+
+\vspace{4pt}
+
+\noindent\rule{\linewidth}{0.6pt}
+\vspace{6pt}
+
+\begingroup
+\zihao{5}
+\setlength{\parindent}{2em}
+\noindent{\bfseries\sffamily 摘要：}自回归解码受逐 token
+生成的串行依赖约束，在低并发场景下往往面临访存带宽瓶颈。推测解码通过预先生成候选序列，由目标模型并行计算多个候选前缀下的条件分布，再依据验证规则确定输出，使单轮解码可以生成多个
+token，减少目标模型的串行调用次数。额外的草稿生成、验证计算、状态恢复及资源协调也会引入新的开销。本文按主要优化对象，将现有研究划分为草稿生成优化、验证优化、状态与内存管理、系统级优化四类十二个子类，围绕生成进度、输出保真性与实际执行成本展开机制比较。代表性研究表明，提高接受率并不必然改善推理性能，减少验证工作即使伴随接受长度下降，也可能提高吞吐量。推测解码的实际收益取决于有效生成进度与执行成本之间的权衡，并受到模型架构、上下文长度和服务负载的影响。本文进一步讨论各类机制在推理引擎及昇腾平台上的实现条件，并展望验证成本预测、草稿与验证联合控制、混合架构状态恢复及分布式协调等研究方向。
+
+\vspace{6pt}
+\noindent{\bfseries\sffamily 关键词：}推测解码；大语言模型推理；验证优化；状态管理；推理服务
+\endgroup
+
+\vspace{4pt}
+\noindent\rule{\linewidth}{0.6pt}
+
+\vspace{4pt}
+{\zihao{5}\tableofcontents}
+
+\clearpage
+
+\hypertarget{section-1}{%
+\section{引言}\label{section-1}}
+
+\hypertarget{section-1-1}{%
+\subsection{自回归解码与推测加速}\label{section-1-1}}
+
+大语言模型的自回归解码根据已有序列计算下一个 token
+的条件概率，并将生成结果作为后续解码的输入。这一依赖关系限制了同一请求内的并行计算，即使加速器能够同时处理多个序列位置，普通解码仍需逐步推进。对于采用稠密前馈层和全注意力的模型，低并发解码往往受模型权重与历史键值缓存（KV
+Cache）的访存带宽限制，计算资源难以得到充分利用。若能够在一次目标模型前向计算中处理多个候选位置，便有机会将权重读取及部分历史状态访问的开销摊销到多个输出
+token 上\protect\hyperlink{ref-pagedattention}{{[}1{]}},~\protect\hyperlink{ref-magicdec}{{[}2{]}}。
+
+推测解码（Speculative
+Decoding）利用预先生成的候选序列，将原本需要逐步执行的目标模型计算转化为并行验证。草稿阶段以较低的计算开销产生候选，目标模型并行计算相应前缀下的条件分布，验证阶段根据接受规则确定本轮输出。Stern
+等提出的块式并行解码（Blockwise Parallel
+Decoding）表明，在确定性贪心验证规则下，可以通过一次目标模型前向接受多个候选
+token，同时保持与普通贪心解码相同的输出序列。Leviathan 等和 Chen
+等进一步将这一机制推广到随机采样，通过接受与残差分布采样，在满足相应条件时保持目标模型的输出分布。由此，减少串行调用次数不再以降低输出保真性为必要代价\protect\hyperlink{ref-blockwise}{{[}3{]}},~\protect\hyperlink{ref-leviathan}{{[}4{]}},~\protect\hyperlink{ref-chen}{{[}5{]}}。
+
+\hypertarget{section-1-2}{%
+\subsection{推测解码的性能约束}\label{section-1-2}}
+
+推测解码的收益取决于每轮增加的有效输出能否弥补额外的执行开销。草稿模型与目标模型的分布越接近，候选序列通常越容易通过验证，但复杂的草稿模型也可能延长生成过程。候选的组织方式进一步影响验证成本：树形结构能够共享多个候选的公共前缀，却也可能增加目标模型需要处理的位置。对于长上下文推理，草稿与目标模型读取历史信息的代价还可能随模型结构和缓存策略而发生不同程度的变化。因此，草稿质量、生成代价与验证工作量需要结合分析\protect\hyperlink{ref-magicdec}{{[}2{]}},~\protect\hyperlink{ref-eagle3}{{[}6{]}},~\protect\hyperlink{ref-specinfer}{{[}7{]}}。
+
+实际推理服务还涉及状态维护和多请求资源分配。对于混合专家模型（Mixture-of-Experts，MoE），增加验证位置可能激活新的专家，改变权重访问与通信开销；对于包含递推层的混合架构，候选被拒绝后还需要恢复与已接受前缀一致的状态。连续批处理则使推测计算与其他请求竞争设备资源。EVICT
+将验证成本纳入候选选择，HybridSpec
+进一步利用部分目标模型执行获得的专家路由信息调整验证长度，SmartSpec
+进一步将服务负载与有效吞吐量纳入推测决策。这些研究表明，提高接受率并不是获得更高推理性能的充分条件，合适的推测策略还取决于模型架构、上下文长度、并发规模和运行时的执行能力\protect\hyperlink{ref-evict}{{[}8{]}},~\protect\hyperlink{ref-hybridspec}{{[}9{]}},~\protect\hyperlink{ref-smartspec}{{[}10{]}}。
+
+\hypertarget{section-1-3}{%
+\subsection{相关综述与本文结构}\label{section-1-3}}
+
+已有研究从不同角度对推测解码进行了系统梳理。Xia
+等以草稿生成与验证过程为主线，讨论草稿模型选择及验证策略；Ji
+等围绕草稿生成、验证和系统执行中的性能瓶颈，分析相应的优化方法及其取舍；Zhao
+等从系统协同设计的角度，将草稿来源、候选结构、验证保真性与运行时执行作为相互关联的分析维度，并讨论各维度之间的兼容条件。这些综述为理解推测解码的基本机制、设计空间及性能约束提供了基础\protect\hyperlink{ref-survey_xia2024}{{[}11{]}},~\protect\hyperlink{ref-ji2026survey}{{[}12{]}},~\protect\hyperlink{ref-zhao2026survey}{{[}13{]}}。
+
+本文关注以文本自回归语言模型为目标的推测解码，按主要优化对象，讨论草稿生成、验证、状态与内存管理及系统级优化四个方面。第
+2 章介绍推测解码的基本过程、性能分析模型与分类体系；第 3 至 6
+章分别讨论四类优化机制及其适用条件；第 7
+章结合模型架构、上下文长度和服务负载进行综合比较，并分析相关机制在昇腾平台上的实现条件；第
+8 章讨论研究挑战与发展方向；第 9 章总结全文。
+
+\hypertarget{section-2}{%
+\section{执行模型与优化分类}\label{section-2}}
+
+\hypertarget{section-2-1}{%
+\subsection{推测解码的基本过程}\label{section-2-1}}
+
+自回归语言模型将给定提示 \(x\) 后生成序列 \(y_{1:n}\) 的条件概率分解为
+
+\[
+p_T(y_{1:n}\mid x)=\prod_{i=1}^{n}p_T(y_i\mid x,y_{<i}),
+\]
+
+其中 \(p_T\) 表示目标模型的概率分布，\(y_{<i}\) 表示第 \(i\)
+个位置之前的生成序列。实际解码还可对模型分布施加温度缩放、top-\(p\)
+截断等采样变换。普通解码只有在确定当前位置的输出后，才能构造下一位置的输入。推测解码则预先生成一个或多个候选序列，使目标模型能够在一次前向计算中并行求得相应候选前缀下的条件分布，再按照验证规则确定本轮输出。因此，目标模型实际计算的候选序列可能与最终生成的序列不同\protect\hyperlink{ref-blockwise}{{[}3{]}},~\protect\hyperlink{ref-leviathan}{{[}4{]}},~\protect\hyperlink{ref-chen}{{[}5{]}},~\protect\hyperlink{ref-specinfer}{{[}7{]}}。
+
+在标准链式推测采样中，验证沿候选序列依次进行，首次拒绝时生成一个修正
+token；若所有候选均被接受，则在停止条件允许的情况下从目标分布额外采样一个
+token。图 1 以候选链 \((a,b,c)\) 为例：若 \(a\) 被接受、\(b\)
+被拒绝，并生成修正 token \(d\)，则 \(b\)
+及其后续位置的状态不能继续使用。此时可保留与前缀 \(xa\)
+对应的目标模型状态，而输出序列已扩展为 \(xad\)。若修正 token
+的目标模型状态留待下一轮计算，已计算状态边界便落后于输出边界一个位置。这一区别要求运行时分别维护输出进度与实际完成的状态；注意力模型可以选取有效的
+KV Cache
+条目，递推模型则需保留或恢复接受边界处的递推状态\protect\hyperlink{ref-specinfer}{{[}7{]}},~\protect\hyperlink{ref-batchspec}{{[}14{]}},~\protect\hyperlink{ref-replayssm}{{[}15{]}}。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.98\textwidth]{figures/execution-model.pdf}
+\caption{推测解码的基本执行过程及链式验证示例。实线表示数据依赖，虚线表示传递至下一轮的状态；\(x\)
+为已计算的前缀，修正 token \(d\) 已输出，其目标模型状态尚未计算。}
+\end{figure}
+
+\hypertarget{section-2-1-1}{%
+\subsubsection{验证保真性与提议分布}\label{section-2-1-1}}
+
+验证规则决定推测解码能够提供何种输出保证。对于贪心解码，只要各提交位置均与目标模型的确定性选择一致，在条件分布和并列最大值处理规则相同的情况下，生成序列便与参考解码序列一致。对于随机解码，精确推测采样要求保持参考解码过程的联合概率分布，其中也包括温度、截断等采样变换的影响。分布一致性并不要求两次独立采样产生完全相同的序列\protect\hyperlink{ref-blockwise}{{[}3{]}},~\protect\hyperlink{ref-leviathan}{{[}4{]}},~\protect\hyperlink{ref-chen}{{[}5{]}}。
+
+以标准链式拒绝采样为例，设 \(p\) 和 \(q\)
+分别为在相同前缀及词表上定义的参考目标分布与实际提议分布，两者均为施加各自采样变换后的归一化分布。对于从
+\(q\) 中采样得到的候选 token \(v\)（\(q(v)>0\)），接受概率为
+
+\[
+\alpha(v)=\min\left(1,\frac{p(v)}{q(v)}\right).
+\]
+
+若候选被拒绝，则从残差分布
+
+\[
+r(u)=\frac{[p(u)-q(u)]_+}{\sum_w[p(w)-q(w)]_+}
+\]
+
+中采样修正 token，其中
+\([z]_+=\max(z,0)\)，求和遍历整个词表。分母等于拒绝事件的概率；当其为零时，拒绝不会发生。任意
+token \(u\) 通过接受和拒绝后修正两条路径获得的无条件概率质量之和为
+
+\[
+\min\bigl(p(u),q(u)\bigr)+[p(u)-q(u)]_+=p(u).
+\]
+
+在数学模型中，逐位置使用相应前缀下的条件分布执行上述过程，并在候选全部被接受且未达到停止条件时从目标分布采样额外
+token，即可保持参考解码的序列概率分布。即使草稿采用确定性选择，也可将实际提议分布表示为集中于所选
+token 的点质量分布
+\(q=\delta_v\)；此时不能直接使用未经采样的草稿模型概率替代实际提议概率。对于树、候选集合以及依赖已生成候选的准入策略，需要根据相应的提议和选择过程建立接受与修正规则。允许有界分布偏差或采用松弛接受准则的方法则具有不同的保真性要求，不能直接沿用链式精确采样的证明（第
+4 章）\protect\hyperlink{ref-leviathan}{{[}4{]}},~\protect\hyperlink{ref-chen}{{[}5{]}},~\protect\hyperlink{ref-zhao2026survey}{{[}13{]}},~\protect\hyperlink{ref-spectr}{{[}16{]}}。
+
+\hypertarget{section-2-1-2}{%
+\subsubsection{输出保真性与状态正确性}\label{section-2-1-2}}
+
+单轮接受与修正满足概率分布要求，并不足以保证后续解码正确。目标模型在候选前缀下计算的状态，只有与已提交且完成计算的前缀相对应时才能作为下一轮的有效状态。被拒绝路径上的缓存条目不得被后续查询读取；位置编号、有效长度及缓存映射也须与接受结果一致。对于递推或混合架构，还需使各层状态恢复到同一逻辑位置。若提交后的状态与实际生成序列不对应，后续条件分布便可能偏离参考解码过程。因此，第
+4 章分析候选验证及接受规则，第 5
+章讨论有效状态的提交与恢复，两者共同构成推测解码的正确性条件\protect\hyperlink{ref-specinfer}{{[}7{]}},~\protect\hyperlink{ref-batchspec}{{[}14{]}},~\protect\hyperlink{ref-twig}{{[}17{]}}。
+
+\hypertarget{section-2-2}{%
+\subsection{生成进度与执行成本}\label{section-2-2}}
+
+\hypertarget{section-2-2-1}{%
+\subsubsection{有效输出与边际收益}\label{section-2-2-1}}
+
+设一轮推测解码接受的草稿 token 数为 \(A\)，实际输出 token 数为
+\(L\)。在未触及停止条件的标准链式推测中，\(L=A+1\)，额外的一个 token
+来自拒绝后的修正或全部接受后的目标采样。给定草稿长度上限
+\(k\)，接受长度的期望为
+
+\[
+\mathbb{E}[A] = \sum_{i=1}^k \Pr(A\ge i).
+\]
+
+其中 \(\Pr(A\ge i)\) 表示前 \(i\) 个候选均被接受的概率，而非第 \(i\)
+个位置单独通过验证的概率。若各位置在此前候选均被接受的条件下，接受概率均近似为常数
+\(\alpha\)，则
+\(\mathbb{E}[L]\approx\sum_{i=0}^k\alpha^i\)。实际接受概率取决于上下文、此前接受的候选以及提议分布；对于提前停止草稿生成的策略，还需计入候选实际到达相应位置的概率。不同研究可能将每轮输出
+token 数（含修正或额外
+token）也称为平均接受长度，引用实验结果时应保留原文的指标定义。该简化模型能够说明在
+\(0\leq\alpha<1\)
+时延长草稿所带来的边际生成进度递减，但不意味着实际接受事件相互独立\protect\hyperlink{ref-leviathan}{{[}4{]}},~\protect\hyperlink{ref-chen}{{[}5{]}},~\protect\hyperlink{ref-realloss}{{[}18{]}}。
+
+在模型、解码规则及负载相近的单请求稳态场景中，设
+\(\ell_k=\mathbb{E}[L_k]\) 为采用草稿长度上限 \(k\) 时的期望输出 token
+数，\(t_k=\mathbb{E}[T_k]\)
+为预填充完成后每轮推测解码的期望耗时，\(\tau_{\mathrm{AR}}\)
+为普通自回归解码的平均单 token
+耗时。忽略启动和停止等边界效应，局部解码加速比可近似表示为
+
+\[
+S(k)=\frac{\tau_{\mathrm{AR}}\ell_k}{t_k}.
+\]
+
+在该模型下，推测解码获得加速收益的条件为
+\(t_k<\tau_{\mathrm{AR}}\ell_k\)。比较草稿长度上限分别为 \(k\) 和
+\(k+1\)
+的两种可行策略，在轮次耗时为正的条件下，后一种策略提高输出速率当且仅当
+
+\[
+(\ell_{k+1}-\ell_k)t_k>\ell_k(t_{k+1}-t_k).
+\]
+
+这表明，延长草稿带来的生成进度必须与新增执行成本相匹配。轮次耗时包括草稿生成、目标模型评分、接受与修正、状态更新及协调等开销；存在串行依赖的操作需要依次完成，可并发的操作则受设备资源竞争及关键路径约束。普通自回归解码也应纳入策略比较，而将推测路径的草稿长度设为零，未必能消除其中的状态维护和资源预留开销。在共享推理引擎中，排队等待、显存占用和批次组成还会影响请求时延及满足服务目标的有效吞吐量（goodput），因此单请求的解码速率不足以衡量系统整体收益\protect\hyperlink{ref-magicdec}{{[}2{]}},~\protect\hyperlink{ref-smartspec}{{[}10{]}},~\protect\hyperlink{ref-sglstepzero}{{[}19{]}}。
+
+\hypertarget{section-2-2-2}{%
+\subsubsection{逻辑候选与实际验证工作量}\label{section-2-2-2}}
+
+候选生成数量、进入验证的候选数量、实际参与计算的输入行数、预留的缓存位置数及最终接受长度具有不同含义。批处理填充可能引入不对应有效候选的计算行，部分目标模型执行也可能提前计算随后被排除的位置；多个分支共享前缀时，则可以复用相应的计算结果。HybridSpec
+通过部分目标模型计算获得路由信息，而图回放模式下的实际执行还受捕获规格和填充方式约束。因而，最终进入完整验证的候选数量不能独立表征目标模型的实际工作量\protect\hyperlink{ref-specinfer}{{[}7{]}},~\protect\hyperlink{ref-hybridspec}{{[}9{]}},~\protect\hyperlink{ref-vllmgraphdocs}{{[}20{]}}。
+
+增加相同数量的验证位置，在稠密前馈层和混合专家层中可能产生不同的边际成本。稠密层可以在多行计算间复用同一组权重；MoE
+层则可能因新增位置激活原批次尚未使用的专家。设 \(J_l\) 为第 \(l\)
+层参与路由的有效输入行集合，\(\mathcal E_{l,j}\) 为输入行 \(j\)
+选择的专家集合，\(w_{l,e}\) 为专家 \(e\)
+的权重所占字节数。定义该层激活的专家并集及各专家接收的输入行数为
+
+\[
+\mathcal U_l=\bigcup_{j\in J_l}\mathcal E_{l,j},
+\qquad
+n_{l,e}=\sum_{j\in J_l}\mathbf 1[e\in\mathcal E_{l,j}].
+\]
+
+各层被激活专家的去重权重字节数为
+
+\[
+B_{\mathrm{unique}}=\sum_l\sum_{e\in\mathcal U_l}w_{l,e}.
+\]
+
+在基线批次及其原有输入行的路由结果保持不变时，新增候选所增加的去重权重字节数由各层新增的专家集合决定，而不仅取决于输入行数。\(B_{\mathrm{unique}}\)
+是逻辑统计量，并不等于实际高带宽存储器（HBM）的访存流量；权重驻留、重复加载、副本和量化都会影响物理数据搬运。算子效率还与
+\(n_{l,e}\)
+的分布有关，专家并行另需考虑路由通信及设备间负载不均衡。EVICT
+根据预先测得的验证成本选择候选，HybridSpec
+则通过部分目标模型执行获取专家路由信息。二者的区别在于估计边际成本所依据的信息及获取这些信息的开销\protect\hyperlink{ref-evict}{{[}8{]}},~\protect\hyperlink{ref-hybridspec}{{[}9{]}},~\protect\hyperlink{ref-moebytes}{{[}21{]}}。
+
+序列混合方式是影响执行成本的另一个因素。全注意力根据候选的可见性关系和缓存布局访问历史
+KV
+张量，递推层还需在验证后保留或重建接受边界处的状态；混合架构可以同时包含这两类层，其前馈层又可采用稠密或
+MoE
+结构。草稿模型与目标模型的序列混合方式也不必相同。当目标模型的递推计算成本较低，而草稿模块仍采用全上下文注意力时，草稿生成可能成为新的性能瓶颈。长上下文条件下，应分别考察两个模型的历史状态访问、计算及存储成本\protect\hyperlink{ref-magicdec}{{[}2{]}},~\protect\hyperlink{ref-replayssm}{{[}15{]}},~\protect\hyperlink{ref-windowedmtp}{{[}22{]}}。
+
+\hypertarget{section-2-3}{%
+\subsection{分类体系与交叉属性}\label{section-2-3}}
+
+\hypertarget{section-2-3-1}{%
+\subsubsection{四大类与十二个子类}\label{section-2-3-1}}
+
+本文按主要优化对象组织相关研究，如表 1
+所示。草稿生成优化关注候选质量及生成代价；验证优化关注候选评分、准入与接受规则；状态与内存管理关注有效状态的维护及其存储开销；系统级优化关注跨轮次、请求、阶段或设备的执行决策。各类别描述的是具体机制，而非互斥的系统集合。例如，DSpark
+的条件精化机制属于草稿生成优化，其基于置信度的共享预算分配则属于系统级优化；所沿用的链式验证方式并不因此构成新的验证机制\protect\hyperlink{ref-dspark}{{[}23{]}}。
+
+\begin{table}[!tbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.22}
+\caption{按主要优化对象划分的四类十二个子类}\label{tbl-taxonomy}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.14\linewidth}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{大类} & \textbf{子类} & \textbf{代表工作} \\
+\midrule
+\multirow[t]{4}{=}{\bfseries 草稿生成优化} & 草稿对齐 & DistillSpec [24]、EAGLE-3 [6]、REAL [18] \\
+ & 高效草稿生成 & Medusa [25]、Hydra [26]、DFlash [27]、DSpark [23]、DLite [28] \\
+ & 自推测 & Draft \& Verify [29]、LayerSkip [30]、CAS-Spec [31] \\
+ & 基于检索的草稿生成 & REST [32]、Cacheback [33]、Token Recycling [34] \\
+\addlinespace[4pt]
+\multirow[t]{3}{=}{\bfseries 验证优化} & 结构化验证 & SpecInfer [7]、Sequoia [35]、OPT-Tree [36]、DDTree [37]、Twig [17] \\
+ & 自适应验证 & EAGLE-2 [38]、EVICT [8]、HybridSpec [9] \\
+ & 接受与修正 & Block Verification [39]、SpecTr [16]、SpecHub [40] \\
+\addlinespace[4pt]
+\multirow[t]{2}{=}{\bfseries 状态与内存管理} & 状态提交与恢复 & SpecInfer [7]、BatchSpec [14]、ReplaySSM [15]、HybridSpec [9]、Twig [17] \\
+ & 推测内存管理 & TriForce [41]、MagicDec [2]、LongSpec [42]、Windowed-MTP [22] \\
+\addlinespace[4pt]
+\multirow[t]{3}{=}{\bfseries 系统级优化} & 动态推测 & SpecDec++ [43]、DISCO [44]、BanditSpec [45] \\
+ & 批处理感知调度 & TETRIS [46]、AdaServe [47]、DSpark [23]、ForeSpark [48]、AgentSpec [49] \\
+ & 流水执行与解耦部署 & PipeSpec [50]、Speculative Speculative Decoding [51]、Callo [52] \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+草稿对齐与高效草稿生成分别侧重候选质量与生成成本；自推测利用目标模型的部分计算路径，基于检索的草稿生成则复用已有文本或候选信息。后两类方法也可以结合对齐和生成成本优化，并非按草稿来源对所有方法进行互斥划分。动态推测、自适应验证和批处理感知调度的区别在于决策时机及作用范围：动态推测决定是否继续生成草稿、选择何种草稿配置或回退至普通解码；自适应验证决定对已有候选执行哪些目标模型计算；批处理感知调度根据共享资源及多个请求的服务目标分配计算预算。当验证准入由多个请求共同竞争的预算决定时，同一机制可以涉及后两类问题\protect\hyperlink{ref-evict}{{[}8{]}},~\protect\hyperlink{ref-layerskip}{{[}30{]}},~\protect\hyperlink{ref-rest}{{[}32{]}},~\protect\hyperlink{ref-disco}{{[}44{]}},~\protect\hyperlink{ref-avdocs}{{[}53{]}}。
+
+内核融合、图回放与设备驻留等实现技术可在保持算法语义不变的情况下改变具体阶段的成本。例如，草稿投影权重的设备驻留旨在减少草稿生成的访存开销，因而归入高效草稿生成；图回放及后端对动态验证规格的支持则直接影响调度策略能否减少实际计算，主要在系统级优化中讨论。硬件平台与执行方式由此作为各类别的共同分析条件，而不另设与四类优化对象交叉的类别\protect\hyperlink{ref-vllmgraphdocs}{{[}20{]}},~\protect\hyperlink{ref-weights}{{[}54{]}},~\protect\hyperlink{ref-ascendgraphdocs}{{[}55{]}}。
+
+\hypertarget{section-2-3-2}{%
+\subsubsection{代表方法的交叉属性}\label{section-2-3-2}}
+
+优化分类回答方法改变了哪一部分工作，而对具体方法的比较还需明确候选来源、候选结构、验证保真性及运行时条件。表
+2
+列出代表性配置。草稿来源描述产生候选的计算路径，而非仅指条件特征的出处；独立草稿模型、目标模型的部分路径、基于目标特征的预测模块以及文本检索等方式，即使产生相同结构的候选，也可能具有不同的生成成本。候选结构描述
+token
+之间的逻辑依赖关系，不等同于设备上的张量布局。验证保真性则取决于具体接受规则，例如树形候选既可采用贪心验证，也可采用满足相应条件的随机验证。运行时条件用于说明实现这些机制所需的状态、计算和接口条件\protect\hyperlink{ref-specinfer}{{[}7{]}},~\protect\hyperlink{ref-ji2026survey}{{[}12{]}},~\protect\hyperlink{ref-zhao2026survey}{{[}13{]}}。
+
+\begin{table}[!tbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.22}
+\caption{代表性配置及其交叉属性（保真性针对表中所列验证模式及其参考目标）}\label{tbl-methods}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.19\linewidth}>{\raggedright\arraybackslash}p{0.20\linewidth}>{\raggedright\arraybackslash}p{0.09\linewidth}>{\raggedright\arraybackslash}p{0.09\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{工作或模式} & \textbf{草稿来源} & \textbf{候选结构} & \textbf{保真性} & \textbf{运行时条件} \\
+\midrule
+推测采样 [4], [5] & 辅助自回归语言模型 & 链 & 精确采样 & 需要条件草稿概率 \\
+\addlinespace[2pt]
+LayerSkip，贪心 [30] & 目标模型浅层 & 链 & 贪心一致 & 浅层执行与验证共享 \\
+\addlinespace[2pt]
+REST，贪心 [32] & 文本检索库 & 树 & 贪心一致 & 查找与前缀共享 \\
+\addlinespace[2pt]
+Medusa，典型接受 [25] & 目标模型附加预测头 & 树 & 松弛 & 树掩码与接受阈值 \\
+\addlinespace[2pt]
+EAGLE-3，贪心 [6] & 基于目标特征的草稿模块 & 树 & 贪心一致 & 访问多层特征 \\
+\addlinespace[2pt]
+DFlash，贪心 [27] & 目标特征条件化草稿模型 & 块 & 贪心一致 & 每块一次草稿前向 \\
+\addlinespace[2pt]
+SpecTr，随机 [16] & 辅助草稿样本 & 集合 & 精确采样 & 多候选耦合与残差采样 \\
+\addlinespace[2pt]
+HybridSpec，贪心 [9] & DFlash 草稿模型 & 块 & 贪心验证 & 递推状态恢复与专家路由 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\hypertarget{section-2-4}{%
+\subsection{文献范围与比较口径}\label{section-2-4}}
+
+本文关注以自回归文本语言模型为目标的推测解码。语音、多模态及扩散生成目标不在本文范围内，但经自回归文本模型验证的扩散式草稿生成方法属于讨论对象。独立的多
+token
+预测、模型压缩及通用请求调度等研究，仅在涉及推测循环本身或影响其执行条件时纳入分析。
+
+文献比较以原始研究的算法、系统设计及评测为依据，结合推理框架与硬件平台的官方资料分析实际实现条件。理论证明、特定配置的实验结果及接口支持范围具有不同含义。性能数值应结合模型、硬件、采样模式、批大小、工作负载和基线解释，并区分理论分析、基准数据推算及实测结果。第
+7 章将在这些条件下综合比较四类优化机制及其相互作用。
+
+\hypertarget{section-3}{%
+\section{草稿生成优化}\label{section-3}}
+
+\hypertarget{section-3-1}{%
+\subsection{草稿对齐}\label{section-3-1}}
+
+\hypertarget{section-3-1-1}{%
+\subsubsection{训练分布与目标模型表示}\label{section-3-1-1}}
+
+草稿对齐的目标是提高候选通过验证的概率。在给定前缀下，标准推测采样接受下一候选的概率为
+\(\sum_v\min\{p(v),q(v)\}=1-\operatorname{TV}(p,q)\)，其中
+\(\operatorname{TV}\)
+表示总变差距离；贪心验证则取决于候选是否与目标模型的确定性选择一致，两种解码方式对草稿预测的要求有所不同。对自回归草稿模型而言，先前预测还会成为后续预测的输入，因此训练时所见前缀与推理时实际使用的前缀之间的分布差异，也会影响候选序列的接受长度。提高前部候选的接受概率，能够增加后续候选参与有效生成的机会\protect\hyperlink{ref-leviathan}{{[}4{]}},~\protect\hyperlink{ref-distillspec}{{[}24{]}}。
+
+DistillSpec 与 EAGLE
+系列分别从训练样本和预测信息两方面改善对齐。DistillSpec 采用 on-policy
+蒸馏，即使用草稿模型自身生成的序列进行训练，并针对任务及目标解码方式选择分布差异度量。EAGLE
+则利用目标模型的隐藏特征，在结合下一 token
+信息的条件下预测后续特征；EAGLE-3 解除对下一目标特征的预测约束，直接学习
+token
+预测，并在训练过程中使用草稿模型自身产生的中间表示。前者改变训练所依据的前缀分布，后者既丰富了预测所需的信息，也减小了训练时使用真实目标特征与推理时使用预测表示之间的差异\protect\hyperlink{ref-eagle3}{{[}6{]}},~\protect\hyperlink{ref-distillspec}{{[}24{]}},~\protect\hyperlink{ref-eagle}{{[}56{]}}。
+
+EAGLE-3 的消融实验体现了特征预测约束与信息来源的作用。在
+Llama-3.1-8B-Instruct 的 MT-Bench 评测中，EAGLE-2 每轮平均输出 4.05 个
+token（原文记为平均接受长度）；移除特征预测约束后增至
+5.37，再引入多层特征融合后达到
+6.13。利用目标特征也需要相应的训练基础设施：SpecForge
+的离线训练与在线解耦训练在目标特征存储、计算及传输之间进行取舍；DeepSpec
+使用目标模型生成的非思考模式数据训练草稿模型，则说明训练数据与实际生成模式的匹配也会影响预测效果。因此，比较草稿模型时，除模型结构外，还需考虑其训练数据、目标特征及训练方式\protect\hyperlink{ref-eagle3}{{[}6{]}},~\protect\hyperlink{ref-specforgedocs}{{[}57{]}},~\protect\hyperlink{ref-deepspecdocs}{{[}58{]}}。
+
+部署后的请求分布可能与离线训练时不同。在线推测解码利用实际服务请求更新草稿模型，而离线
+on-policy
+蒸馏主要改善既定训练条件下的分布匹配。在线适应能够随负载变化调整预测能力，但也需要获取目标模型的监督信息、更新参数并分配训练资源。其收益应在更新后的模型实际服务请求的时间范围内衡量，而不能仅依据单次草稿前向的时延判断\protect\hyperlink{ref-onlinespec}{{[}59{]}}。
+
+\hypertarget{section-3-1-2}{%
+\subsubsection{接受长度与训练目标}\label{section-3-1-2}}
+
+单步分布对齐并不能完整刻画一轮推测解码的生成进度。对于标准链式随机验证，给定初始历史，令
+\(m_i(v)=\min(p_i(v),q_i(v))\) 表示第 \(i\) 个位置接受 token \(v\)
+的概率质量。在未触及停止条件的情况下，前 \(j\) 个候选均被接受的概率为
+
+\[
+\Pr(A\ge j)=
+\sum_{y_{1:j}}\prod_{i=1}^j m_i(y_i\mid y_{<i}),
+\]
+
+其中初始历史隐含于各条件分布中。由于后续位置是否能够进入有效输出取决于此前所有候选是否被接受，分别估计各位置的平均接受概率再相乘，一般不能准确得到联合接受概率。REAL
+通过路径重加权修正这一估计偏差，并对各接受概率项中的末位 token
+进行边缘化以降低估计方差。在采用 Qwen3.6-35B-A3B 作为目标、Domino
+作为草稿架构的同条件训练比较中，温度为 1 时，REAL 与 DBLast
+的平均随机接受长度分别为 4.792 和 4.749；温度为 0.5 时，静态 LK（static
+LK）与 REAL 分别达到 5.002 和
+4.993。相同训练预算下，不同目标函数的相对表现会随采样温度改变，说明对齐训练需要考虑实际验证方式与采样分布\protect\hyperlink{ref-realloss}{{[}18{]}}。
+
+对于并行草稿模型，单轮接受长度还会影响下一轮的预测起点。同一序列位置在不同的轮次起点下可能对应不同的草稿分布。EDR（Expected
+Decoding
+Rounds）将当前预测位置与本轮起点作为马尔可夫奖励过程的状态，根据各状态的访问概率对考虑结束符（EOS）的局部拒绝代价加权，从而直接优化期望解码轮数。与块内固定位置权重相比，这一目标考虑了此前接受结果对后续轮次的影响，但需要计算多个起点对应的状态访问概率及价值函数，增加训练开销。REAL
+与 EDR
+分别关注一轮内的期望接受进度和跨轮次的解码次数；当不同轮次的执行成本不同时，改善这些目标仍不等同于直接缩短实际解码时间\protect\hyperlink{ref-realloss}{{[}18{]}},~\protect\hyperlink{ref-edr}{{[}60{]}}。
+
+\hypertarget{section-3-2}{%
+\subsection{高效草稿生成}\label{section-3-2}}
+
+\hypertarget{section-3-2-1}{%
+\subsubsection{串行依赖与并行候选生成}\label{section-3-2-1}}
+
+草稿生成的串行依赖会限制延长候选序列所带来的收益。Medusa
+通过附加于目标模型的多个预测头预测不同未来位置，各预测头共享目标特征，但后续位置的预测无法利用前面预测头实际生成的
+token。Hydra
+在预测头之间引入条件依赖，使后续预测能够利用已生成候选，同时增加了相应的顺序计算。DFlash
+则采用以目标特征为条件的块并行前向，将多个位置的主要草稿计算合并。上述方法分别改变未来位置之间的信息依赖与执行方式，增加候选长度不再必然要求在每个位置执行一次完整草稿模型前向\protect\hyperlink{ref-medusa}{{[}25{]}},~\protect\hyperlink{ref-hydra}{{[}26{]}},~\protect\hyperlink{ref-dflash}{{[}27{]}}。
+
+半自回归草稿模型在并行计算与条件预测之间进一步取得平衡。DSpark
+在并行计算上下文表示后使用轻量级顺序组件，使后续候选能够依据前面实际生成的
+token 进行预测；Domino
+同样将块级预测与因果精化分离，由并行主干给出初步分布，再通过小型条件预测头调整结果，并采用分阶段训练增强因果精化能力。两种方法均减少了完整主干的串行执行次数，但仍保留块内的部分顺序依赖。评价这类机制，需要结合因果精化增加的有效生成进度与顺序预测头引入的时延，而非仅比较并行块的长度\protect\hyperlink{ref-dspark}{{[}23{]}},~\protect\hyperlink{ref-domino}{{[}61{]}}。
+
+图 2
+比较串行、并行和半自回归草稿生成的计算依赖，主要区别在于完整主干的执行次数以及块内条件预测所需的顺序计算。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.99\textwidth]{figures/draft-dependencies.pdf}
+\caption{串行、并行与半自回归草稿生成的计算依赖。串行草稿逐步利用此前生成的
+token；并行块共享一次主干前向；半自回归草稿通过轻量级精化路径利用前序候选。图示仅表示依赖关系，不表示实测时延比例。}
+\end{figure}
+
+\hypertarget{section-3-2-2}{%
+\subsubsection{草稿生成成本与硬件实现}\label{section-3-2-2}}
+
+草稿生成的执行成本还取决于预测模块与目标模型之间的参数和状态共享方式。原生多
+token 预测（Multi-Token
+Prediction，MTP）在目标模型中设置预测模块，DFlash
+等专用草稿模型则利用目标特征执行独立的预测路径。无论采用何种草稿结构，实际生成工作量与最终进入验证的候选数量都可能不同。例如，对已生成的候选块进行剪枝只能减少后续相关工作，而
+ForeSpark
+在并行前向之前选择草稿位置，可以直接避免一部分草稿计算\protect\hyperlink{ref-dflash}{{[}27{]}},~\protect\hyperlink{ref-forespark}{{[}48{]}},~\protect\hyperlink{ref-deepseek}{{[}62{]}},~\protect\hyperlink{ref-sglangdocs}{{[}63{]}}。
+
+草稿模型参数量较小，并不意味着其执行时延一定较低。Yan 等在以 LLaMA-65B
+和 OPT-66B
+为目标模型的实验中发现，草稿模型的通用语言建模能力不足以准确预测其推测解码性能，并据此研究面向硬件的草稿模型结构。对于串行生成路径，减少草稿模型的执行时延可能比提高其独立生成能力更有效。结构简化所节省的时间仍需与相同目标模型及候选预算下的接受长度变化共同衡量\protect\hyperlink{ref-decodingspec}{{[}64{]}}。
+
+即使主要草稿计算已经并行化，顺序预测头反复执行输出投影仍可能形成访存瓶颈。Weights
+That Stay
+在连续草稿生成过程中将反复使用的投影权重分片保留在片上，并通过融合与驻留的消融区分内核发射开销和重复权重搬运。该机制的适用性取决于片上空间能否容纳投影权重及相关状态，以及投影在整体轮次关键路径中的耗时。草稿投影量化也可能减少访存流量，但若量化改变实际提议分布，随机验证必须使用相应的提议概率进行接受与修正，才能维持原有的精确采样保证\protect\hyperlink{ref-leviathan}{{[}4{]}},~\protect\hyperlink{ref-weights}{{[}54{]}}。
+
+\hypertarget{section-3-2-3}{%
+\subsubsection{上下文访问与草稿历史}\label{section-3-2-3}}
+
+草稿模型的执行成本不仅取决于参数量与计算深度，也与其访问的历史状态有关。采用全注意力的草稿模块需要反复访问历史
+KV
+Cache；当混合架构目标模型的递推计算成本较低时，这部分访问可能占据较大的轮次耗时。Windowed-MTP
+将预测头的注意力范围限制在近期位置与注意力汇（attention
+sink），同时保留目标模型原有的完整验证上下文。该方法减少草稿侧的历史访问，但也改变了预测所能利用的信息\protect\hyperlink{ref-windowedmtp}{{[}22{]}}。
+
+长时间运行的智能体（Agent）任务还会不断引入工具响应和新的交互历史。DLite
+在所测智能体负载中观察到草稿接受长度下降及历史草稿缓存开销，并采用目标模型提供的上下文特征和带轻量级顺序头的局部预测，不再维护独立的草稿历史缓存。与
+Windowed-MTP 保留部分历史缓存的方式相比，DLite
+改变了历史信息进入草稿模型的表示方式，而不仅是缩短注意力窗口。两种方法均试图限制草稿成本随上下文长度的增长，实际接受效果则取决于保留的历史信息是否足以支持预测\protect\hyperlink{ref-windowedmtp}{{[}22{]}},~\protect\hyperlink{ref-dlite}{{[}28{]}}。
+
+限制草稿侧的历史访问仍可与目标模型的完整上下文验证结合；若进一步改变目标模型的上下文或融合不同模型的未归一化输出分数（logits），则需重新明确参考分布及保真性要求（第
+4.3 节）。
+
+\hypertarget{section-3-3}{%
+\subsection{自推测}\label{section-3-3}}
+
+\hypertarget{section-3-3-1}{%
+\subsubsection{部分目标模型执行与激活复用}\label{section-3-3-1}}
+
+自推测利用目标模型的部分计算路径生成候选，减少对独立草稿模型的依赖。Draft
+\& Verify
+在草稿生成时跳过选定的模型层，再使用完整目标模型验证候选；LayerSkip
+则通过训练改善中间层的预测能力，使草稿从较浅层提前退出，并在验证阶段继续执行剩余层，从而复用已有的浅层计算。前者的草稿质量主要受跳层配置影响，后者通过训练改善提前退出的预测能力，并扩大草稿与验证之间可共享的计算范围。LayerSkip
+的精确贪心保证以关闭提前退出后的完整训练模型为参考\protect\hyperlink{ref-draftverify}{{[}29{]}},~\protect\hyperlink{ref-layerskip}{{[}30{]}}。
+
+提前退出的位置同时影响草稿生成与目标验证。较浅的退出层能够减少每次草稿计算，但可能降低接受长度，并将更多层留待验证；较深的退出层可能改善预测效果，却增加串行草稿生成的耗时。与使用额外预测头的方法相比，部分目标模型执行还需要明确哪些中间激活能够在完整验证时复用，以及跳层产生的缓存是否满足目标模型的状态要求。共享模型参数本身并不意味着全部中间计算均可共享\protect\hyperlink{ref-draftverify}{{[}29{]}},~\protect\hyperlink{ref-layerskip}{{[}30{]}},~\protect\hyperlink{ref-eagle}{{[}56{]}}。
+
+\hypertarget{section-3-3-2}{%
+\subsubsection{多条草稿路径与级联控制}\label{section-3-3-2}}
+
+单一部分执行路径只能提供特定的生成成本与预测质量组合。CAS-Spec
+通过可切换的层稀疏化和激活量化构造不同成本的近似草稿路径，再利用 Dynamic
+Tree Cascade
+根据预估时延和接受信息选择草稿层级与长度。这使草稿路径的构造与运行时的配置决策可以分别进行（第
+6
+章）。由同一模型构造多种草稿配置能够避免多个独立草稿模型的常驻权重开销，但不同路径之间的中间激活并非必然兼容；输出保真性仍由最终参考目标模型与验证规则决定\protect\hyperlink{ref-casspec}{{[}31{]}}。
+
+\hypertarget{section-3-4}{%
+\subsection{基于检索的草稿生成}\label{section-3-4}}
+
+\hypertarget{section-3-4-1}{%
+\subsubsection{候选来源与检索覆盖}\label{section-3-4-1}}
+
+检索式草稿生成利用已有文本获得候选，避免为每个候选执行神经草稿模型。REST
+从文本检索库中查找与当前后缀匹配的延续，并将候选组织为字典树供目标模型验证；Cacheback
+利用先前生成序列的统计信息构造候选；提示词查找（prompt
+lookup）则从当前请求的历史中查找重复片段，无需建立大型外部索引，但更加依赖请求内部的重复性。扩大检索范围可以增加获得有效候选的机会，同时增加索引存储与查询开销\protect\hyperlink{ref-rest}{{[}32{]}},~\protect\hyperlink{ref-cacheback}{{[}33{]}},~\protect\hyperlink{ref-vllmdocs}{{[}65{]}}。
+
+此前的推测与验证过程也可以提供候选信息。Ouroboros
+通过短语池扩展草稿，并从被丢弃的候选中回收可供后续使用的文本；Token
+Recycling 将可能的后继 token
+保存在紧凑的邻接结构中，用于构造草稿树。与预建外部语料索引相比，这些候选存储随解码过程更新，更依赖局部模式的重复性及维护成本。再次使用某个候选
+token
+并不意味着此前的验证结果仍然有效，也不能直接复用在已拒绝前缀下计算的目标模型状态\protect\hyperlink{ref-tokenrecycling}{{[}34{]}},~\protect\hyperlink{ref-ouroboros}{{[}66{]}}。
+
+\hypertarget{section-3-4-2}{%
+\subsubsection{检索覆盖与验证成本}\label{section-3-4-2}}
+
+低成本的候选来源并不保证更低的整体解码时延。REST 在单张 A6000 上进行的
+HumanEval（one-shot）贪心解码实验中，CodeLlama-7B 的平均单 token 耗时为
+11.82 ms，辅助模型推测基线为 15.90 ms；在 CodeLlama-13B 上，两者分别为
+19.53 ms 和 19.39 ms。后一配置中，省去神经草稿模型的计算并未使 REST
+优于该推测基线。另一方面，同一研究的 CodeLlama-7B
+数据库规模消融显示，扩大文本检索库可以增加每轮生成进度，但也会延长检索时间。检索的实际收益因此取决于有效匹配的出现频率、查询开销及后续验证成本。即使候选文本可以直接复用，目标模型仍需根据当前前缀计算相应的条件分布，并维护有效位置与状态\protect\hyperlink{ref-rest}{{[}32{]}}。
+
+\hypertarget{section-4}{%
+\section{验证优化}\label{section-4}}
+
+\hypertarget{section-4-1}{%
+\subsection{结构化验证}\label{section-4-1}}
+
+\hypertarget{section-4-1-1}{%
+\subsubsection{候选结构与共享前缀计算}\label{section-4-1-1}}
+
+候选的组织方式决定了目标模型需要计算哪些条件分布，以及其中哪些计算可以共享。链式候选在每个深度仅包含一个前缀；块式候选将多个位置作为一个整体，其成员关系参与候选生成、准入或接受决策。因果语言模型可以沿单条有序路径并行计算多个位置，因此并行评分本身并不足以区分链式与块式候选。树形候选在同一深度引入多个备选分支，并显式表示它们的公共前缀；多候选集合则可能需要保留各提议的身份及联合分布，即使其中部分前缀相同。SpecInfer
+通过树形注意力掩码，使每个节点仅能访问已提交前缀、其祖先节点及当前节点自身，避免不同分支之间的信息干扰。公共前缀可以共享计算，但注意力可见性、位置编号及路径与缓存的映射仍须与各候选所对应的历史一致\protect\hyperlink{ref-specinfer}{{[}7{]}},~\protect\hyperlink{ref-zhao2026survey}{{[}13{]}},~\protect\hyperlink{ref-spectr}{{[}16{]}}。
+
+增加分支能够扩大候选覆盖范围，其收益取决于额外路径的接受概率及相应的验证成本。Sequoia
+根据不同位置的接受概率估计构造候选树，并结合实测成本模型选择树的规模和深度；OPT-Tree
+则在节点预算下调整树形，以提高期望接受长度。节点数相同并不意味着验证成本相同，树的拓扑、掩码构造、张量布局以及后端对动态结构的支持均可能影响实际执行。EAGLE-Pangu
+在昇腾上的分支感知缓存、索引构造及参考和融合验证路径说明，树形验证的移植不仅需要实现候选选择算法，还需在目标平台上维持各分支的条件依赖关系与状态映射\protect\hyperlink{ref-sequoia}{{[}35{]}},~\protect\hyperlink{ref-opttree}{{[}36{]}},~\protect\hyperlink{ref-eaglepangu}{{[}67{]}}。
+
+\hypertarget{section-4-1-2}{%
+\subsubsection{并行草稿与候选树构造}\label{section-4-1-2}}
+
+并行草稿模型通常能够一次给出多个位置的预测分布，但这些分布未必能够准确描述不同候选历史下的条件概率。DDTree
+利用一次 DFlash 前向所得的边缘分布构造候选树。设 \(q_i\) 为第 \(i\)
+个位置的草稿边缘分布，\(u=(u_1,\ldots,u_{|u|})\)
+为树中一个非根节点所对应的候选前缀，则在给定节点预算及前缀闭合约束下，其构造目标为
+
+\[
+\mathcal{Q}=\sum_{u}\prod_{i=1}^{|u|}q_i(u_i),
+\]
+
+其中求和遍历所有非根候选节点。在由各位置边缘分布乘积构成的近似分布下，\(\mathcal{Q}\)
+等于期望匹配深度，但一般不等于真实目标分布下的期望匹配深度。目标模型完成评分后，验证器仍依据目标自身的解码规则选择
+token，并在所选子节点存在时继续沿树验证。因此，构树时使用的分布近似影响候选覆盖及验证效率，而不必改变目标模型的输出规则\protect\hyperlink{ref-ddtree}{{[}37{]}}。
+
+DForkTree
+进一步考虑并行草稿在分叉后的预测偏差。当一条分支偏离并行草稿所隐含的延续时，原有边缘分布可能不足以估计该分支后续
+token 的条件概率。该方法利用目标模型生成文本中的局部点互信息（pointwise
+mutual
+information，PMI）调整分支评分，以补充路径相关信息。与在每处分叉重新执行神经草稿模型相比，这一方法不需要额外的主干前向，但引入了统计信息存储与分支评分开销，其效果也取决于统计语料与实际请求分布的匹配程度。两种构树方法均利用并行草稿降低候选生成成本，区别在于如何估计备选路径的价值，以及为获得更准确的估计需要付出多少额外计算\protect\hyperlink{ref-ddtree}{{[}37{]}},~\protect\hyperlink{ref-dforktree}{{[}68{]}}。
+
+\hypertarget{section-4-1-3}{%
+\subsubsection{验证结构与目标模型架构}\label{section-4-1-3}}
+
+树形验证的实现还受到目标模型序列混合方式的约束。全注意力可以通过掩码控制节点对历史
+KV 的访问，而门控递推层需要依据各节点所属路径计算相应的递推状态。Twig
+将门控 delta
+递推改写为带祖先关系掩码的三角系统，利用树深对依赖传播次数的限制联合计算多个节点的输出，并将计算映射到值通道分块。该变换在精确算术下保持原有递推关系，不再要求逐节点串行遍历完整状态，但仍需计算树内交互因子，并在接受结果确定后重建有效状态（第
+5
+章）。实际性能取决于树的规模和深度、分块计算所需资源以及数值实现条件\protect\hyperlink{ref-twig}{{[}17{]}}。
+
+验证结构也可能影响验证内核以外的执行阶段。例如，SGLang 文档所述 EAGLE
+类推测执行的特定重叠路径要求候选宽度为
+1；采用更宽的候选树虽然可以增加备选覆盖，却可能无法继续使用该重叠机制。因而，树形候选的收益还需结合后端的执行方式及草稿与验证之间的调度关系进行分析\protect\hyperlink{ref-dflash}{{[}27{]}},~\protect\hyperlink{ref-sglangdocs}{{[}63{]}}。
+
+\hypertarget{section-4-2}{%
+\subsection{自适应验证}\label{section-4-2}}
+
+\hypertarget{section-4-2-1}{%
+\subsubsection{候选置信度与验证成本}\label{section-4-2-1}}
+
+当进一步验证候选所增加的执行成本超过其预期生成收益时，扩大候选覆盖反而可能降低解码效率。EAGLE-2
+利用上下文相关的草稿置信度扩展并选择候选路径，使树形结构能够适应不同的输入。EVICT
+在已有的 EAGLE
+类候选树上进一步考虑目标模型的验证开销，根据预先测得的成本曲线，在目标模型评分之前选取保留完整祖先路径的候选子集。两者分别侧重候选的预期接受进度及其验证代价，后者将目标模型实际执行成本引入候选选择\protect\hyperlink{ref-evict}{{[}8{]}},~\protect\hyperlink{ref-eagle2}{{[}38{]}}。
+
+这一成本因素在混合专家模型中尤为重要。低并发时，增加验证位置可能激活原先未使用的专家，导致权重访问量及计算分配发生变化。EVICT
+按验证长度建立的平均成本曲线能够在标定过程中反映这一现象，但相同长度的候选在专家覆盖及路由分布不同时，仍可能产生不同的实际开销。因此，验证长度可以作为成本估计的依据，却不足以完整描述
+MoE 验证的边际代价\protect\hyperlink{ref-evict}{{[}8{]}}。
+
+\hypertarget{section-4-2-2}{%
+\subsubsection{部分目标模型执行与成本估计}\label{section-4-2-2}}
+
+HybridSpec 在验证过程中获取成本估计所需的信息。对于包含门控 delta
+网络（Gated Delta Network，GDN）和 MoE 层的混合架构，初始 GDN
+与路由计算处理预选长度内的候选以及一个可能新增的位置，再利用首层路由结果修正后续层处理额外位置的增量成本估计。即使控制器最终不保留该位置，已经完成的浅层计算仍会产生开销。因此，与
+EVICT 在完整验证之前查询成本曲线的方式相比，HybridSpec
+可以利用更具体的路由信息进行决策，但需要在验证长度确定之前执行一部分目标模型计算\protect\hyperlink{ref-evict}{{[}8{]}},~\protect\hyperlink{ref-hybridspec}{{[}9{]}}。
+
+路由信息的价值取决于原有批次的专家覆盖和负载分布。新增位置可能只增加已有专家的工作量，也可能激活新的专家或加剧设备间的负载不均衡。基于长度的成本模型将这些情形纳入平均估计，部分路由计算则能提供更细粒度的区分；然而，首层路由结果并不等同于后续所有层的实际路由结果。评价这种成本估计机制，应将探测本身的开销计入轮次耗时，并按照第
+2
+章的生成速率关系，判断调整验证长度所节省的时间或增加的有效输出能否带来净收益\protect\hyperlink{ref-evict}{{[}8{]}},~\protect\hyperlink{ref-hybridspec}{{[}9{]}},~\protect\hyperlink{ref-moebytes}{{[}21{]}}。
+
+\hypertarget{section-4-2-3}{%
+\subsubsection{逻辑剪枝与实际执行开销}\label{section-4-2-3}}
+
+候选准入只有在后端能够有效表达所选验证长度时，才能减少实际计算。不规则注意力中的填充与分组执行提供了相关的成本对照。BASS
+针对不同历史序列长度，分别采用填充后的批量矩阵计算（PAD）和逐序列矩阵计算（SPLIT）。在其所测配置下，SPLIT
+为避免填充而增加的内核发射开销超过了 PAD
+的冗余计算代价。该对照针对历史注意力的执行布局，不能直接推导所有不规则验证内核的性能，但说明消除逻辑冗余计算还需考虑实现所引入的执行开销\protect\hyperlink{ref-bass}{{[}69{]}}。
+
+设备侧自适应验证面临类似的实现约束。vLLM
+的相关实现允许受支持的后端读取设备侧确定的验证长度，而主机侧元数据仅描述长度上界。若内核仍按固定填充规格处理全部输入，缩短逻辑验证长度不必然减少实际算术运算；若需将所选长度返回主机重新安排计算，则同步及规划开销也可能抵消剪枝收益。由此，候选准入策略的性能需要与注意力后端、执行规格和元数据更新方式共同评价\protect\hyperlink{ref-vllmgraphdocs}{{[}20{]}},~\protect\hyperlink{ref-dspark}{{[}23{]}},~\protect\hyperlink{ref-avdocs}{{[}53{]}}。
+
+\hypertarget{section-4-3}{%
+\subsection{接受与修正}\label{section-4-3}}
+
+\hypertarget{section-4-3-1}{%
+\subsubsection{逐 token
+验证、块级验证与多草稿耦合}\label{section-4-3-1}}
+
+接受规则决定已计算的候选能够转化为多少有效输出。标准逐 token
+验证在各位置根据目标分布 \(p\) 和提议分布 \(q\)
+执行接受与修正，并在首次拒绝时结束本轮候选验证。Block Verification
+则对整段提议序列联合确定接受结果，在其构造条件下保持目标序列的概率分布，并改变被接受前缀长度的分布。论文的最优性结论针对所定义的合法定长块验证器及固定迭代次数下的生成进度，实际时延收益还取决于联合验证所引入的归约与采样开销。SpecTr
+和 SpecHub
+研究的是同时存在多个草稿时的选择问题，通过相应的概率耦合保持目标分布。其接受规则取决于多草稿的提议方式，包括独立抽样与具有特定联合分布的候选构造\protect\hyperlink{ref-leviathan}{{[}4{]}},~\protect\hyperlink{ref-spectr}{{[}16{]}},~\protect\hyperlink{ref-blockverification}{{[}39{]}},~\protect\hyperlink{ref-spechub}{{[}40{]}}。
+
+块级验证的收益还与实际提议分布有关。对于固定的确定性草稿序列，若要求保持参考目标分布，任一候选前缀被完整接受的概率不能超过该前缀在参考目标下的概率。采用点质量提议分布的标准逐
+token
+验证，其前缀接受概率恰为沿固定候选链的目标条件概率之积，已达到这一上界。因此，在相同确定性提议与精确采样要求下，块级验证不能进一步提高期望接受长度；其改善接受进度的空间来自随机提议及相应的联合接受机制。SGLang
+中支持的随机块验证路径和 vLLM 对 one-hot
+提议与概率提议的区分，体现了这些验证方式的不同执行要求。保留草稿分布信息可能增加显存占用与采样工作，比较验证规则时也需计入这部分代价\protect\hyperlink{ref-blockverification}{{[}39{]}},~\protect\hyperlink{ref-sglangdocs}{{[}63{]}},~\protect\hyperlink{ref-sglang-pin}{{[}70{]}},~\protect\hyperlink{ref-vllmconfigdocs}{{[}71{]}}。
+
+\hypertarget{section-4-3-2}{%
+\subsubsection{接受规则变化与输出保真性}\label{section-4-3-2}}
+
+松弛接受准则可以扩大允许提交的候选范围，但也改变了输出保证。Medusa
+的典型接受（typical
+acceptance）依据目标分布判断候选是否具有足够的合理性，不再要求逐位置满足严格的贪心匹配。vLLM-Ascend
+文档中的熵验证（Entropy
+Verify）同样属于接受判据的改变，与保持参考分布的块级验证分别讨论。对于此类方法，应结合其具体接受条件比较生成质量和时延；若声称具有可量化的近似保证，还需明确参考分布、分布差异度量及保证所适用的生成范围\protect\hyperlink{ref-zhao2026survey}{{[}13{]}},~\protect\hyperlink{ref-medusa}{{[}25{]}},~\protect\hyperlink{ref-ascenddocs}{{[}72{]}}。
+
+除接受规则外，参考分布本身也可能发生变化。AsymSpec
+将较完整的上下文交给小模型，将压缩后的历史交给较大模型，并通过 logits
+融合与散度感知控制结合二者的预测。由于较大模型访问的上下文及最终预测方式发生变化，验证所依据的条件分布可能与原始全上下文目标模型不同。相比之下，仅在草稿侧使用近似模型或压缩上下文，仍可在满足相应条件的接受与修正规则下保持原目标分布。因此，分析这些方法时，应首先确定比较所依据的参考目标，再讨论输出保真性与执行效率之间的关系\protect\hyperlink{ref-leviathan}{{[}4{]}},~\protect\hyperlink{ref-asymspec}{{[}73{]}}。
+
+\hypertarget{section-4-3-3}{%
+\subsubsection{候选准入与采样分布}\label{section-4-3-3}}
+
+自适应验证在随机采样下还受到提议分布的约束。标准拒绝采样要求进入验证的候选服从接受规则所使用的实际提议分布。若候选准入依赖已经采样的
+token，则选择过程可能改变被准入候选的分布。DSpark
+通过事后选择前瞻长度的例子说明这一问题；vLLM
+的相关工程研究也讨论了按实际抽中 token
+的概率排序可能产生的偏差，并改用采样前可获得的分布特征估计接受概率。历史接受结果可以用于更新估计器，但如果直接依据当前抽样结果决定是否将该
+token
+送入标准验证，就需要重新处理选择后的提议分布。在共享验证预算下，还需保证前缀评分及并列处理不会使后续候选反过来决定前部已抽样候选的准入，从而破坏原有采样条件\protect\hyperlink{ref-dspark}{{[}23{]}},~\protect\hyperlink{ref-forespark}{{[}48{]}},~\protect\hyperlink{ref-vllmavestimator}{{[}74{]}}。
+
+设词表仅包含 \(a\) 和 \(b\) 两个 token，参考目标与草稿分布均为
+\(p(a)=q(a)=p(b)=q(b)=1/2\)。若引擎先采样一个候选，仅在候选为 \(a\)
+时执行推测验证，否则直接从目标分布采样；而验证器仍使用原始均匀提议分布，则在准入情况下
+\(a\) 将以概率 1 被接受。此时最终输出 \(a\) 的概率为
+
+\[
+\Pr(\mathrm{output}=a)=\frac{1}{2}+\frac{1}{2}\cdot\frac{1}{2}=\frac{3}{4},
+\]
+
+与参考目标的 \(1/2\) 不同。该例说明，即使逐 token
+接受公式本身未发生变化，候选筛选与回退的组合仍可能改变输出分布。为避免这种偏差，可以依据相关采样之前已知的信息决定是否生成或验证该候选，也可以在验证规则中显式考虑候选选择及回退过程。对于多个请求共享验证预算的情形，同样需要检查跨请求选择是否改变当前候选的实际提议分布。根据已观察到的前缀决定是否继续生成，与先生成一个候选再根据其取值决定是否保留，具有不同的概率语义\protect\hyperlink{ref-dspark}{{[}23{]}},~\protect\hyperlink{ref-vllmavestimator}{{[}74{]}}。
+
+\hypertarget{section-5}{%
+\section{状态与内存管理}\label{section-5}}
+
+\hypertarget{section-5-1}{%
+\subsection{状态提交与恢复}\label{section-5-1}}
+
+\hypertarget{section-5-1-1}{%
+\subsubsection{注意力缓存与批内状态对齐}\label{section-5-1-1}}
+
+目标模型在验证阶段计算的是候选前缀对应的状态，而后续解码只能使用与已接受序列一致的状态。对于注意力层，状态提交需要在正确的逻辑位置保留被接受路径的
+KV Cache 条目，并使被拒绝路径上的条目不再参与后续计算。SpecInfer
+通过树形缓存组织复用被接受路径上的状态；分页缓存则利用块表建立逻辑位置与物理存储之间的映射。即使物理存储不需要连续排列，缓存分配、有效长度与位置映射仍须保持一致\protect\hyperlink{ref-pagedattention}{{[}1{]}},~\protect\hyperlink{ref-specinfer}{{[}7{]}}。
+
+批内接受长度的差异使状态提交进一步涉及数据布局。即使各请求从相同位置开始推测，一轮结束后也可能推进到不同位置。BatchSpec
+指出，采用矩形张量及右对齐的批处理实现可能使位置编号、注意力掩码与已提交的
+KV Cache 失去同步。其 EQSPEC 通过重新对齐满足状态一致性要求，EXSPEC
+则将序列长度相同的请求分组，减少重新对齐所需的工作。前者承担状态对齐开销以适应批内长度差异，后者通过限制组批方式避免部分开销。该研究还区分了状态同步错误与批相关浮点计算造成的贪心输出差异，两者虽都可能表现为输出不一致，却具有不同的成因\protect\hyperlink{ref-batchspec}{{[}14{]}}。
+
+已计算状态边界与预留位置、计划执行位置的区别也体现在主机与设备之间的协调中。若下一轮的输入准备依赖验证后更新的已计算
+token 数，该计数便需要在相应消费者读取之前就绪。vLLM-Ascend
+的模型执行路径采用有序的设备到主机传输维护这一依赖。传输与其他操作重叠可以减少关键路径上的等待，但不能省去计数更新或其必要的同步关系\protect\hyperlink{ref-vllm-scheduler}{{[}75{]}},~\protect\hyperlink{ref-ascend-pin}{{[}76{]}}。
+
+\hypertarget{section-5-1-2}{%
+\subsubsection{递推状态的保存与重建}\label{section-5-1-2}}
+
+递推层与注意力层的主要区别在于历史信息的保存形式。对于递推关系
+\(s_i=F(s_{i-1},z_i)\)，其中 \(z_i\) 为第 \(i\)
+个位置的递推输入，若验证计算到位置 \(k\)，而接受结果只保留到位置
+\(a\)（\(0\leq a\leq k\)），则继续解码所需的是
+\(s_a\)，而非候选末端的状态 \(s_k\)。这里的 \(a\)
+表示已计算的接受边界，不包含已经输出但尚未计算目标模型状态的修正
+token。与保留有效 KV
+条目不同，递推状态通常不能仅通过修改有效长度恢复。在各位置保存完整状态快照，可以在接受结果确定后直接选取相应状态，但需要写入大量中间状态并预留存储空间\protect\hyperlink{ref-replayssm}{{[}15{]}}。
+
+ReplaySSM 和 HybridSpec
+分别利用输入重放与因子化重建减少完整快照的保存。ReplaySSM
+保留递推检查点及近期输入缓冲，在计算输出时避免写出每个位置的完整状态矩阵；验证结束后根据接受长度更新缓冲区的有效边界，刷新检查点时只将已提交输入纳入持久递推状态。HybridSpec
+则针对 GDN
+递推，在并行验证中保留紧凑的逐位置计算因子，再结合初始状态及被接受前缀对应的因子重建有效状态。对于其所采用的因果递推分解，被拒绝后缀的因子不影响接受前缀的重建。两者均以较小的中间表示代替完整状态快照，但重建工作的安排不同：HybridSpec
+在状态提交阶段执行重建，ReplaySSM
+则可通过更新缓冲区边界延后检查点刷新，并将部分恢复成本摊销到多轮执行中。比较这两类方法，需要同时考察暂存容量、状态读写流量、重放或重建计算及其在关键路径上的开销\protect\hyperlink{ref-hybridspec}{{[}9{]}},~\protect\hyperlink{ref-replayssm}{{[}15{]}}。
+
+树形递推验证进一步要求每个候选节点具有与其父节点路径一致的状态。Twig
+保持候选树开始前的已提交状态不变，保存各 token
+对应的紧凑因子，并在采样完成后重建被接受分支的状态，从而避免为每个候选节点保存完整递推矩阵。运算顺序的变化仍可能影响有限精度下的结果。在
+Qwen3.5-9B 的评测中，相对于 FP64 串行参考实现，SGLang-Tree 和 Twig
+在采样状态张量上的最大归一化均方根误差（NRMSE）分别为
+\(1.48\times10^{-7}\) 和 \(4.42\times10^{-7}\)；在生成 4,096 个 token
+期间进行的成对串行验证检查中，2,048 个候选节点的最大概率
+token（top-1）不一致率为 0.20\%，而所抽查的 64
+个轮次具有相同的接受决策。因此，代数上的递推等价性与有限精度下的数值及解码一致性需要分别讨论\protect\hyperlink{ref-batchspec}{{[}14{]}},~\protect\hyperlink{ref-twig}{{[}17{]}}。
+
+状态重建还需与具体递推结构、算子实现及并行方式相匹配。vLLM-Ascend 针对
+GLM-5.3-Flash 的 Kimi Delta Attention（KDA）在昇腾 A3 与 A5
+上提供了实验性 RecoverSSM
+路径，以避免逐位置保存完整检查点。该配置要求流水并行和解码上下文并行的规模均为
+1，并对预填充与解码阶段之间的状态传递提出兼容性要求。由此可见，单层状态重建能够成立，并不意味着相同机制可以直接用于所有分布式执行配置；各阶段所需的状态表示及其传递条件也需要满足相应要求\protect\hyperlink{ref-hybridspec}{{[}9{]}},~\protect\hyperlink{ref-replayssm}{{[}15{]}},~\protect\hyperlink{ref-ascenddocs}{{[}72{]}}。
+
+图 3
+比较注意力缓存保留与递推状态恢复。快照选择、输入重放及因子化重建的区别在于验证期间保存的对象，以及接受结果确定后恢复有效状态所需的工作。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.99\textwidth]{figures/state-recovery.pdf}
+\caption{接受 \(a\)、拒绝 \(b\) 并输出修正 token \(d\)
+后的状态恢复。注意力层保留被接受路径上的 KV
+条目；递推层可通过完整快照、输入重放或适用于相应递推结构的因子化重建恢复
+\(s_1\)。修正 token \(d\) 对应的目标模型状态留待后续计算。}
+\end{figure}
+
+\hypertarget{section-5-1-3}{%
+\subsubsection{多组件间的状态提交与一致性}\label{section-5-1-3}}
+
+混合架构的状态提交需要覆盖下一轮所依赖的全部状态分量。注意力
+KV、递推矩阵及短卷积历史可能采用不同的存储与恢复方式，但均须与同一请求的有效计算位置一致。SGLang
+的混合架构 NGRAM
+推测执行及前缀缓存实现曾分别出现递推状态未写入持久存储、短卷积检查点跟踪不完整的问题，导致后续解码或缓存恢复使用无效状态。相应修复表明，仅保留正确的
+token
+序列并不足以保证混合架构的状态有效性\protect\hyperlink{ref-sglngramcommit}{{[}77{]}},~\protect\hyperlink{ref-sglsconvcommit}{{[}78{]}}。
+
+流水并行还使状态提交与接受结果的传递分布在不同阶段。各阶段需要获得所属微批的接受结果，验证产生的临时状态则须保留至对应的提交操作完成。SGLang
+关于 GLM-5.3-Flash 的两阶段流水并行与 MTP
+配置的工程报告指出，非末阶段未正确提交状态时，GSM8K 准确率由普通解码的
+0.990 降至 0.745，而报告的接受长度仍约为
+3.5。批内请求重排则涉及另一类状态映射问题：若中间状态按临时批次行号写入，而后续根据持久请求身份读取，位置与请求之间的映射变化便可能导致错误的状态访问。Qwen4
+短卷积、Mamba2 和 LFM2
+的相关工程讨论也涉及这一问题。前一类问题源于状态提交未覆盖所有阶段，后一类问题源于状态归属及索引关系不一致。因而，快照选择与状态重建需要同请求标识、缓存映射、同步依赖及存储寿命共同维护，才能使有效状态在不同运行时组件之间正确传递\protect\hyperlink{ref-sglppcommit}{{[}79{]}},~\protect\hyperlink{ref-sglpprows}{{[}80{]}}。
+
+\hypertarget{section-5-2}{%
+\subsection{推测内存管理}\label{section-5-2}}
+
+\hypertarget{section-5-2-1}{%
+\subsubsection{常驻状态与临时存储}\label{section-5-2-1}}
+
+推测解码所需的额外内存具有不同的用途和寿命。独立草稿模型需要常驻权重，并可能维护额外的历史
+KV
+Cache；树形验证需要为候选分支保留临时状态；递推验证还可能使用状态快照或输入重放缓冲区。前两类常驻资源随模型配置及活跃上下文变化，候选临时状态则主要受验证预算和并发规模影响，其实际占用还取决于分配与回收方式。对于显存容量受限的服务，这些额外资源会占用原本可用于目标模型缓存的空间，影响系统能够同时容纳的请求数量。因此，除单轮执行时间外，还应考察推测内存的常驻容量、峰值占用及其对服务并发的影响\protect\hyperlink{ref-pagedattention}{{[}1{]}},~\protect\hyperlink{ref-magicdec}{{[}2{]}},~\protect\hyperlink{ref-replayssm}{{[}15{]}},~\protect\hyperlink{ref-sequoia}{{[}35{]}}。
+
+\hypertarget{section-5-2-2}{%
+\subsubsection{有界草稿历史与缓存空间回收}\label{section-5-2-2}}
+
+长上下文推测解码可以利用草稿生成与目标验证对历史信息的不同要求减少内存开销。TriForce
+在中间推测层级使用稀疏缓存，再由完整目标模型验证；MagicDec 利用稀疏草稿
+KV 降低长上下文预测开销；LongSpec
+通过局部窗口限制额外草稿自注意力状态，同时利用目标模型提供的上下文信息，并将目标侧对共享历史的注意力计算与候选局部注意力计算分开。这些方法均限制了草稿侧维护或访问的历史状态，同时保留目标模型原有的验证规则。其效果取决于历史信息缩减后候选质量的变化，以及目标模型仍需承担的历史缓存访问成本\protect\hyperlink{ref-magicdec}{{[}2{]}},~\protect\hyperlink{ref-triforce}{{[}41{]}},~\protect\hyperlink{ref-longspec}{{[}42{]}}。
+
+Windowed-MTP
+进一步区分了减少历史读取与回收物理存储两种优化。窗口与注意力汇限制草稿模块实际访问的
+KV
+条目，但若原缓存分配方式不变，被排除的条目仍可能占据显存；紧凑环形缓冲区则通过重新映射草稿缓存，使常驻分配容量随窗口大小受到约束。该文的物理环形缓冲实现采用
+Triton 草稿后端。在百万 token
+上下文、每轮六次草稿前向的设置下，所测模型的原生草稿执行耗时相当于目标模型验证前向耗时的
+61\%--102\%；计入固定推测管理开销后，额外推测开销达到目标验证前向耗时的
+92\%--138\%。这些数值反映轮次内部各阶段的耗时关系，而非端到端加速比。同一研究的
+Qwen-35B 并发实验还表明，相对于原生 MTP，紧凑缓存方案可以多容纳一个百万
+token
+请求。由此可见，减少草稿历史访问主要作用于执行时延，实际回收缓存容量则还可能提高可服务的并发规模\protect\hyperlink{ref-windowedmtp}{{[}22{]}}。
+
+\hypertarget{section-5-2-3}{%
+\subsubsection{内存容量与执行配置}\label{section-5-2-3}}
+
+推测解码的内存开销还与推理引擎的执行配置有关。SGLang
+的部署指引分别讨论图捕获规格、候选树规模和并发请求数所带来的显存压力。缩小图覆盖范围可以减少图相关预留内存，但可能使更多请求回退到非图执行；降低候选预算可以减少临时状态占用，但也可能降低每轮生成进度。当显存容量限制服务并发时，释放的缓存空间能够用于容纳更多请求，批次规模的变化又会影响目标验证的算术强度、权重访问及通信开销。因此，内存优化应结合实际缓存容量、执行配置和请求负载评价，而不能仅依据减少的字节数推断吞吐收益\protect\hyperlink{ref-magicdec}{{[}2{]}},~\protect\hyperlink{ref-evict}{{[}8{]}},~\protect\hyperlink{ref-sglangdocs}{{[}63{]}}。
+
+\hypertarget{section-6}{%
+\section{系统级优化}\label{section-6}}
+
+\hypertarget{section-6-1}{%
+\subsection{动态推测}\label{section-6-1}}
+
+\hypertarget{section-6-1-1}{%
+\subsubsection{草稿生成阶段的停止决策}\label{section-6-1-1}}
+
+固定草稿长度无法适应不同请求及同一请求在不同生成阶段的预测难度。根据第
+2.2
+节的性能模型，延长草稿能否提高解码速率，取决于新增候选带来的期望输出进度及其执行成本。DISCO
+根据当前草稿的预测情况决定是否继续执行下一步自回归草稿生成，SVIP
+则利用草稿预测的不确定性调整长文本生成中的前瞻长度。两者均在后续草稿计算之前作出决策，因而有机会直接减少草稿执行次数。相比之下，对已经生成的并行候选块进行剪枝，只能减少后续验证及相关状态处理工作，除非该决策还能改变后续草稿计算。因此，相同的置信度信息用于不同阶段时，能够节省的计算及其成本模型也不同\protect\hyperlink{ref-disco}{{[}44{]}},~\protect\hyperlink{ref-forespark}{{[}48{]}},~\protect\hyperlink{ref-svip}{{[}81{]}}。
+
+SpecDec++
+进一步将草稿生成的停止决策表示为马尔可夫决策过程。假设每次草稿前向与目标前向的耗时分别为常数
+\(t_D\) 和 \(t_T\)，生成 \(N\) 个 token 所需的时间可分解为
+
+\[
+T=t_D N+t_D N_{\mathrm{discarded}}+(t_T-t_D)N_{\mathrm{target}},
+\]
+
+其中 \(N_{\mathrm{discarded}}\) 表示被丢弃的草稿 token
+数，\(N_{\mathrm{target}}\) 表示目标模型前向次数。当 \(t_T>t_D\)
+时，后两项分别反映无效草稿计算与目标模型调用的额外代价。在论文所定义的有界、时间齐次策略及成本假设下，定理
+4.3
+给出了停止生成的充分条件，即前缀拒绝概率超过由执行成本及后续决策代价共同确定的阈值。实际算法通过预测器估计前缀拒绝风险，并采用经调节的阈值选择何时开始验证。在两张
+A100-80GB 上以 Llama-2-chat 7B 和 70B
+分别作为草稿与目标模型时，HumanEval
+上自适应策略与最佳定长基线的生成速率分别为 20.61 和 18.55
+tokens/s。该速率由实测前向时间及观测到的验证、丢弃情况推算，并非完整解码过程的直接计时结果。若目标前向成本随验证长度变化，或草稿模型一次前向即可产生多个位置，停止决策所依据的成本模型便需要相应调整\protect\hyperlink{ref-specdecpp}{{[}43{]}}。
+
+\hypertarget{section-6-1-2}{%
+\subsubsection{推测配置选择与在线适应}\label{section-6-1-2}}
+
+轮内停止主要决定既定草稿机制的执行长度，配置选择则需要比较不同草稿路径及其对应的执行成本。CAS-Spec
+联合选择部分模型执行路径和推测长度；BanditSpec
+将不同推测配置作为在线学习中的候选动作，根据实际反馈更新选择策略，无需另外训练接受概率预测头。其
+UCBSpec 与 EXP3Spec
+在各自的奖励模型及相关假设下给出了相对于固定配置策略的停止时间遗憾（stopping-time
+regret）上界。其中停止时间以生成终止前调用推测子程序的次数计量，并不等同于各配置执行时延不同时的实际耗时。因此，当配置切换涉及草稿权重驻留、检索开销、图变体选择等因素时，还需将这些成本及在线探索所增加的工作纳入比较\protect\hyperlink{ref-casspec}{{[}31{]}},~\protect\hyperlink{ref-banditspec}{{[}45{]}}。
+
+\hypertarget{section-6-1-3}{%
+\subsubsection{负载适应与普通解码回退}\label{section-6-1-3}}
+
+服务负载的变化也可以通过调整整个批次共用的推测长度来适应。vLLM
+支持根据批大小选择前瞻长度；HybridSpec
+的四客户端贪心评测则采用批内统一的验证长度，减少相对于单请求模式所需支持的执行规格。与逐请求分配相比，共享长度有利于保持规整的批处理与后端执行，但不同请求的预测难度存在差异，同一长度可能使部分请求执行过多候选，同时限制其他请求的生成进度。负载控制需要在执行规格的规整性与请求间的适应能力之间进行权衡\protect\hyperlink{ref-hybridspec}{{[}9{]}},~\protect\hyperlink{ref-vllmconfigdocs}{{[}71{]}}。
+
+当额外候选无法带来净收益时，普通自回归解码也是可选的执行方式。TensorRT-LLM
+文档描述了两种不同的控制机制：一是根据批大小调整草稿长度，可以将长度设为零，并在负载下降时恢复推测；二是根据滚动接受率判断是否禁用推测，禁用后在当前执行器的生命周期内不再恢复。接受率反馈还依赖统计口径。若缩短草稿长度后仍以预留位置而非实际验证位置作为分母，接受率的变化便可能同时反映资源分配与预测质量的变化，影响控制器对草稿效果的判断\protect\hyperlink{ref-trtllmspec}{{[}82{]}}。
+
+将草稿长度设为零并不必然恢复普通解码的执行成本。SGLang 针对 KDA
+ReplaySSM 路径的一项优化提案指出，零推测步下的单 token
+验证仍会执行递推缓冲区的写入及检查点更新；在 B300 上以 TP4 运行
+GLM-5.3-Flash NVFP4 时，该路径在相同批大小下比普通解码路径慢
+7\%--16\%。这里需要优化的是零草稿配置下仍然存在的状态维护，而不仅是推测长度的选择。此外，停止草稿生成后，草稿权重、缓存或预留的临时状态仍可能占据显存。因此，评估回退策略时，应分别考察是否恢复普通解码的计算路径，以及是否能够重新利用推测所占用的内存资源\protect\hyperlink{ref-sglstepzero}{{[}19{]}},~\protect\hyperlink{ref-windowedmtp}{{[}22{]}}。
+
+\hypertarget{section-6-1-4}{%
+\subsubsection{分布式执行中的自适应决策}\label{section-6-1-4}}
+
+推测长度的变化若影响集合通信的参与关系、调用顺序或执行规格，局部决策便需要满足分布式执行约束。vLLM
+v0.34.0
+的动态推测解码指引记录了数据并行（DP）下回退至静态长度的限制，后续文档进一步区分需要共同参与专家通信的
+MoE 数据并行与相互独立的稠密模型副本。由此可见，需要保持一致的是相关
+rank
+间的通信及执行协议，而非所有请求必须采用相同的推测长度。共享控制策略、填充至兼容规格或显式协调各
+rank
+的决策，均可能满足这一要求，但也可能减少逐请求适应的空间，或增加额外计算与同步。分布式推测控制需要同时考虑局部生成收益和实现全局协调的代价\protect\hyperlink{ref-vllmdynamic034}{{[}83{]}},~\protect\hyperlink{ref-vllmdynamiclatest}{{[}84{]}}。
+
+\hypertarget{section-6-2}{%
+\subsection{批处理感知调度}\label{section-6-2}}
+
+\hypertarget{section-6-2-1}{%
+\subsubsection{共享验证预算与服务目标}\label{section-6-2-1}}
+
+连续批处理使推测候选与其他请求的解码位置及预填充分块共享设备资源。TETRIS
+在前缀约束和共享验证预算下分配候选，其单步最优性结论以已知接受概率且不计草稿生成耗时为前提。AdaServe
+则将异构请求的时延目标纳入资源分配，采用满足各自平均单 token 时间（Time
+Per Output
+Token，TPOT）目标的请求所产生的有效输出速率衡量服务收益；SmartSpec
+根据当前负载估计有效输出速率，并允许回退至普通解码。与单纯最大化本轮生成进度相比，面向服务目标的分配还需考虑请求间的时延约束及资源竞争。因此，具有相同期望接受进度的请求，也可能因服务目标不同而获得不同的推测预算\protect\hyperlink{ref-smartspec}{{[}10{]}},~\protect\hyperlink{ref-tetris}{{[}46{]}},~\protect\hyperlink{ref-adaserve}{{[}47{]}}。
+
+共享预算的确定与逐请求候选分配还可以采用不同的执行方式。DSpark
+在草稿块生成后，结合预先测得的成本曲线及校准后的前缀接受概率估计分配验证工作。在
+DeepInfer
+的实现中，主机在本轮草稿置信度返回之前确定总验证预算，设备再根据实际置信度为各请求分配前缀长度。该组织方式使主机无需等待每个请求的具体准入结果即可完成总量规划，但要求后端能够直接使用设备侧的变长元数据，且总量规划所依据的成本模型仍适用于当前负载。总预算与细粒度分配之间的职责划分，因而也影响调度决策是否会在关键路径上引入新的等待\protect\hyperlink{ref-dspark}{{[}23{]}},~\protect\hyperlink{ref-avdocs}{{[}53{]}},~\protect\hyperlink{ref-deepinferdocs}{{[}85{]}}。
+
+\hypertarget{section-6-2-2}{%
+\subsubsection{草稿生成与验证预算的联合分配}\label{section-6-2-2}}
+
+仅在草稿生成完成后分配验证预算，无法减少已经执行的草稿计算。ForeSpark
+在草稿前向之前估计各请求的候选生成价值，先分配草稿计算预算，再针对实际生成的候选分配验证预算。相比只在验证前剪枝的方式，联合分配能够改变两个阶段的实际工作量。不过，当负载较低且完整草稿块的执行代价较小时，额外预测与调度开销可能超过节省的计算；当系统资源接近饱和时，提前限制低效草稿则更有机会释放计算资源。ForeSpark
+在相同草稿主干下的调度消融能够比跨草稿模型的比较更直接地说明联合分配的贡献。这类机制的收益需结合草稿与验证阶段的资源占用及额外控制成本进行分析\protect\hyperlink{ref-forespark}{{[}48{]}}。
+
+\hypertarget{section-6-2-3}{%
+\subsubsection{智能体工作流与异构预算分配}\label{section-6-2-3}}
+
+智能体工作流中的历史信息往往具有明确的语义结构，不同请求可供复用的文本及适宜的草稿长度也存在差异。AgentSpec
+利用应用提供的语义片段划分检索缓存，减少智能体轨迹中无关片段之间的匹配，并根据历史延续的冗余程度为各请求分配不同的草稿长度。前者改善候选文本的相关性，后者使共享计算预算更多地分配给具备有效候选的请求。Qwen3-8B
+代码生成负载上的消融实验显示，仅采用结构化隔离检索、仅采用冗余感知分配并配合后缀草稿、联合采用两项机制时，作者定义的整体智能体输出速率分别为普通解码的
+1.25、1.10 和 1.30
+倍。组合收益表明，候选来源与共享预算分配可以共同影响智能体任务的生成效率，但这些结果对应整段任务的输出速率，而非满足特定服务级目标（Service
+Level Objective，SLO）的有效吞吐量（第 7
+章）\protect\hyperlink{ref-agentspec}{{[}49{]}}。
+
+\hypertarget{section-6-2-4}{%
+\subsubsection{执行图回放与后端兼容性}\label{section-6-2-4}}
+
+动态推测策略需要通过实际执行后端表达不同的验证长度。执行图回放可以减少重复的主机提交与内核发射开销，但仍需处理每轮变化的查询长度、注意力可见性及缓存映射。vLLM
+v0.31.0
+的执行图设计区分规整解码与查询偏移可由设备读取的变长解码。在按输入行数上界捕获执行图的情况下，逻辑候选数减少并不保证后端处理的实际行数随之减少。引擎可以保留更多图变体以适应不同规格，但需要支付额外的捕获及内存开销；也可以通过填充复用已有图，此时仍可获得低开销提交的收益，却可能无法减少目标模型计算。因此，验证预算的动态调整需要与图变体选择、元数据表示及内核实际处理范围共同设计\protect\hyperlink{ref-evict}{{[}8{]}},~\protect\hyperlink{ref-vllmgraphdocs}{{[}20{]}},~\protect\hyperlink{ref-avdocs}{{[}53{]}}。
+
+在昇腾平台上，vLLM-Ascend v0.26.0rc 的 ACLGraph
+设计要求注意力后端在更新流上刷新回放参数，并保证更新先于相关图执行。可用捕获规格还受平台资源约束；固定版本的推测解码指引中，所列融合推理注意力路径每轮最多支持
+16 个位置，包含锚点。EAGLE-Pangu
+则展示了树形候选在昇腾上的融合贪心验证实现及相应的分支缓存管理。由此，结构化验证在不同平台间的迁移不仅需要保持候选的逻辑可见性和状态语义，还需使这些信息能够通过目标后端的参数接口及执行规格正确表达。具体算子限制和图回放条件决定了逻辑候选预算能够在实际设备上实现的范围\protect\hyperlink{ref-ascendgraphdocs}{{[}55{]}},~\protect\hyperlink{ref-eaglepangu}{{[}67{]}},~\protect\hyperlink{ref-ascenddocs}{{[}72{]}}。
+
+\hypertarget{section-6-3}{%
+\subsection{流水执行与解耦部署}\label{section-6-3}}
+
+\hypertarget{section-6-3-1}{%
+\subsubsection{阶段重叠与执行依赖}\label{section-6-3-1}}
+
+流水执行利用不同阶段之间可并行的工作减少关键路径上的等待，但不能消除决定输出及状态提交的因果依赖。PipeSpec
+将分层草稿生成的各阶段安排在不同分区上重叠执行；Speculative Speculative
+Decoding
+则针对当前验证可能产生的结果提前准备后续草稿。前者通过调整不同分区的执行时序提高资源利用率，后者利用可用计算与存储资源提前执行可能需要的工作。两种方式都可能缩短等待时间，但也分别面临阶段间数据传输、未被采用的预计算以及其他请求资源竞争等开销。额外的重叠机会只有在减少的关键路径等待超过新增执行代价时，才能改善整体性能\protect\hyperlink{ref-pipespec}{{[}50{]}},~\protect\hyperlink{ref-ssd}{{[}51{]}}。
+
+推理引擎还可以在不预先预测验证结果的情况下，将调度准备与设备执行重叠。SGLang
+文档所述 V2 重叠执行路径适用于候选宽度为 1 的 EAGLE 类配置；DeepInfer
+则在本轮前向与采样执行期间组织下一轮 GPU
+工作，并在设备侧完成依赖接受结果的分配。两者利用的都是部分准备工作与当前计算之间的并行机会，但下一轮真正消费状态时仍须取得正确的接受结果。增加候选分支、引入需要主机读取的变长信息，或等待跨设备状态传输，都可能改变原有的执行依赖。因此，应结合实际工作负载下的资源竞争与同步等待判断重叠收益，而不能仅依据理论上可并行的阶段数量评价性能\protect\hyperlink{ref-sglangdocs}{{[}63{]}},~\protect\hyperlink{ref-ascend-pin}{{[}76{]}},~\protect\hyperlink{ref-deepinferdocs}{{[}85{]}}。
+
+\hypertarget{section-6-3-2}{%
+\subsubsection{状态准备与跨实例交接}\label{section-6-3-2}}
+
+预填充与解码分离的推理服务还可以利用状态准备阶段开展推测计算。Callo
+针对提示编辑导致原有 KV Cache
+失效的情况，在预填充实例重新计算正确缓存的同时，利用解码实例的可用资源，基于旧缓存生成候选；待正确状态完成交接后，再以更新后的缓存验证候选，并在验证完成后输出
+token。该设计将一部分草稿生成与目标状态准备重叠，在候选具有较高接受进度时可以减少缓存失效请求的等待时间。不过，提前生成的候选及其临时状态也可能与已经就绪的请求竞争解码资源。其收益取决于缓存上下文长度、编辑幅度、旧状态下的预测效果及预填充与解码实例的资源配置。与
+DistServe
+所讨论的预填充---解码资源分离及状态传输结合考察，这类机制主要减少状态准备在服务关键路径上造成的等待，而不必然减少设备执行的总工作量\protect\hyperlink{ref-callo}{{[}52{]}},~\protect\hyperlink{ref-distserve}{{[}86{]}}。
+
+\hypertarget{section-7}{%
+\section{综合比较与昇腾适用性}\label{section-7}}
+
+前述四类优化分别改变草稿生成、目标验证、状态管理及系统执行中的工作，但这些机制的性能收益并非相互独立。同一候选配置在不同模型架构、上下文长度和服务负载下，可能具有不同的边际执行成本。本章结合代表研究的同条件对照，分析生成进度与执行成本之间的关系，并进一步讨论相关机制在昇腾平台上的实现条件。
+
+\hypertarget{section-7-1}{%
+\subsection{生成进度、验证工作量与模型结构}\label{section-7-1}}
+
+\hypertarget{section-7-1-1}{%
+\subsubsection{接受进度与验证成本的权衡}\label{section-7-1-1}}
+
+草稿对齐及接受规则优化主要增加有效生成进度，成本感知验证则可以在接受长度有所下降的情况下缩短轮次耗时。Block
+Verification 在相同随机草稿配置下改变联合接受方式；EVICT
+则通过排除验证成本较高的候选降低目标模型工作量。在 Qwen3-30B-A3B
+的单请求贪心评测中，EAGLE-3 与 EVICT 的解码速率分别为 176.34 和 202.82
+tokens/s，而同组实验中 Lookahead 与普通自回归解码分别为 94.86 和 144.46
+tokens/s。这组结果说明，减少验证工作可能比增加候选覆盖更有效；但只有结合接受进度与轮次耗时，才能判断候选选择是否改善解码速率\protect\hyperlink{ref-evict}{{[}8{]}},~\protect\hyperlink{ref-blockverification}{{[}39{]}}。
+
+候选分支的收益也受到批处理方式的影响。Liu 等在树深固定为 3
+的条件下，通过 SGLang 比较 Qwen3-8B 和 Llama3-70B
+上的链式验证与更宽的候选树。增加分支能够提高接受长度，但树相对于链的性能优势随批大小增加而缩小。该实验分别采用
+FlashAttention-3 和 FlashInfer
+实现链式与树形验证，因此比较结果同时受到候选结构与注意力后端的影响。DDTree
+等并行构树方法可以减少生成备选分支所需的草稿计算，但这些分支仍需占用目标验证容量。增加候选覆盖是否有利，取决于草稿生成与验证两侧的新增成本，以及相应的有效输出进度\protect\hyperlink{ref-ddtree}{{[}37{]}},~\protect\hyperlink{ref-illusion}{{[}87{]}}。
+
+\hypertarget{section-7-1-2}{%
+\subsubsection{稠密前馈层与混合专家层}\label{section-7-1-2}}
+
+在稠密模型中，多个验证位置可以共享同一组前馈层权重，从而提高算术强度。这种方式在普通解码受访存带宽限制且计算资源仍有余量时具有优势；随着原有批次接近计算受限区间，新增验证位置也会占用更多计算资源。Liu
+等在 Llama3.1-8B 的 GSM8K 评测中报告，批大小由 1 增至 128 时，EAGLE
+相对普通自回归解码的加速比由 1.73 倍降至 1.21
+倍。该结果体现了相对收益随批大小变化的现象，而非推测解码在大批量下必然失效\protect\hyperlink{ref-magicdec}{{[}2{]}},~\protect\hyperlink{ref-illusion}{{[}87{]}}。
+
+MoE 层的权重访问量还取决于各 token
+的专家路由结果。低并发时，新增候选可能激活原批次未使用的专家；当原批次已覆盖较多专家时，新增位置则可能主要增加已有专家的计算负载及通信量。即使多个位置访问相同专家，减少逻辑权重访问也需要高效的内核实现。Lan
+对专家计算路径的分析指出，在相同前向宽度及其他成本相同的条件下，设
+\(E_u,E_s\)
+分别为去重实现与逐槽实现请求的权重字节数，\(\beta_u,\beta_s\)
+为相应有效带宽，去重实现减少权重访问时间的条件为
+
+\[
+\frac{E_u}{E_s}<\frac{\beta_u}{\beta_s}.
+\]
+
+实验中的部分内核虽然减少了请求的权重字节数，但有效带宽也随之下降，使得实际收益出现的工作区间发生变化。因而，第
+2 章定义的专家去重权重字节数并不能直接代替执行时延。EVICT
+的验证长度成本曲线与 HybridSpec
+的部分路由探测分别利用不同信息估计验证代价，二者均需与实际专家计算、权重访问和通信路径相匹配\protect\hyperlink{ref-evict}{{[}8{]}},~\protect\hyperlink{ref-hybridspec}{{[}9{]}},~\protect\hyperlink{ref-moebytes}{{[}21{]}}。
+
+\hypertarget{section-7-1-3}{%
+\subsubsection{序列混合方式与状态恢复成本}\label{section-7-1-3}}
+
+前馈层的稀疏性与序列混合方式分别影响专家计算和状态管理。全注意力可以通过选择有效
+KV
+条目保留接受前缀，递推层则可能需要状态快照、输入重放或因子化重建。包含递推层及
+MoE
+层的混合模型因此同时面临路由相关的验证成本与递推状态恢复成本。减少验证位置与改变恢复方式均可能缩短轮次耗时，但两项优化之间存在相互影响。
+
+HybridSpec 在 Qwen3.6-35B-A3B 上采用相同的 DFlash
+草稿配置，其报告结果对应的近似轮次耗时由 23.0 ms 降至 16.3
+ms，而每轮输出进度由 4.79 降至 4.57 个 token。该研究中的改造版 EVICT
+配置取得 1.51 倍加速，加入 ReplaySSM 后的组合为 1.46
+倍。这说明不同机制分别有效，并不能保证组合后仍获得相同方向或幅度的增益。验证预算的变化会改变待恢复状态的数量，恢复机制也会改变验证的边际成本，因而需要在相同草稿与目标配置下比较单项及组合效果\protect\hyperlink{ref-hybridspec}{{[}9{]}}。
+
+Twig
+将这一关系扩展到树形递推验证。利用递推分解可以共享多个候选分支的部分计算，并在采样后仅重建被接受分支的持久状态；由此产生的收益可能同时涉及验证计算、恢复开销与临时存储容量。相应比较还需确保各配置满足相同的解码规则及状态数值要求，避免把不同精度或状态语义所带来的变化计入纯执行优化收益\protect\hyperlink{ref-batchspec}{{[}14{]}},~\protect\hyperlink{ref-replayssm}{{[}15{]}},~\protect\hyperlink{ref-twig}{{[}17{]}}。
+
+\hypertarget{section-7-2}{%
+\subsection{上下文长度与草稿模型的作用}\label{section-7-2}}
+
+\hypertarget{section-7-2-1}{%
+\subsubsection{目标侧访存摊销与草稿侧历史访问}\label{section-7-2-1}}
+
+上下文长度增加会改变普通解码与推测解码的成本关系。当目标模型需要反复读取大量历史
+KV Cache 时，联合验证多个位置可以摊销部分历史访问开销。MagicDec
+在不同上下文长度及批大小下的对照表明，短上下文中较大批量下的推测优势可能减弱，而限制草稿历史访问的配置能够在更长上下文下重新获得收益。其关键在于目标验证可以共享历史访问，同时避免草稿自身的上下文成本随之过快增长\protect\hyperlink{ref-magicdec}{{[}2{]}},~\protect\hyperlink{ref-triforce}{{[}41{]}},~\protect\hyperlink{ref-longspec}{{[}42{]}}。
+
+目标模型采用低成本递推计算而草稿仍使用全上下文注意力时，情况可能相反。原生
+MTP
+模块即使参数量较少，其历史缓存读取仍可能占据较大的轮次耗时。Windowed-MTP
+在百万 token
+上下文的成本分解表明，六次草稿前向与固定推测管理开销之和可以接近甚至超过目标验证前向耗时（第
+5
+章）。限制草稿历史能够降低该部分成本，但历史信息减少也可能影响接受进度。因此，长上下文推测的性能需要分别考察目标侧历史访问的摊销程度、草稿侧预测信息与执行成本，以及两侧实际占用的缓存容量\protect\hyperlink{ref-magicdec}{{[}2{]}},~\protect\hyperlink{ref-windowedmtp}{{[}22{]}}。
+
+\hypertarget{section-7-2-2}{%
+\subsubsection{动态交互历史与智能体负载}\label{section-7-2-2}}
+
+智能体任务中的上下文不仅随生成长度增长，还会因工具响应、外部观测及后续决策而不断改变。重复的文本结构可以为检索提供有效候选，新观测则可能降低先前生成模式的预测价值。DLite
+在 Qwen3-4B 的 AgentLongBench 对照中报告，DFlash 与 DLite
+的平均接受长度（沿用原文定义）分别为 1.14 和
+2.51，相对普通解码的加速比分别为 0.95 和
+2.07。两种配置同时存在草稿结构、历史表示及训练方式的差异，不能把全部收益归因于移除草稿历史缓存。该研究在共同训练条件下进一步比较无历史草稿
+KV 与 128、512 token
+窗口的配置，在所测基准中获得相近的最终接受长度，为通过目标特征传递历史信息提供了更直接的证据\protect\hyperlink{ref-dlite}{{[}28{]}}。
+
+不同方法对动态交互历史的利用方式并不相同。Windowed-MTP
+保留有限的草稿历史，可以在无需重新训练原生 MTP
+模块的条件下减少历史访问；DLite
+学习基于目标上下文特征的局部预测机制；AgentSpec
+利用智能体轨迹的语义结构及重复性改进检索与预算分配。上述方法主要改变草稿侧获取预测信息的方式，而
+AsymSpec
+还压缩较大验证模型的历史，并结合小模型的预测，由此改变参考条件分布。对于长上下文与智能体推理，需要分别研究如何低成本地获取足够的草稿预测信息，以及应用能否接受对目标模型原始上下文或输出规则的改变。多请求间的预算差异则属于服务调度问题，需要与草稿预测质量分别考察\protect\hyperlink{ref-windowedmtp}{{[}22{]}},~\protect\hyperlink{ref-dlite}{{[}28{]}},~\protect\hyperlink{ref-agentspec}{{[}49{]}},~\protect\hyperlink{ref-asymspec}{{[}73{]}}。
+
+\hypertarget{section-7-3}{%
+\subsection{从轮次效率到服务性能}\label{section-7-3}}
+
+\hypertarget{section-7-3-1}{%
+\subsubsection{负载相关的收益与回退策略}\label{section-7-3-1}}
+
+连续批处理中的有效并发度受请求到达与完成时间共同影响，推测策略改变执行时间的同时，也可能改变后续批次的组成。Kong
+等针对饱和前的稳定连续批处理，将平均端到端请求时延 \(R\)
+表示为固定成本项 \(C_1\) 与正比于有效并发度的成本项之和。结合请求到达率
+\(\lambda\) 及 Little 定律，在其线性模型及稳定条件下有
+
+\[
+R=\frac{C_1}{1-\lambda C_2},
+\]
+
+其中 \(C_2\) 描述有效并发度增加所对应的时延成本，且要求
+\(1-\lambda C_2>0\)。若一种配置减少 \(C_1\) 却增加
+\(C_2\)，则它可能在低到达率下降低请求时延，而在较高到达率下失去优势。这一模型描述的是服务层的平均成本关系；MoE
+专家覆盖在低并发区间可能引起非线性变化，系统过载时的队列增长也不属于该稳态模型的适用范围\protect\hyperlink{ref-servinglatencymodel}{{[}88{]}}。
+
+DeepInfer 的 DSpark
+自适应验证给出了负载相关的实际配置对照。在保持每轮生成五个草稿 token
+的条件下，自适应策略根据共享预算缩短验证长度。图 4 中，每 rank
+并发序列数为 60 时，平均验证长度由 5.00 降至 3.58，平均接受长度由 3.30
+降至 3.21，依据 EP64/DP64 基准数据推算的吞吐量提高 5.4\%；每 rank
+并发序列数为 16 时，相应吞吐量变化为
+\(-1.5\%\)。该对照说明，相同草稿配置下减少验证工作所产生的收益可以随负载改变，较低并发时损失的有效生成进度可能超过所节省的执行成本。不过，此处比较的是固定生成五个草稿时的两种验证策略，而不是不同草稿长度下各自调优后的完整配置\protect\hyperlink{ref-deepinferdocs}{{[}85{]}}。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.99\textwidth]{figures/verification-cost.pdf}
+\caption{DeepInfer 在 Open-PerfectBlend
+数据集上的固定长度与自适应验证对照。(a) 每轮平均验证与接受的草稿 token
+数；(b) 依据 EP64/DP64 基准数据推算的吞吐量相对变化，以固定验证五个草稿
+token
+为基线。折线连接原报告的六个并发点\protect\hyperlink{ref-deepinferdocs}{{[}85{]}}。}
+\end{figure}
+
+普通自回归解码也应纳入不同负载下的策略比较。AgentSpec 在 MiMo-7B
+的代码生成智能体任务中报告，普通解码、原生 MTP 与 AgentSpec
+的整体任务输出速率分别为 2,572.16、1,875.18 和 3,318.99
+tokens/s。该结果表明，某一学习式草稿配置在特定负载中可能不及普通解码，而利用任务特征的候选检索及资源分配能够改变相对表现。若采用回退策略，还需考虑停止生成候选后是否仍保留额外状态维护及显存预留。普通解码路径的实际成本与可释放的资源容量共同决定回退所能获得的收益\protect\hyperlink{ref-sglstepzero}{{[}19{]}},~\protect\hyperlink{ref-agentspec}{{[}49{]}},~\protect\hyperlink{ref-trtllmspec}{{[}82{]}}。
+
+\hypertarget{section-7-3-2}{%
+\subsubsection{时延目标与共享资源}\label{section-7-3-2}}
+
+单轮有效输出速率能够描述解码进度，但不足以衡量完整的服务性能。首 token
+时延（TTFT）包括请求排队及预填充等首 token 返回前的等待；首 token
+之后的平均单 token 时间（TPOT）则无法完全反映一次输出多个 token
+时的间隔分布。由于额外候选与其他解码请求及预填充分块竞争资源，仅以总生成进度为目标的分配未必满足所有请求的时延要求。AdaServe
+将异构 TPOT 目标纳入调度，在其评测中最高取得 1.9 倍的 TPOT 达标
+goodput；ForeSpark 同时考察请求交互性及聚合吞吐量；AgentSpec
+则采用整段智能体任务的输出 token
+总数与执行时间之比。三类指标对应不同的服务目标，不能仅以数值大小判断方法优劣\protect\hyperlink{ref-adaserve}{{[}47{]}},~\protect\hyperlink{ref-forespark}{{[}48{]}},~\protect\hyperlink{ref-agentspec}{{[}49{]}}。
+
+内存容量与计算重叠也会影响服务目标的实现。减少草稿缓存或递推快照可能增加能够同时容纳的请求数量，进而改变批大小及单请求时延；流水执行可以利用空闲资源减少关键路径等待，但当负载接近饱和时，提前执行的工作也可能与已就绪请求竞争。因此，服务级比较需要在明确的请求负载及资源条件下，将生成进度、轮次耗时、缓存容量和请求等待联系起来。更高的聚合吞吐量并不必然对应更高的
+SLO 达标
+goodput，较大的接受长度也不必然对应更好的交互性\protect\hyperlink{ref-magicdec}{{[}2{]}},~\protect\hyperlink{ref-smartspec}{{[}10{]}},~\protect\hyperlink{ref-replayssm}{{[}15{]}},~\protect\hyperlink{ref-ssd}{{[}51{]}},~\protect\hyperlink{ref-callo}{{[}52{]}}。
+
+\hypertarget{section-7-4}{%
+\subsection{硬件实现与昇腾适用性}\label{section-7-4}}
+
+\hypertarget{section-7-4-1}{%
+\subsubsection{候选结构及控制策略的设备实现}\label{section-7-4-1}}
+
+推测算法能否迁移至另一硬件平台，首先取决于目标运行时是否能够正确表达候选结构与执行依赖。树形验证要求保持各节点的祖先可见性、位置语义及缓存映射，具体实现则可以采用打包掩码、分组计算或融合算子。动态验证还要求所选验证边界能够传递至实际执行内核；若仍按固定填充上界计算，则逻辑候选数的减少未必能够转化为计算量的下降。执行图回放可以减少重复提交，但不能替代动态形状及注意力参数更新。因此，迁移时需要分别考察算子支持的输入规格、内存布局、元数据更新方式及相应同步开销\protect\hyperlink{ref-specinfer}{{[}7{]}},~\protect\hyperlink{ref-vllmgraphdocs}{{[}20{]}},~\protect\hyperlink{ref-avdocs}{{[}53{]}},~\protect\hyperlink{ref-eaglepangu}{{[}67{]}}。
+
+EAGLE-Pangu
+给出了昇腾上树形候选索引、分支缓存及融合验证的一种具体实现，其报告的贪心解码速率由
+17.65 提高至 22.42
+tokens/s。该结果对应所测完整实现的比较，不能独立归因于候选树宽度、融合算子或某一项缓存优化。vLLM-Ascend
+的 ACLGraph
+设计及推测解码文档则从工程接口层面说明了捕获规格、注意力参数更新与特定验证算子的限制。这两类材料分别提供实际实现及评测结果与运行时支持条件。GPU
+上的推测机制若依赖动态验证形状或专用树形注意力内核，仍需在对应
+CANN、推理框架和算子后端配置下建立兼容执行路径，再评价其实际性能\protect\hyperlink{ref-ascendgraphdocs}{{[}55{]}},~\protect\hyperlink{ref-eaglepangu}{{[}67{]}},~\protect\hyperlink{ref-ascenddocs}{{[}72{]}}。
+
+\hypertarget{section-7-4-2}{%
+\subsubsection{状态表示与通信约束}\label{section-7-4-2}}
+
+包含递推层的推测机制还需匹配目标平台支持的状态表示及恢复算子。例如，昇腾上针对
+KDA 的 RecoverSSM 路径与 HybridSpec 的 GDN
+因子化恢复均避免逐位置保存完整递推矩阵，但针对的递推关系与内核实现不同，不能直接互换。状态暂存、重建计算及事件排序均需要结合具体模型和后端实现考察。专家并行或流水并行还可能使局部验证预算影响集合通信及其他阶段所需状态的可用性。由此，模型架构相关的状态恢复机制与分布式执行协议需要共同满足推测解码的正确性条件。比较不同平台的执行效率时，保持参考目标、候选语义及保真性要求一致，才能区分算法变化与硬件实现差异所带来的性能影响\protect\hyperlink{ref-hybridspec}{{[}9{]}},~\protect\hyperlink{ref-ascenddocs}{{[}72{]}},~\protect\hyperlink{ref-sglppcommit}{{[}79{]}},~\protect\hyperlink{ref-vllmdynamic034}{{[}83{]}},~\protect\hyperlink{ref-vllmdynamiclatest}{{[}84{]}}。
+
+\hypertarget{section-7-5}{%
+\subsection{评测设置与结果解释}\label{section-7-5}}
+
+性能对照需要明确改变的机制及计时范围。采用相同草稿配置替换接受规则，可以更直接地考察验证算法的影响；替换完整推理路径则可能同时改变候选生成、验证内核、状态管理及调度。对固定草稿进行剪枝与直接减少草稿长度所节省的工作也不同，因此评价自适应策略时，需要同时考虑经过调优的静态推测配置与普通解码基线。表
+3 汇总代表研究的模型、硬件、负载与评测指标，表 4
+列出相应的研究内部对照及其能够解释的性能变化。
+
+\begin{table}[!tbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.22}
+\caption{代表研究的评测设置与指标。AR 表示普通自回归解码；BS、EP、DP 分别表示批大小、专家并行与数据并行。}\label{tbl-settings}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}p{0.35\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{研究} & \textbf{目标模型与硬件} & \textbf{配置与负载} & \textbf{评测指标} \\
+\midrule
+Block Verification [39] & Vicuna-7B；H100 & Vicuna-68M 草稿；Spec-Bench，BS 1，温度 1，深度 8 & 相对 AR 的解码加速比 \\
+\addlinespace[2pt]
+EVICT [8] & Qwen3-30B-A3B；A100 80 GB & EAGLE-3；六项任务，贪心，BS 1 & 解码 tokens/s \\
+\addlinespace[2pt]
+HybridSpec [9] & Qwen3.6-35B-A3B；A100 80 GB & DFlash；SPEED-Bench，贪心，BS 1 & 相对 AR 的解码加速比 \\
+\addlinespace[2pt]
+MagicDec [2] & Llama-3.1-8B；8×A100 & 稀疏 KV 自推测；PG-19，上下文与 BS 扫描 & 相对 AR 的解码加速比 \\
+\addlinespace[2pt]
+DLite [28] & Qwen3-4B；H800 & AgentLongBench；共同块大小 7 & 相对 AR 的解码加速比 \\
+\addlinespace[2pt]
+AgentSpec [49] & MiMo-7B；A100 80 GB & USACO 代码生成 agent；vLLM V1，最大 BS 256 & 整体智能体输出速率 \\
+\addlinespace[2pt]
+EAGLE-Pangu [67] & Pangu 后端；昇腾 NPU & 类 EAGLE 草稿；240 轮，贪心，BS 1 & 解码 tokens/s \\
+\addlinespace[2pt]
+AdaServe [47] & Llama-3.1-70B；4×A100 & Llama-3.2-1B 草稿；混合 TPOT 目标 & TPOT 达标的输出速率 \\
+\addlinespace[2pt]
+ForeSpark [48] & Qwen3-14B；8×H100 & DFlash2；ShareGPT 纯解码，负载扫描 & 匹配交互性下的吞吐 \\
+\addlinespace[2pt]
+DeepInfer [85] & DeepSeek-V4.1-Flash；未单列芯片型号 & DSpark；EP64/DP64，Open-PerfectBlend，16–96 序列/rank & 推算吞吐量（tokens/s/rank） \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[!tbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.22}
+\caption{代表研究的性能对照及结果解释。}\label{tbl-results}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.26\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{研究与原文定位} & \textbf{对照配置} & \textbf{报告结果} & \textbf{结果解释} \\
+\midrule
+Block Verification，表 2 & 逐 token / 联合接受 & 1.27 / 1.34 倍 AR & 相同草稿配置，改变接受规则 \\
+\addlinespace[2pt]
+EVICT，表 1–2 & EAGLE-3 / EVICT & 176.34 / 202.82 tokens/s & 成本感知的树准入 \\
+\addlinespace[2pt]
+HybridSpec，表 1 & DFlash / HybridSpec & 1.37 / 1.83 倍 AR & 验证预算与状态恢复的组合 \\
+\addlinespace[2pt]
+MagicDec，图 6 & AR / 稀疏 KV 自推测 & 依赖上下文的交叉 & 贪心；调校后的前瞻 \\
+\addlinespace[2pt]
+DLite，表 3 & DFlash / DLite & 0.95 / 2.07 倍 AR & 草稿结构与训练共同变化 \\
+\addlinespace[2pt]
+AgentSpec，表 3 & AR / MTP / AgentSpec & 2,572 / 1,875 / 3,319 tokens/s & 检索与预算分配；整段任务计时 \\
+\addlinespace[2pt]
+EAGLE-Pangu，表 1 & AR / 融合树路径 & 17.65 / 22.42 tokens/s & 昇腾完整融合验证路径 \\
+\addlinespace[2pt]
+AdaServe，图 8–9 & 最佳已评测基线 / AdaServe & 最高 1.9 倍 TPOT 达标 goodput & 指标依据 TPOT，不含 TTFT 约束 \\
+\addlinespace[2pt]
+ForeSpark，图 8a & 关闭 / 开启联合分配 & 最高 1.37 倍吞吐 & 同主干，纯解码 \\
+\addlinespace[2pt]
+DeepInfer，部署问答 & 固定验证 5 个 / 自适应验证 & 16 序列时 $-1.5\%$；60 序列时 $+5.4\%$ & 由基准数据推算 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+上述对照反映不同工作点下的优化效应，而非统一条件下的性能排序。例如，Block
+Verification 的随机解码加速比与 EVICT
+的贪心解码吞吐量具有不同的采样条件；AdaServe 的 TPOT 达标 goodput 与
+AgentSpec 的整体智能体输出速率对应不同的计时范围及服务目标；DeepInfer
+的数值则由基准数据推算。对于涉及多项机制的对照，还需结合相应消融实验判断性能变化来自哪些执行环节。
+
+负载内容也是影响比较结果的重要因素。SPEED-Bench
+分别设置面向语义多样性与吞吐量评测的任务，考察上下文长度和并发度变化，说明合成输入或单一任务可能无法充分反映实际负载中的推测效果。评测除平均接受长度外，还应报告接受长度分布、实际验证工作量，以及草稿生成、验证与状态管理的耗时；面向服务负载时，需要进一步考察请求时延及资源占用。智能体任务还需考虑不同交互阶段的预测难度变化。正确性比较则应区分参考采样分布的一致性、有限精度下的贪心序列一致性、状态有效性及下游任务质量，使性能结论与实际采用的验证模式相对应\protect\hyperlink{ref-twig}{{[}17{]}},~\protect\hyperlink{ref-dlite}{{[}28{]}},~\protect\hyperlink{ref-sglppcommit}{{[}79{]}},~\protect\hyperlink{ref-illusion}{{[}87{]}},~\protect\hyperlink{ref-speedbench}{{[}89{]}}。
+
+\hypertarget{section-8}{%
+\section{研究挑战与发展方向}\label{section-8}}
+
+\hypertarget{section-8-1}{%
+\subsection{面向模型架构的验证成本预测}\label{section-8-1}}
+
+自适应验证需要结合候选的接受概率与实际执行成本，而后者还受到模型结构及批内其他请求的影响。EVICT
+根据预先测得的长度与时延关系估计验证代价，HybridSpec
+利用部分目标模型执行获得实例相关的路由信息，专家权重字节数模型则从权重复用及内核带宽解释成本变化。这些方法分别利用不同层次的信息，在估计精度与获取信息的开销之间形成不同取舍。当上下文长度、专家负载及执行规格同时变化时，如何以较低开销估计新增候选的实际成本，仍值得进一步研究\protect\hyperlink{ref-evict}{{[}8{]}},~\protect\hyperlink{ref-hybridspec}{{[}9{]}},~\protect\hyperlink{ref-moebytes}{{[}21{]}}。
+
+一种可能的方向是结合专家覆盖、历史状态访问量等易于获取的信息与特定后端的成本测量，建立能够适应不同模型及负载的验证成本模型。对于接近策略选择临界点的配置，更细粒度的预测可能有助于区分验证长度相同而实际成本不同的情形。其适用范围可通过预测精度、决策质量及实际执行收益的联合比较加以考察。
+
+\hypertarget{section-8-2}{%
+\subsection{采样约束下草稿生成与验证的联合控制}\label{section-8-2}}
+
+草稿生成与验证预算的联合分配能够在不同阶段减少不必要的计算，但两个阶段可获得的决策信息并不相同。草稿生成之前的分配可以避免部分预测计算，却难以直接利用当前候选的实际质量；生成之后的选择可以获得更充分的预测信息，但草稿成本已经产生。在精确随机解码中，基于已抽样候选的选择还可能改变实际提议分布。已有停止策略、置信度估计及联合调度方法在不同成本假设和采样条件下提供了相应的解决途径\protect\hyperlink{ref-dspark}{{[}23{]}},~\protect\hyperlink{ref-specdecpp}{{[}43{]}},~\protect\hyperlink{ref-forespark}{{[}48{]}},~\protect\hyperlink{ref-vllmavestimator}{{[}74{]}}。
+
+后续研究可以探索分阶段的联合控制方式，利用历史反馈或采样前信息进行初步预算分配，再结合后续可获得的信息调整验证范围。对于依赖已抽样候选的策略，可以进一步研究与候选选择及回退过程相匹配的接受与修正规则，并考察共享预算引入的跨请求依赖。在保持所要求的输出保真性的条件下，联合控制能否获得额外收益，以及适合何种草稿结构和服务负载，仍需结合实际执行成本进行比较。
+
+\hypertarget{section-8-3}{%
+\subsection{递推与混合架构的状态恢复}\label{section-8-3}}
+
+快照选择、输入重放及因子化重建为递推状态恢复提供了不同的实现方式。对于混合架构，这些机制还需与注意力缓存、短卷积状态及请求元数据共同维护有效的计算位置。前缀缓存、连续批处理和流水并行使状态在多个运行时组件之间传递或延迟使用，已有工程案例中的状态提交遗漏、检查点跟踪错误及微批映射不一致，说明恢复算子的正确性之外还存在状态管理层面的协调问题\protect\hyperlink{ref-replayssm}{{[}15{]}},~\protect\hyperlink{ref-twig}{{[}17{]}},~\protect\hyperlink{ref-sglngramcommit}{{[}77{]}},~\protect\hyperlink{ref-sglsconvcommit}{{[}78{]}},~\protect\hyperlink{ref-sglppcommit}{{[}79{]}},~\protect\hyperlink{ref-sglpprows}{{[}80{]}}。
+
+一种可能的研究方向是明确状态提交与回滚的公共语义，将不同状态分量与请求身份、已计算位置及其有效期关联，同时保留针对不同模型架构的恢复实现。这样的组织方式有望改善恢复机制与缓存复用、请求重排及流水执行之间的兼容性。其实际价值还需通过多轮推测及不同并行配置下的正确性、同步开销和存储成本比较进行判断。
+
+\hypertarget{section-8-4}{%
+\subsection{分布式推测与协调开销}\label{section-8-4}}
+
+动态推测利用请求间预测难度与执行成本的差异，而分布式执行可能限制局部策略的独立选择。对于存在集合通信耦合的
+MoE 配置，各 rank
+的执行需要满足兼容的通信参与关系及调用顺序。静态回退与批内统一长度等方式能够简化协调，但在请求分布不均衡时也可能限制适应不同负载的能力\protect\hyperlink{ref-hybridspec}{{[}9{]}},~\protect\hyperlink{ref-vllmdynamic034}{{[}83{]}},~\protect\hyperlink{ref-vllmdynamiclatest}{{[}84{]}}。
+
+未来可以进一步研究共享控制策略、rank
+间协商及支持不规则验证长度的执行方式，探索如何在保持通信协议兼容的同时利用局部负载差异。不同方式涉及通信、填充计算及同步等待等成本，其相对优势可能随并行规模、专家分布和请求异质性而改变。结合实际并行执行计划考察这些因素，有助于确定分布式自适应推测的适用条件。
+
+\hypertarget{section-8-5}{%
+\subsection{长上下文与动态交互历史下的草稿模型设计}\label{section-8-5}}
+
+长上下文及智能体任务使草稿模型需要面对不断增长且内容持续变化的历史。Windowed-MTP
+通过限制历史注意力降低草稿开销，DLite
+利用目标模型特征进行局部预测，AgentSpec
+则利用智能体轨迹的语义结构与重复性组织候选。上述方法说明，草稿模型不一定需要维护与目标模型相同的完整历史，但不同的信息来源、模型结构及训练方式可能影响实际接受效果。AsymSpec
+对验证模型上下文的调整还涉及参考目标分布的变化\protect\hyperlink{ref-windowedmtp}{{[}22{]}},~\protect\hyperlink{ref-dlite}{{[}28{]}},~\protect\hyperlink{ref-agentspec}{{[}49{]}},~\protect\hyperlink{ref-asymspec}{{[}73{]}}。
+
+草稿与目标模型的协同设计可以进一步考虑历史信息的选择、表示及传递方式。例如，可探索随任务和上下文变化调整草稿历史范围或目标特征的使用方式，并结合接受长度、草稿执行成本及缓存占用研究相应的训练目标。更丰富的历史信息可能改善预测，也可能增加存储、计算或通信开销。如何在多轮交互中维持有效预测，同时控制随历史增长的执行成本，是值得关注的方向；若涉及目标模型上下文或输出规则的改变，还需考察相应的生成质量影响。
+
+\hypertarget{section-8-6}{%
+\subsection{面向服务负载的策略选择与评测}\label{section-8-6}}
+
+第 7
+章的比较表明，推测配置的收益会随上下文、并发规模及任务分布变化。动态长度调整和在线配置选择已能够处理部分负载变化，但配置切换还可能影响图执行规格、草稿资源占用及普通解码路径的可用性。关闭草稿生成未必能够恢复普通解码的全部资源和执行效率，而在线适应所引入的预测与切换开销也可能影响最终收益\protect\hyperlink{ref-smartspec}{{[}10{]}},~\protect\hyperlink{ref-sglstepzero}{{[}19{]}},~\protect\hyperlink{ref-banditspec}{{[}45{]}},~\protect\hyperlink{ref-trtllmspec}{{[}82{]}},~\protect\hyperlink{ref-servinglatencymodel}{{[}88{]}}。
+
+后续研究可以结合负载特征探索不同推测配置及普通解码之间的切换策略，并将推测资源的释放与恢复纳入控制过程。评测方面，包含请求到达率变化、上下文增长及多轮交互的长期负载，有望补充固定批实验对模式切换与资源准备成本的刻画。通过与经过调优的静态配置比较，并综合考察请求时延、有效吞吐量、内存占用及输出保真性，可以进一步理解自适应推测在实际推理服务中的适用范围\protect\hyperlink{ref-agentspec}{{[}49{]}},~\protect\hyperlink{ref-illusion}{{[}87{]}},~\protect\hyperlink{ref-speedbench}{{[}89{]}}。
+
+\hypertarget{section-9}{%
+\section{结束语}\label{section-9}}
+
+推测解码通过预先生成候选并联合计算多个位置的目标条件分布，减少自回归生成所需的串行目标模型调用。本文围绕草稿生成优化、验证优化、状态与内存管理及系统级优化四个方面梳理相关研究，分析不同机制对生成进度、输出保真性和实际执行成本的影响。已有研究表明，草稿对齐与高效生成分别侧重改善候选质量和生成效率，结构化与自适应验证可以改变目标模型的计算范围，接受与修正规则决定输出保证，而状态恢复、内存管理及服务调度进一步影响推测机制的实际执行效果。推测解码的性能收益由有效生成进度与整体执行成本共同决定：更高的接受率未必带来更高的吞吐量，减少验证工作也可能在接受长度下降时改善性能。模型架构、上下文长度与服务负载的变化，使不同优化机制具有不同的适用条件\protect\hyperlink{ref-evict}{{[}8{]}},~\protect\hyperlink{ref-hybridspec}{{[}9{]}},~\protect\hyperlink{ref-replayssm}{{[}15{]}},~\protect\hyperlink{ref-blockverification}{{[}39{]}},~\protect\hyperlink{ref-forespark}{{[}48{]}}。
+
+面向实际推理系统，算法设计还需要与底层执行方式相适应。昇腾平台的相关研究与工程实现表明，候选结构、动态验证、递推状态恢复及分布式协调均涉及具体的算子能力、缓存表示和运行时接口。随着模型架构、长上下文推理及智能体工作负载不断发展，草稿与验证的协同设计、状态管理以及面向负载的策略选择仍具有进一步研究的空间。结合算法语义、硬件执行特征与服务目标开展系统分析，有助于更全面地理解推测解码的性能潜力及其适用范围。
+
+\hypertarget{references}{%
+\section*{参考文献}\label{references}}
+\addcontentsline{toc}{section}{参考文献}
+
+\hypertarget{refs}{}
+\begin{CSLReferences}{0}{0}
+\leavevmode\vadjust pre{\hypertarget{ref-pagedattention}{}}%
+\CSLLeftMargin{{[}1{]} }
+\CSLRightInline{W. Kwon \emph{et al.}, {``{Efficient Memory Management
+for Large Language Model Serving with PagedAttention},''} in
+\emph{SOSP}, 2023. Available: \url{https://arxiv.org/abs/2309.06180v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-magicdec}{}}%
+\CSLLeftMargin{{[}2{]} }
+\CSLRightInline{R. Sadhukhan \emph{et al.}, {``{MagicDec: Breaking the
+Latency-Throughput Tradeoff for Long Context Generation with Speculative
+Decoding},''} in \emph{ICLR 2025}, 2025. Available:
+\url{https://proceedings.iclr.cc/paper_files/paper/2025/hash/13f972adf12bdf886583d48cd528002f-Abstract-Conference.html}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-blockwise}{}}%
+\CSLLeftMargin{{[}3{]} }
+\CSLRightInline{M. Stern, N. Shazeer, and J. Uszkoreit, {``Blockwise
+parallel decoding for deep autoregressive models,''} in \emph{Advances
+in neural information processing systems}, 2018. Available:
+\url{https://arxiv.org/abs/1811.03115v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-leviathan}{}}%
+\CSLLeftMargin{{[}4{]} }
+\CSLRightInline{Y. Leviathan, M. Kalman, and Y. Matias, {``Fast
+inference from transformers via speculative decoding,''} in
+\emph{Proceedings of the 40th international conference on machine
+learning}, in Proceedings of machine learning research, vol. 202. 2023,
+pp. 19274--19286. Available:
+\url{https://proceedings.mlr.press/v202/leviathan23a.html}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-chen}{}}%
+\CSLLeftMargin{{[}5{]} }
+\CSLRightInline{C. Chen, S. Borgeaud, G. Irving, J.-B. Lespiau, L.
+Sifre, and J. Jumper, {``Accelerating large language model decoding with
+speculative sampling.''} 2023. Available:
+\url{https://arxiv.org/abs/2302.01318v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-eagle3}{}}%
+\CSLLeftMargin{{[}6{]} }
+\CSLRightInline{Y. Li, F. Wei, C. Zhang, and H. Zhang, {``{EAGLE-3:
+Scaling up Inference Acceleration of Large Language Models via
+Training-Time Test},''} in \emph{NeurIPS 2025}, 2025. Available:
+\url{https://proceedings.neurips.cc/paper_files/paper/2025/hash/c7b5a35ea98b62512a869c19ea7b03cb-Abstract-Conference.html}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-specinfer}{}}%
+\CSLLeftMargin{{[}7{]} }
+\CSLRightInline{X. Miao \emph{et al.}, {``{SpecInfer: Accelerating
+Generative Large Language Model Serving with Tree-based Speculative
+Inference and Verification},''} in \emph{ASPLOS 2024}, 2024. Available:
+\url{https://arxiv.org/abs/2305.09781v4}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-evict}{}}%
+\CSLLeftMargin{{[}8{]} }
+\CSLRightInline{L. Pan, Z. Tao, X. Wang, Z. Zhao, M. Wang, and Y. Zhang,
+{``{Making Every Verified Token Count: Adaptive Verification for MoE
+Speculative Decoding},''} in \emph{Findings of the {A}ssociation for
+{C}omputational {L}inguistics: {EMNLP} 2026}, 2026, pp. 8025--8040. doi:
+\href{https://doi.org/10.18653/2026.findings-emnlp.380}{10.18653/2026.findings-emnlp.380}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-hybridspec}{}}%
+\CSLLeftMargin{{[}9{]} }
+\CSLRightInline{H. Wang, S. Q. Zhang, Z. Liu, and S. Li, {``{HybridSpec:
+Throughput-Aware Speculative Decoding for Hybrid GDN-MoE Models}.''}
+2026. Available: \url{https://arxiv.org/abs/2611.04055v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-smartspec}{}}%
+\CSLLeftMargin{{[}10{]} }
+\CSLRightInline{X. Liu \emph{et al.}, {``{Optimizing Speculative
+Decoding for Serving Large Language Models Using Goodput}.''} 2024.
+Available: \url{https://arxiv.org/abs/2406.14066v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-survey_xia2024}{}}%
+\CSLLeftMargin{{[}11{]} }
+\CSLRightInline{H. Xia \emph{et al.}, {``Unlocking efficiency in large
+language model inference: A comprehensive survey of speculative
+decoding,''} in \emph{Findings of the {A}ssociation for {C}omputational
+{L}inguistics: {ACL} 2024}, 2024, pp. 7655--7671. doi:
+\href{https://doi.org/10.18653/v1/2024.findings-acl.456}{10.18653/v1/2024.findings-acl.456}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-ji2026survey}{}}%
+\CSLLeftMargin{{[}12{]} }
+\CSLRightInline{Y. Ji, W. Xu, X. Qian, L. Zhang, and J. Wan, {``Towards
+optimal speculative decoding: A comprehensive survey on optimizations
+and future directions,''} \emph{ACM Computing Surveys}, vol. 59, no. 1,
+Jan. 2027, doi:
+\href{https://doi.org/10.1145/3846171}{10.1145/3846171}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-zhao2026survey}{}}%
+\CSLLeftMargin{{[}13{]} }
+\CSLRightInline{K. Zhao \emph{et al.}, {``From draft-then-verify to
+systems co-design: A survey of speculative decoding for autoregressive
+large language models,''} \emph{IEEE Access}, vol. 14, pp.
+153987--154013, 2026, doi:
+\href{https://doi.org/10.1109/ACCESS.2026.3739598}{10.1109/ACCESS.2026.3739598}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-batchspec}{}}%
+\CSLLeftMargin{{[}14{]} }
+\CSLRightInline{R. H. Zhang, S. Dey, A. Mishra, H. Wu, B. Li, and R.
+Zhang, {``Correctness forensics for batch speculative decoding:
+Diagnosing the ragged tensor problem,''} in \emph{Findings of the
+{A}ssociation for {C}omputational {L}inguistics: {EMNLP} 2026}, 2026,
+pp. 10431--10447. doi:
+\href{https://doi.org/10.18653/2026.findings-emnlp.498}{10.18653/2026.findings-emnlp.498}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-replayssm}{}}%
+\CSLLeftMargin{{[}15{]} }
+\CSLRightInline{Z.-W. Liou \emph{et al.}, {``{ReplaySSM: Cache SSM
+Inputs, Not State}.''} 2026. Available:
+\url{https://arxiv.org/abs/2610.13778v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-spectr}{}}%
+\CSLLeftMargin{{[}16{]} }
+\CSLRightInline{Z. Sun, A. T. Suresh, J. H. Ro, A. Beirami, H. Jain, and
+F. Yu, {``{SpecTr: Fast Speculative Decoding via Optimal Transport},''}
+in \emph{Advances in neural information processing systems}, 2023. doi:
+\href{https://doi.org/10.52202/075280-1314}{10.52202/075280-1314}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-twig}{}}%
+\CSLLeftMargin{{[}17{]} }
+\CSLRightInline{L. Wang \emph{et al.}, {``{Twig: Parallel and
+Memory-Efficient Tree Speculative Decoding for Hybrid-Attention
+LLMs}.''} 2026. Available: \url{https://arxiv.org/abs/2608.01651v2}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-realloss}{}}%
+\CSLLeftMargin{{[}18{]} }
+\CSLRightInline{Y. Tian, {``{REAL Loss: Optimizing Real Expected
+Acceptance Length for Speculative Decoding}.''} 2026. Available:
+\url{https://arxiv.org/abs/2611.14399v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-sglstepzero}{}}%
+\CSLLeftMargin{{[}19{]} }
+\CSLRightInline{SGLang Project, {``{KDA ReplaySSM: Commit a one-token
+verify in place (PR 50966)}.''} 2026. Available:
+\url{https://github.com/sgl-project/sglang/pull/50966}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-vllmgraphdocs}{}}%
+\CSLLeftMargin{{[}20{]} }
+\CSLRightInline{vLLM Project, {``{CUDA Graphs (v0.31.0)}.''} 2026.
+Available:
+\url{https://github.com/vllm-project/vllm/blob/v0.31.0/docs/design/cuda_graphs.md}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-moebytes}{}}%
+\CSLLeftMargin{{[}21{]} }
+\CSLRightInline{Y. Lan, {``{Speculative Decoding for Mixture-of-Experts
+Models: Expert Bytes, Kernel Bandwidth and the Best Draft Length}.''}
+2026. Available: \url{https://arxiv.org/abs/2610.34440v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-windowedmtp}{}}%
+\CSLLeftMargin{{[}22{]} }
+\CSLRightInline{A. Valliappan, {``{Windowed-MTP: Removing the
+Full-Context Draft-KV Tax at Million-Token Context}.''}
+arXiv:2607.21535, 2026. Available:
+\url{https://arxiv.org/abs/2607.21535v2}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-dspark}{}}%
+\CSLLeftMargin{{[}23{]} }
+\CSLRightInline{X. Cheng \emph{et al.}, {``{DSpark: Confidence-Scheduled
+Speculative Decoding with Semi-Autoregressive Generation}.''} 2026.
+Available: \url{https://arxiv.org/abs/2607.05147v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-distillspec}{}}%
+\CSLLeftMargin{{[}24{]} }
+\CSLRightInline{Y. Zhou \emph{et al.}, {``{DistillSpec: Improving
+Speculative Decoding via Knowledge Distillation},''} in \emph{ICLR},
+2024. Available: \url{https://arxiv.org/abs/2310.08461v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-medusa}{}}%
+\CSLLeftMargin{{[}25{]} }
+\CSLRightInline{T. Cai \emph{et al.}, {``{Medusa: Simple LLM Inference
+Acceleration Framework with Multiple Decoding Heads},''} in \emph{ICML
+2024}, 2024. Available: \url{https://arxiv.org/abs/2401.10774v3}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-hydra}{}}%
+\CSLLeftMargin{{[}26{]} }
+\CSLRightInline{Z. Ankner, R. Parthasarathy, A. Nrusimha, C. Rinard, J.
+Ragan-Kelley, and W. Brandon, {``{Hydra: Sequentially-Dependent Draft
+Heads for Medusa Decoding}.''} 2024. Available:
+\url{https://arxiv.org/abs/2402.05109v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-dflash}{}}%
+\CSLLeftMargin{{[}27{]} }
+\CSLRightInline{J. Chen, Y. Liang, and Z. Liu, {``{DFlash: Block
+Diffusion for Flash Speculative Decoding},''} in \emph{Proceedings of
+the 43rd international conference on machine learning}, in Proceedings
+of machine learning research, vol. 306. 2026, pp. 15343--15355.
+Available: \url{https://proceedings.mlr.press/v306/chen26bv.html}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-dlite}{}}%
+\CSLLeftMargin{{[}28{]} }
+\CSLRightInline{J. Xu \emph{et al.}, {``{DLite: History-free Speculative
+Decoding for Agentic AI}.''} arXiv:2610.23787, 2026. Available:
+\url{https://arxiv.org/abs/2610.23787}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-draftverify}{}}%
+\CSLLeftMargin{{[}29{]} }
+\CSLRightInline{J. Zhang \emph{et al.}, {``Draft and verify: Lossless
+large language model acceleration via self-speculative decoding,''} in
+\emph{Proceedings of the 62nd annual meeting of the {A}ssociation for
+{C}omputational {L}inguistics (volume 1: Long papers)}, 2024, pp.
+11263--11282. doi:
+\href{https://doi.org/10.18653/v1/2024.acl-long.607}{10.18653/v1/2024.acl-long.607}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-layerskip}{}}%
+\CSLLeftMargin{{[}30{]} }
+\CSLRightInline{M. Elhoushi, A. Shrivastava, D. Liskovich, and others,
+{``{LayerSkip: Enabling Early Exit Inference and Self-Speculative
+Decoding},''} in \emph{Proceedings of the 62nd annual meeting of the
+{A}ssociation for {C}omputational {L}inguistics (volume 1: Long
+papers)}, 2024, pp. 12622--12642. doi:
+\href{https://doi.org/10.18653/v1/2024.acl-long.681}{10.18653/v1/2024.acl-long.681}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-casspec}{}}%
+\CSLLeftMargin{{[}31{]} }
+\CSLRightInline{Z. Ning \emph{et al.}, {``{CAS-Spec: Cascade Adaptive
+Self-Speculative Decoding for On-the-Fly Lossless Inference Acceleration
+of LLMs},''} in \emph{Advances in neural information processing systems
+38}, 2025. Available:
+\url{https://papers.neurips.cc/paper_files/paper/2025/hash/5e27f5d8ecd30ac6235892ef97676e78-Abstract-Conference.html}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-rest}{}}%
+\CSLLeftMargin{{[}32{]} }
+\CSLRightInline{Z. He, Z. Zhong, T. Cai, J. D. Lee, and D. He, {``{REST:
+Retrieval-Based Speculative Decoding},''} in \emph{Proceedings of the
+2024 conference of the {N}orth {A}merican chapter of the {A}ssociation
+for {C}omputational {L}inguistics: Human language technologies (volume
+1: Long papers)}, 2024, pp. 1582--1595. doi:
+\href{https://doi.org/10.18653/v1/2024.naacl-long.88}{10.18653/v1/2024.naacl-long.88}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-cacheback}{}}%
+\CSLLeftMargin{{[}33{]} }
+\CSLRightInline{Z. Ma, I. Gim, and L. Zhong, {``Cacheback: Speculative
+decoding with nothing but cache,''} in \emph{Proceedings of the 2025
+conference on empirical methods in natural language processing}, 2025,
+pp. 31079--31084. doi:
+\href{https://doi.org/10.18653/v1/2025.emnlp-main.1581}{10.18653/v1/2025.emnlp-main.1581}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-tokenrecycling}{}}%
+\CSLLeftMargin{{[}34{]} }
+\CSLRightInline{X. Luo \emph{et al.}, {``Turning trash into treasure:
+Accelerating inference of large language models with token recycling,''}
+in \emph{Proceedings of the 63rd annual meeting of the association for
+computational linguistics (volume 1: Long papers)}, 2025, pp.
+6816--6831. doi:
+\href{https://doi.org/10.18653/v1/2025.acl-long.338}{10.18653/v1/2025.acl-long.338}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-sequoia}{}}%
+\CSLLeftMargin{{[}35{]} }
+\CSLRightInline{Z. Chen \emph{et al.}, {``{Sequoia: Scalable and Robust
+Speculative Decoding},''} in \emph{Advances in neural information
+processing systems}, 2024. doi:
+\href{https://doi.org/10.52202/079017-4116}{10.52202/079017-4116}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-opttree}{}}%
+\CSLLeftMargin{{[}36{]} }
+\CSLRightInline{J. Wang \emph{et al.}, {``{OPT-Tree}: Speculative
+decoding with adaptive draft tree structure,''} \emph{Transactions of
+the Association for Computational Linguistics}, vol. 13, pp. 188--199,
+2025, doi:
+\href{https://doi.org/10.1162/tacl_a_00735}{10.1162/tacl\_a\_00735}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-ddtree}{}}%
+\CSLLeftMargin{{[}37{]} }
+\CSLRightInline{L. Ringel and Y. Romano, {``{Accelerating Speculative
+Decoding with Block Diffusion Draft Trees}.''} 2026. Available:
+\url{https://arxiv.org/abs/2604.12989v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-eagle2}{}}%
+\CSLLeftMargin{{[}38{]} }
+\CSLRightInline{Y. Li, F. Wei, C. Zhang, and H. Zhang, {``{EAGLE-2:
+Faster Inference of Language Models with Dynamic Draft Trees},''} in
+\emph{Proceedings of the 2024 conference on empirical methods in natural
+language processing}, 2024, pp. 7421--7432. doi:
+\href{https://doi.org/10.18653/v1/2024.emnlp-main.422}{10.18653/v1/2024.emnlp-main.422}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-blockverification}{}}%
+\CSLLeftMargin{{[}39{]} }
+\CSLRightInline{Z. Sun \emph{et al.}, {``Block verification accelerates
+speculative decoding,''} in \emph{ICLR 2025}, 2025. Available:
+\url{https://arxiv.org/abs/2403.10444v3}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-spechub}{}}%
+\CSLLeftMargin{{[}40{]} }
+\CSLRightInline{R. Sun, T. Zhou, X. Chen, and L. Sun, {``SpecHub:
+Provable acceleration to multi-draft speculative decoding,''} in
+\emph{Proceedings of the 2024 conference on empirical methods in natural
+language processing}, 2024, pp. 20620--20641. doi:
+\href{https://doi.org/10.18653/v1/2024.emnlp-main.1148}{10.18653/v1/2024.emnlp-main.1148}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-triforce}{}}%
+\CSLLeftMargin{{[}41{]} }
+\CSLRightInline{H. Sun, Z. Chen, X. Yang, Y. Tian, and B. Chen,
+{``{TriForce: Lossless Acceleration of Long Sequence Generation with
+Hierarchical Speculative Decoding}.''} 2024. Available:
+\url{https://arxiv.org/abs/2404.11912v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-longspec}{}}%
+\CSLLeftMargin{{[}42{]} }
+\CSLRightInline{P. Yang \emph{et al.}, {``{LongSpec}: Long-context
+lossless speculative decoding with efficient drafting and
+verification,''} in \emph{Proceedings of the 64th annual meeting of the
+{A}ssociation for {C}omputational {L}inguistics (volume 1: Long
+papers)}, 2026, pp. 1826--1844. doi:
+\href{https://doi.org/10.18653/v1/2026.acl-long.83}{10.18653/v1/2026.acl-long.83}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-specdecpp}{}}%
+\CSLLeftMargin{{[}43{]} }
+\CSLRightInline{K. Huang, X. Guo, and M. Wang, {``{SpecDec++: Boosting
+Speculative Decoding via Adaptive Candidate Lengths},''} in
+\emph{Conference on language modeling (COLM)}, 2025. Available:
+\url{https://arxiv.org/abs/2405.19715v3}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-disco}{}}%
+\CSLLeftMargin{{[}44{]} }
+\CSLRightInline{J. Mamou \emph{et al.}, {``{Dynamic Speculation
+Lookahead Accelerates Speculative Decoding of Large Language Models},''}
+in \emph{NeurIPS ENLSP workshop}, 2024. Available:
+\url{https://proceedings.mlr.press/v262/mamou24a.html}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-banditspec}{}}%
+\CSLLeftMargin{{[}45{]} }
+\CSLRightInline{Y. Hou \emph{et al.}, {``{BanditSpec: Adaptive
+Speculative Decoding via Bandit Algorithms},''} in \emph{Proceedings of
+the 42nd international conference on machine learning}, 2025. Available:
+\url{https://proceedings.mlr.press/v267/hou25h.html}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-tetris}{}}%
+\CSLLeftMargin{{[}46{]} }
+\CSLRightInline{Z. Wu, Z. Zhou, A. Verma, A. Prakash, D. Rus, and B. K.
+H. Low, {``TETRIS: Optimal draft token selection for batch speculative
+decoding,''} in \emph{Proceedings of the 63rd annual meeting of the
+{A}ssociation for {C}omputational {L}inguistics (volume 1: Long
+papers)}, 2025, pp. 33329--33345. doi:
+\href{https://doi.org/10.18653/v1/2025.acl-long.1598}{10.18653/v1/2025.acl-long.1598}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-adaserve}{}}%
+\CSLLeftMargin{{[}47{]} }
+\CSLRightInline{Z. Li \emph{et al.}, {``{AdaServe: Accelerating
+Multi-SLO LLM Serving with SLO-Customized Speculative Decoding},''} in
+\emph{Proceedings of the 21st european conference on computer systems},
+2026. doi:
+\href{https://doi.org/10.1145/3767295.3769315}{10.1145/3767295.3769315}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-forespark}{}}%
+\CSLLeftMargin{{[}48{]} }
+\CSLRightInline{J. Song, D. Wang, P. Patel, J. Kong, P. Shah, and S.
+Kanaujia, {``{ForeSpark: Joint Draft and Verification Budget Scheduling
+for Parallel Speculative Decoding}.''} 2026. Available:
+\url{https://arxiv.org/abs/2611.13442v2}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-agentspec}{}}%
+\CSLLeftMargin{{[}49{]} }
+\CSLRightInline{X. Wang \emph{et al.}, {``{AgentSpec: Speculative
+Decoding for Batch Inference of LLM Agents},''} in \emph{Proceedings of
+the 2026 conference on empirical methods in natural language
+processing}, 2026, pp. 13384--13395. doi:
+\href{https://doi.org/10.18653/2026.emnlp-main.585}{10.18653/2026.emnlp-main.585}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-pipespec}{}}%
+\CSLLeftMargin{{[}50{]} }
+\CSLRightInline{B. McDanel, S. Q. Zhang, Y. Hu, and Z. Liu,
+{``{PipeSpec: Breaking Stage Dependencies in Hierarchical LLM
+Decoding},''} in \emph{Findings of the {A}ssociation for {C}omputational
+{L}inguistics: {ACL} 2025}, 2025, pp. 12909--12920. doi:
+\href{https://doi.org/10.18653/v1/2025.findings-acl.669}{10.18653/v1/2025.findings-acl.669}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-ssd}{}}%
+\CSLLeftMargin{{[}51{]} }
+\CSLRightInline{T. Kumar, T. Dao, and A. May, {``{Speculative
+Speculative Decoding}.''} 2026. Available:
+\url{https://arxiv.org/abs/2603.03251v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-callo}{}}%
+\CSLLeftMargin{{[}52{]} }
+\CSLRightInline{J. Ou and M. Lentz, {``{Callo: Serving Cache-Miss
+Requests with Speculative Decoding on Invalidated KV under
+Prefill-Decode Disaggregation}.''} 2026. Available:
+\url{https://arxiv.org/abs/2611.18459v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-avdocs}{}}%
+\CSLLeftMargin{{[}53{]} }
+\CSLRightInline{vLLM Project, {``{Adaptive Verification (v0.31.0)}.''}
+2026. Available:
+\url{https://github.com/vllm-project/vllm/blob/v0.31.0/docs/features/speculative_decoding/adaptive_verification.md}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-weights}{}}%
+\CSLLeftMargin{{[}54{]} }
+\CSLRightInline{X. Qiang, Z. Xu, Z. Pan, C. Chen, and Y. Ding,
+{``{Weights That Stay: On-Chip Megakernels for Serial Heads in
+Speculative Decoding}.''} 2026. Available:
+\url{https://arxiv.org/abs/2611.00506v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-ascendgraphdocs}{}}%
+\CSLLeftMargin{{[}55{]} }
+\CSLRightInline{vLLM-Ascend Project, {``{ACL Graph Design
+(v0.26.0rc)}.''} 2026. Available:
+\url{https://docs.vllm.ai/projects/ascend/en/v0.26.0rc/developer_guide/Design_Documents/ACL_Graph.html}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-eagle}{}}%
+\CSLLeftMargin{{[}56{]} }
+\CSLRightInline{Y. Li, F. Wei, C. Zhang, and H. Zhang, {``{EAGLE:
+Speculative Sampling Requires Rethinking Feature Uncertainty},''} in
+\emph{ICML 2024}, 2024. Available:
+\url{https://proceedings.mlr.press/v235/li24bt.html}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-specforgedocs}{}}%
+\CSLLeftMargin{{[}57{]} }
+\CSLRightInline{SGLang Project, {``{SpecForge: Training Draft Models for
+Speculative Decoding}.''} 2026. Available:
+\url{https://github.com/sgl-project/SpecForge/blob/4e7068c9d9b77e78c0a13bb4196d8be45e495401/README.md}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-deepspecdocs}{}}%
+\CSLLeftMargin{{[}58{]} }
+\CSLRightInline{DeepSeek, {``{DeepSpec: Draft Model Training and
+Evaluation}.''} 2026. Available:
+\url{https://github.com/deepseek-ai/DeepSpec/blob/005e03b81cec38b7da6399833d609ee89a2587f2/README.md}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-onlinespec}{}}%
+\CSLLeftMargin{{[}59{]} }
+\CSLRightInline{X. Liu \emph{et al.}, {``{Online Speculative
+Decoding},''} in \emph{Proceedings of the 41st international conference
+on machine learning}, 2024. Available:
+\url{https://proceedings.mlr.press/v235/liu24y.html}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-edr}{}}%
+\CSLLeftMargin{{[}60{]} }
+\CSLRightInline{Y. Zhao and C. Cai, {``{Training Parallel Speculative
+Draft Models by Directly Minimizing Expected Decoding Rounds}.''} 2026.
+Available: \url{https://arxiv.org/abs/2610.10411v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-domino}{}}%
+\CSLLeftMargin{{[}61{]} }
+\CSLRightInline{J. Huang, Y. Zhang, Q. Zhang, H. Lin, H. Xu, and L.
+Zhang, {``{Domino: Decoupling Causal Modeling from Autoregressive
+Drafting in Speculative Decoding},''} in \emph{Proceedings of the 2026
+conference on empirical methods in natural language processing}, 2026,
+pp. 23346--23356. doi:
+\href{https://doi.org/10.18653/2026.emnlp-main.1015}{10.18653/2026.emnlp-main.1015}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-deepseek}{}}%
+\CSLLeftMargin{{[}62{]} }
+\CSLRightInline{DeepSeek-AI \emph{et al.}, {``{DeepSeek-V3 Technical
+Report}.''} 2024. Available: \url{https://arxiv.org/abs/2412.19437v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-sglangdocs}{}}%
+\CSLLeftMargin{{[}63{]} }
+\CSLRightInline{SGLang Project, {``{Speculative Decoding Guide}.''}
+2026. Available:
+\url{https://github.com/sgl-project/sglang/blob/f4c16239a557734690ff6652e392f36ac3788798/docs/docs/advanced_features/speculative_decoding.mdx}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-decodingspec}{}}%
+\CSLLeftMargin{{[}64{]} }
+\CSLRightInline{M. Yan, S. Agarwal, and S. Venkataraman, {``Decoding
+speculative decoding,''} in \emph{Proceedings of the 2025 conference of
+the nations of the americas chapter of the association for computational
+linguistics: Human language technologies}, 2025, pp. 6460--6473. doi:
+\href{https://doi.org/10.18653/v1/2025.naacl-long.328}{10.18653/v1/2025.naacl-long.328}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-vllmdocs}{}}%
+\CSLLeftMargin{{[}65{]} }
+\CSLRightInline{vLLM Project, {``{Speculative Decoding (v0.31.0)}.''}
+2026. Available:
+\url{https://github.com/vllm-project/vllm/blob/v0.31.0/docs/features/speculative_decoding/README.md}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-ouroboros}{}}%
+\CSLLeftMargin{{[}66{]} }
+\CSLRightInline{W. Zhao \emph{et al.}, {``{Ouroboros}: Generating longer
+drafts phrase by phrase for faster speculative decoding,''} in
+\emph{Proceedings of the 2024 conference on empirical methods in natural
+language processing}, 2024, pp. 13378--13393. doi:
+\href{https://doi.org/10.18653/v1/2024.emnlp-main.742}{10.18653/v1/2024.emnlp-main.742}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-eaglepangu}{}}%
+\CSLLeftMargin{{[}67{]} }
+\CSLRightInline{C. Han, Y. Hu, and J. Liu, {``{EAGLE-Pangu:
+Accelerator-Safe Tree Speculative Decoding on Ascend NPUs}.''} 2026.
+Available: \url{https://arxiv.org/abs/2603.08088}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-dforktree}{}}%
+\CSLLeftMargin{{[}68{]} }
+\CSLRightInline{Z. Zheng, C. Zhang, and C. Tang, {``{DForkTree:
+Accelerating Speculative Decoding with Fork-Aware Block Diffusion Draft
+Trees}.''} 2026. Available: \url{https://arxiv.org/abs/2611.12356v1}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-bass}{}}%
+\CSLLeftMargin{{[}69{]} }
+\CSLRightInline{H. Qian \emph{et al.}, {``BASS: Batched
+attention-optimized speculative sampling,''} in \emph{Findings of the
+association for computational linguistics: ACL 2024}, 2024. Available:
+\url{https://aclanthology.org/2024.findings-acl.489/}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-sglang-pin}{}}%
+\CSLLeftMargin{{[}70{]} }
+\CSLRightInline{SGLang Project, {``{DFlash Worker V2}.''} 2026.
+Available:
+\url{https://github.com/sgl-project/sglang/blob/f4c16239a557734690ff6652e392f36ac3788798/python/sglang/srt/speculative/dflash_worker_v2.py}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-vllmconfigdocs}{}}%
+\CSLLeftMargin{{[}71{]} }
+\CSLRightInline{vLLM Project, {``{Speculative Decoding Configuration
+(v0.31.0)}.''} 2026. Available:
+\url{https://github.com/vllm-project/vllm/blob/v0.31.0/vllm/config/speculative.py}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-ascenddocs}{}}%
+\CSLLeftMargin{{[}72{]} }
+\CSLRightInline{vLLM-Ascend Project, {``{Speculative Decoding Guide}.''}
+2026. Available:
+\url{https://github.com/vllm-project/vllm-ascend/blob/d196654fd5809405d6af4a81e55df52f4d4f93f2/docs/source/user_guide/feature_guide/speculative_decoding.md}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-asymspec}{}}%
+\CSLLeftMargin{{[}73{]} }
+\CSLRightInline{S. Liang \emph{et al.}, {``{AsymSpec: Context-Asymmetric
+Speculative Decoding for Agentic LLMs},''} in \emph{Proceedings of the
+2026 conference on empirical methods in natural language processing},
+2026. Available: \url{https://aclanthology.org/2026.emnlp-main.2311/}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-vllmavestimator}{}}%
+\CSLLeftMargin{{[}74{]} }
+\CSLRightInline{G. Delfin, {``{Adaptive Verification Without a
+Confidence Head}.''} vLLM Blog, Oct. 2026. Available:
+\url{https://vllm.ai/blog/2026-10-14-adaptive-verification-online-estimator}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-vllm-scheduler}{}}%
+\CSLLeftMargin{{[}75{]} }
+\CSLRightInline{vLLM Project, {``{V1 Scheduler: Speculative Token
+Allocation and Draft Updates}.''} 2026. Available:
+\url{https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/vllm/v1/core/sched/scheduler.py\#L340}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-ascend-pin}{}}%
+\CSLLeftMargin{{[}76{]} }
+\CSLRightInline{vLLM-Ascend Project, {``{Ascend Model Runner V2: Counter
+Publication and CPU Sequence Lengths}.''} 2026. Available:
+\url{https://github.com/vllm-project/vllm-ascend/blob/5cb98caaadeff42b5b62b996e34bb2aaa29d20fd/vllm_ascend/worker/v2/model_runner.py\#L388-L440}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-sglngramcommit}{}}%
+\CSLLeftMargin{{[}77{]} }
+\CSLRightInline{SGLang Project, {``{Commit Mamba states after NGRAM
+target verify (PR 26351)}.''} 2026. Available:
+\url{https://github.com/sgl-project/sglang/pull/26351}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-sglsconvcommit}{}}%
+\CSLLeftMargin{{[}78{]} }
+\CSLRightInline{SGLang Project, {``{Fix sconv state memory corruption on
+specdec (PR 34043)}.''} 2026. Available:
+\url{https://github.com/sgl-project/sglang/pull/34043}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-sglppcommit}{}}%
+\CSLLeftMargin{{[}79{]} }
+\CSLRightInline{SGLang Project, {``{Fix hybrid recurrent-state commit
+and micro-batch pairing under PP x speculative decoding (PR 40001)}.''}
+2026. Available: \url{https://github.com/sgl-project/sglang/pull/40001}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-sglpprows}{}}%
+\CSLLeftMargin{{[}80{]} }
+\CSLRightInline{SGLang Project, {``{Fix PP speculative
+intermediate-state row indexing (PR 51457)}.''} 2026. Available:
+\url{https://github.com/sgl-project/sglang/pull/51457}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-svip}{}}%
+\CSLLeftMargin{{[}81{]} }
+\CSLRightInline{Z. Zhang \emph{et al.}, {``Draft model knows when to
+stop: Self-verification speculative decoding for long-form
+generation,''} in \emph{Proceedings of the 2025 conference on empirical
+methods in natural language processing}, 2025, pp. 16685--16697. doi:
+\href{https://doi.org/10.18653/v1/2025.emnlp-main.844}{10.18653/v1/2025.emnlp-main.844}.}
+
+\leavevmode\vadjust pre{\hypertarget{ref-trtllmspec}{}}%
+\CSLLeftMargin{{[}82{]} }
+\CSLRightInline{NVIDIA, {``{Speculative Decoding (TensorRT-LLM,
+02854fa)}.''} 2026. Available:
+\url{https://github.com/NVIDIA/TensorRT-LLM/blob/02854fa2e3277adb5d57a372a4a94e85e6d4bc35/docs/source/features/speculative-decoding.md}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-vllmdynamic034}{}}%
+\CSLLeftMargin{{[}83{]} }
+\CSLRightInline{vLLM Project, {``{Dynamic Speculative Decoding
+(v0.34.0)}.''} 2026. Available:
+\url{https://docs.vllm.ai/en/v0.34.0/features/speculative_decoding/dynamic_speculative_decoding/}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-vllmdynamiclatest}{}}%
+\CSLLeftMargin{{[}84{]} }
+\CSLRightInline{vLLM Project, {``{Dynamic Speculative Decoding
+(documentation revised November 13, 2026)}.''} 2026. Available:
+\url{https://docs.vllm.ai/en/latest/features/speculative_decoding/dynamic_speculative_decoding/}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-deepinferdocs}{}}%
+\CSLLeftMargin{{[}85{]} }
+\CSLRightInline{DeepSeek, {``{DeepSeek V4.1 Flash Inference Deployment
+Q\&A}.''} Official DeepInfer Documentation, 2026. Available:
+\url{https://github.com/deepseek-ai/DeepInfer/blob/a679bb86ce36e883a98a97733492b686e5b9a08e/doc/inference_deployment_qa.md}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-distserve}{}}%
+\CSLLeftMargin{{[}86{]} }
+\CSLRightInline{Y. Zhong \emph{et al.}, {``{DistServe: Disaggregating
+Prefill and Decoding for Goodput-optimized Large Language Model
+Serving},''} in \emph{OSDI}, 2024. Available:
+\url{https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-illusion}{}}%
+\CSLLeftMargin{{[}87{]} }
+\CSLRightInline{X. Liu, J. Yu, J. Park, I. Stoica, and A. Cheung,
+{``{Speculative Decoding: Performance or Illusion?}''} in
+\emph{Proceedings of machine learning and systems}, 2026. Available:
+\url{https://proceedings.mlsys.org/paper_files/paper/2026/hash/554e056fe2b6d9fd27ffcd3367ae1267-Abstract-Conference.html}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-servinglatencymodel}{}}%
+\CSLLeftMargin{{[}88{]} }
+\CSLRightInline{L. Kong, M. Flynn, M. Peng, N. Shavit, M. Kurtz, and A.
+Marques, {``{An Interpretable Latency Model for Speculative Decoding in
+LLM Serving}.''} arXiv:2605.15051, 2026. Available:
+\url{https://arxiv.org/abs/2605.15051}}
+
+\leavevmode\vadjust pre{\hypertarget{ref-speedbench}{}}%
+\CSLLeftMargin{{[}89{]} }
+\CSLRightInline{T. Abramovich \emph{et al.}, {``{SPEED}-bench: A unified
+and diverse benchmark for speculative decoding,''} in \emph{Proceedings
+of the 43rd international conference on machine learning}, in
+Proceedings of machine learning research, vol. 306. 2026, pp. 240--267.
+Available: \url{https://proceedings.mlr.press/v306/abramovich26a.html}}
+
+\end{CSLReferences}
+
+\end{document}

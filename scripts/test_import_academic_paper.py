@@ -132,6 +132,12 @@ class AcademicImportTests(unittest.TestCase):
         module.inspect_docx(with_property("csl", "numeric.csl"))
         module.inspect_docx(with_property("title", r"A path example C:\example\input.txt"))
 
+    def test_windows_markdown_metadata_is_equivalent(self):
+        path = self.source / "paper.md"
+        before = module.metadata_from_markdown(path.read_bytes(), "2026-11-15", "review-pending")
+        path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+        self.assertEqual(module.metadata_from_markdown(path.read_bytes(), "2026-11-15", "review-pending"), before)
+
     def test_word_and_latex_snapshot_does_not_claim_word_pdf_export(self):
         self.write_word()
         result = self.stage()
