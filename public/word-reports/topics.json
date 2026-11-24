@@ -2676,26 +2676,68 @@
     {
       "counts": {
         "byLabel": {
-          "methods": 73,
-          "runtime": 32,
-          "verification": 34
+          "methods": 74,
+          "verification": 35,
+          "runtime": 33
         },
         "byRepository": {
-          "vllm": 93,
-          "vllm-ascend": 46
+          "vllm": 94,
+          "vllm-ascend": 48
         },
         "manualExcluded": 0,
         "manualIncluded": 8,
-        "total": 139
+        "total": 142
       },
       "coverage": {
-        "days": 32,
+        "days": 33,
         "firstDay": "2026-10-22",
-        "lastDay": "2026-11-22",
-        "prs": 843
+        "lastDay": "2026-11-23",
+        "prs": 865
       },
       "description": "跟踪草稿模型、候选 token 生成与验证，以及推测解码的运行时适配。",
       "entries": [
+        {
+          "day": "2026-11-23",
+          "label": "methods",
+          "method": "rule",
+          "number": "V8",
+          "reason": "原日报推测解码章节候选（待一手核验）",
+          "repository": "vllm",
+          "stage": "speculative",
+          "summary": "配置类从检查点的草稿配置读取锚点优先标志，并回退到顶层同名键，两处取值冲突时报错；再由同一查询宽度属性统一驱动分配、前瞻、预热和分组卷积块。未声明该标志的检查点仍走填充式布局，DSpark 保持锚点优先默认。",
+          "title": "让 DFlash 接受锚点优先草稿检查点",
+          "url": "https://github.com/vllm-project/vllm/pull/68827",
+          "version": "ba4657afdd16e0f65555fa94a26a0489526bf1f8211f3f4e9d07bc05814aefd4",
+          "workId": "github:vllm-project/vllm#68827"
+        },
+        {
+          "day": "2026-11-23",
+          "label": "verification",
+          "method": "rule",
+          "number": "A11",
+          "reason": "原日报推测解码章节候选（待一手核验）",
+          "repository": "vllm-ascend",
+          "stage": "speculative",
+          "summary": "在初始化缓存时，只要启用了批量分片采样，就把已准入的草稿切分复制到主机，供其构建全对全计划；未启用该采样时保持原有路径。",
+          "title": "为自适应验证接入批量分片采样",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/20796",
+          "version": "ba4657afdd16e0f65555fa94a26a0489526bf1f8211f3f4e9d07bc05814aefd4",
+          "workId": "github:vllm-project/vllm-ascend#20796"
+        },
+        {
+          "day": "2026-11-23",
+          "label": "runtime",
+          "method": "rule",
+          "number": "A12",
+          "reason": "原日报推测解码章节候选（待一手核验）",
+          "repository": "vllm-ascend",
+          "stage": "speculative",
+          "summary": "按全局层号收集辅助隐藏状态，经现有推测解码流水线按序中转，并在阶段边界补齐延迟状态；目标嵌入改由上游判定在最后一级加载，普通与增强推测解码共用该路径。",
+          "title": "支持 GLM-5.3-Flash 多级流水线并行",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/21831",
+          "version": "ba4657afdd16e0f65555fa94a26a0489526bf1f8211f3f4e9d07bc05814aefd4",
+          "workId": "github:vllm-project/vllm-ascend#21831"
+        },
         {
           "day": "2026-11-21",
           "label": "methods",
