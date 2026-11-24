@@ -2,7 +2,7 @@
 
 Reviewed source: [specdec-survey/paper-zh at ca70c26](https://github.com/sad-and-bad1231/specdec-survey/tree/ca70c26ae5d8abc2f1cd9e7807719c8e239f4742/paper-zh). The old `paper/` directory is the historical 2026-11-19 source, not the new author build.
 
-Use the complete clean-checkout author `paper-zh/dist` directory. The reviewed 37-page PDF has a one-page table-of-contents offset; refresh the table of contents before freezing the publication and regenerate the author manifest with the build script.
+Use the complete clean-checkout author `paper-zh/dist` directory. The reviewed 37-page PDF had a one-page table-of-contents offset. Rebuild from author commit `277cc93278ae714e6d7c7a0223206aa963303db7` or later, which includes a TOC convergence fix without changing the manuscript text. Verify the new PDF and the author manifest before freezing the publication.
 
 From the editorial branch `research/specdec-survey-final-20261124`:
 

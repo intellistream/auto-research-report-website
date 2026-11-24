@@ -18,6 +18,17 @@ INDEX = ROOT / "public" / "word-reports" / "topics.json"
 SURVEY = ROOT / "topics" / TOPIC / "survey.json"
 
 
+def verify_author_build(source):
+    manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
+    if manifest.get("language") != "zh-CN" or manifest.get("sourceDirty") is not False or not manifest.get("sourceCommit"):
+        raise SystemExit("Expected a clean versioned Chinese manuscript build")
+    for name in ("paper.md", "references.bib", "paper.tex", "paper.html", "paper.pdf", "paper.docx", "sources.zip"):
+        data = (source / name).read_bytes()
+        if not data or manifest["artifacts"].get(name) != {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}:
+            raise SystemExit(f"Author manifest mismatch: {name}")
+    return manifest
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -32,14 +43,12 @@ def main():
         branch = subprocess.check_output(["git", "branch", "--show-current"], text=True, cwd=ROOT).strip()
         if not branch.startswith("research/specdec-survey-"):
             raise SystemExit("Publish only from a SpecDec editorial branch")
-    manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
-    if manifest.get("language") != "zh-CN" or manifest.get("sourceDirty") is not False or not manifest.get("sourceCommit"):
-        raise SystemExit("Expected a clean versioned Chinese manuscript build")
-    for name in ("paper.md", "references.bib", "paper.tex", "paper.html", "paper.pdf", "paper.docx", "sources.zip"):
-        data = (source / name).read_bytes()
-        if not data or manifest["artifacts"].get(name) != {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}:
-            raise SystemExit(f"Author manifest mismatch: {name}")
+    manifest = verify_author_build(source)
 
+    original = json.loads(INDEX.read_text(encoding="utf-8"))
+    original_topic = next(t for t in original["topics"] if t["id"] == TOPIC)
+    if json.loads(SURVEY.read_text(encoding="utf-8")) != original_topic["survey"]:
+        raise SystemExit("Survey source and index differ")
     with tempfile.TemporaryDirectory(prefix="specdec-paper-stage-") as temp:
         staging = Path(temp)
         subprocess.run([
@@ -96,6 +105,13 @@ def main():
         from topic_survey import validate_survey
         topic = next(t for t in candidate["topics"] if t["id"] == TOPIC)
         validate_survey(survey, topic)
+        if verify_author_build(source) != manifest:
+            raise SystemExit("Author build changed during staging")
+        for previous, current in zip(original["topics"], candidate["topics"], strict=True):
+            if previous["id"] != TOPIC and previous != current:
+                raise SystemExit("Unrelated topic changed")
+            if previous["id"] == TOPIC and {k: v for k, v in previous.items() if k not in {"academicPaper", "survey"}} != {k: v for k, v in current.items() if k not in {"academicPaper", "survey"}}:
+                raise SystemExit("Report or candidate metadata changed")
         if args.check:
             print(json.dumps({"status": "staging_only", "version": paper["version"], "checks": checks, "authorCommit": manifest["sourceCommit"]}, ensure_ascii=False))
             return
@@ -105,6 +121,7 @@ def main():
         else:
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copytree(src, dest)
+        validate_survey(survey, topic, INDEX.parent)
         INDEX.write_text(json.dumps(candidate, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         SURVEY.write_text(json.dumps(survey, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps({
