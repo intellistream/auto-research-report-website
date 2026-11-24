@@ -132,6 +132,14 @@ class AcademicImportTests(unittest.TestCase):
         module.inspect_docx(with_property("csl", "numeric.csl"))
         module.inspect_docx(with_property("title", r"A path example C:\example\input.txt"))
 
+    def test_word_and_latex_snapshot_does_not_claim_word_pdf_export(self):
+        self.write_word()
+        result = self.stage()
+        with zipfile.ZipFile(Path(result["destination"]) / "sources.zip") as archive:
+            readme = archive.read("README.md").decode("utf-8")
+            self.assertIn("separate renderings", readme)
+            self.assertNotIn("exported from paper.docx", readme)
+
     def test_idempotent_and_new_content_or_metadata_creates_new_version(self):
         initial = self.stage()
         self.assertEqual(initial["version"], self.stage()["version"])

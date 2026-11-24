@@ -158,6 +158,33 @@ def inspect_docx(data):
 
 def source_readme(metadata, files):
     html_options = (" --csl=numeric.csl" if "numeric.csl" in files else "") + (" --css=paper.css" if "paper.css" in files else "")
+    if "paper.docx" in files and "build_web.py" not in files and "build_word.py" not in files:
+        return f"""# {metadata['title']} — editable source snapshot
+
+Literature cutoff: {metadata['literatureCutoff']}
+Manuscript revision: {metadata['manuscriptRevision']}
+
+Markdown, TeX, Word, bibliography and referenced figures are editable.
+The PDF and Word are separate renderings of the same manuscript.
+Manual edits to either do not automatically update the other formats.
+
+## PDF
+
+Install XeLaTeX, ctex and the fonts specified in paper.tex. Run:
+
+    xelatex -interaction=nonstopmode -halt-on-error paper.tex
+    xelatex -interaction=nonstopmode -halt-on-error paper.tex
+    xelatex -interaction=nonstopmode -halt-on-error paper.tex
+
+## HTML
+
+With Pandoc 3+, run:
+
+    pandoc paper.md --citeproc --bibliography=references.bib{html_options} --metadata=link-citations:true --number-sections --standalone --mathml --embed-resources --output=paper.html
+
+Formatting may differ from the frozen publication. Reimport the complete
+reviewed outputs to obtain a new immutable version.
+""".encode("utf-8")
     if "paper.docx" in files:
         return f"""# {metadata['title']} — editable source snapshot
 
