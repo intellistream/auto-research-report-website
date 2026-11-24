@@ -1,5 +1,6 @@
 .acl-survey-map {
   margin: 1.3rem 0 2rem;
+  min-width: 0;
   color: var(--ink-primary);
 }
 
@@ -17,35 +18,108 @@
   border-left: 4px solid var(--brand-primary);
 }
 
+.acl-taxonomy-subtitle {
+  max-width: 92ch;
+  margin: 0;
+  color: var(--ink-secondary);
+  font-size: .88rem;
+  line-height: 1.75;
+}
+
+.acl-taxonomy-view {
+  --acl-view-accent: var(--brand-primary);
+  --acl-view-tint: var(--brand-soft);
+  min-width: 0;
+  margin-top: 1.6rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.acl-taxonomy-scenarios {
+  --acl-view-accent: var(--color-paper);
+  --acl-view-tint: var(--color-paper-soft);
+}
+
+.acl-taxonomy-view-header {
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--border-default);
+  background: linear-gradient(100deg, var(--acl-view-tint), var(--bg-surface));
+  box-shadow: inset 3px 0 var(--acl-view-accent);
+}
+
+.acl-taxonomy-view-label {
+  display: block;
+  margin-bottom: .4rem;
+  color: var(--acl-view-accent);
+  font-size: .72rem;
+  font-weight: 750;
+  letter-spacing: .08em;
+}
+
+.acl-taxonomy-view-header h4 {
+  margin: 0;
+  color: var(--ink-primary);
+  font-size: clamp(.93rem, 1.5vw, 1.05rem);
+  font-weight: 700;
+  line-height: 1.7;
+  text-wrap: balance;
+}
+
 .acl-taxonomy-table-scroll {
-  margin-top: 1.2rem;
+  max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
 }
 
 .acl-taxonomy-table-scroll:focus-visible {
-  outline: 2px solid var(--brand-primary);
-  outline-offset: 3px;
+  outline: 2px solid var(--acl-view-accent);
+  outline-offset: -3px;
 }
 
 .acl-taxonomy-table {
   width: 100%;
-  min-width: 34rem;
+  min-width: 54rem;
   border-collapse: collapse;
-  border-top: 2px solid var(--ink-primary);
-  border-bottom: 2px solid var(--ink-primary);
   font-size: .88rem;
   line-height: 1.65;
 }
 
-.acl-taxonomy-major { width: 23%; }
-.acl-taxonomy-minor { width: 31%; }
-.acl-taxonomy-table thead { border-bottom: 1px solid var(--ink-primary); }
+.acl-taxonomy-major { width: 24%; }
+.acl-taxonomy-minor { width: 30%; }
+.acl-taxonomy-scenarios .acl-taxonomy-minor { width: 35%; }
+.acl-taxonomy-table thead {
+  border-bottom: 1px solid var(--border-accent);
+  background: var(--bg-surface);
+  font-size: .8rem;
+}
+.acl-taxonomy-table tbody + tbody,
+.acl-taxonomy-scenarios tbody tr + tr { border-top: 1px solid var(--border-default); }
+.acl-taxonomy-mechanisms tbody tr + tr { border-top: 1px solid var(--border-subtle); }
 .acl-taxonomy-table th,
-.acl-taxonomy-table td { padding: .65rem .6rem; border: 0; text-align: left; vertical-align: middle; }
+.acl-taxonomy-table td { padding: .9rem .85rem; border: 0; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
 .acl-taxonomy-table th { font-weight: 650; }
+.acl-taxonomy-table th[scope="rowgroup"] { background: color-mix(in srgb, var(--acl-view-tint) 45%, transparent); }
 .acl-taxonomy-table a { color: var(--brand-primary); text-underline-offset: .2em; }
 .acl-taxonomy-table th a { text-decoration: none; }
 .acl-taxonomy-table th a:hover { text-decoration: underline; }
+.acl-taxonomy-table a:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 3px; }
+.acl-scenario-strategy p {
+  margin: 0;
+  color: var(--ink-secondary);
+  font-size: .83rem;
+  line-height: 1.75;
+}
+.acl-scenario-strategy p + p { margin-top: .6rem; }
+.acl-scenario-strategy strong { display: block; color: var(--ink-primary); font-size: .76rem; font-weight: 650; }
+.acl-taxonomy-section {
+  display: block;
+  margin-top: .3rem;
+  color: var(--ink-secondary);
+  font-size: .78rem;
+  font-weight: 500;
+}
 .acl-taxonomy-citation { white-space: nowrap; }
 .acl-survey-map h3,
 .acl-survey-map h4,
@@ -100,6 +174,14 @@
 .acl-taxonomy-evidence { margin: .85rem 0; }
 .acl-taxonomy-evidence > summary { cursor: pointer; color: var(--brand-primary); padding: .5rem 0; }
 @media (max-width: 680px) {
+  .acl-taxonomy { padding: 1rem .8rem; }
+  .acl-taxonomy-view { margin-top: 1.15rem; }
+  .acl-taxonomy-view-header { padding: .8rem; }
+  .acl-taxonomy-view-label { font-size: .68rem; }
+  .acl-taxonomy-table { min-width: 49rem; font-size: .83rem; }
+  .acl-taxonomy-table th,
+  .acl-taxonomy-table td { padding: .75rem .7rem; }
+  .acl-taxonomy-subtitle { font-size: .82rem; }
   .acl-taxonomy-columns { display: none; }
   .acl-taxonomy-branches { margin-top: .9rem; }
   .acl-taxonomy-branches li { grid-template-columns: 1fr; gap: .3rem; padding-left: 1rem; }

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowUpRight, Download } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import type { Topic } from "./TopicPages";
-import { academicPaperHeadings, academicPaperHrefs, revealPaperHeading, type AcademicPaper } from "./academic-paper";
+import { academicPaperHeadings, academicPaperHrefs, parsePaperSectionParam, revealPaperHeading, revealPendingPaperSection, type AcademicPaper } from "./academic-paper";
 import AclGraphSurveyMap from "./AclGraphSurveyMap";
 import { validatedSurvey } from "./topic-survey";
 import "./topic-academic-paper.css";
@@ -23,9 +23,15 @@ export function AcademicPaperCard({ topic, paper }: { topic: Topic; paper: Acade
 }
 
 export default function TopicAcademicPaper({ topic, paper, embedded = false }: { topic: Topic; paper: AcademicPaper; embedded?: boolean }) {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const targetSection = parsePaperSectionParam(searchParams);
+  const requestKey = targetSection ? `${paper.version}:${location.key}:${targetSection}` : "";
   const hrefs = academicPaperHrefs(topic.id, paper);
   const frame = useRef<HTMLIFrameElement>(null);
   const observer = useRef<ResizeObserver | null>(null);
+  const lastRevealedKey = useRef<string | null>(null);
+  const [frameReady, setFrameReady] = useState(false);
   const [headings, setHeadings] = useState<{ id: string; title: string }[]>([]);
   const [height, setHeight] = useState(1000);
   const showTaxonomy = topic.id === "aclgraph" && !!validatedSurvey(topic)?.routes.every((row) => row.examples && row.paperAnchor && row.paperSection);
@@ -33,9 +39,49 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
     const cover = doc?.getElementById("taxonomy-overview")?.closest("figure");
     if (cover) cover.hidden = shownAbove;
   }
+  function alignFrameHeading(id: string, reducedMotion: boolean) {
+    const iframe = frame.current;
+    const doc = iframe?.contentDocument;
+    const heading = doc?.getElementById(id);
+    if (iframe && doc && heading && /^H[1234]$/.test(heading.tagName)) {
+      const headerOffset = 84;
+      const iframeScrollY = doc.defaultView?.scrollY ?? 0;
+      const targetTop = Math.max(0, window.scrollY + iframe.getBoundingClientRect().top + heading.getBoundingClientRect().top + iframeScrollY - headerOffset);
+      window.scrollTo({ top: targetTop, behavior: reducedMotion ? "instant" : "smooth" });
+    }
+  }
   useEffect(() => { syncCover(frame.current?.contentDocument, showTaxonomy); }, [showTaxonomy]);
   useEffect(() => () => observer.current?.disconnect(), []);
+  useEffect(() => {
+    if (!targetSection) {
+      lastRevealedKey.current = null;
+      return;
+    }
+    if (!frameReady || !headings.length || lastRevealedKey.current === requestKey) return;
+    // Wait for React to commit the iframe height and the browser to lay it out.
+    let raf2: number | undefined;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const result = revealPendingPaperSection({
+          doc: frame.current?.contentDocument,
+          targetSection,
+          frameReady,
+          lastRevealedKey: lastRevealedKey.current,
+          requestKey,
+          reducedMotion,
+        });
+        if (result.revealed) alignFrameHeading(targetSection, reducedMotion);
+        lastRevealedKey.current = result.nextRevealedKey;
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      if (raf2 !== undefined) cancelAnimationFrame(raf2);
+    };
+  }, [frameReady, headings, height, requestKey, targetSection]);
   function loaded() {
+    setFrameReady(false);
     observer.current?.disconnect();
     setHeadings([]);
     try {
@@ -50,6 +96,7 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
         setHeight(Math.max(800, Math.ceil(body.getBoundingClientRect().height + margins)));
       };
       resize();
+      setFrameReady(true);
       if (typeof ResizeObserver !== "undefined" && doc.body) {
         observer.current = new ResizeObserver(resize);
         observer.current.observe(doc.body);
@@ -58,7 +105,11 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
   }
   function revealSection(id: string) {
     const doc = frame.current?.contentDocument;
-    return doc ? revealPaperHeading(doc, id, window.matchMedia("(prefers-reduced-motion: reduce)").matches) : false;
+    if (!doc) return false;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const revealed = revealPaperHeading(doc, id, reducedMotion);
+    if (revealed) alignFrameHeading(id, reducedMotion);
+    return revealed;
   }
 
   if (!hrefs) {
@@ -68,7 +119,7 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
   const showMap = topic.id === "aclgraph" && !!topic.report;
 
   return (
-    <div className="academic-paper-page">
+    <div className="academic-paper-page" data-target-section={targetSection ?? undefined}>
       {!embedded && <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden="true" /> 专题目录</Link>}
       <header className="topic-heading academic-paper-heading">
         <p className="topic-meta">资料截止 <time dateTime={paper.literatureCutoff}>{paper.literatureCutoff}</time></p>

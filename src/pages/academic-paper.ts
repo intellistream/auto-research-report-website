@@ -50,3 +50,24 @@ export function revealPaperHeading(doc: Document, id: string, reducedMotion = fa
   heading.focus({ preventScroll: true });
   return true;
 }
+
+export function parsePaperSectionParam(search: string | URLSearchParams): string | null {
+  const params = typeof search === "string" ? new URLSearchParams(search) : search;
+  return params.get("section")?.trim() || null;
+}
+
+export function revealPendingPaperSection({ doc, targetSection, frameReady, lastRevealedKey, requestKey, reducedMotion }: {
+  doc: Document | null | undefined;
+  targetSection: string | null;
+  frameReady: boolean;
+  lastRevealedKey: string | null;
+  requestKey: string;
+  reducedMotion?: boolean;
+}): { revealed: boolean; nextRevealedKey: string | null } {
+  if (!targetSection) return { revealed: false, nextRevealedKey: null };
+  if (!frameReady || !doc || lastRevealedKey === requestKey) {
+    return { revealed: false, nextRevealedKey: lastRevealedKey };
+  }
+  const revealed = revealPaperHeading(doc, targetSection, reducedMotion);
+  return { revealed, nextRevealedKey: revealed ? requestKey : lastRevealedKey };
+}

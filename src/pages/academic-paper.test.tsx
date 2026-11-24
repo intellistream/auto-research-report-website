@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import TopicPages, { type Topic, type TopicIndex } from "./TopicPages";
 import actualIndex from "../../public/word-reports/topics.json";
-import { academicPaperHeadings, academicPaperHrefs, PAPER_FILES, revealPaperHeading, type AcademicPaper } from "./academic-paper";
+import { academicPaperHeadings, academicPaperHrefs, PAPER_FILES, parsePaperSectionParam, revealPaperHeading, revealPendingPaperSection, type AcademicPaper } from "./academic-paper";
 
 const archiveBase = import.meta.env.BASE_URL + "word-reports/";
 const version = "c".repeat(64);
@@ -49,7 +49,7 @@ describe("academic manuscript branch", () => {
     expect(html).not.toContain("工程证据的持续积累");
     expect(html).not.toContain(oldTopic.report!.abstract);
     expect(html).toContain("view=report");
-    const reportView = render("/topics/aclgraph?view=report");
+    const reportView = render("/topics/aclgraph?view=report&legacy=1");
     expect(reportView).toContain(oldTopic.report!.title);
     expect(reportView).toContain("工程证据的持续积累");
     expect(reportView).not.toContain("取材证据附录");
@@ -63,10 +63,15 @@ describe("academic manuscript branch", () => {
     expect(html).not.toContain(paper.abstract);
   });
   it("retains current report behavior when metadata is absent", () => {
-    const html = render("/topics/aclgraph?view=report", oldTopic);
+    const html = render("/topics/aclgraph?view=report&legacy=1", oldTopic);
     expect(html).toContain("局部工程证据对照");
     expect(html).not.toContain("<iframe");
     expect(html).not.toContain(paper.title);
+  });
+  it("opens the community PR radar without an iframe at the default report URL", () => {
+    const html = render("/topics/aclgraph?view=report", publishedTopic);
+    expect(html).toContain("社区 PR 趋势雷达");
+    expect(html).not.toContain("<iframe");
   });
   it("rejects crossed versions, external URLs, traversal and wrong artifact names", () => {
     for (const path of ["https://example.com/paper.html", `topic-papers/other/${version}/paper.html`, `topic-papers/aclgraph/${"b".repeat(64)}/paper.html`, prefix + "../paper.html", prefix + "%2e%2e/paper.html", prefix + "report.html"]) {
@@ -119,17 +124,37 @@ describe("academic manuscript branch", () => {
     const actual = publishedTopic.academicPaper!;
     const hrefs = academicPaperHrefs("aclgraph", actual)!;
     const html = render("/topics/aclgraph?view=paper", publishedTopic);
-    expect(html).toContain("ACLGraph 技术分类与代表工作");
-    expect(html.indexOf("ACLGraph 技术分类与代表工作")).toBeLessThan(html.indexOf("<iframe"));
+    expect(html).toContain("ACLGraph 综述研究版图总览");
+    expect(html.indexOf("ACLGraph 综述研究版图总览")).toBeLessThan(html.indexOf("<iframe"));
     for (const route of publishedTopic.survey!.routes) {
       expect(html).toContain(`href="${hrefs.html}#${encodeURIComponent(route.paperAnchor!)}"`);
     }
     for (const kind of Object.keys(actual.assets)) {
       expect(html).toContain(`href="${hrefs[kind as keyof typeof PAPER_FILES]}"`);
     }
-    expect(html).toContain("回放状态与地址更新");
-    expect(html).toContain("图模板共享与重复准备消除");
-    expect(html).toContain(`${hrefs.html}#ref-31`);
+    expect(actual.version).toBe("62dba962fda5240ee8b37bdac3d8c877245daabcdab03265e7ef7ead46d0fd86");
+    expect(actual.manuscriptRevision).toBe("v5-csur-20261124");
+    expect(actual.literatureCutoff).toBe("2026-11-24");
+    expect(html).toContain("视角一：典型大模型推理场景版图（第 3 章 · 4 大场景 · 24 项代表工作）");
+    expect(html).toContain("视角二：通用执行图系统核心机制版图（第 4 章 · 4 大机制 · 33 项代表工作）");
+    expect(html).toContain("细粒度机制分组（10 组）");
+    for (const section of ["3-1", "3-2", "3-3", "3-4", "4-3", "4-4", "4-5", "4-6"]) {
+      expect(html).toContain(`href="${hrefs.html}#section-${section}"`);
+    }
+    const references = [...html.matchAll(/class="acl-taxonomy-citation" href="[^"]*#ref-(\d+)"/g)]
+      .map((match) => Number(match[1]));
+    expect(references).toHaveLength(57);
+    expect(new Set(references).size).toBe(57);
+    expect(references.slice(0, 24)).toEqual([
+      51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 11,
+      62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 31, 30,
+    ]);
+    expect(references.slice(24)).toEqual([
+      8, 9, 10, 4, 5, 6, 7, 16, 17, 14, 15, 18,
+      20, 21, 23, 72, 22, 24, 25, 26, 27, 19, 28, 29,
+      32, 33, 34, 35, 38, 39, 36, 37, 40,
+    ]);
+    for (const legacy of ["双平面", "平面 I", "平面 II", "T1-L", "T2-L"]) expect(html).not.toContain(legacy);
     expect(html).toContain(`src="${hrefs.html}"`);
     expect(html).toContain(`href="${hrefs.pdf}"`);
     expect(html).toContain(`href="${hrefs.sources}"`);
@@ -139,5 +164,151 @@ describe("academic manuscript branch", () => {
     const directory = render("/topics", publishedTopic);
     expect(directory).not.toContain(renderToStaticMarkup(<>{actual.abstract}</>));
     expect(directory).not.toContain(renderToStaticMarkup(<>{oldTopic.report!.abstract}</>));
+  });
+});
+
+describe("paper section query parameters", () => {
+  it.each<[string, string | null]>([
+    ["?view=paper&section=section-4-1", "section-4-1"],
+    ["section=section-4-2", "section-4-2"],
+    ["?section=%20%09section-5-2%0A%20", "section-5-2"],
+    ["?section=", null],
+    ["?section", null],
+    ["?section=%20%09%0A", null],
+    ["?view=paper", null],
+    ["", null],
+  ])("parses %j from either supported input type", (search, expected) => {
+    expect(parsePaperSectionParam(search)).toBe(expected);
+    const params = new URLSearchParams(search);
+    const original = params.toString();
+    expect(parsePaperSectionParam(params)).toBe(expected);
+    expect(params.toString()).toBe(original);
+  });
+});
+
+describe("pending paper section navigation", () => {
+  const requestKey = `${version}:entry-a:section-4-1`;
+  const pending = { targetSection: "section-4-1", frameReady: true, lastRevealedKey: null, requestKey };
+
+  function sectionDocument() {
+    const firstHeading = { tagName: "H2", tabIndex: 0, scrollIntoView: vi.fn(), focus: vi.fn() };
+    const nextHeading = { tagName: "H3", tabIndex: 0, scrollIntoView: vi.fn(), focus: vi.fn() };
+    const reference = { tagName: "A", tabIndex: 0, scrollIntoView: vi.fn(), focus: vi.fn() };
+    const unsupported = { tagName: "H5", tabIndex: 0, scrollIntoView: vi.fn(), focus: vi.fn() };
+    const elements: Record<string, typeof firstHeading> = {
+      "section-4-1": firstHeading, "section-5-2": nextHeading, "ref-1": reference, unsupported,
+    };
+    const getElementById = vi.fn((id: string) => elements[id] ?? null);
+    const doc = { getElementById } as unknown as Document;
+    return { doc, getElementById, firstHeading, nextHeading, reference, unsupported };
+  }
+
+  it("waits for iframe load and resize, then focuses and scrolls exactly once across resize ticks", () => {
+    const { doc, getElementById, firstHeading } = sectionDocument();
+    const waiting = revealPendingPaperSection({ ...pending, doc, frameReady: false });
+    expect(waiting).toEqual({ revealed: false, nextRevealedKey: null });
+    expect(getElementById).not.toHaveBeenCalled();
+    expect(firstHeading.scrollIntoView).not.toHaveBeenCalled();
+    expect(firstHeading.focus).not.toHaveBeenCalled();
+
+    const ready = revealPendingPaperSection({ ...pending, doc, lastRevealedKey: waiting.nextRevealedKey });
+    expect(ready).toEqual({ revealed: true, nextRevealedKey: requestKey });
+    expect(getElementById).toHaveBeenCalledWith("section-4-1");
+    expect(firstHeading.tabIndex).toBe(-1);
+    expect(firstHeading.scrollIntoView).toHaveBeenCalledExactlyOnceWith({ behavior: "smooth", block: "start" });
+    expect(firstHeading.focus).toHaveBeenCalledExactlyOnceWith({ preventScroll: true });
+
+    for (let tick = 0; tick < 3; tick++) {
+      expect(revealPendingPaperSection({ ...pending, doc, lastRevealedKey: ready.nextRevealedKey }))
+        .toEqual({ revealed: false, nextRevealedKey: requestKey });
+    }
+    expect(getElementById).toHaveBeenCalledTimes(1);
+    expect(firstHeading.scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(firstHeading.focus).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves the previous request while the next iframe is not ready", () => {
+    const { doc, getElementById, firstHeading } = sectionDocument();
+    expect(revealPendingPaperSection({ ...pending, doc, frameReady: false, lastRevealedKey: "earlier-request" }))
+      .toEqual({ revealed: false, nextRevealedKey: "earlier-request" });
+    expect(getElementById).not.toHaveBeenCalled();
+    expect(firstHeading.scrollIntoView).not.toHaveBeenCalled();
+    expect(firstHeading.focus).not.toHaveBeenCalled();
+  });
+
+  it.each([null, undefined])("waits safely when the iframe document is %s", (doc) => {
+    expect(revealPendingPaperSection({ ...pending, doc, lastRevealedKey: "earlier-request" }))
+      .toEqual({ revealed: false, nextRevealedKey: "earlier-request" });
+  });
+
+  it("reveals a new section while the paper remains mounted", () => {
+    const { doc, firstHeading, nextHeading } = sectionDocument();
+    const first = revealPendingPaperSection({ ...pending, doc });
+    const nextRequestKey = `${version}:entry-a:section-5-2`;
+    expect(revealPendingPaperSection({ ...pending, doc, targetSection: "section-5-2", requestKey: nextRequestKey, lastRevealedKey: first.nextRevealedKey }))
+      .toEqual({ revealed: true, nextRevealedKey: nextRequestKey });
+    expect(firstHeading.scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(nextHeading.tabIndex).toBe(-1);
+    expect(nextHeading.scrollIntoView).toHaveBeenCalledExactlyOnceWith({ behavior: "smooth", block: "start" });
+    expect(nextHeading.focus).toHaveBeenCalledExactlyOnceWith({ preventScroll: true });
+  });
+
+  it("reveals the same section again for a new navigation key", () => {
+    const { doc, firstHeading } = sectionDocument();
+    const first = revealPendingPaperSection({ ...pending, doc });
+    const nextRequestKey = `${version}:entry-b:section-4-1`;
+    expect(revealPendingPaperSection({ ...pending, doc, requestKey: nextRequestKey, lastRevealedKey: first.nextRevealedKey }))
+      .toEqual({ revealed: true, nextRevealedKey: nextRequestKey });
+    expect(firstHeading.scrollIntoView).toHaveBeenCalledTimes(2);
+    expect(firstHeading.focus).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears the tracked key when section is removed, even without a ready iframe", () => {
+    const { doc, firstHeading } = sectionDocument();
+    const first = revealPendingPaperSection({ ...pending, doc });
+    const cleared = revealPendingPaperSection({ doc: null, targetSection: null, frameReady: false, requestKey: "", lastRevealedKey: first.nextRevealedKey });
+    expect(cleared).toEqual({ revealed: false, nextRevealedKey: null });
+    expect(firstHeading.scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(revealPendingPaperSection({ ...pending, doc, lastRevealedKey: cleared.nextRevealedKey }))
+      .toEqual({ revealed: true, nextRevealedKey: requestKey });
+    expect(firstHeading.scrollIntoView).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(["ref-1", "missing", "unsupported"])("rejects %s without scrolling or marking the request as revealed", (targetSection) => {
+    const { doc, firstHeading, nextHeading, reference, unsupported } = sectionDocument();
+    for (const lastRevealedKey of [null, "earlier-request"]) {
+      const rejected = revealPendingPaperSection({ ...pending, doc, targetSection, lastRevealedKey });
+      expect(rejected).toEqual({ revealed: false, nextRevealedKey: lastRevealedKey });
+    }
+    for (const element of [firstHeading, nextHeading, reference, unsupported]) {
+      expect(element.scrollIntoView).not.toHaveBeenCalled();
+      expect(element.focus).not.toHaveBeenCalled();
+      expect(element.tabIndex).toBe(0);
+    }
+    expect(revealPendingPaperSection({ ...pending, doc })).toEqual({ revealed: true, nextRevealedKey: requestKey });
+  });
+
+  it("honors reduced motion for a pending section reveal", () => {
+    const { doc, firstHeading } = sectionDocument();
+    expect(revealPendingPaperSection({ ...pending, doc, reducedMotion: true }))
+      .toEqual({ revealed: true, nextRevealedKey: requestKey });
+    expect(firstHeading.scrollIntoView).toHaveBeenCalledExactlyOnceWith({ behavior: "instant", block: "start" });
+    expect(firstHeading.focus).toHaveBeenCalledExactlyOnceWith({ preventScroll: true });
+  });
+});
+
+describe("paper section server rendering", () => {
+  it("renders the PR deep link with its target and frozen v5 iframe without browser APIs", () => {
+    const frozenV5Version = "62dba962fda5240ee8b37bdac3d8c877245daabcdab03265e7ef7ead46d0fd86";
+    expect(publishedTopic.academicPaper!.version).toBe(frozenV5Version);
+    const html = render("/topics/aclgraph?view=paper&section=section-4-3", publishedTopic);
+    expect(html).toContain('class="academic-paper-page" data-target-section="section-4-3"');
+    expect(html.match(/<iframe\b[^>]*>/)?.[0]).toContain(`src="${archiveBase}topic-papers/aclgraph/${frozenV5Version}/paper.html"`);
+    expect(html).toContain('sandbox="allow-same-origin"');
+    expect(html).not.toContain('role="alert"');
+  });
+
+  it.each(["", "&section=", "&section=%20%09"])("omits the target attribute for a plain or empty section: %s", (search) => {
+    expect(render(`/topics/aclgraph?view=paper${search}`, publishedTopic)).not.toContain("data-target-section");
   });
 });

@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import AclGraphGuide from "./AclGraphGuide";
+import AclGraphDynamicReport from "./AclGraphDynamicReport";
 import TopicAcademicPaper from "./TopicAcademicPaper";
 import TopicResearchReport from "./TopicResearchReport";
 import "./aclgraph-topic.css";
@@ -64,7 +65,10 @@ export default function AclGraphTopic({ topic }: { topic: Topic }) {
   // Some shared report links predate the view parameter.
   const reportView = legacyEvidence || view === "report" || (!view && (query.has("read") || part?.startsWith("survey-")));
   const section = view === "paper" ? "paper" : reportView ? "report" : "guide";
-  useEffect(() => { window.scrollTo(0, 0); }, [section]);
+  const targetPaperSection = section === "paper" && Boolean(query.get("section")?.trim());
+  useEffect(() => {
+    if (!targetPaperSection) window.scrollTo(0, 0);
+  }, [section, targetPaperSection]);
   useEffect(() => {
     if (!legacyEvidence) return;
     const next = new URLSearchParams(query);
@@ -88,8 +92,16 @@ export default function AclGraphTopic({ topic }: { topic: Topic }) {
     {section === "paper" && (topic.academicPaper
       ? <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} embedded />
       : <p>综述准备中。</p>)}
-    {section === "report" && (topic.report
-      ? <TopicResearchReport key={topic.report.version} topic={topic} report={topic.report} embedded />
-      : <p>动态报告准备中。</p>)}
+    {section === "report" && (() => {
+      const showLegacyReport = query.get("legacy") === "1" || legacyEvidence || query.has("read") || Boolean(part?.startsWith("survey-"));
+      if (!showLegacyReport) return <AclGraphDynamicReport topic={topic} />;
+      return topic.report ? <>
+        <aside className="acl-legacy-banner" aria-label="历史报告视图">
+          <span>当前正在查看历史冻结版静态工程报告（Rev {topic.report.revision}）</span>
+          <Link to={{ pathname: path, search: "view=report" }}>返回新版《社区 PR 趋势雷达》→</Link>
+        </aside>
+        <TopicResearchReport key={topic.report.version} topic={topic} report={topic.report} embedded />
+      </> : <p>动态报告准备中。</p>;
+    })()}
   </div>;
 }
