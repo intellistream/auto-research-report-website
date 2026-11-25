@@ -1,30 +1,37 @@
-# Final SpecDec Chinese survey
+# Speculative Decoding
 
-Reviewed source: [specdec-survey/paper-zh at ca70c26](https://github.com/sad-and-bad1231/specdec-survey/tree/ca70c26ae5d8abc2f1cd9e7807719c8e239f4742/paper-zh). The old `paper/` directory is the historical 2026-11-19 source, not the new author build.
+- Mechanism guide: `src/pages/SpecDecGuide.tsx`.
+- Academic survey: the current publication is bound by `public/word-reports/topics.json` and `survey.json`.
+- Weekly reports: `weekly/YYYY-MM-DD.json` (one file per edition, named by the end date). The original dynamic research report remains available through the historical report entry.
 
-Frozen revision: `zh-survey-final-20261124-webfix2`, version `55a5ac0230875b20dc43011902adf41d3f47d466b4fc871309ac15c265a835ba`.
+## Academic survey
 
-HTML-only correction: explicitly disable vertical overflow on display-math paragraphs with block padding, retain narrow-screen horizontal scrolling, native MathML overflow, ACLGraph citation palette and bibliography hanging alignment. The previous webfix1 snapshot remains frozen. The HTML body, PDF, Word, Markdown, TeX and bibliography are unchanged. The source bundle includes the corrected `paper.css`; author style source is commit `6f0b47a8c48b1ae5f31b4e5df75deda07c1b4c1d`. Previous frozen version `fb929a22ef57cc9a696df3dadd3bd6aed68bb18dd37b8096c2c2bd05d5cc8f3b` remains intact.
+Author repository: [specdec-survey/paper-zh](https://github.com/sad-and-bad1231/specdec-survey/tree/main/paper-zh).
 
-Author assets were retrieved at `dee4c99e869fa8694cb5fda165b4118fbbdeefc7`, built from `277cc93278ae714e6d7c7a0223206aa963303db7`. All seven original dist asset SHA-256 digests matched the author manifest. Its sourceDirty flag was true: the exported Markdown matches the pinned chapter sources after line-ending normalization, and the chapter files, four SVGs, bibliography and build script in the author source archive match that pinned commit. The PDF compilation log reports 37 pages and no unresolved references or rerun warnings. The six primary publication files are copied byte-for-byte; the public source archive is rebuilt using the academic importer's source whitelist, as a deterministic ZIP with stored entries. The author build log and author-specific source package are not published. Future publications should use a clean-checkout author build and the Python staging command below.
+Current revision: `zh-survey-final-20261124-webfix2`, version `55a5ac0230875b20dc43011902adf41d3f47d466b4fc871309ac15c265a835ba`. Literature cutoff: 2026-11-24. The 37-page PDF and other manuscript formats are unchanged from the initial Chinese publication; the final HTML and source bundle include the MathML layout fix. Original author assets: `dee4c99e869fa8694cb5fda165b4118fbbdeefc7`; manuscript source: `277cc93278ae714e6d7c7a0223206aa963303db7`.
 
-From the editorial branch `research/specdec-survey-final-20261124`:
+Publish a clean author build from a `research/specdec-survey-*` branch:
 
 ```sh
 python scripts/publish-specdec-paper.py --check \
   --source /path/to/specdec-survey/paper-zh/dist \
-  --literature-cutoff 2026-11-24 \
-  --manuscript-revision zh-survey-final-20261124
-
+  --literature-cutoff YYYY-MM-DD --manuscript-revision REVISION
 python scripts/publish-specdec-paper.py --publish \
   --source /path/to/specdec-survey/paper-zh/dist \
-  --literature-cutoff 2026-11-24 \
-  --manuscript-revision zh-survey-final-20261124
+  --literature-cutoff YYYY-MM-DD --manuscript-revision REVISION
+```
 
+Keep the active paper and its version-bound manifest, downloads and source bundle. Retired layout revisions and old author sources are available in Git history, not duplicated in the current checkout.
+
+## Weekly maintenance
+
+Use the existing daily PR index, check the original PRs and relate significant changes to previous editions. Save each new edition as a separate JSON file matching the existing schema; editions load automatically. Keep source IDs, review date, head/base, experimental conditions and cross-edition references consistent. The latest edition is the default view; archived editions remain fixed. Update the outstanding watchlist in `src/pages/specdec-weekly.ts` when follow-up evidence changes.
+
+## Checks
+
+```sh
 python -m unittest discover -s scripts
 npm ci
 npm test
 npm run build
 ```
-
-Review the local `?view=paper` page, including chapter navigation, equations, four figures, four tables, citations, and PDF/Word/source downloads. The new immutable paper archive, SpecDec's academicPaper index and four route bindings are the only expected publication changes. Preserve the report, candidate baseline, guide content, ACLGraph and historical paper versions. No deployment or main merge is performed by this script.

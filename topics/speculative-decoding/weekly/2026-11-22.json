@@ -1,0 +1,782 @@
+{
+  "schemaVersion": 1,
+  "id": "2026-11-22",
+  "periodStart": "2026-11-16",
+  "periodEnd": "2026-11-22",
+  "checkedAt": "2026-11-25",
+  "indexCommit": "1fe2649b34888dfcbde58839c4765773ea953f4c",
+  "title": "推测解码的关键路径：从草稿融合到设备端执行",
+  "overview": "专用草稿进入跨层融合阶段，但 Kimi GQA drafter 的局部耗时下降 38%，完整 step 仅下降约 3%。相比继续压缩草稿，验证 plan 的形状边界、状态布局与全 FA3 设备长度路径提供了不同的关键路径优化机会。",
+  "scope": "按北京时间日报收录日归档；18 条 PR，14 条附关键变更路径或片段。状态及版本以 2026-11-25 回查为准。",
+  "stories": [
+    {
+      "slug": "draft",
+      "title": "草稿耗时下降 38%，为何整步仅下降 3%？",
+      "lead": "局部融合与跨层持久执行",
+      "paragraphs": [
+        "#65985 将 Muse Spark 的 5 层 DSpark 草稿和最终 norm 放入一次 persistent FlyDSL launch。每请求 7 个 query rows，1/2 请求映射到 S=8/16，权重原位读取、peer buffer 预分配，各 rank 按同一形状契约选路；其余形状回退。这不是省去数学上的归约，而是将频繁下发和层间协同纳入同一执行路径。",
+        "#68701 的 GQA drafter 保留滑窗注意力，将 context projection 列并行化、线性层换为 DraftGemm、融合 Markov 步，并把行并行结果的归约交给后续 RMSNorm。#67725 融合双宽度 norm；#67807 更新 Kimi K3.1 部署配方，将原 MLA preview 草稿切换为五层 GQA 草稿。"
+      ],
+      "sourceIds": [
+        "github:vllm-project/vllm#65985",
+        "github:vllm-project/vllm#68701",
+        "github:vllm-project/vllm#67725",
+        "github:vllm-project/vllm#67807"
+      ],
+      "metrics": [
+        {
+          "sourceId": "github:vllm-project/vllm#65985",
+          "environment": "8×MI355X，Muse Spark，DSpark K7；1 请求，图回放",
+          "result": "草稿层及末端 norm：684–732 → 337–338 μs；AgentX c=1 interactivity +4.1%",
+          "boundary": "固定形状；AgentX 合成接受长度、每臂一次"
+        },
+        {
+          "sourceId": "github:vllm-project/vllm#68701",
+          "environment": "8×B300，Kimi-K3.1-Pro，TP8+DCP8，K4，并发1",
+          "result": "Draft 751 → 463 μs；完整 step 8.391 → 8.123 ms；输出 325.7 → 330.7 tok/s",
+          "boundary": "草稿局部约 −38%，整步约 −3.2%；接受长度 3.49 → 3.56。"
+        },
+        {
+          "sourceId": "github:vllm-project/vllm#67725",
+          "environment": "B300，Qwen3.8-Flash-Next MTP",
+          "result": "融合 norm 微基准 12–77×；median ITL 改善约 0.07–0.17 ms",
+          "boundary": "norm 微基准与 Serving ITL 分别测量"
+        }
+      ],
+      "assessment": "原始 draft 占完整 step 的 8.95%。按 Amdahl 定律，若其余时间不变且无重叠，完全消除 draft 的整步加速上限约为 1.10×。这解释了为何下一步应重点观察 Target Verify 与阶段间空泡。",
+      "keyEvidence": "Kimi K3.1，8×B300，TP8+DCP8，K4、并发 1：draft 751→463 μs，完整 step 8.391→8.123 ms（#68701）。",
+      "figure": {
+        "title": "同一 PR 内的局部与整步降幅",
+        "unit": "%",
+        "rows": [
+          {
+            "label": "Draft",
+            "value": 38.35
+          },
+          {
+            "label": "完整 Decode step",
+            "value": 3.19
+          }
+        ],
+        "scale": 100,
+        "precision": 1,
+        "sourceId": "github:vllm-project/vllm#68701",
+        "note": "各自相对原始耗时的下降比例；不是两个阶段的时间占比。"
+      }
+    },
+    {
+      "slug": "verify",
+      "title": "K=3 与 K=4 之间可能出现验证成本断点吗？",
+      "lead": "查询宽度、后端路由与长上下文",
+      "paragraphs": [
+        "#68129 的原 Step5 PrimTS SWA 判定要求均匀查询且 q_len≤4，因此 K>3 且验证占满 K+1 行时会转向 prefill plan。改为 q_len≤max(4,K+1) 后，满足均匀形状的验证继续走分页 decode plan。这类离散切换无法由“每个草稿 token 增加固定成本”的模型解释。",
+        "#67133 在 gfx950 的 GQA 8:1、head dim 64、FP8 KV 条件下使用 split-KV 专用验证内核，全注意力按 KV 长度均衡工作组，滑窗由 kernel 内处理。#68782 则把不规则 XQA mask 的行索引构造移至已有长度信息的主机侧，使用非阻塞复制，去除每步同步。"
+      ],
+      "sourceIds": [
+        "github:vllm-project/vllm#67133",
+        "github:vllm-project/vllm#68129",
+        "github:vllm-project/vllm#68782"
+      ],
+      "metrics": [
+        {
+          "sourceId": "github:vllm-project/vllm#67133",
+          "environment": "4×MI355X，Muse Spark，K7，FP8 KV，prefix-repetition，C16",
+          "result": "输出 532.0 → 572.7 tok/s；ITL p50 40.84 → 32.60 ms",
+          "boundary": "合成接受长度 4.05，单次配对；仅支持特定 GQA/head/dtype 形状。"
+        },
+        {
+          "sourceId": "github:vllm-project/vllm#68129",
+          "environment": "4×GB300，Step5，TP4+EP，K6，随机 1024/512",
+          "result": "C64：1155 → 1250 tok/s；C16：474 → 491；C1：62 → 61",
+          "boundary": "C64 正收益，C1 基本持平"
+        }
+      ],
+      "assessment": "Step5 的新阈值让 K6 均匀验证进入 decode plan，但 c1 仍无收益。值得在原阈值两侧测量 plan 切换及成本，而不是假设验证成本与 K 线性相关。",
+      "keyEvidence": "Step5，4×GB300、K6：并发 64 时输出吞吐 1155→1250 tok/s（+8.2%），并发 1 时 62→61 tok/s（#68129）。"
+    },
+    {
+      "slug": "state",
+      "title": "先厘清状态所有权，再优化状态开销",
+      "lead": "递推状态、前缀缓存与临时缓冲",
+      "paragraphs": [
+        "#69065 针对 BF16/FP16 GDN recurrent state，在 V 不拆分时采用新的 lane layout 与 128-bit 状态读写，减少 shuffle 归约；FP32 和 V-split 仍走原内核。#67733 则用跨步门控和零步长共享权重布局，消除融合 GDN 推测路径的冗余物化。两者改变的是执行成本，不是状态语义。",
+        "#65263 修复不拥有独立 draft KV 的 Gemma-4 MTP 被错误套用 EAGLE 末块丢弃规则的问题；#66951 为复用请求槽位记录有效历史长度，阻止重预填读入旧请求数据。Ascend #22485 则排除 DSpark 不需要的 HC buffer，因为它消费的是独立辅助隐藏态。"
+      ],
+      "sourceIds": [
+        "github:vllm-project/vllm#69065",
+        "github:vllm-project/vllm#67733",
+        "github:vllm-project/vllm#65263",
+        "github:vllm-project/vllm#66951",
+        "github:vllm-project/vllm-ascend#22485"
+      ],
+      "metrics": [
+        {
+          "sourceId": "github:vllm-project/vllm#69065",
+          "environment": "GB300，FP16 state，MTP3，32 请求，kernel microbench",
+          "result": "69.2 → 46.5 μs（1.49×）；Qwen3.8-Flash-Next 最大 decode-step 改善约 5.3%",
+          "boundary": "新路径不用于 FP32 或 V-split；端到端比较按 step，接受长度有变化。"
+        },
+        {
+          "sourceId": "github:vllm-project/vllm#65263",
+          "environment": "B200 TP2，Gemma-4 31B MTP3，8192-token 精确公共前缀边界",
+          "result": "第二请求 cache hit：0 → 8192 tokens；greedy 与 AL 3.53 一致",
+          "boundary": "适用于 KV-shared Gemma-4 MTP；写 draft KV 的草稿不适用。"
+        },
+        {
+          "sourceId": "github:vllm-project/vllm-ascend#22485",
+          "environment": "两节点 A3，DeepSeek V4.1 Flash W4A8，DSpark K5，P/D 分离",
+          "result": "P 侧每 rank HC 320 MiB → 0；自动 KV budget 17.06 → 17.37 GiB",
+          "boundary": "同一 guard 的此前硬件实验；收益进入自动 KV budget"
+        }
+      ],
+      "assessment": "Gemma-4 的共享 KV 不需要 EAGLE 的末块丢弃规则；DSpark 的独立辅助隐藏态不需要 HC buffer。两例共同指出：通用 spec guard 应依据实际状态所有权，而非是否开启 SpecDec。",
+      "keyEvidence": "三个不同层级的结果：GDN 32 请求 kernel 69.2→46.5 μs；Gemma-4 精确 8192-token 公共前缀命中 0→8192；DeepSeek V4.1 P 侧 HC buffer 每 rank 320 MiB→0。"
+    },
+    {
+      "slug": "ascend",
+      "title": "昇腾：消除主机等待，重建候选与图执行契约",
+      "lead": "设备端长度、LM-head TP 与 FULL graph 元数据",
+      "paragraphs": [
+        "#22473 在 attention 初始化后检查实际 draft groups：仅非空且全部 FA3 时开启设备长度路径，PP 同步约束仍优先。FA3 已消费拒绝修正后的 device sequence lengths，故不必等待额外 CPU snapshot。判断依据是数据消费者，而非草稿算法名称。",
+        "#22074 在 DFlash2 compute_candidates 中先聚合并补齐 DP hidden rows，在各词表分片局部 TopK，经 all-to-all 将 score/ID 送回请求所有者，再合并全局 TopK。相较交换完整词表 logits 的朴素方案，这条新增支持路径只交换分片 TopK，但仍需评估 hidden gather、静态 padding 和小批量 collective 开销。#22156 则在 FULL graph 重写 Q 边界后同步裁剪 FIA 的 KV lengths 与 block tables，维护填充请求数契约。"
+      ],
+      "sourceIds": [
+        "github:vllm-project/vllm-ascend#22473",
+        "github:vllm-project/vllm-ascend#22074",
+        "github:vllm-project/vllm-ascend#22156"
+      ],
+      "metrics": [
+        {
+          "sourceId": "github:vllm-project/vllm-ascend#22473",
+          "environment": "单节点 Step5 decode-only，16K 输入 / 1K 输出",
+          "result": "Draft→下一 Target 间隔：2.264525 → 0.057296 ms",
+          "boundary": "阶段间 gap，非完整 TPOT；要求全 FA3 草稿组。"
+        },
+        {
+          "sourceId": "github:vllm-project/vllm-ascend#22074",
+          "environment": "vLLM 0.33.0 关联版本，细粒度 LM-head TP，八词表分片参考测试",
+          "result": "原 PR 描述记录 264 个相关单元测试通过，并补充 338 个扩展测试",
+          "boundary": "候选路由与正确性测试"
+        }
+      ],
+      "assessment": "#22473 将长度同步的准入条件从模型/算法名称推进到实际 draft attention groups。#22074 的后续重点是分片 TopK 交换相较 hidden gather 与 padding 的净成本。",
+      "keyEvidence": "单节点 Step5 decode-only、16K 输入 / 1K 输出：draft 到下一 Target 的间隔 2.264525→0.057296 ms（#22473）。",
+      "figure": {
+        "title": "移除一次不必要的长度同步",
+        "unit": "ms",
+        "rows": [
+          {
+            "label": "原路径",
+            "value": 2.264525
+          },
+          {
+            "label": "全 FA3 路径",
+            "value": 0.057296
+          }
+        ],
+        "scale": 2.5,
+        "precision": 3,
+        "sourceId": "github:vllm-project/vllm-ascend#22473",
+        "note": "Draft 至下一 Target 的阶段间隔；单节点 Step5 profiling。"
+      }
+    }
+  ],
+  "otherIds": [
+    "github:vllm-project/vllm#69023",
+    "github:vllm-project/vllm#64261",
+    "github:vllm-project/vllm#66323"
+  ],
+  "synthesis": [
+    {
+      "title": "草稿融合之后的关键路径",
+      "body": "以 #68701 的 8.95% 草稿占比为参照，观察 Target 与 Host Wait 是否成为主导。",
+      "design": "固定 spec 配置，采集完整 trace，比较融合前后。",
+      "measure": "Draft/Verify 设备区间、阶段间 gap、step time、AL、TPOT。",
+      "decision": "定位融合后转移到 Target 或同步的瓶颈。",
+      "sourceIds": [
+        "github:vllm-project/vllm#68701",
+        "github:vllm-project/vllm#65985",
+        "github:vllm-project/vllm-ascend#22473"
+      ]
+    },
+    {
+      "title": "验证 Plan 的宽度断点",
+      "body": "#68129 的原始 q_len=4 上限提供明确的边界。",
+      "design": "对支持的 Step5 后端扫描 K=2/3/4/6，比较旧/新 plan；区分均匀与 ragged batch。",
+      "measure": "实际 Q、plan、verify time、吞吐。",
+      "decision": "确定性能拐点是否与分派切换一致。",
+      "sourceIds": [
+        "github:vllm-project/vllm#67133",
+        "github:vllm-project/vllm#68129",
+        "github:vllm-project/vllm#68782"
+      ]
+    },
+    {
+      "title": "按状态所有权收紧资源分配",
+      "body": "重点跟踪共享 KV 的 block hash 和 P 侧 HC buffer 的消费者。",
+      "design": "检查 8192-token 前缀边界与 context-only P 路径，比较原 guard 和新 guard。",
+      "measure": "cache hit tokens、buffer bytes、KV budget、AL。",
+      "decision": "确认命中恢复与容量收益是否出自对应状态规则。",
+      "sourceIds": [
+        "github:vllm-project/vllm#65263",
+        "github:vllm-project/vllm#66951",
+        "github:vllm-project/vllm-ascend#22485",
+        "github:vllm-project/vllm-ascend#22156"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "day": "2026-11-21",
+      "label": "methods",
+      "method": "rule",
+      "number": "V9",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "改为从草稿模型首层的前馈专家层读取原生超大专家开关，与加载权重时的取值来源保持一致。守卫仍会拒绝序列并行和原生超大专家，其余行为不变。",
+      "title": "草稿解码守卫改读草稿模型专家开关",
+      "url": "https://github.com/vllm-project/vllm/pull/69023",
+      "version": "d99714d13181b3e643bd0de48d09edc1822db9947bc0496b8ff5574592fb12e6",
+      "workId": "github:vllm-project/vllm#69023",
+      "headSha": "d17f93eb308d84ddc4cefc3329365abcf1449cad",
+      "mergedAt": "2026-11-21T00:55:46Z",
+      "checkedAt": "2026-11-25",
+      "review": "description",
+      "files": [],
+      "baseSha": "820fce0d6755e3ebd72abf01be099df4001835ca",
+      "headRepo": "roborluo/vllm_ds4.1",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-20T19:13:04Z",
+      "updatedAt": "2026-11-21T00:55:47Z"
+    },
+    {
+      "day": "2026-11-21",
+      "label": "runtime",
+      "method": "rule",
+      "number": "V10",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "新增面向 16 位循环状态的融合解码内核：按十六通道分组，以 128 位读写直接搬运状态，并减少归约的 shuffle 步数；仅在不按值维度拆分且请求数达到阈值时启用，单精度状态和小批量仍走原内核，16 位状态在后端拒绝时回退。",
+      "title": "为半精度循环状态启用融合 GDN 解码内核",
+      "url": "https://github.com/vllm-project/vllm/pull/69065",
+      "version": "d99714d13181b3e643bd0de48d09edc1822db9947bc0496b8ff5574592fb12e6",
+      "workId": "github:vllm-project/vllm#69065",
+      "headSha": "d29502504c4655fdd268f12fb8e1f3548a350e6a",
+      "mergedAt": "2026-11-21T08:55:34Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "csrc/gdn/fused_gdn_decode_16bit_kernel.cu",
+        "csrc/gdn/fused_gdn_decode_kernel.cu"
+      ],
+      "baseSha": "2f170a0fed20fd84dfcf6da2a3a8188a32f67e4e",
+      "headRepo": "gau-nernst/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-21T01:35:56Z",
+      "updatedAt": "2026-11-21T08:56:27Z"
+    },
+    {
+      "day": "2026-11-20",
+      "label": "methods",
+      "method": "rule",
+      "number": "V38",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "为该草稿模型新增专用实现：线性层与融合上下文 K/V 投影改用草稿矩阵乘，上下文投影按列切分并在草稿通信邮箱汇总，多步马尔可夫采样融合执行，行并行输出改由后续归一化归约。仅在该后端且目标为 Kimi-K3 时注册，其他草稿不受影响。",
+      "title": "将 GQA 草稿模型接入专用解码以缩短草稿步",
+      "url": "https://github.com/vllm-project/vllm/pull/68701",
+      "version": "77f9eb813fce957fecddb30d9e03aa2e0de2deee5e8d5729518c6a748f76a43e",
+      "workId": "github:vllm-project/vllm#68701",
+      "headSha": "b2cac033ac1c2de10e9736113bd0dac399dc3c78",
+      "mergedAt": "2026-11-19T20:21:44Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "vllm/models/kimi_k3/nvidia/specialized_decode/drafter/gqa.py"
+      ],
+      "baseSha": "d2da27eb2defb88377636fba83d9a41ad35bf44d",
+      "headRepo": "mgoin/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-19T13:34:05Z",
+      "updatedAt": "2026-11-19T20:21:45Z"
+    },
+    {
+      "day": "2026-11-20",
+      "label": "methods",
+      "method": "rule",
+      "number": "A13",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm-ascend",
+      "stage": "speculative",
+      "summary": "仅当已初始化草稿注意力组非空且全部为 FA3 时，直接消费设备端校正后的序列长度，跳过长度拷贝与主机事件等待；混合后端或空组仍同步，Step5 多词元预测也沿用此判定。",
+      "title": "跳过全 FA3 草稿组的 CPU 长度同步以缩短解码空档",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/22473",
+      "version": "77f9eb813fce957fecddb30d9e03aa2e0de2deee5e8d5729518c6a748f76a43e",
+      "workId": "github:vllm-project/vllm-ascend#22473",
+      "headSha": "fb489a9b2a65c07a8c81cbd50991b23c88afeac7",
+      "mergedAt": "2026-11-20T06:37:48Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "vllm_ascend/worker/v2/model_runner.py"
+      ],
+      "baseSha": "1e0f0da1f740400a1d6796bcc23a13b53ca0b464",
+      "headRepo": "yihua-fan/vllm-ascend",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-19T09:46:55Z",
+      "updatedAt": "2026-11-20T07:40:50Z"
+    },
+    {
+      "day": "2026-11-20",
+      "label": "methods",
+      "method": "rule",
+      "number": "V39",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "改为在主机上利用已有的查询长度张量算出每行长度和请求内偏移，再通过一次固定内存的非阻塞拷贝送到显卡，掩码内容保持不变。该路径适用于专用 XQA 解码的不规则批次；均匀批次仍走原有的缓存掩码，不经过这段主机计算。",
+      "title": "在主机侧构建 XQA 不规则草稿掩码以消除每步同步",
+      "url": "https://github.com/vllm-project/vllm/pull/68782",
+      "version": "77f9eb813fce957fecddb30d9e03aa2e0de2deee5e8d5729518c6a748f76a43e",
+      "workId": "github:vllm-project/vllm#68782",
+      "headSha": "496e1964f6a02c74fa94ab8d1091f2957712e994",
+      "mergedAt": "2026-11-20T02:55:42Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "vllm/v1/attention/backends/flashinfer.py"
+      ],
+      "baseSha": "3d0cc3502b10fca55a8c0ab35d39fde3ba2b8f2a",
+      "headRepo": "csahithi/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-19T19:03:05Z",
+      "updatedAt": "2026-11-20T02:55:42Z"
+    },
+    {
+      "day": "2026-11-20",
+      "label": "methods",
+      "method": "rule",
+      "number": "A14",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm-ascend",
+      "stage": "speculative",
+      "summary": "在 V4.1 的缓冲分配条件中排除该推测解码方式，改由已有的无缓冲前向路径完成折叠与收集；其他草稿模型的条件保持不变，运行器、共享的投机判定语义和自动 KV 核算均未改动，无需修改配置。",
+      "title": "排除 DSpark 的隐藏态缓冲分配以释放 KV 缓存空间",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/22485",
+      "version": "77f9eb813fce957fecddb30d9e03aa2e0de2deee5e8d5729518c6a748f76a43e",
+      "workId": "github:vllm-project/vllm-ascend#22485",
+      "headSha": "e16e0b57bbb5a8a065338dc509411658104ccd4b",
+      "mergedAt": "2026-11-20T08:27:44Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "vllm_ascend/models/deepseek_v41/model.py"
+      ],
+      "baseSha": "03f69b977b088680686af6198cc52ab2a5bae542",
+      "headRepo": "GDzhu01/vllm-ascend",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-19T11:04:56Z",
+      "updatedAt": "2026-11-20T08:27:44Z"
+    },
+    {
+      "day": "2026-11-19",
+      "label": "methods",
+      "method": "rule",
+      "number": "V36",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "判断是否丢弃末尾块时排除 Gemma-4 MTP，并把默认哈希前瞻由 1 改为 0，使块哈希与不写 KV 的基线对齐，其他草稿器路径不变。",
+      "title": "修正 Gemma-4 MTP 块哈希以恢复前缀缓存命中",
+      "url": "https://github.com/vllm-project/vllm/pull/65263",
+      "version": "b0e834f019cc7aed0b434e52dbbb32acd9f39a70dc7393e73636679abb8f0ad2",
+      "workId": "github:vllm-project/vllm#65263",
+      "headSha": "7851c923872dcbac53b4fb58a69002b26147c211",
+      "mergedAt": "2026-11-19T06:18:25Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "vllm/config/speculative.py"
+      ],
+      "baseSha": "0c1fcdb649bb84ea178379c7badf2953fe1c4fcf",
+      "headRepo": "xuanzic/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-03T00:41:50Z",
+      "updatedAt": "2026-11-19T06:18:25Z"
+    },
+    {
+      "day": "2026-11-19",
+      "label": "methods",
+      "method": "rule",
+      "number": "V37",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "为每个请求状态槽位记录右对齐的有效历史长度，在请求准入时用设备端清零重置，并让两处重预填读取都受该长度约束。读取长度取拒绝数减一与已缓存词元数的较小值，词元和隐藏状态/嵌入读取保持一致。该改动不新增公开配置。",
+      "title": "限制多模块 MTP 重预填读取以隔离槽位残留",
+      "url": "https://github.com/vllm-project/vllm/pull/66951",
+      "version": "b0e834f019cc7aed0b434e52dbbb32acd9f39a70dc7393e73636679abb8f0ad2",
+      "workId": "github:vllm-project/vllm#66951",
+      "headSha": "2dcaa305c642d2d590cbf34330aa75cd852255ba",
+      "mergedAt": "2026-11-19T01:17:40Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "vllm/v1/worker/gpu/spec_decode/multi_module_mtp/speculator.py"
+      ],
+      "baseSha": "6f687a0836363e636740919b0ee4510aff80098f",
+      "headRepo": "luyixiao95/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-11T04:18:07Z",
+      "updatedAt": "2026-11-19T01:17:41Z"
+    },
+    {
+      "day": "2026-11-19",
+      "label": "runtime",
+      "method": "rule",
+      "number": "A9",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm-ascend",
+      "stage": "speculative",
+      "summary": "在重写草稿注意力元数据时，按层判断后端类型，仅对 FIA 后端把序列长度列表、设备端与主机端序列长度及块表截断到填充请求数。其他后端沿用原有约定，MLA 仍只做查询边界重写，跳过 KV 截断。",
+      "title": "对齐推测解码填充请求的 KV 元数据",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/22156",
+      "version": "b0e834f019cc7aed0b434e52dbbb32acd9f39a70dc7393e73636679abb8f0ad2",
+      "workId": "github:vllm-project/vllm-ascend#22156",
+      "headSha": "36c75f555f4c5f1fbacd01ba890a7ccbae4be69b",
+      "mergedAt": "2026-11-19T13:57:41Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "vllm_ascend/worker/v2/spec_decode/dflash/speculator.py",
+        "vllm_ascend/worker/v2/spec_decode/dspark/speculator.py"
+      ],
+      "baseSha": "58c42a4c1f0d84557c939d7534a294afc8a2cd4c",
+      "headRepo": "shenyunyang/vllm-ascend",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-17T07:44:01Z",
+      "updatedAt": "2026-11-20T01:25:34Z"
+    },
+    {
+      "day": "2026-11-19",
+      "label": "verification",
+      "method": "rule",
+      "number": "V38",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "新增 FlyDSL 分块 KV 验证内核，按查询长度 1 至 8 覆盖普通解码与 1 至 7 个草稿令牌，全注意力层按 KV 字节均衡分配工作组，滑动窗口层由内核自行施加窗口掩码。仅当层形状与特性满足条件时启用，否则回退原有路径；窗口表只在需要时构建。",
+      "title": "为 GQA 8 层接入 FlyDSL 验证内核并跳过滑动窗口表构建",
+      "url": "https://github.com/vllm-project/vllm/pull/67133",
+      "version": "b0e834f019cc7aed0b434e52dbbb32acd9f39a70dc7393e73636679abb8f0ad2",
+      "workId": "github:vllm-project/vllm#67133",
+      "headSha": "e7c098beff0206de7cc6da58f483226e7de89a5c",
+      "mergedAt": "2026-11-19T08:11:07Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "vllm/v1/attention/ops/rocm_gqa_verify.py",
+        "vllm/v1/attention/backends/rocm_aiter_fa.py"
+      ],
+      "baseSha": "34aac94f9c349c76be42e8d1c8849b69ad6303e1",
+      "headRepo": "ROCm/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-12T01:39:36Z",
+      "updatedAt": "2026-11-20T04:08:19Z"
+    },
+    {
+      "day": "2026-11-19",
+      "label": "verification",
+      "method": "rule",
+      "number": "V39",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "将解码计划的查询长度阈值由固定四改为取四与推测令牌数加一中的较大值，使各草稿长度的验证批次继续走分页解码计划。非推测的统一批次仍沿用原计划，阈值保持有界，因为解码计划按请求数和查询长度精确索引。",
+      "title": "为 Step5 的 PrimTS 滑窗验证调整解码计划阈值",
+      "url": "https://github.com/vllm-project/vllm/pull/68129",
+      "version": "b0e834f019cc7aed0b434e52dbbb32acd9f39a70dc7393e73636679abb8f0ad2",
+      "workId": "github:vllm-project/vllm#68129",
+      "headSha": "e1d79317d4a0b869d90c3e8e7428b551dadac2ce",
+      "mergedAt": "2026-11-19T04:08:47Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "vllm/models/step5/nvidia/prims_ts.py"
+      ],
+      "baseSha": "4092096fef1fb0b1fcda9e1bc697b72e5eb55522",
+      "headRepo": "JaredforReal/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-17T09:33:21Z",
+      "updatedAt": "2026-11-19T04:08:47Z"
+    },
+    {
+      "day": "2026-11-18",
+      "label": "methods",
+      "method": "rule",
+      "number": "V22",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "公共元数据构建器在非因果组且后端声明支持非因果多令牌解码上下文并行时，保留推测解码阈值；TRITON_MLA 仅在 gfx942 声明该能力，其他 ROCm 目标仍按原样在启动时拒绝。",
+      "title": "放宽非因果多令牌草稿在解码上下文并行下的重排阈值",
+      "url": "https://github.com/vllm-project/vllm/pull/64261",
+      "version": "b362b9e070b9ffc7e17fcf9ec55a076b19da5c283d982365bb0174cddb00b068",
+      "workId": "github:vllm-project/vllm#64261",
+      "headSha": "ff5ec62cf209492b6b718c4fb7d8f73b915890d0",
+      "mergedAt": "2026-11-18T15:19:15Z",
+      "checkedAt": "2026-11-25",
+      "review": "description",
+      "files": [],
+      "baseSha": "c2d7d74774a8550cb6f6a19931fcaebbe0f9f0d1",
+      "headRepo": "xaguilar-amd/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-10-28T10:10:33Z",
+      "updatedAt": "2026-11-18T15:19:15Z"
+    },
+    {
+      "day": "2026-11-18",
+      "label": "methods",
+      "method": "rule",
+      "number": "A8",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm-ascend",
+      "stage": "speculative",
+      "summary": "在细粒度词表头张量并行下，把各数据并行副本的隐藏状态补齐汇总后再计算词表分片，并用全交换把分片内的候选结果送回请求所属副本，不再交换完整词表得分。",
+      "title": "对齐 DFlash2 候选路由并保留细粒度 LM-head 张量并行",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/22074",
+      "version": "b362b9e070b9ffc7e17fcf9ec55a076b19da5c283d982365bb0174cddb00b068",
+      "workId": "github:vllm-project/vllm-ascend#22074",
+      "headSha": "ef84fbc8ffddb9b2deb433409807d6271e611455",
+      "mergedAt": "2026-11-18T12:09:59Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "vllm_ascend/models/qwen3_dflash2.py",
+        "vllm_ascend/ops/vocab_parallel_embedding.py",
+        "vllm_ascend/worker/v2/spec_decode/dflash2/speculator.py"
+      ],
+      "baseSha": "80a705e62778bee2d49ffa72becf557961f7c181",
+      "headRepo": "danziheng1024/vllm-ascend",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-16T13:10:29Z",
+      "updatedAt": "2026-11-18T12:09:59Z"
+    },
+    {
+      "day": "2026-11-17",
+      "label": "methods",
+      "method": "rule",
+      "number": "V32",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "将草稿切换到新 DSpark 模型，五层分组查询注意力取代旧多头潜在注意力。B300单节点TP8限定最大128序列并关闭自动调优；MI355X改用 Triton 注意力、块大小1152，容器命令把服务子命令置于模型名前。",
+      "title": "修正 B300 与 MI355X 启动参数并切换草稿模型",
+      "url": "https://github.com/vllm-project/vllm/pull/67807",
+      "version": "5d347de85fef0fa92b40eb834e0a26447844d21ccf3a13d7ba6ebc3357f0cee8",
+      "workId": "github:vllm-project/vllm#67807",
+      "headSha": "9a564c0983ecaeec48f2a5f1e55f069563113c7e",
+      "mergedAt": "2026-11-17T00:28:51Z",
+      "checkedAt": "2026-11-25",
+      "review": "description",
+      "files": [],
+      "baseSha": "fdc3364c9543de38e8900360ea1fd6df9c1ec557",
+      "headRepo": "zixi-qi/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-15T21:09:47Z",
+      "updatedAt": "2026-11-17T00:28:51Z"
+    },
+    {
+      "day": "2026-11-16",
+      "label": "runtime",
+      "method": "rule",
+      "number": "V20",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "将5层草稿层与最终归一化合并为每步一次常驻启动，按1个或2个请求分别构建8行和16行两种形态，层间边界、注意力与投影归约都在内核内完成。请求数达到3个及以上时仍走原有草稿层，不支持的草稿配置在启动时记录信息并回退。",
+      "title": "合并草稿层为单次启动以缩短推测解码步",
+      "url": "https://github.com/vllm-project/vllm/pull/65985",
+      "version": "d2678efe2393164ed290c70b8fb6a89d113cdb3703a607db1a6e64354fae6d54",
+      "workId": "github:vllm-project/vllm#65985",
+      "headSha": "4418ca04140bdbf660c3f204f23bfcf7c2dd9124",
+      "mergedAt": "2026-11-16T02:30:07Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "vllm/models/muse_spark/amd/mono/drafter.py",
+        "vllm/models/muse_spark/amd/mono/kernels/draft.py"
+      ],
+      "baseSha": "261042baa696a1412816508e6189587606bc64a7",
+      "headRepo": "azaidy/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-05T21:00:02Z",
+      "updatedAt": "2026-11-16T02:30:07Z"
+    },
+    {
+      "day": "2026-11-16",
+      "label": "runtime",
+      "method": "rule",
+      "number": "V21",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "新增分宽融合内核，一次启动同时完成两路不同宽度的归一化并分别写出连续结果，隐藏路归一化提前到嵌入投影之前执行；原归一化模块保留用于加载权重，数值按原算子顺序累加，但不与逐算子路径逐位一致。",
+      "title": "合并 Qwen4Exp 草稿模型两处前置归一化以降低解码延迟",
+      "url": "https://github.com/vllm-project/vllm/pull/67725",
+      "version": "d2678efe2393164ed290c70b8fb6a89d113cdb3703a607db1a6e64354fae6d54",
+      "workId": "github:vllm-project/vllm#67725",
+      "headSha": "4cf5b5baeff1293bdae3d0833d66d97c7b8eb785",
+      "mergedAt": "2026-11-16T04:45:52Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "vllm/kernels/triton/fused_pre_fc_norms.py"
+      ],
+      "baseSha": "12e8576f6f41012e2a56ddcc5a4516bf8b6edac9",
+      "headRepo": "gau-nernst/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-15T02:37:28Z",
+      "updatedAt": "2026-11-16T04:45:56Z"
+    },
+    {
+      "day": "2026-11-16",
+      "label": "methods",
+      "method": "rule",
+      "number": "V22",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "让 LFM3 模型支持辅助隐藏状态接口，在首层前和每层后按配置记录隐藏状态，流水线并行时由非末级把状态随中间张量传给末级汇总返回；未配置辅助层时输出不变。",
+      "title": "为 LFM3 模型接入 EAGLE-3 辅助隐藏状态提取",
+      "url": "https://github.com/vllm-project/vllm/pull/66323",
+      "version": "d2678efe2393164ed290c70b8fb6a89d113cdb3703a607db1a6e64354fae6d54",
+      "workId": "github:vllm-project/vllm#66323",
+      "headSha": "67f613895311ad32b520cf65c39cafaf3f08813a",
+      "mergedAt": "2026-11-16T03:56:52Z",
+      "checkedAt": "2026-11-25",
+      "review": "description",
+      "files": [],
+      "baseSha": "193d81ab898f797586e318b0344afd9aa2cc2ea7",
+      "headRepo": "rasyosef/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-07T22:14:21Z",
+      "updatedAt": "2026-11-16T03:56:53Z"
+    },
+    {
+      "day": "2026-11-16",
+      "label": "runtime",
+      "method": "rule",
+      "number": "V23",
+      "reason": "原日报推测解码章节候选（待一手核验）",
+      "repository": "vllm",
+      "stage": "speculative",
+      "summary": "改为按词元一行、按头一组就地读取跨步门控，共享权重以零步长展开传入归一化，并直接接受跨步的 a、b 视图，省去连续化拷贝。无元数据分支仍显式清零缓冲以支持性能分析与空跑，预热按融合布局登记调用模式以避免运行时编译。",
+      "title": "消除融合推测解码路径的预填充缓冲初始化与拷贝",
+      "url": "https://github.com/vllm-project/vllm/pull/67733",
+      "version": "d2678efe2393164ed290c70b8fb6a89d113cdb3703a607db1a6e64354fae6d54",
+      "workId": "github:vllm-project/vllm#67733",
+      "headSha": "5540d4aabb6004fd879af61620f5387bea1e6cc1",
+      "mergedAt": "2026-11-16T04:46:12Z",
+      "checkedAt": "2026-11-25",
+      "review": "patch",
+      "files": [
+        "vllm/model_executor/layers/mamba/gdn/qwen_gdn_linear_attn.py",
+        "vllm/third_party/flash_linear_attention/ops/layernorm_guard.py"
+      ],
+      "baseSha": "12e8576f6f41012e2a56ddcc5a4516bf8b6edac9",
+      "headRepo": "gau-nernst/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-15T04:17:59Z",
+      "updatedAt": "2026-11-16T04:46:28Z"
+    }
+  ],
+  "otherGroups": [
+    {
+      "title": "模型接入与布局兼容性",
+      "body": "#69023 修正草稿模型专家开关，#64261 放宽非因果 draft 的 DCP 重排阈值，#66323 为 LFM3 接入 EAGLE3 辅助隐藏态。",
+      "sourceIds": [
+        "github:vllm-project/vllm#69023",
+        "github:vllm-project/vllm#64261",
+        "github:vllm-project/vllm#66323"
+      ]
+    }
+  ],
+  "tracking": [
+    {
+      "fromEdition": "2026-11-15",
+      "fromSlug": "specialized",
+      "body": "Muse Spark 从 #66051 的 Markov 融合推进到 #65985 的五层草稿 persistent launch；Kimi GQA drafter #68701 走独立专用路径。",
+      "sourceIds": [
+        "github:vllm-project/vllm#65985",
+        "github:vllm-project/vllm#68701"
+      ]
+    },
+    {
+      "fromEdition": "2026-11-15",
+      "fromSlug": "shape",
+      "body": "#68129 的 Step5 plan 阈值与 #67133 的 Split-KV 继续扩展验证形状覆盖。",
+      "sourceIds": [
+        "github:vllm-project/vllm#68129",
+        "github:vllm-project/vllm#67133"
+      ]
+    },
+    {
+      "fromEdition": "2026-11-15",
+      "fromSlug": "async",
+      "body": "#22473 将特定 Qwen/Kimi 的设备长度方案推进为全 FA3 草稿组准入。",
+      "sourceIds": [
+        "github:vllm-project/vllm-ascend#22473"
+      ]
+    },
+    {
+      "fromEdition": "2026-11-15",
+      "fromSlug": "ownership",
+      "body": "#22485 处理 HC buffer，#65263 修复 Gemma-4 共享 KV hash，#22156 对齐 FULL graph 元数据。",
+      "sourceIds": [
+        "github:vllm-project/vllm-ascend#22485",
+        "github:vllm-project/vllm#65263",
+        "github:vllm-project/vllm-ascend#22156"
+      ]
+    }
+  ]
+}

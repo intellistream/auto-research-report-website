@@ -62,8 +62,8 @@ describe("SpecDec novice-to-research reading contract", () => {
     expect(render("/topics/speculative-decoding?view=report")).not.toContain("理论局部解码速率比");
   });
 
-  it("keeps eight substantive chapters in the same nested collapsible reader as ACL", () => {
-    const report = render("/topics/speculative-decoding?view=report");
+  it("preserves the historical eight-chapter reader", () => {
+    const report = render("/topics/speculative-decoding?view=report&edition=2026-11-18");
     expect(report).toContain("本章综合判断");
     expect(report).toContain("技术演进与瓶颈迁移");
     expect(report).toContain("失败或负对照");
@@ -84,7 +84,7 @@ describe("SpecDec novice-to-research reading contract", () => {
     expect(report).toContain("part=survey-evidence-E2");
   });
 
-  it("matches ACL's first four academic sections and preserves Chinese progressive headings", () => {
+  it("preserves the original historical report headings", () => {
     const html = render("/topics/speculative-decoding?view=report&read=full");
     const directory = html.slice(html.indexOf('class="survey-toc"'), html.indexOf("</nav>", html.indexOf('class="survey-toc"')));
     const firstFour = [
@@ -109,9 +109,9 @@ describe("SpecDec novice-to-research reading contract", () => {
     expect(html).toContain(`当前网站候选索引共 ${spec.entries.length} 条`);
   });
 
-  it("uses ACLGraph's exact two-level disclosure contract in brief and full modes", () => {
+  it("preserves the historical disclosure contract and ACLGraph", () => {
     for (const topicId of ["aclgraph", "speculative-decoding"]) {
-      const brief = render(`/topics/${topicId}?view=report`);
+      const brief = render(`/topics/${topicId}?view=report${topicId==="speculative-decoding"?"&edition=2026-11-18":""}`);
       if (topicId === "aclgraph") {
         expect(brief).toContain("研究范围与方法");
         expect(brief).toContain("如何使用这些来源");
@@ -133,21 +133,18 @@ describe("SpecDec novice-to-research reading contract", () => {
     }
   });
 
-  it("surfaces PRs added after the frozen candidate baseline without promoting them", () => {
+  it("keeps live candidates in the PR library without changing a frozen weekly report", () => {
     const incoming = { ...spec.entries[0], workId: "github:vllm-project/vllm#999999",
-      title: "New PR: dynamic speculative verification", url: "https://github.com/vllm-project/vllm/pull/999999",
-      day: "2026-11-19" };
+      title: "New PR: dynamic speculative verification", url: "https://github.com/vllm-project/vllm/pull/999999", day: "2026-11-19" };
     const next = { ...spec, entries: [...spec.entries, incoming] };
     const nextIndex = { ...index, topics: index.topics.map(item => item.id === spec.id ? next : item) };
     expect(validatedSurvey(next)).toBeDefined();
-    const html = renderToStaticMarkup(<MemoryRouter initialEntries={["/topics/speculative-decoding?view=report"]}>
+    const renderNext = (search: string) => renderToStaticMarkup(<MemoryRouter initialEntries={["/topics/speculative-decoding?"+search]}>
       <Routes><Route path="/topics/:topicId" element={<TopicPages index={nextIndex} />} /></Routes>
     </MemoryRouter>);
-    const baseline = new Set(reviewedSurvey.candidateBaseline);
-    const incomingCount = next.entries.filter(entry => !baseline.has(entry.workId)).length;
-    expect(html).toContain(`新入候选：${incomingCount} 条 PR`);
-    expect(html).toContain("dynamic speculative verification");
-    expect(html).toContain("不代表已确认性能收益");
+    expect(renderNext("view=report")).not.toContain(incoming.title);
+    expect(renderNext("view=evidence&q=999999")).toContain(incoming.title);
+    expect(renderNext("view=evidence&week=2026-11-22&q=999999")).not.toContain(incoming.title);
   });
 
   it("permits condensed reading and excludes stale editorial evidence", () => {

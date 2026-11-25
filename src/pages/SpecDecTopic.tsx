@@ -4,9 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import SpecDecGuide from "./SpecDecGuide";
 import TopicAcademicPaper from "./TopicAcademicPaper";
-import TopicResearchReport from "./TopicResearchReport";
-import { validatedSurvey } from "./topic-survey";
-import { safeTopicSource } from "./topic-report";
+import SpecDecCommunity from "./SpecDecCommunity";
 import "./aclgraph-topic.css";
 
 const path = "/topics/speculative-decoding";
@@ -28,24 +26,12 @@ export function SpecDecTopicCard({ topic }: { topic: Topic }) {
 }
 
 export default function SpecDecTopic({ topic }: { topic: Topic }) {
-  const [query, setQuery] = useSearchParams();
+  const [query] = useSearchParams();
   const view = query.get("view");
   const part = query.get("part");
-  const legacyEvidence = view === "evidence";
-  const reportView = legacyEvidence || view === "report" || (!view && (query.has("read") || part?.startsWith("survey-")));
+  const reportView = view === "evidence" || view === "report" || (!view && (query.has("read") || part?.startsWith("survey-")));
   const section = view === "paper" ? "paper" : reportView ? "report" : "guide";
-  const baseline = validatedSurvey(topic)?.candidateBaseline;
-  const knownIds = new Set(baseline ?? topic.entries.map(entry => entry.workId));
-  const newCandidates = baseline ? topic.entries.filter(entry => !knownIds.has(entry.workId)) : [];
-
-  useEffect(() => { window.scrollTo(0, 0); }, [section]);
-  useEffect(() => {
-    if (!legacyEvidence) return;
-    const next = new URLSearchParams(query);
-    next.set("view", "report");
-    next.set("part", part === "survey-appendix" ? "survey-appendix" : "survey-pr-trends");
-    setQuery(next, { replace: true });
-  }, [legacyEvidence, part, query, setQuery]);
+  useEffect(() => { if (!part) window.scrollTo(0, 0); }, [section]);
 
   return <div className="acl-topic">
     <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden="true" /> 专题目录</Link>
@@ -62,18 +48,6 @@ export default function SpecDecTopic({ topic }: { topic: Topic }) {
     {section === "paper" && (topic.academicPaper
       ? <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} embedded />
       : <p role="status">综述全文准备中。</p>)}
-    {section === "report" && (topic.report ? <>
-      {newCandidates.length > 0 && <details className="specdec-new-candidates">
-        <summary>新入候选：{newCandidates.length} 条 PR 尚未综合入本版研究判断</summary>
-        <p>这是基于当前冻结候选池的新增线索，仅进入待核队列；不代表已确认性能收益或改写 RQ 结论。</p>
-        <ol>{newCandidates.map(entry => <li key={entry.workId}>
-          <span>{entry.day} · {topic.labels[entry.label] ?? entry.label}</span>{" "}
-          {safeTopicSource(entry.url)
-            ? <a href={safeTopicSource(entry.url)} target="_blank" rel="noreferrer">{entry.title} ↗</a>
-            : entry.title}
-        </li>)}</ol>
-      </details>}
-      <TopicResearchReport key={topic.report.version} topic={topic} report={topic.report} embedded />
-    </> : <p>动态报告准备中。</p>)}
+    {section === "report" && <SpecDecCommunity topic={topic}/> }
   </div>;
 }
