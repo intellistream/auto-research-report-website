@@ -5,17 +5,17 @@
   "periodEnd": "2026-11-22",
   "checkedAt": "2026-11-25",
   "indexCommit": "1fe2649b34888dfcbde58839c4765773ea953f4c",
-  "title": "从草稿专用化到验证关键路径：推测执行的物理成本",
-  "overview": "本周已收录的工程工作集中在三个实际成本上：草稿层的频繁下发与归约，多 token 验证的后端选择和长上下文负载，以及接受状态与设备资源的生命周期。ROCm 与 NVIDIA 的草稿专用化实现都取得了局部收益，但完整解码步仍取决于目标验证；昇腾侧则出现了直接消除主机等待、修复图填充元数据以及释放无用草稿缓冲的工作。这些进展表明，在固定草稿算法和接受规则之外，执行形状、数据所有权及同步边界已经成为可独立优化的对象。",
-  "scope": "从网站已收录日报索引中选取 11 月 16—22 日（北京时间的日报日期）的 18 条去重 PR；不是全社区检索，也不是按创建日统计。11 月 25 日读取全部原始 PR 描述与合入信息，并核查 14 条关键补丁片段或变更路径；其余四条仅作描述级核对。性能数字为提交方报告，未独立复现；代码 head 与作者报告的测试版本可能不同。",
+  "title": "推测解码的关键路径：从草稿融合到设备端执行",
+  "overview": "本周最值得关注的不是新的草稿算法，而是固定接受规则下，推测执行如何真正缩短关键路径。ROCm 的跨层草稿融合与 NVIDIA 的专用 drafter 大幅降低了草稿耗时，但完整解码步改善有限；验证内核、状态布局和昇腾的设备端长度消费则提供了其他切入点。四类进展可以归结为一个问题：哪些计算、搬运或等待是本轮有效输出真正需要的？",
+  "scope": "取材于本站 11 月 16—22 日（北京时间日报日期）收录的 18 条去重 PR，均于本期内合入；不代表全社区检索。11 月 25 日核对全部 PR 描述、合入信息及 head，核查其中 14 条的关键变更片段；其余 4 条为描述级核对。所有性能数据来自提交方，未独立复现；测试版本可能早于最终 head。",
   "stories": [
     {
       "slug": "draft",
-      "title": "草稿执行开始针对模型和硬件专门设计",
-      "lead": "从通用模型前向到固定小批量的跨层持久执行。",
+      "title": "草稿快了 38%，为什么整步只快 3%？",
+      "lead": "局部融合与跨层持久执行",
       "paragraphs": [
-        "vLLM #65985 面向 Muse Spark 的五层 DSpark 草稿，将最终归一化一起纳入 persistent FlyDSL launch。实现专门支持一个或两个请求的形状，复用加载期分配的 IPC 缓冲、固定启动参数及草稿 KV；不满足形状时回退原有实现。优化的关键不是提高接受概率，而是减少频繁下发、层间物化与归约阶段的开销。",
-        "#68701 采用另一条路径：将 Kimi-K3.1 的 GQA 滑窗草稿接入专用 drafter，改写上下文 K/V 投影、通信邮箱及前向路径。#67807 的部署 recipe 已从 MLA preview 切换到五层 GQA 草稿，而 #67725 将两路不同宽度的 MTP RMSNorm 合为一次 Triton 启动。三种改动体现了从部署选择、局部融合到跨层执行的不同粒度。"
+        "#65985 将 Muse Spark 的 5 层 DSpark 草稿和最终 norm 放入一次 persistent FlyDSL launch。每请求 7 个 query rows，1/2 请求映射到 S=8/16，权重原位读取、peer buffer 预分配，各 rank 按同一形状契约选路；其余形状回退。这不是省去数学上的归约，而是将频繁下发和层间协同纳入同一执行路径。",
+        "#68701 的 GQA drafter 保留原滑窗注意力，将 context projection 列并行化、线性层换为 DraftGemm、Markov 步融合，并将行并行结果的归约交给后续 RMSNorm。#67725 的双宽度 norm 融合与 #67807 的 GQA 草稿部署则是更小粒度的优化。三者都应在真实草稿路径中衡量，而不是比较孤立 kernel 的倍率。"
       ],
       "sourceIds": [
         "github:vllm-project/vllm#65985",
@@ -43,15 +43,34 @@
           "boundary": "微基准不是整步加速；提交方说明数值不必逐位一致。"
         }
       ],
-      "assessment": "草稿阶段值得优化，但应先判断它在自然解码步中占多少关键路径。固定小形状的跨层融合与通用小算子融合不是同一种收益模型。"
+      "assessment": "原始 draft 仅占 8.95% 的完整 step。若其余时间不变且无重叠，即使将 draft 完全消除，整步理论速率上限也约为 1.10×。因此先测关键路径份额，再选择融合范围，而不是先追求更大的 kernel 加速比。",
+      "keyEvidence": "Kimi K3.1，8×B300，TP8+DCP8，K4、并发 1：draft 751→463 μs，完整 step 8.391→8.123 ms（#68701）。",
+      "figure": {
+        "title": "同一 PR 内的局部与整步降幅",
+        "unit": "%",
+        "rows": [
+          {
+            "label": "Draft",
+            "value": 38.35
+          },
+          {
+            "label": "完整 Decode step",
+            "value": 3.19
+          }
+        ],
+        "scale": 100,
+        "precision": 1,
+        "sourceId": "github:vllm-project/vllm#68701",
+        "note": "各自相对原始耗时的下降比例；不是两个阶段的时间占比。"
+      }
     },
     {
       "slug": "verify",
-      "title": "多 token 验证需要独立的注意力执行形状",
-      "lead": "验证批次不只是普通 decode 的放大版，也不一定适合 prefill 后端。",
+      "title": "验证成本为什么会在 K=3 与 K=4 之间突变？",
+      "lead": "查询宽度、后端路由与长上下文",
       "paragraphs": [
-        "#67133 为 gfx950、FP8 KV、head size 64 和 GQA 8 的注意力层增加 FlyDSL split-KV 验证内核。全注意力根据序列长度分配工作组，使执行尽量跟随总 KV 工作量；滑窗层使用内核内掩码，元数据在每步共享。形状不满足时仍走 AITER 既有路径。",
-        "#68129 则修正 Step5 PrimTS 滑窗验证的计划选择：此前超过固定查询宽度就进入 prefill plan，改后阈值覆盖 K+1。#68782 处理不规则 XQA 批次，在已有主机长度信息上生成行索引并异步传送，避免阻塞复制及隐式同步。它们共同说明，候选宽度、历史长度分布与后端路径选择都可能改变验证代价，而不改变草稿策略本身。"
+        "#68129 的原 Step5 PrimTS SWA 判定要求均匀查询且 q_len≤4，因此 K>3 会转向 prefill plan。改为 q_len≤max(4,K+1) 后，满足均匀形状的验证继续走分页 decode plan。这类离散切换无法由“每个草稿 token 增加固定成本”的模型解释。",
+        "#67133 在 gfx950 的 GQA 8:1、head dim 64、FP8 KV 条件下使用 split-KV 专用验证内核，全注意力按 KV 长度均衡工作组，滑窗由 kernel 内处理。#68782 则把不规则 XQA mask 的行索引构造移至已有长度信息的主机侧，使用非阻塞复制，去除每步同步。"
       ],
       "sourceIds": [
         "github:vllm-project/vllm#67133",
@@ -72,15 +91,16 @@
           "boundary": "并发相关，不能把 C64 的收益归于所有服务负载。"
         }
       ],
-      "assessment": "评估验证策略时应记录实际后端、Q/KV 形状及图桶，而非只统计 K 和接受长度。固定 K 的物理代价也随模型、上下文和后端变化。"
+      "assessment": "不要默认验证成本随 K 平滑增长。后端选路、query 是否均匀、历史长度分布和图桶可能产生性能断点。针对断点进行小范围 K sweep，往往比先做全局策略搜索更有解释力。",
+      "keyEvidence": "Step5，4×GB300、K6：并发 64 时输出吞吐 1155→1250 tok/s（+8.2%），并发 1 时 62→61 tok/s（#68129）。"
     },
     {
       "slug": "state",
-      "title": "状态与内存：正确性和物理成本是两个独立问题",
-      "lead": "既要避免不合法的历史，也要减少不需要的状态读写。",
+      "title": "先厘清状态所有权，再优化状态开销",
+      "lead": "递推状态、前缀缓存与临时缓冲",
       "paragraphs": [
-        "#69065 为 BF16/FP16 recurrent state 增加独立 GDN MTP fused kernel：在 V 不拆分的路径减少 shuffle 归约，使用 128-bit 状态读写；FP32 和小批量的 V-split 仍使用原内核。#67733 消除融合推测路径在预填充中的缓冲清零、门控连续化及归一化权重物化，利用跨步视图和共享权重布局。",
-        "正确性侧，#65263 让不写自身 draft KV 的 Gemma-4 MTP 不再套用 EAGLE 末块丢弃和 lookahead hash 规则；#66951 在请求槽位准入时重置历史长度，约束重预填读取，避免前一请求的 token 与隐藏态残留。Ascend #22485 在 DeepSeek V4.1 的构造条件中排除 DSpark 不需要的 HC buffer：DSpark 已有辅助状态存储，释放的 HBM 可以由自动 KV sizing 重新利用。"
+        "#69065 针对 BF16/FP16 GDN recurrent state，在 V 不拆分时采用新的 lane layout 与 128-bit 状态读写，减少 shuffle 归约；FP32 和 V-split 仍走原内核。#67733 则用跨步门控和零步长共享权重布局，消除融合 GDN 推测路径的冗余物化。两者改变的是执行成本，不是状态语义。",
+        "#65263 修复不拥有独立 draft KV 的 Gemma-4 MTP 被错误套用 EAGLE 末块丢弃规则的问题；#66951 为复用请求槽位记录有效历史长度，阻止重预填读入旧请求数据。Ascend #22485 则排除 DSpark 不需要的 HC buffer，因为它消费的是独立辅助隐藏态。"
       ],
       "sourceIds": [
         "github:vllm-project/vllm#69065",
@@ -109,15 +129,16 @@
           "boundary": "硬件数据来自同 guard 的此前实验，并非此 PR pristine checkout；不代表 HBM 总占用必降。"
         }
       ],
-      "assessment": "优化对象必须由状态所有权确定：目标 KV、草稿 KV、递推状态及临时缓冲不能用统一的缓存启用谓词替代。容量收益与时延收益也应分开度量。"
+      "assessment": "状态优化前应明确四个问题：谁写入、谁读取、何时有效、何时释放。否则共享前缀可能被无谓丢弃，或临时空间被错误计入长期驻留；释放 HBM 也可能体现为 KV 容量增加，而非 TPOT 下降。",
+      "keyEvidence": "三个不同层级的结果：GDN 32 请求 kernel 69.2→46.5 μs；Gemma-4 精确 8192-token 公共前缀命中 0→8192；DeepSeek V4.1 P 侧 HC buffer 每 rank 320 MiB→0。"
     },
     {
       "slug": "ascend",
-      "title": "昇腾：设备端长度、候选路由与图填充",
-      "lead": "执行依赖与数据一致性决定原生后端的可用性。",
+      "title": "昇腾：消除主机等待，重建候选与图执行契约",
+      "lead": "从真实依赖关系出发，而不是机械移植 GPU kernel",
       "paragraphs": [
-        "#22473 在初始化时遍历实际草稿 attention groups，只有非空且全部 FA3 才允许跳过 CPU 长度同步；FA3 直接消费设备端 rejection-corrected sequence lengths，混合或缺失组仍回退，PP 同步覆盖保留。其价值是消除本来不需要的主机 snapshot 与事件等待，而不是改写采样算法。",
-        "#22074 处理 DFlash2 的细粒度 LM-head TP：PR 描述说明先补齐并聚合各 DP rank 的 hidden rows，再在词表分片计算局部 TopK，最后 all-to-all 路由回请求所有者，避免完整词表 logits 交换；同时修复 QuaRot 权重重建的分片身份。#22156 修复 FULL graph 填充批次中 FIA 的 Q/KV 数量不一致：重写 Q 边界后按填充请求数同步裁剪 KV lengths、CPU/device 长度及 block table，其他后端保持原路径。"
+        "#22473 在 attention 初始化后检查实际 draft groups：仅非空且全部 FA3 时开启设备长度路径，PP 同步约束仍优先。FA3 已消费拒绝修正后的 device sequence lengths，故不必等待额外 CPU snapshot。判断依据是数据消费者，而非草稿算法名称。",
+        "#22074 在 DFlash2 compute_candidates 中先聚合并补齐 DP hidden rows，在各词表分片局部 TopK，经 all-to-all 将 score/ID 送回请求所有者，再合并全局 TopK。通信交换从完整词表候选变为分片 TopK，但仍需评估 hidden gather、静态 padding 和小批量 collective 开销。#22156 则在 FULL graph 重写 Q 边界后同步裁剪 FIA 的 KV lengths 与 block tables，维护填充请求数契约。"
       ],
       "sourceIds": [
         "github:vllm-project/vllm-ascend#22473",
@@ -138,7 +159,26 @@
           "boundary": "证据主要为功能与候选正确性测试；不能据此宣称通信或吞吐净收益。"
         }
       ],
-      "assessment": "原生推测执行中，应先识别长度信息真正的消费者和候选所有权，再决定能否省略同步或通信。图填充造成的逻辑请求数与物理请求数差异必须由后端契约约束。"
+      "assessment": "可先建立 producer→consumer 的长度元数据依赖图：如果下一阶段只读取设备状态，就有机会消去 host wait；若存在 CPU 或 PP 消费者，必须保留正确依赖。候选路由同样需要先确认请求、词表分片与 rank 的所有权。",
+      "keyEvidence": "单节点 Step5 decode-only、16K 输入 / 1K 输出：draft 到下一 Target 的间隔 2.264525→0.057296 ms（#22473）。",
+      "figure": {
+        "title": "移除一次不必要的长度同步",
+        "unit": "ms",
+        "rows": [
+          {
+            "label": "原路径",
+            "value": 2.264525
+          },
+          {
+            "label": "全 FA3 路径",
+            "value": 0.057296
+          }
+        ],
+        "scale": 2.5,
+        "precision": 3,
+        "sourceId": "github:vllm-project/vllm-ascend#22473",
+        "note": "作者 profiling 的阶段间空泡时间；不代表完整 TPOT 的变化。"
+      }
     }
   ],
   "otherIds": [
@@ -148,31 +188,40 @@
   ],
   "synthesis": [
     {
-      "title": "从局部加速转向关键路径",
-      "body": "#65985 与 #68701 的局部草稿改善，和 #22473 的阶段间等待消除，是不同的性能机制。下一步应在相同负载下同时记录 draft/verify/commit 的设备区间、主机等待和完整 step；不要直接相加各 PR 的百分比。",
+      "title": "01 · 先定位一轮中真正可消除的时间",
+      "body": "假设：推测执行存在非计算关键路径，减少这些等待比继续压缩 draft kernel 更有效。",
+      "design": "固定模型、后端、K、采样与请求，分别采集 AR / Spec trace；若目标路径支持，追加仅移除可证明冗余同步的 A/B 对照。保持 eager/graph 模式相同。",
+      "measure": "Draft、Verify 的设备区间、Host wait、阶段间 gap、完整 step、输出 tokens/step 与 TPOT；区分相加的阶段时间和关键路径。",
+      "decision": "若 gap 减少但完整 step 或 TPOT 未改善，检查重叠与瓶颈迁移；若接受长度改变，先排除采样或状态差异。",
       "sourceIds": [
-        "github:vllm-project/vllm#65985",
         "github:vllm-project/vllm#68701",
+        "github:vllm-project/vllm#65985",
         "github:vllm-project/vllm-ascend#22473"
       ]
     },
     {
-      "title": "验证与状态路径必须联合考虑",
-      "body": "#67133、#68129 表明验证执行路径对 Q 宽度与 KV 形状敏感；#66951、#22156 表明改变请求布局时仍需保证有效历史及元数据一致。下一步优先观察混合长度、部分接受和图桶边界的组合场景。",
+      "title": "02 · 搜索验证后端的性能断点",
+      "body": "假设：K 增加触发不同 attention plan，造成验证成本的离散跳变。",
+      "design": "选择支持可变 K 的固定模型/后端，K=1/2/3/4/6；至少两个并发和短/长上下文，先用固定长度或受控候选形状，再测试真实服务。记录每步实际 q_len、pad 与后端分派。",
+      "measure": "Target verify time、attention kernel time、plan/graph bucket、有效输出长度、TPOT；固定相邻 K 比较条件，分开报告均匀与 ragged batch。",
+      "decision": "若没有选路变化，或等形状验证时间平滑，则本实现不支持“计划断点”假设；不应直接照搬 Step5 的阈值。",
       "sourceIds": [
         "github:vllm-project/vllm#67133",
         "github:vllm-project/vllm#68129",
-        "github:vllm-project/vllm#66951",
-        "github:vllm-project/vllm-ascend#22156"
+        "github:vllm-project/vllm#68782"
       ]
     },
     {
-      "title": "关注部署适用范围，而不是跨平台复制数字",
-      "body": "#69065 依赖 CUDA GDN 状态布局，#22485 和 #22473 对应特定 Ascend 模型及后端。后续应追踪不同实现中是否存在同类瓶颈，并在对应版本与模型上重新建立基线。",
+      "title": "03 · 验证状态所有权和资源代价",
+      "body": "假设：草稿额外状态或图填充可能带来不必要的驻留与读写。",
+      "design": "固定模型和 dtype，比较普通/推测路径；增加精确 KV block 边界、槽位回收后短请求、部分接受和图填充案例。只有确认存在无消费者 buffer 后才做最小 guard A/B。",
+      "measure": "Greedy 输出与状态一致性、cache hit tokens、实际 buffer bytes、KV budget、峰值 HBM、step 和端到端性能。",
+      "decision": "正确性失败立即否决；若空间转化为更多 KV 而非直接降时延，应报告容量收益，而不是宣称解码加速。",
       "sourceIds": [
-        "github:vllm-project/vllm#69065",
+        "github:vllm-project/vllm#65263",
+        "github:vllm-project/vllm#66951",
         "github:vllm-project/vllm-ascend#22485",
-        "github:vllm-project/vllm-ascend#22473"
+        "github:vllm-project/vllm-ascend#22156"
       ]
     }
   ],
@@ -446,8 +495,9 @@
       "checkedAt": "2026-11-25",
       "review": "patch",
       "files": [
-        "vllm_ascend/worker/v2/spec_decode/dflash2/speculator.py",
-        "vllm_ascend/worker/v2/spec_decode/lmhead_tp_utils.py"
+        "vllm_ascend/models/qwen3_dflash2.py",
+        "vllm_ascend/ops/vocab_parallel_embedding.py",
+        "vllm_ascend/worker/v2/spec_decode/dflash2/speculator.py"
       ]
     },
     {

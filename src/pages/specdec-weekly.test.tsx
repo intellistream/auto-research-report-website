@@ -23,7 +23,12 @@ describe("SpecDec weekly community",()=>{
         expect(s.url).toBe("https://github.com/"+s.workId.slice("github:".length).replace("#","/pull/"));
         expect(spec.entries.some(row=>row.workId===s.workId)).toBe(true);
       }
-      for(const story of e.stories)for(const metric of story.metrics)expect(story.sourceIds).toContain(metric.sourceId);
+      for(const story of e.stories){
+        expect(story.keyEvidence.trim()).not.toBe("");
+        for(const metric of story.metrics)expect(story.sourceIds).toContain(metric.sourceId);
+        if(story.figure){expect(story.sourceIds).toContain(story.figure.sourceId);expect(story.figure.rows.every(r=>Number.isFinite(r.value)&&r.value>=0&&r.value<=story.figure!.scale)).toBe(true);}
+      }
+      for(const item of e.synthesis){expect(item.design.trim()).not.toBe("");expect(item.measure.trim()).not.toBe("");expect(item.decision.trim()).not.toBe("");}
       for(const item of e.synthesis)for(const id of item.sourceIds)expect(ids.has(id)).toBe(true);
     }
     const first=weeklyEditions.find(e=>e.id==="2026-11-22")!;
@@ -34,6 +39,11 @@ describe("SpecDec weekly community",()=>{
     const report=render("view=report");
     expect(report).toContain(latestEdition.title);
     expect(report).toContain("综合观察与后续方向");
+    expect(report).toContain("对照设计");
+    expect(report).toContain("判定条件");
+    expect(report).toContain("实验条件与补充对照");
+    expect(report).toContain("同一 PR 内的局部与整步降幅");
+    expect(report).toContain("0.057 ms");
     expect(report).not.toContain('id="survey-analysis"');
     expect(render("view=report&tab=archive")).toContain("初始动态研究报告");
     expect(render("view=report&edition=2026-11-18")).toContain('id="survey-analysis"');
