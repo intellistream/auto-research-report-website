@@ -67,4 +67,41 @@ describe("KV research synthesis", () => {
     expect(html).toContain("TTFT p99 97.6→114.6秒");
     expect(render("view=papers&q=KIVI")).toContain("查看主主题的方法比较");
   });
+  it("makes the decision, common controls and non-comparability visible in all five groups", () => {
+    for (const group of kvSynthesis.groups) {
+      const html = render(`view=survey&topic=${group.id}`);
+      expect(html).toContain(group.decision);
+      expect(html).toContain(group.commonSetup.replaceAll("&", "&amp;"));
+      expect(html).toContain(group.notComparable);
+      expect(html).toContain("未做同配置性能实验");
+      expect(html.match(/data-comparison-paper=/g)).toHaveLength(group.rows.length);
+      expect(html).not.toContain('class="kv-synthesis-table"');
+      for (const row of group.rows) {
+        expect(html).toContain(row.useWhen);
+        expect(html).toContain(row.notWhen);
+        expect(html).toContain(row.sourceLocation);
+      }
+    }
+  });
+
+  it("keeps the quality-constrained case explicit about missing thresholds and separate author experiments", () => {
+    const html = render("view=survey&topic=representation");
+    expect(html).toContain("质量约束下减少驻留 KV");
+    expect(html).toContain("尚未指定阈值");
+    expect(html).toContain("同一次配置联合测质量");
+    expect(html).toContain("独立收益不能相乘");
+    expect(html.match(/data-quality-evidence=/g)).toHaveLength(3);
+    for (const slug of kvSynthesis.qualityCase.evidenceSlugs) {
+      const entry = synthesisPaper(slug)!;
+      const finding = entry.paper.findings![0];
+      const start = html.indexOf(`data-quality-evidence="${finding.id}"`);
+      const panel = html.slice(start, html.indexOf("</article>", start));
+      expect(panel).toContain(finding.statement);
+      expect(panel).toContain(finding.conditions);
+      expect(panel).toContain(finding.limit);
+      expect(panel).toContain(entry.sourceVersion);
+      expect(panel).not.toContain("<details");
+    }
+  });
+
 });

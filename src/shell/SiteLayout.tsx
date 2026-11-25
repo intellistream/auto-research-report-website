@@ -39,6 +39,7 @@ export default function SiteLayout({
   const previousPath = useRef(pathname);
   const mainRef = useRef<HTMLElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [assistantHidden, setAssistantHidden] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme);
 
@@ -293,6 +294,10 @@ export default function SiteLayout({
         <div className="site-footer-bottom">
           <span>每一条工程进展均保留原始 PR 链接与版本校验 · 只读研究门户</span>
           <span>北京时间 (Asia/Shanghai){latestDay ? ` · 最新收录至 ${latestDay}` : ""}</span>
+          <button className="research-assistant-visibility" type="button"
+            aria-pressed={!assistantHidden} onClick={() => setAssistantHidden(value => !value)}>
+            {assistantHidden ? "显示浮动提问入口" : "隐藏浮动提问入口"}
+          </button>
         </div>
       </footer>
 
@@ -302,7 +307,10 @@ export default function SiteLayout({
         days={days}
         catalog={catalog}
       />
-      <ResearchAssistant />
+      <ResearchAssistant hidden={assistantHidden} onHide={() => {
+        setAssistantHidden(true);
+        mainRef.current?.focus({ preventScroll: true });
+      }} />
     </div>
   );
 }

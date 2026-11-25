@@ -1,0 +1,94 @@
+/* Reading hierarchy applies only to the KV guide. */
+.kv-topic.kv-topic-is-guide .kv-topic-heading { padding:1rem 1.25rem; }
+.kv-topic.kv-topic-is-guide .kv-topic-heading h1 { font-size:1.8rem; line-height:1.2; }
+.kv-topic.kv-topic-is-guide .kv-topic-kicker { display:none; }
+.kv-topic.kv-topic-is-guide .kv-primary-nav a { padding:.75rem 1rem; }
+.kv-basics.kv-guide .kv-guide-intro { margin:2rem 0 1.5rem; max-width:52rem; }
+.kv-basics.kv-guide .kv-guide-intro h2 { font-size:clamp(1.5rem,3vw,2rem); margin:0 0 .6rem; }
+.kv-basics.kv-guide .kv-guide-intro h2 span { white-space:nowrap; }
+.kv-basics.kv-guide .kv-guide-intro p { margin:0; color:var(--ink-secondary); }
+.kv-basics.kv-guide .kv-guide-layout, .kv-basics.kv-guide .kv-guide-content { min-width:0; }
+.kv-basics.kv-guide .kv-guide-layout { display:grid; grid-template-columns:minmax(0,1fr); gap:2rem; }
+.kv-basics.kv-guide .kv-basics-outline { display:block; padding:0 0 1.2rem; border-bottom:1px solid var(--border-default); border-radius:0; background:transparent; }
+.kv-basics.kv-guide .kv-guide-nav-label { margin:0 0 .5rem; font-size:.8125rem; color:var(--ink-secondary); font-weight:650; }
+.kv-basics.kv-guide .kv-basics-outline ol, .kv-basics.kv-guide .kv-basics-outline ul { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.35rem .7rem; list-style:none; margin:0; padding:0; }
+.kv-basics.kv-guide .kv-basics-outline ul { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.kv-basics.kv-guide .kv-basics-outline a { display:flex; align-items:center; gap:.6rem; min-width:0; min-height:2.75rem; padding:.4rem .55rem; color:var(--ink-secondary); text-decoration:none; border-radius:.3rem; line-height:1.5; }
+.kv-basics.kv-guide .kv-basics-outline a:hover, .kv-basics.kv-guide .kv-basics-outline a[aria-current="location"] { color:var(--brand-primary); background:var(--brand-soft); }
+.kv-basics.kv-guide .kv-basics-outline a[aria-current="location"] { font-weight:650; }
+.kv-basics.kv-guide .kv-guide-nav-number { font-variant-numeric:tabular-nums; color:var(--brand-primary); font-weight:700; }
+.kv-basics.kv-guide .kv-guide-nav-tag { flex:none; color:var(--ink-secondary); font-size:.75rem; }
+.kv-basics.kv-guide .kv-guide-nav-secondary { margin-top:.9rem; }
+.kv-basics.kv-guide .kv-guide-content > .kv-guide-chapter { margin:0 0 3rem; padding:0 0 2rem; border-bottom:1px solid var(--border-default); }
+.kv-basics.kv-guide .kv-guide-chapter-heading { margin-bottom:1.15rem; max-width:48rem; }
+.kv-basics.kv-guide .kv-guide-chapter-label { display:flex; align-items:baseline; gap:.65rem; margin:0 0 .5rem; font-size:.8125rem; font-weight:650; color:var(--brand-primary); }
+.kv-basics.kv-guide .kv-guide-chapter-label > span { font-size:1.4rem; font-variant-numeric:tabular-nums; font-weight:750; line-height:1; }
+.kv-basics.kv-guide .kv-guide-chapter-heading h3 { font-size:clamp(1.3rem,2.6vw,1.6rem); margin:0 0 .65rem; line-height:1.45; }
+.kv-basics.kv-guide .kv-guide-chapter-lead { margin:0; color:var(--ink-secondary); }
+.kv-basics.kv-guide .kv-guide-example-scope, .kv-basics.kv-guide .kv-guide-example-intro { color:var(--ink-secondary); font-size:.875rem; }
+.kv-basics.kv-guide .kv-guide-chapter-end { display:grid; gap:.65rem; margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border-default); }
+.kv-basics.kv-guide .kv-guide-chapter-end p { margin:0; font-size:.9375rem; }
+.kv-basics.kv-guide .kv-guide-chapter-end strong { display:block; margin-bottom:.25rem; color:var(--ink-secondary); font-size:.8125rem; font-weight:650; }
+.kv-basics.kv-guide .kv-guide-chapter-end > a { justify-self:start; font-size:.9375rem; font-weight:650; }
+.kv-basics.kv-guide .kv-memory-calculator { align-items:start; padding:clamp(.8rem,2vw,1.25rem); gap:1.25rem; }
+.kv-basics.kv-guide .kv-memory-controls { gap:1.05rem; }
+.kv-basics.kv-guide .kv-memory-overview { display:grid; gap:1rem; min-width:0; }
+.kv-basics.kv-guide .kv-memory-result { padding:.85rem 1rem; }
+.kv-basics.kv-guide .kv-memory-result strong { font-size:2.35rem; }
+.kv-basics.kv-guide .kv-memory-change { grid-column:1/-1; min-width:0; }
+.kv-basics.kv-guide .kv-memory-unit { margin:0; }
+.kv-basics.kv-guide .kv-hbm-figure { padding:1rem; }
+.kv-basics.kv-guide .kv-basics-terms { gap:1.1rem; padding:.8rem 0; }
+.kv-basics.kv-guide .kv-basics-terms p { padding:0 0 0 .85rem; background:transparent; border-left:2px solid var(--border-accent); font-size:.9375rem; }
+.kv-basics.kv-guide .kv-cache-example { margin:1rem 0; padding:1rem; }
+.kv-basics.kv-guide .kv-cache-example h4 { margin:0 0 .35rem; font-size:1.125rem; }
+.kv-basics.kv-guide .kv-guide-extension { margin:0 0 3rem; border:1px solid var(--border-default); border-radius:.5rem; background:var(--bg-surface); }
+.kv-basics.kv-guide .kv-guide-extension > summary { cursor:pointer; padding:1.1rem 1.25rem; color:var(--ink-primary); }
+.kv-basics.kv-guide .kv-guide-extension-label { display:inline-block; margin-right:.7rem; font-size:.8125rem; color:var(--brand-primary); }
+.kv-basics.kv-guide .kv-guide-extension > summary strong { font-size:1.125rem; font-weight:650; }
+.kv-basics.kv-guide .kv-guide-extension-note { display:block; margin:.35rem 0 0 1.2rem; color:var(--ink-secondary); font-size:.875rem; }
+.kv-basics.kv-guide .kv-guide-extension-body { min-width:0; padding:0 clamp(.65rem,2vw,1.25rem) 1.25rem; }
+.kv-basics.kv-guide .kv-guide-extension-body > section { margin:0; padding-top:1.25rem; border-top:1px solid var(--border-default); }
+.kv-basics.kv-guide .kv-linear-hybrid { background:transparent; padding:1.25rem 0 0; border:0; border-top:1px solid var(--border-default); border-radius:0; }
+.kv-basics.kv-guide .kv-linear-sources { display:block; }
+.kv-basics.kv-guide .kv-linear-sources summary { cursor:pointer; color:var(--brand-primary); }
+.kv-basics.kv-guide .kv-linear-sources > div { margin-top:.75rem; }
+.kv-basics.kv-guide .kv-guide-research-list { list-style:none; padding:0; margin:1.5rem 0 2rem; }
+.kv-basics.kv-guide .kv-guide-research-list > li { display:grid; grid-template-columns:9rem minmax(0,1fr) auto; gap:.5rem 1.1rem; padding:1.15rem 0; border-top:1px solid var(--border-default); }
+.kv-basics.kv-guide .kv-guide-research-list > li > * { min-width:0; }
+.kv-basics.kv-guide .kv-guide-research-list .kv-direction { font-size:.8125rem; }
+.kv-basics.kv-guide .kv-guide-research-list h4 { margin:0; font-size:1rem; }
+.kv-basics.kv-guide .kv-guide-research-list p { margin:.35rem 0 0; font-size:.9375rem; color:var(--ink-secondary); }
+.kv-basics.kv-guide .kv-guide-method-note { margin-top:.5rem; font-size:.875rem; }
+.kv-basics.kv-guide .kv-guide-method-note summary { cursor:pointer; color:var(--brand-primary); }
+.kv-basics.kv-guide .kv-guide-research-list .kv-question-links { align-content:start; flex-direction:column; align-items:flex-start; gap:.35rem; }
+.kv-basics.kv-guide .kv-basics-reading { padding-top:1.25rem; border-top:1px solid var(--border-default); }
+.kv-basics.kv-guide .kv-basics-reading > div { padding:0; background:transparent; border:0; border-radius:0; }
+.kv-basics.kv-guide .kv-basics-reading h4 { font-size:1.125rem; }
+.kv-basics.kv-guide .kv-basics-sources { margin-top:1.5rem; padding-top:1rem; }
+.kv-basics.kv-guide .kv-basics-sources summary { cursor:pointer; color:var(--ink-secondary); }
+.kv-basics.kv-guide .kv-basics-formula { padding:.75rem 0; border-top:1px solid var(--border-default); }
+@media(min-width:1200px) {
+  .kv-basics.kv-guide .kv-guide-layout { grid-template-columns:10rem minmax(0,1fr); gap:2rem; align-items:start; }
+  .kv-basics.kv-guide .kv-guide-rail { align-self:stretch; }
+  .kv-basics.kv-guide .kv-basics-outline { position:sticky; top:calc(var(--header-height,64px) + 1.5rem); border-bottom:0; padding:0; }
+  .kv-basics.kv-guide .kv-basics-outline ol, .kv-basics.kv-guide .kv-basics-outline ul { grid-template-columns:minmax(0,1fr); gap:.2rem; }
+}
+@media(max-width:760px) {
+  .kv-basics.kv-guide .kv-memory-calculator { grid-template-columns:minmax(0,1fr); }
+  .kv-basics.kv-guide .kv-guide-research-list > li { grid-template-columns:minmax(0,1fr); gap:.4rem; }
+  .kv-basics.kv-guide .kv-guide-research-list .kv-question-links { flex-direction:row; gap:.5rem 1rem; }
+  .kv-basics.kv-guide .kv-guide-extension > summary { padding:1rem .8rem; }
+  .kv-basics.kv-guide .kv-guide-extension > summary strong { font-size:1rem; }
+}
+@media(max-width:590px) {
+  .kv-basics.kv-guide .kv-basics-outline ol { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .kv-basics.kv-guide .kv-basics-outline ul { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .kv-basics.kv-guide .kv-guide-layout { gap:1.5rem; }
+  .kv-basics.kv-guide .kv-guide-chapter-heading { margin-bottom:.9rem; }
+  .kv-basics.kv-guide .kv-basics-reading { gap:1.3rem; }
+  .kv-basics.kv-guide .kv-guide-content > .kv-guide-chapter { margin-bottom:2rem; padding-bottom:1.5rem; }
+}
+@media(max-width:360px) {
+  .kv-basics.kv-guide .kv-basics-outline ol { grid-template-columns:minmax(0,1fr); }
+}

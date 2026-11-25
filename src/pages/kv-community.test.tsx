@@ -3,8 +3,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import TopicPages from "./TopicPages";
 import { estimateKVBytes } from "./kv-basics";
-import { communityEntries, filterCommunity, kvCommunity, prState, snapshotFor, versionChanges, stateChanges } from "./kv-community";
+import { checksWithNewVersion, communityDate, communityEntries, evidenceCheckFor, filterCommunity, kvCommunity, prState, snapshotFor, versionChanges, stateChanges } from "./kv-community";
 import { kvResearch, paperViewQuery } from "./kv-research";
+import { kvStudy } from "./KvCacheStudy";
 
 function render(search = "") {
   return renderToStaticMarkup(<MemoryRouter initialEntries={["/topics/kv-cache?" + search]}>
@@ -48,7 +49,8 @@ describe("KV three-section reading paths", () => {
     expect(filterCommunity(new URLSearchParams("state=open&q=66795"))).toEqual([]);
     const html = render("view=evidence&q=66795");
     expect(html).toContain("状态核对 2026-11-23");
-    expect(html).toContain("机制简介核对 2026-11-17");
+    expect(html).toContain("原机制核对 2026-11-17");
+    expect(html).toContain("专项来源补核 2026-11-24");
     expect(html).toContain("代码版本已变更");
     expect(html).toContain("view=report&amp;part=kv-update-nixl-lifetime");
   });
@@ -98,6 +100,74 @@ describe("KV three-section reading paths", () => {
     expect(render("view=compare")).toContain("TTFT p99 97.6→114.6秒");
   });
 
+
+  it("keeps capped query and selection limits visible without expanding archived counts", () => {
+    const html = render("view=report");
+    // These limits must be outside collapsed source details.
+    const visibleScope = html.match(/<section class="kv-scope-summary".*?<\/section>/)![0];
+    expect(visibleScope).toContain("vllm-project/vllm-ascend");
+    expect(visibleScope).toContain("created:2026-11-17..2026-11-23");
+    expect(visibleScope).toContain("各查询跨这两个仓库合计最多 60 条");
+    expect(visibleScope).toContain("达到上限并截断");
+    expect(visibleScope).toContain("4 条新纳入不等于社区净新增");
+    expect(visibleScope).toContain("55 条代码重审");
+    expect(kvCommunity.search.queries.map(item => item.returned)).toEqual([60, 31]);
+    expect(kvCommunity.search.queries.reduce((sum, item) => sum + item.returned, 0)).toBe(kvCommunity.search.returned);
+    expect(kvCommunity.edition).toBe("2026-11-23");
+  });
+
+  it("separates targeted rechecks from the November 23 snapshots and old experiments", () => {
+    expect(checksWithNewVersion.map(item => item.number).sort()).toEqual([22312, 66361, 69271]);
+    expect(snapshotFor("github:vllm-project/vllm#66361")?.headSha).toBe("376cd0583f5b4f6a74769afb1c8cca0a12da8854");
+    expect(evidenceCheckFor("github:vllm-project/vllm#66361")?.headSha).toBe("03e8785ac5c3013baca4990e8948422dd3ebe630");
+    expect(kvStudy.methods.find(method => method.number === 66361)?.headSha).toBe("376cd0583f5b4f6a74769afb1c8cca0a12da8854");
+    const html = render("view=report");
+    expect(html).toContain("旧 CPU 测试及模拟结果仍归原记录");
+    expect(html).toContain("241.62 降到 62.18 GiB");
+    expect(html).toContain("W4A8 表不能替换或背书它");
+    expect(html).toContain("不是实传流量或缓存容量下降");
+    expect(html).toContain("等待点不直接等待该次 gather 之后的 3FS 写入和元数据确认");
+    expect(html).toContain("588 项测试结果早于");
+    expect(html).toContain("不支持 DCP/PCP");
+    expect(render("view=evidence&q=22312")).toContain("6d76731");
+    expect(versionChanges).toHaveLength(6);
+  });
+
+  it("preserves Shanghai creation dates and calls the chart a selected-sample distribution", () => {
+    for (const entry of kvResearch.entries.filter(item => item.kind === "pr")) {
+      expect(entry.sourceDay).toBe(communityDate(entry.createdAt!));
+    }
+    for (const entry of kvCommunity.newEntries) expect(entry.sourceDay).toBe(communityDate(entry.createdAt!));
+    const html = render("view=evidence&review=edition");
+    expect(html).toContain("已收录 PR 的创建时间分布");
+    expect(html).toContain("Asia/Shanghai（上海时区）");
+    expect(html).toContain("不代表全社区趋势或本期净新增");
+    expect(html).toContain("一个 PR 不等于一个方法");
+  });
+
+  it("shows waiting dimensions and result conditions before any collapsed source details", () => {
+    const html = render("view=compare&part=kv-wait-diagnosis");
+    for (const stage of kvStudy.waitingDiagnosis.stages) {
+      expect(html).toContain('data-wait-stage="' + stage.id + '"');
+      expect(html).toContain(stage.title);
+    }
+    expect(html).toContain("可交叠、可回退");
+    expect(html).toContain("不预设加载排序是瓶颈");
+    expect(html).toContain("理想信息排序只作参考，不称性能上界");
+    expect(html).toContain("未做同条件受控比较或联合验证");
+    for (const method of kvStudy.methods) {
+      const card = html.split('id="kv-pr-' + method.number + '"')[1].split('<details')[0];
+      expect(card).toContain(method.environment);
+      expect(card).toContain(method.result);
+      expect(card).toContain(method.audit.experimentVersion);
+      expect(card).toContain("本站未复现");
+      for (const source of method.audit.sourceLinks) expect(source.url).toMatch(/^https:\/\/github\.com\//);
+    }
+    expect(html).toContain("遇前序 None 即返回未知");
+    expect(html).toContain("未计主机时间");
+    expect(kvStudy.revision).toBe(2);
+    expect(kvStudy.asOf).toBe("2026-11-17");
+  });
   it("computes KV storage in bytes with both K and V and linear length/concurrency scaling", () => {
     expect(estimateKVBytes(8192,4)).toBe(4 * 2**30);
     expect(estimateKVBytes(16384,4)).toBe(8 * 2**30);

@@ -74,7 +74,26 @@
         "--cache-aware-admission-threshold，代码默认 0.5，低于缓存使用阈值时不重排。",
         "要求 fcfs、启用 prefix caching，且本轮没有延后 prefill。"
       ],
-      "problem": "严格先到先服务会让先进入的冷请求分配块并淘汰队列后方暖请求即将复用的前缀。"
+      "problem": "严格先到先服务会让先进入的冷请求分配块并淘汰队列后方暖请求即将复用的前缀。",
+      "audit": {
+        "sourceVersion": "f1b9e5b8900258a3fbc59b39f7cbe0470bb7f27c",
+        "experimentVersion": "Serving results §1 的部署对照；正文没有把该组运行提交精确绑定到本页 head。另一个 offload=none 对照标 nightly 76c6f3f2；两组不能合并。",
+        "checkedScope": "本站重读说明、相关讨论和固定代码：scheduler.py 2788–2826、config/scheduler.py 237–244；未复跑。",
+        "when": "FCFS、APC、设备缓存有压力且等待窗口内有可复用前缀；目标是避免冷准入先淘汰暖前缀。",
+        "unknown": "空队列时没有排序空间；作者在另一 offload=none 配置中报告 window64 退化。缓存命中率提升不保证所有请求 TTFT 改善。",
+        "next": "先量队列深度、冷准入造成的可复用块淘汰与主机查询开销，再选择窗口。",
+        "checkedAt": "2026-11-24",
+        "sourceLinks": [
+          {
+            "label": "作者说明：实验条件与限制（可修订）",
+            "url": "https://github.com/vllm-project/vllm/pull/54625#serving-results"
+          },
+          {
+            "label": "固定版本：threshold 默认值",
+            "url": "https://github.com/fululi12/vllm/blob/f1b9e5b8900258a3fbc59b39f7cbe0470bb7f27c/vllm/config/scheduler.py#L237-L244"
+          }
+        ]
+      }
     },
     {
       "title": "让等得太久的冷请求先获得排序机会",
@@ -99,7 +118,30 @@
         "--cache-aware-admission-max-wait-ms 默认0，关闭。",
         "只有 cache_aware_admission_window>0 才启用老化，仍继承原 fcfs/prefix caching 条件。"
       ],
-      "problem": "不断到来的缓存暖请求可以反复越过已经等了很久的冷请求。"
+      "problem": "不断到来的缓存暖请求可以反复越过已经等了很久的冷请求。",
+      "audit": {
+        "sourceVersion": "376cd0583f5b4f6a74769afb1c8cca0a12da8854",
+        "experimentVersion": "原记录的 macOS CPU 测试与固定 10 ms 步长模拟。作者明确由其机器上的 Claude Code 执行，并无人手独立重跑；不归到 11 月 24 日的新测试 head。",
+        "checkedScope": "本站核对旧 head 的老化排序、接收时间与清理路径；新 head 的 scheduler.py blob 相同，新增提交仅改测试。没有独立运行。",
+        "when": "FCFS 缓存窗口中的冷请求被暖请求反复越过，且有明确可接受的公平性目标。",
+        "unknown": "阈值只限制符合条件窗口内的缓存越过，不是准入或 TTFT 保证；离线批次中作者模拟也报告缓存复用收益回退。",
+        "next": "分层记录窗口内/外等待、阈值触发、资源拒绝原因和冷/长请求尾延迟，确认公平性与复用的取舍。",
+        "checkedAt": "2026-11-24",
+        "sourceLinks": [
+          {
+            "label": "作者说明：实验条件与限制（可修订）",
+            "url": "https://github.com/vllm-project/vllm/pull/66361#validation"
+          },
+          {
+            "label": "固定版本：调度排序",
+            "url": "https://github.com/htang7415/vllm/blob/376cd0583f5b4f6a74769afb1c8cca0a12da8854/vllm/v1/core/sched/scheduler.py#L2799-L2848"
+          },
+          {
+            "label": "后续测试修订（不代表复跑）",
+            "url": "https://github.com/htang7415/vllm/commit/03e8785ac5c3013baca4990e8948422dd3ebe630"
+          }
+        ]
+      }
     },
     {
       "title": "把 CPU 中仍能复用的前缀也计入排序",
@@ -124,7 +166,38 @@
         "沿用 --cache-aware-admission-window，无新增开关，窗口默认0时无变化。",
         "要求 fcfs、prefix caching，以及能无副作用查询的 connector。当前 OffloadingConnector 的单 CPU tier + full-attention 受支持。"
       ],
-      "problem": "GPU 命中数看不到 CPU tier 中仍能复用的会话前缀，排队过久后 CPU LRU tier 又可能先淘汰这些前缀。"
+      "problem": "GPU 命中数看不到 CPU tier 中仍能复用的会话前缀，排队过久后 CPU LRU tier 又可能先淘汰这些前缀。",
+      "audit": {
+        "sourceVersion": "6075903ef5e8fff6af54a0d90f822329d8945cad",
+        "experimentVersion": "未公开的 Flatshare simulator 扩展，seed36 单次/arm；步时校准 Qwen3-4B / RTX5060Ti，未计主机时间。CPU 测试称 main 821851eab；GPU 动机实验使用另一 priority 调度器。",
+        "checkedScope": "本站核对每步两次估计、连续完整 chunk、在途/未知返回及 MultiConnector。peek 可能计入仍在 store/load 中的 chunk，命中不等于可立即加载。",
+        "when": "受支持的单 CPU tier / full-attention，FCFS+APC；队列等待使外部前缀在复用前被 LRU 淘汰时，值得测量外部命中排序。",
+        "unknown": "CPU token 与设备 token 等权，没有加载代价模型。MultiConnector 遇前序 None 即返回未知，不保证读到后面的 CPU tier；刷新预算也不是任意到达流下的等待保证。",
+        "next": "比较无外部信号与外部信号，记录估计年龄、真实命中、回载/重建成本、主机 schedule 时间、TTFT p99 和运行请求 ITL。",
+        "checkedAt": "2026-11-24",
+        "sourceLinks": [
+          {
+            "label": "作者说明：实验条件与限制（可修订）",
+            "url": "https://github.com/vllm-project/vllm/pull/66558#validation"
+          },
+          {
+            "label": "固定版本：调度排序",
+            "url": "https://github.com/StevenWang-CY/vllm/blob/6075903ef5e8fff6af54a0d90f822329d8945cad/vllm/v1/core/sched/scheduler.py#L2837-L2868"
+          },
+          {
+            "label": "固定版本：peek 的可用范围",
+            "url": "https://github.com/StevenWang-CY/vllm/blob/6075903ef5e8fff6af54a0d90f822329d8945cad/vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L1464-L1493"
+          },
+          {
+            "label": "固定版本：MultiConnector 遇未知即停",
+            "url": "https://github.com/StevenWang-CY/vllm/blob/6075903ef5e8fff6af54a0d90f822329d8945cad/vllm/distributed/kv_transfer/kv_connector/v1/multi_connector.py#L490-L502"
+          },
+          {
+            "label": "审阅问题：有限刷新预算的覆盖",
+            "url": "https://github.com/vllm-project/vllm/pull/66558#pullrequestreview-5826338183"
+          }
+        ]
+      }
     },
     {
       "title": "让剩余 Prefill 较短的请求先获得预算",
@@ -149,7 +222,26 @@
         "--scheduling-policy shortest_prefill_first。",
         "与 fcfs、priority 是不同策略。#54625 的 cache-aware admission 仍为 fcfs-only。"
       ],
-      "problem": "多轮、外部前缀复用占比高的 prefill 流量中，少数剩余计算很长的请求会使很多短 prefill 排队。"
+      "problem": "多轮、外部前缀复用占比高的 prefill 流量中，少数剩余计算很长的请求会使很多短 prefill 排队。",
+      "audit": {
+        "sourceVersion": "b427c8b9594c2c97365cd3af1eae96ef2b39414e",
+        "experimentVersion": "作者 Linux CPU 测试说明，无完整运行提交/日志归档；Kimi K3.1 / GB300 / Mooncake P/D / AgentX 60 min E2E 标 pending。",
+        "checkedScope": "本站重读固定 shortest_prefill_first.py 与 MultiConnector：前 64 waiting/async waiting 中已知信号稳定重排，running 与全部 KV-holding 分别排序。",
+        "when": "剩余 Prefill 长度已知且长尾明显，短 Prefill 被长请求挡住；选择独立 shortest_prefill_first 策略后才有此排序。",
+        "unknown": "剩余 token 不是准确服务时间；未知 lookup 保持原位置，长期短请求可能越过长请求。FCFS-only 缓存窗口与此策略未联合运行。",
+        "next": "先量 known/unknown 比例、长短请求等待、默认抢占受害者与实际 compute 时间，再决定 token 排序是否匹配目标。",
+        "checkedAt": "2026-11-24",
+        "sourceLinks": [
+          {
+            "label": "作者说明：实验条件与限制（可修订）",
+            "url": "https://github.com/vllm-project/vllm/pull/66705#validation"
+          },
+          {
+            "label": "固定版本：调度排序",
+            "url": "https://github.com/wzhao18/vllm/blob/b427c8b9594c2c97365cd3af1eae96ef2b39414e/vllm/v1/core/sched/shortest_prefill_first.py#L32-L114"
+          }
+        ]
+      }
     }
   ],
   "papers": [
@@ -223,5 +315,92 @@
       "title": "建立独立问题分类与材料库",
       "body": "按复用、表示、生命周期、放置传输与调度审阅材料，支持多主题关联与直接论文来源，并记录候选纳入和排除依据。"
     }
-  ]
+  ],
+  "refinement": {
+    "revision": 1,
+    "editedAt": "2026-11-24",
+    "status": "来源补核与研究协议；未运行模型或性能实验",
+    "scope": "保留 2026-11-17 修订 2 的分析、base/head 和作者结果。此次补核四条调度 PR，新增等待诊断与条件式比较；最新状态与历史实验分别记录。",
+    "comparability": "这是机制对照。四条 PR 的 base、策略、硬件与负载不同，未做同条件受控比较或联合验证，不能当递进升级、相乘收益或通用排名。",
+    "decisionQuestion": "在相同模型、负载、输出质量与资源下，前缀命中后的首 token 等待主要由什么构成？现有策略是否已经足够？",
+    "protocolId": "kv-wait-diagnosis-20261124-v1"
+  },
+  "waitingDiagnosis": {
+    "title": "先定位等在哪一步，再比较排序",
+    "scope": "同一请求先匹配前缀并核对计算状态、访问权限与布局，再等待资源和可读取的状态，恢复后补算并生成首 token。下列是可交叠、可回退的诊断维度，不是已测的串行时间线；命中数本身不证明已就绪。",
+    "stages": [
+      {
+        "id": "queue",
+        "title": "排队与主机处理",
+        "question": "请求是否进了可排序窗口？有没有持续被越过？",
+        "measure": "调度器接收、窗口进入、排序前后名次、查询/排序耗时与阻塞原因；前端排队另计。",
+        "sourceNumbers": [
+          54625,
+          66361
+        ]
+      },
+      {
+        "id": "readiness",
+        "title": "目标与状态就绪",
+        "question": "命中的块仍在吗？计算写入、身份/布局与访问保护是否齐备？",
+        "measure": "lookup 发出/返回、估计年龄、fence、pin/lease、可读确认；未知、在途与 miss 分开。",
+        "sourceNumbers": [
+          66558
+        ]
+      },
+      {
+        "id": "admission",
+        "title": "资源准入",
+        "question": "即使排在前面，是否有 KV 块、运行槽位和本步预算？",
+        "measure": "准入尝试/拒绝原因、分配/重试、抢占与取消；排序阈值不替代资源约束。",
+        "sourceNumbers": [
+          54625,
+          66361
+        ]
+      },
+      {
+        "id": "restore",
+        "title": "加载或重建",
+        "question": "搬运、格式转换或重建后，状态何时能被计算使用？",
+        "measure": "加载入队/开始/完成、实际字节、转换与重建区间、失败回退；同时记录目标分配与就绪依赖。",
+        "sourceNumbers": [
+          66558
+        ]
+      },
+      {
+        "id": "compute",
+        "title": "计算到首 token",
+        "question": "剩余计算与输出何时完成，是否影响其他运行请求？",
+        "measure": "每个 Prefill chunk 的计算区间、首 token 发出/收到、ITL、输出长度与质量；不能把剩余 token 当精确服务时间。",
+        "sourceNumbers": [
+          66705
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "title": "留在持有缓存的实例等待",
+        "condition": "命中可读且本地队列短；避免额外查询和搬运。",
+        "unknown": "若本地长队列主导，等待可能更贵；需保留同请求对照。"
+      },
+      {
+        "title": "回载、跨实例搬运或重建",
+        "condition": "读取/转换受支持，目标准入可行，完整恢复成本加队列等待低于等待或重算。",
+        "unknown": "字节/带宽只估传输下限，不能忽略主机、fence、目标块、转换、在途占用和失败回退。"
+      },
+      {
+        "title": "直接重算",
+        "condition": "命中不可用，或完整恢复比同质量重算更贵；保留正确性与输出约束。",
+        "unknown": "重算也消耗算力和 KV 空间，可能延长其他请求；不是无代价回退。"
+      }
+    ],
+    "research": {
+      "status": "待执行协议 · 本轮未申请设备、未运行模型或模拟器",
+      "hypothesis": "只有在目标指标存在改善空间，且排队/恢复成本对该指标有可测影响时，才研究更细的排序信号；不预设加载排序是瓶颈。",
+      "firstStep": "先查 SGLang 的前缀/公平性调度、#53277 及四条 PR 的最新实现和相关提案；已有方案满足目标时转复现或边界验证。",
+      "baseline": "在同一可比较 base 和相同 trace 下保留 FCFS、设备命中、受支持的外部命中、可选老化与独立 SPF；本地等待、完整恢复和直接重算另做路径对照。先确认可移植性，不默认组合所有 PR。",
+      "gate": "执行前核定设备/内存、模型版本、connector、trace 权限、质量目标、SLO 与最低有意义收益。未定阈值不判定“有效”；资源不足先做带可行域的参数敏感性分析。",
+      "stop": "正确性或质量不达标即停性能结论；资源预算用尽、无目标改善空间或相关工作已覆盖时，停止新算法开发。理想信息排序只作参考，不称性能上界。"
+    }
+  }
 }

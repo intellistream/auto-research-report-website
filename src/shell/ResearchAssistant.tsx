@@ -34,7 +34,7 @@ const resizeKeys: Partial<Record<string, Point>> = {
   ArrowDown: { x: 0, y: 16 },
 };
 
-export default function ResearchAssistant() {
+export default function ResearchAssistant({ hidden = false, onHide }: { hidden?: boolean; onHide?: () => void }) {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -87,7 +87,7 @@ export default function ResearchAssistant() {
       window.removeEventListener("resize", updatePositions);
       observer.disconnect();
     };
-  }, [dock, expanded, open]);
+  }, [dock, expanded, open, hidden]);
 
   useEffect(() => () => inFlight.current?.controller.abort(), []);
   useEffect(() => {
@@ -180,6 +180,9 @@ export default function ResearchAssistant() {
       if (inFlight.current?.id === id) inFlight.current = null;
     }
   }
+
+  // Keep conversation state mounted when the reader hides the floating controls.
+  if (hidden) return null;
 
   return (
     <aside
@@ -314,6 +317,9 @@ export default function ResearchAssistant() {
       >
         <Mascot />
       </button>
+      {!open && onHide && <button type="button" className="research-assistant-hide"
+        aria-label="隐藏浮动提问入口，页尾可恢复" title="隐藏浮动入口，可在页尾重新显示"
+        onClick={onHide}><X size={18} aria-hidden /></button>}
     </aside>
   );
 }

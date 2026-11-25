@@ -2,6 +2,15 @@ import data from "./kv-research.json";
 
 export type ResearchTopicId = "reuse" | "representation" | "lifecycle" | "movement" | "scheduling";
 export type DailyReference = { day: string; version: string; section: string };
+export type PaperFinding = {
+  id: string;
+  kind: "author-experiment" | "author-theory" | "author-method";
+  statement: string;
+  conditions: string;
+  location: string;
+  url: string;
+  limit: string;
+};
 export type PaperReading = {
   slug: string;
   shortName: string;
@@ -10,6 +19,10 @@ export type PaperReading = {
   order: number;
   collection?: "notes-supplement";
   recommendedReason?: string;
+  readingTask?: { goal: string; startAt: string };
+  mechanism?: { input: string; process: string; state: string; output: string };
+  findings?: PaperFinding[];
+  evidenceReview?: { checkedAt: string; coverage: string; notCovered: string };
   format?: "survey";
   takeaway?: string;
   problem: string;
@@ -150,6 +163,8 @@ export function filterPapers(entries: ResearchEntry[], query: URLSearchParams): 
       return !collection || paper.collection === collection;
     })
     .filter((entry) => !term || [entry.title, entry.originalTitle, entry.summary, entry.paper.shortName,
-      entry.paper.takeaway, entry.paper.problem, entry.paper.method, entry.paper.result, entry.paper.boundary].join(" ").normalize("NFKC").toLocaleLowerCase().includes(term))
+      entry.paper.takeaway, entry.paper.problem, entry.paper.method, entry.paper.result, entry.paper.boundary,
+      entry.paper.readingTask?.goal,
+      ...(entry.paper.findings ?? []).flatMap((finding) => [finding.statement, finding.conditions, finding.location])].join(" ").normalize("NFKC").toLocaleLowerCase().includes(term))
     .sort((left, right) => left.paper.order - right.paper.order || left.id.localeCompare(right.id));
 }

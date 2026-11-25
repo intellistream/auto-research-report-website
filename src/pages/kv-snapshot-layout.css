@@ -1,0 +1,23 @@
+.kv-snapshot-text {
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  min-inline-size:0;
+  max-inline-size:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.kv-snapshot-text > *, .kv-snapshot-size > span { grid-area:1 / 1; min-inline-size:0; }
+.kv-snapshot-size {
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  visibility:hidden;
+  pointer-events:none;
+  user-select:none;
+}
+.kv-snapshot-size, .kv-snapshot-size > span, .kv-snapshot-current {
+  font:inherit;
+  line-height:inherit;
+  letter-spacing:inherit;
+  white-space:inherit;
+  overflow-wrap:inherit;
+}
