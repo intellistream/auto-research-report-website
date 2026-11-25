@@ -52,6 +52,8 @@ class SpecDecPublisher(unittest.TestCase):
         html = (root / paper["assets"]["html"]["path"]).read_text(encoding="utf-8")
         self.assertIn("math { max-width: 100%; overflow: visible; }", html)
         self.assertNotIn("math { max-width: 100%; overflow-x: auto; }", html)
+        self.assertIn("overflow-x: auto; overflow-y: hidden; padding-block: .4em;", html)
+        self.assertIn('p > math[display="block"] { max-width: none; overflow: visible; }', html)
         self.assertIn(".citation a, .citation a:visited { color: inherit; text-decoration: none;", html)
         self.assertIn("a, a:visited { color: #116c56;", html)
         self.assertIn("grid-template-columns: 2.6em minmax(0, 1fr)", html)
@@ -63,6 +65,7 @@ class SpecDecPublisher(unittest.TestCase):
             paper["literatureCutoff"], paper["manuscriptRevision"]), manifest["metadata"])
         with zipfile.ZipFile(root / paper["assets"]["sources"]["path"]) as archive:
             self.assertIsNone(archive.testzip())
+            self.assertIn(b"overflow-x: auto; overflow-y: hidden; padding-block: .4em;", archive.read("paper.css"))
             self.assertEqual(set(archive.namelist()), {
                 "README.md", "paper.md", "paper.tex", "paper.docx", "references.bib", "numeric.csl", "paper.css",
                 *(f"figures/{figure}.{suffix}" for figure in

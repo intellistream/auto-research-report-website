@@ -8,8 +8,12 @@ import "./specdec-mechanism.css";
 
 const official = [
   { name: "经典推测采样论文", url: "https://proceedings.mlr.press/v202/leviathan23a.html" },
-  { name: "vLLM · Speculative Decoding", url: "https://docs.vllm.ai/en/latest/features/speculative_decoding/" },
-  { name: "vLLM Ascend · Speculative Decoding", url: "https://docs.vllm.ai/projects/ascend/en/main/user_guide/feature_guide/speculative_decoding.html" },
+  { name: "vLLM · Speculative Decoding", url: "https://docs.vllm.ai/en/latest/features/spec_decode/" },
+  { name: "vLLM · V1 草稿与验证源码", url: "https://github.com/vllm-project/vllm/tree/main/vllm/v1/spec_decode" },
+  { name: "vLLM Ascend · Speculative Decoding", url: "https://github.com/vllm-project/vllm-ascend/blob/main/docs/source/user_guide/feature_guide/speculative_decoding.md" },
+  { name: "SGLang · Adaptive Speculative Decoding", url: "https://github.com/sgl-project/sglang/blob/main/docs/docs/advanced_features/adaptive_speculative_decoding.mdx" },
+  { name: "DFlash · 论文、模型与实现", url: "https://github.com/z-lab/dflash" },
+  { name: "vLLM · Speculators 草稿训练", url: "https://github.com/vllm-project/speculators" },
 ] as const;
 
 const directions = [
