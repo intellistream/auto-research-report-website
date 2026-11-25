@@ -1,5 +1,5 @@
 {
-  "title": "KV Cache 总体综述",
+  "title": "KV Cache 综合分析",
   "summary": "KV Cache 的工作主要在减少重复计算、降低状态存储成本，以及让状态及时到达计算位置。单项节省最终能否改善服务，还取决于复用是否合法、状态何时可读，以及质量与等待约束。",
   "materialThrough": "2026-11-24",
   "relatedWorkThrough": "2026-11-25",

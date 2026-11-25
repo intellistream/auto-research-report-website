@@ -16,6 +16,7 @@ export default function KvMemory({ load, comparison, onChange }: {
   const { modelId, tokens, sequences } = load;
   const model = modelFor(modelId);
   const { gib, percent, unfilledGiB, overflowGiB, cells } = memoryReference(estimateModelKVBytes(tokens, sequences, model));
+  const overflowCells = Array.from({ length: Math.ceil(overflowGiB) }, (_, index) => Math.min(1, overflowGiB - index));
   const doubledTokens = doubleMemoryLoad(load, "tokens");
   const doubledRequests = doubleMemoryLoad(load, "sequences");
   const scope = `${model.name} · BF16 · ${model.fullAttentionLayers} 层全注意力 KV`;
@@ -63,18 +64,25 @@ export default function KvMemory({ load, comparison, onChange }: {
           <span>估算 KV 存储量 · {scope}</span><span>{tokens.toLocaleString("en-US")} token / 请求 × {sequences} 个等长独立请求</span>
           <strong>{formatGiB(gib)} <small>GiB</small></strong><span>相当于 64 GiB 参照的 {percent.toFixed(2)}%</span>
           <span>{model.linearAttentionLayers > 0 ? `另需 ${model.linearAttentionLayers} 层递推状态及其他开销，未计入` : "不含模型权重、激活与分配开销"}</span>
-          {overflowGiB > 0 && <span className="kv-memory-overflow">超出参照 {formatGiB(overflowGiB)} GiB；图中最多填满 64 格。</span>}
+          {overflowGiB > 0 && <span className="kv-memory-overflow">超出参照 {formatGiB(overflowGiB)} GiB；下方橙色格子表示超出部分。</span>}
         </div>
         <span className="kv-memory-announcement" aria-live="polite" aria-atomic="true">{announcement}</span>
       <figure className="kv-hbm-figure" aria-labelledby="kv-hbm-title">
         <figcaption className="kv-hbm-heading"><div><strong id="kv-hbm-title">64 GiB 统一参照</strong><span>Ascend 910B2 容量示意</span></div><span>每格 1 GiB</span></figcaption>
         <p className="kv-hbm-current">{scope}<br />{tokens.toLocaleString("en-US")} token × {sequences} 请求 · {formatGiB(gib)} GiB（{percent.toFixed(2)}%）</p>
-        <div className="kv-hbm-grid" role="img" aria-label={`全注意力 KV 占 64 GiB 参照的 ${percent.toFixed(2)}%。${overflowGiB > 0 ? `超出 ${formatGiB(overflowGiB)} GiB。` : "未填部分不是实际可用显存。"}`}>
-          {cells.map((fill, index) => <span className="kv-hbm-cell" key={index} aria-hidden="true"><span style={{ width: `${fill * 100}%` }} /></span>)}
+        <div className="kv-hbm-chart" role="img" aria-label={`全注意力 KV 占 64 GiB 参照的 ${percent.toFixed(2)}%。${overflowGiB > 0 ? `绿色表示参照内 ${memoryReferenceGiB} GiB，橙色表示超出 ${formatGiB(overflowGiB)} GiB；每格仍为 1 GiB。` : "未填部分不是实际可用显存。"}`}>
+          <div className="kv-hbm-grid" aria-hidden="true">
+            {cells.map((fill, index) => <span className="kv-hbm-cell" key={index}><span style={{ width: `${fill * 100}%` }} /></span>)}
+          </div>
+          {overflowGiB > 0 && <div className="kv-hbm-overflow" aria-hidden="true">
+            <p>超出参照 {formatGiB(overflowGiB)} GiB</p>
+            <div className="kv-hbm-grid">{overflowCells.map((fill, index) =>
+              <span className="kv-hbm-cell is-overflow" key={index}><span style={{ width: `${fill * 100}%` }} /></span>)}</div>
+          </div>}
         </div>
         <div className="kv-hbm-legend">
-          <div><span className="kv-hbm-swatch is-kv" aria-hidden="true" /><span>全注意力 KV<strong>{formatGiB(gib)} GiB</strong></span></div>
-          <div><span className="kv-hbm-swatch" aria-hidden="true" /><span>参照图未填部分<strong>{formatGiB(unfilledGiB)} GiB</strong></span></div>
+          <div><span className="kv-hbm-swatch is-kv" aria-hidden="true" /><span>{overflowGiB > 0 ? "参照内 KV" : "全注意力 KV"}<strong>{formatGiB(Math.min(gib, memoryReferenceGiB))} GiB</strong></span></div>
+          <div><span className={"kv-hbm-swatch" + (overflowGiB > 0 ? " is-overflow" : "")} aria-hidden="true" /><span>{overflowGiB > 0 ? "超出参照" : "参照图未填部分"}<strong>{formatGiB(overflowGiB > 0 ? overflowGiB : unfilledGiB)} GiB</strong></span></div>
         </div>
         <p className="kv-hbm-note">{overflowGiB > 0 ? `KV 估算超出 64 GiB 参照 ${formatGiB(overflowGiB)} GiB；完整需求为 ${formatGiB(gib)} GiB。` : gib === memoryReferenceGiB ? "这部分 KV 已填满参照图，还需另计权重等开销。" : "未填部分尚未扣除模型权重、激活和分配等开销，并非实际空闲显存。"}</p>
         {model.linearAttentionLayers > 0 && <p className="kv-hbm-scope"><strong>只计 {model.fullAttentionLayers} 层全注意力 KV。</strong><br />另需 {model.linearAttentionLayers} 层递推状态及其他开销，未在方格中估算。</p>}

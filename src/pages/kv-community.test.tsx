@@ -17,7 +17,7 @@ describe("KV topic reading paths", () => {
   it("groups old and new routes under the correct primary sections", () => {
     for (const [search, active] of [
       ["", "导引"], ["view=papers", "论文"], ["view=survey&topic=representation", "论文"],
-      ["view=overview", "总体综述"], ["view=report", "社区进展"], ["view=evidence&topic=movement", "社区进展"],
+      ["view=overview", "综合分析"], ["view=report", "社区进展"], ["view=evidence&topic=movement", "社区进展"],
       ["view=compare&part=kv-pr-66558", "社区进展"], ["view=report&edition=2026-11-17", "社区进展"],
     ]) {
       const html = render(search);
