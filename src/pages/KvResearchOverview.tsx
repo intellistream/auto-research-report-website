@@ -4,7 +4,7 @@ import { filterResearch, kvResearch, researchReviewLabels } from "./kv-research"
 import { kvSynthesis, synthesisGroup, synthesisPaper, synthesisPaperLink } from "./kv-synthesis";
 import { safeTopicSource } from "./topic-report";
 import study from "./kv-cache-study.json";
-import { communityEntries, snapshotFor } from "./kv-community";
+import { communityEntries, evidenceCheckFor, snapshotFor } from "./kv-community";
 import "./kv-synthesis.css";
 
 export default function KvResearchOverview() {
@@ -51,34 +51,38 @@ export default function KvResearchOverview() {
         <p>{group.summary}</p>
       </header>
 
-      <div className="kv-synthesis-table-wrap">
-        <table className="kv-synthesis-table">
-          <caption>代表论文的方法比较</caption>
-          <thead><tr>
-            <th scope="col">代表论文</th>
-            <th scope="col">改变了什么</th>
-            <th scope="col">收益与适用场景</th>
-            <th scope="col">条件与代价</th>
-          </tr></thead>
-          <tbody>{group.rows.map((row) => {
-            const entry = synthesisPaper(row.slug);
-            if (!entry) return null;
-            const source = safeTopicSource(entry.url);
-            return <tr key={entry.id} data-comparison-paper={row.slug}>
-              <th scope="row">
-                <Link className="kv-synthesis-paper-name" to={synthesisPaperLink(row.slug)}>{entry.paper.shortName}</Link>
-                <span className="kv-synthesis-venue">{entry.paper.venue}</span>
-                <div className="kv-synthesis-paper-links">
-                  <Link to={synthesisPaperLink(row.slug)} aria-label={`阅读 ${entry.paper.shortName} 解读`}>阅读解读</Link>
-                  {source && <a href={source} target="_blank" rel="noreferrer">原文</a>}
-                </div>
-              </th>
-              <td data-label="改变了什么"><strong>{row.lever}</strong></td>
-              <td data-label="收益与适用场景">{row.benefit}</td>
-              <td data-label="条件与代价">{row.boundary}</td>
-            </tr>;
-          })}</tbody>
-        </table>
+      <section className="kv-synthesis-conditions" aria-label="本组的比较前提">
+        <p className="kv-synthesis-comparison-kind">机制与适用条件对照 · 未做同配置性能实验</p>
+        <h4>{group.decision}</h4>
+        <p><strong>共同对照先固定：</strong>{group.commonSetup}</p>
+        <p><strong>目前不能直接比较：</strong>{group.notComparable}</p>
+      </section>
+
+      <div className="kv-synthesis-methods" aria-label="代表论文的方法比较">
+        {group.rows.map((row) => {
+          const entry = synthesisPaper(row.slug);
+          if (!entry) return null;
+          const source = safeTopicSource(entry.url);
+          return <article className="kv-synthesis-method" key={entry.id} data-comparison-paper={row.slug}>
+            <header>
+              <h4><Link className="kv-synthesis-paper-name" to={synthesisPaperLink(row.slug)}>{entry.paper.shortName}</Link></h4>
+              <p className="kv-synthesis-venue">{entry.paper.venue} · {entry.sourceVersion}</p>
+            </header>
+            <dl>
+              <div><dt>改变的对象</dt><dd>{row.lever}</dd></div>
+              <div><dt>收益对象与代价</dt><dd>{row.benefit} {row.boundary}</dd></div>
+              <div><dt>适用条件</dt><dd>{row.useWhen}</dd></div>
+              <div><dt>不适用或待核</dt><dd>{row.notWhen}</dd></div>
+            </dl>
+            <p className="kv-synthesis-row-basis">原文范围：{row.sourceLocation}<br />
+              {entry.paper.evidenceReview ? `关键主张复核 ${entry.paper.evidenceReview.checkedAt}` : `沿用选读记录 ${entry.checkedAt}，本轮未重核`}
+            </p>
+            <div className="kv-synthesis-paper-links">
+              <Link to={synthesisPaperLink(row.slug)} aria-label={`阅读 ${entry.paper.shortName} 解读`}>阅读解读与证据</Link>
+              {source && <a href={source} target="_blank" rel="noreferrer">固定版本原文</a>}
+            </div>
+          </article>;
+        })}
       </div>
 
       <div className="kv-synthesis-takeaway">
@@ -97,6 +101,31 @@ export default function KvResearchOverview() {
       </div>
     </section>
 
+    {group.id === "representation" && <section className="kv-synthesis-quality-case" aria-labelledby="kv-quality-case-title">
+      <p className="kv-synthesis-eyebrow">{kvSynthesis.qualityCase.status}</p>
+      <h3 id="kv-quality-case-title">{kvSynthesis.qualityCase.title}</h3>
+      <p>{kvSynthesis.qualityCase.question}</p>
+      <p className="kv-synthesis-quality-threshold"><strong>质量门槛：</strong>{kvSynthesis.qualityCase.threshold}</p>
+      <h4>怎样做共同对照</h4>
+      <ol>{kvSynthesis.qualityCase.steps.map((step) => <li key={step}>{step}</li>)}</ol>
+      <h4>{kvSynthesis.qualityCase.evidenceTitle}</h4>
+      <p>{kvSynthesis.qualityCase.evidenceNote}</p>
+      <div className="kv-synthesis-original-results">{kvSynthesis.qualityCase.evidenceSlugs.map((slug) => {
+        const entry = synthesisPaper(slug);
+        const finding = entry?.paper.findings?.[0];
+        if (!entry || !finding) return null;
+        const source = safeTopicSource(finding.url);
+        return <article key={slug} data-quality-evidence={finding.id}>
+          <h5>{entry.paper.shortName} · 作者实验报告</h5>
+          <p><strong>{finding.statement}</strong></p>
+          <p><strong>原始条件：</strong>{finding.conditions}</p>
+          <p><strong>比较边界：</strong>{finding.limit}</p>
+          {source && <a href={source} target="_blank" rel="noreferrer">{entry.sourceVersion} · {finding.location}</a>}
+        </article>;
+      })}</div>
+      <p className="kv-synthesis-combination"><strong>组合需另行验证：</strong>{kvSynthesis.qualityCase.combination}</p>
+    </section>}
+
     <section className="kv-synthesis-engineering" aria-labelledby="kv-synthesis-engineering-heading">
       <div className="kv-synthesis-section-heading">
         <div>
@@ -109,6 +138,7 @@ export default function KvResearchOverview() {
       <div className="kv-synthesis-engineering-grid">{engineering.map((entry) => {
         const method = study.methods.find((item) => item.workId === entry.id);
         const snapshot = snapshotFor(entry.id);
+        const sourceCheck = evidenceCheckFor(entry.id);
         const source = safeTopicSource(entry.url);
         return <article key={entry.id} data-comparison-evidence={entry.id}>
           <p className="kv-synthesis-pr-meta">
@@ -117,7 +147,7 @@ export default function KvResearchOverview() {
           </p>
           <h4>{entry.title}</h4>
           <p>{entry.summary}</p>
-          <p className="kv-muted">说明核对于 {entry.checkedAt}{snapshot && snapshot.headSha !== entry.headSha ? " · 本期代码版本已变化，后续机制待复核" : ""}</p>
+          <p className="kv-muted">原说明核对 {entry.checkedAt}{sourceCheck && <> · 专项来源补核 {sourceCheck.checkedAt}</>}{sourceCheck && sourceCheck.headSha !== entry.headSha ? " · 后续代码版本已变化，机制适用范围需复核" : snapshot && snapshot.headSha !== entry.headSha ? " · 本期代码版本已变化，后续机制待复核" : ""}</p>
           <div className="kv-synthesis-pr-links">
             <Link to={{ search: "view=evidence&q=" + entry.id.split("#")[1] }}>查看社区 PR 记录</Link>
             {method && <Link to={{ search: `view=compare&part=kv-pr-${method.number}` }}>阅读机制与对照条件</Link>}
@@ -139,7 +169,7 @@ export default function KvResearchOverview() {
 
     <footer className="kv-synthesis-footer">
       <p>综合整理于 <time dateTime={kvSynthesis.editedAt}>{kvSynthesis.editedAt}</time> · 来源核对日期 {checkedAt.join("、")}</p>
-      <p>基于已收录论文的相关章节和既有 PR 核对记录。各项实验结果保留在对应解读中，本页比较机制与适用条件。</p>
+      <p>{kvSynthesis.basis} 工程链接按共同主题关联，引用关系不自动表示实现采用。</p>
     </footer>
   </article>;
 }

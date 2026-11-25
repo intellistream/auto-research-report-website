@@ -10,6 +10,7 @@ import { KvMethodComparison, KvHistoricalReport } from "./KvCacheStudy";
 import { filterPapers, kvResearch, paperViewQuery, researchTopicFilter } from "./kv-research";
 import { communityEntries } from "./kv-community";
 import { revealTopicPart } from "./topic-report";
+import { parseKvGuideState, withKvGuideState } from "./kv-guide-state";
 import "./kv-sections.css";
 
 const sections = [
@@ -56,13 +57,19 @@ export default function KvCacheTopic() {
     return () => cancelAnimationFrame(frame);
   }, [view, part, edition]);
 
+  function sectionSearch(view: string, selectedTopic?: string) {
+    const next = new URLSearchParams({ view });
+    if (selectedTopic) next.set("topic", selectedTopic);
+    return withKvGuideState(next, parseKvGuideState(query).state).toString();
+  }
+
   function paperSearch() {
     const next = paperViewQuery(query);
     next.delete("part");
     return next.toString();
   }
 
-  return <div className="kv-topic">
+  return <div className={"kv-topic" + (view === "guide" ? " kv-topic-is-guide" : "")}>
     <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden="true" /> 专题目录</Link>
     <header className="topic-heading kv-topic-heading">
       <p className="kv-topic-kicker">独立技术专题</p>
@@ -71,17 +78,17 @@ export default function KvCacheTopic() {
     </header>
     <nav className="kv-topic-nav kv-primary-nav" aria-label="KV Cache 三大板块">
       {sections.map(({ id, label, purpose }) =>
-        <Link key={id} to={{ search: `view=${id}` }} aria-current={section === id ? "page" : undefined}>
+        <Link key={id} to={{ search: sectionSearch(id) }} aria-current={section === id ? "page" : undefined}>
           <strong>{label}</strong><span>{purpose}</span>
         </Link>)}
     </nav>
     {section === "papers" && <nav className="kv-subnav" aria-label="论文板块页面">
       <Link to={{ search: paperSearch() }} aria-current={view === "papers" ? "page" : undefined}>论文解读</Link>
-      <Link to={{ search: `view=survey${topic ? `&topic=${topic}` : ''}` }} aria-current={view === "survey" ? "page" : undefined}>方法比较</Link>
+      <Link to={{ search: sectionSearch("survey", topic) }} aria-current={view === "survey" ? "page" : undefined}>方法比较</Link>
     </nav>}
     {section === "report" && <nav className="kv-subnav" aria-label="社区 PR 板块页面">
-      <Link to={{ search: "view=report" }} aria-current={view === "report" || view === "compare" ? "page" : undefined}>动态报告</Link>
-      <Link to={{ search: `view=evidence${topic ? `&topic=${topic}` : ''}` }} aria-current={view === "evidence" ? "page" : undefined}>PR 列表与趋势</Link>
+      <Link to={{ search: sectionSearch("report") }} aria-current={view === "report" || view === "compare" ? "page" : undefined}>动态报告</Link>
+      <Link to={{ search: sectionSearch("evidence", topic) }} aria-current={view === "evidence" ? "page" : undefined}>PR 列表与趋势</Link>
     </nav>}
     {view === "guide" && <KvBasics />}
     {view === "papers" && <KvPapers />}

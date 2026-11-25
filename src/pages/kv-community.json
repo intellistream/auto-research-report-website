@@ -5,9 +5,9 @@
   "periodStart": "2026-11-17",
   "periodEnd": "2026-11-23",
   "title": "本期关注：在途块保护、存储开销与跨实例复用",
-  "summary": "本期回查既有 55 条 PR 的状态与代码版本，并选读近期新增工作。NIXL Push 保护已合入；新的保存、分配和跨实例复用提案进一步说明，命中收益还取决于数据正确性、实际占用与交接成本。",
-  "scopeNote": "覆盖 vLLM 与 vLLM Ascend。既有 55 条 PR 完成状态及 head 回查；检索 11 月 17–23 日创建、标题含 KV 或 prefix 的线索，每组最多 60 条，按最近更新排序。KV 检索达到上限；这是本轮取材范围，不是完整社区清单。",
-  "verification": "状态与版本来自 GitHub 核对。HF3FS 条目另核对讨论和补丁，其余本期解读以 PR 当前说明为依据。测试和性能数字均为作者报告，本轮未独立运行 GPU、NPU 或存储实验。",
+  "summary": "本期回查既有 55 条 PR 的状态与代码版本，并精选 4 条新纳入材料。NIXL Push 保护已合入；保存、分配和跨实例复用提案说明，命中收益还取决于内容正确性、对象预留与交接成本。",
+  "scopeNote": "取材限定 vllm-project/vllm 与 vllm-project/vllm-ascend；查询日期条件为 created:2026-11-17..2026-11-23，标题关键词 KV、prefix，各查询跨这两个仓库合计最多 60 条，按 updated desc 排序。KV 查询返回 60 条，达到上限并截断；prefix 返回 31 条。精选样本不能代表全社区趋势。",
+  "verification": "2026-11-23 的 55 条回查只核对状态与 head，不等于 55 条代码重审。原报告的 HF3FS 解读核对了说明、讨论与三个文件补丁，其余重点条目主要审阅 PR 说明。作者实机报告、CPU 功能测试、模拟与本站静态核对分别标明；本站没有模型或性能复现。",
   "newEntries": [
     {
       "id": "github:vllm-project/vllm#69132",
@@ -127,15 +127,23 @@
       "title": "NIXL Push 的在途 KV 块保护已合入",
       "changeText": "11 月 17 日记录为开放中；11 月 19 日已合入，代码版本也有变化。当前说明包含 Push 提交线程配置、NIXL agent 同步，以及在 WRITE 提交或传输结束前保留发送租约和缓存块。",
       "mechanism": "提交尚未返回时，传输句柄还可能没有进入在途表。修复同时检查“正在提交”和“已经在途”，防止租约到期提前释放源块；对端连接的 TTL 回收也跳过仍有写入的实例。",
-      "evidence": "作者报告 GB200 / NIXL 1.5.2 下 396 项通过、1 项因受限模型失败。B300 端到端运行来自较早修订，且两组修复前运行并未隔离所有配置差异；不能把整套运行表现归因于某一项改动。",
+      "evidence": "作者报告 GB200 / NIXL 1.5.2 下 396 项通过、1 项因受限模型失败、1 项 xfailed。B300 端到端运行来自较早修订，且两组修复前运行并未隔离所有配置差异；不能把整套运行表现归因于某一项改动。",
       "analysis": "本期从“待合入提案”推进到上游实现。它说明缓存交接需要把提交、传输完成和块释放连成一致的生命周期。合入状态能确认交付进度，性能与故障覆盖仍要按具体证据判断。",
       "next": "继续跟踪 pull 模式加锁的端到端成本，以及底层 WRITE 永不完成时的块占用和告警行为。",
-      "basis": "已复核当前 PR 说明与合入状态；未独立复现。",
+      "basis": "已复核原报告版本 PR 说明与合入状态；未独立复现。",
       "readingScope": "当前正文、状态与 head；原始说明与各修订的验证范围分别保留。",
       "topic": "movement",
       "paperSlugs": [
         "distserve",
         "lmcache"
+      ],
+      "sourceVersion": "7bbe46045a8907eb1e41b7d52692a720b3aa4d97",
+      "sourceCheckedAt": "2026-11-23",
+      "claimSources": [
+        {
+          "label": "作者原始说明与验证条件（可修订）",
+          "url": "https://github.com/vllm-project/vllm/pull/66795#validation"
+        }
       ]
     },
     {
@@ -145,15 +153,27 @@
       "title": "抢占之后，旧保存任务仍可能读到新请求的 KV",
       "changeText": "新纳入 HF3FS 抢占保存修复。后台保存尚未读取物理块时，这些块可能已经释放给另一个请求，导致新请求的数据被存到旧请求的缓存标识下面。",
       "mechanism": "在抢占发生的调度步中，先等待相关保存任务完成 gather（从 KV 块复制到暂存区），再允许前向和加载继续。当前版本还补上部分 gather 后异常的同步保护；等待点不直接等待该次 gather 之后的 3FS 写入和元数据确认。",
-      "evidence": "作者在单 A10G、torch 2.14.0+cu130、CUDA 13.0 与 mock HF3FS 上报告当前 7528cc07 版本 2 项测试通过。测试检查存储页误差及异常同步，尚未验证真实 3FS、同一步加载、多保存任务或后续命中后的完整输出链路。",
+      "evidence": "作者在单 A10G、torch 2.14.0+cu130、CUDA 13.0 与 mock HF3FS 上报告原报告所用 7528cc07 版本 2 项测试通过。测试检查存储页误差及异常同步，尚未验证真实 3FS、同一步加载、多保存任务或后续命中后的完整输出链路。",
       "analysis": "这是缓存内容正确性的推进。缩短等待范围可以减少不必要的串行依赖，但当前证据不足以判断真实部署吞吐收益；抢占时的主机等待没有超时，也可能被前序保存任务阻塞。",
       "next": "跟踪当前版本 CI、真实 3FS 上的等待分布、同一步 load 和一个请求跨多个 save task 的测试。",
       "basis": "已核对说明、讨论与三个文件补丁；未独立复现。",
-      "readingScope": "当前 head 的 HF3FS connector、公共异步状态及抢占回归测试。",
+      "readingScope": "原报告 7528cc07 的 HF3FS connector、公共异步状态及抢占回归测试；后续 head 独立列示。",
       "topic": "lifecycle",
       "paperSlugs": [
         "lmcache",
         "cacheflow"
+      ],
+      "sourceVersion": "7528cc07f44ca7f864118fad29e08ea36abf19ef",
+      "sourceCheckedAt": "2026-11-23",
+      "claimSources": [
+        {
+          "label": "作者原始说明与验证条件（可修订）",
+          "url": "https://github.com/vllm-project/vllm/pull/69271#validation"
+        },
+        {
+          "label": "固定版本：gather 等待边界",
+          "url": "https://github.com/lkhun9311/vllm/blob/7528cc07f44ca7f864118fad29e08ea36abf19ef/vllm/distributed/kv_transfer/kv_connector/v1/hf3fs/hf3fs_connector.py#L262-L277"
+        }
       ]
     },
     {
@@ -166,11 +186,23 @@
       "evidence": "作者报告 513 项测试通过；在 GB10、Mistral-7B、FP16、16 GiB GPU KV 与 8 GiB CPU cache 的 16 个测量请求中，空任务从 20 个降到 0，消除错误累计的 4 GiB P2P 写入。该数字是指标纠正，不是实传流量或缓存容量下降。",
       "analysis": "本期新增了一个必须先核对指标口径的例子。减少任务创建和块固定有明确机制依据，但写入计数下降本身不能说明节省了相同大小的网络传输或内存。",
       "next": "跟踪多存储层、生产者和显式 peer 请求的回归，以及真实负载下的主机调度开销。",
-      "basis": "已审阅当前 PR 说明；测试与运行数字采用作者报告。",
+      "basis": "已审阅原报告版本 PR 说明；测试与运行数字采用作者报告。",
       "readingScope": "Overview、Validation、Details；未进行完整代码审计。",
       "topic": "movement",
       "paperSlugs": [
         "lmcache"
+      ],
+      "sourceVersion": "e51497fcb2a719a65c92af3a1a7d5f14280e086d",
+      "sourceCheckedAt": "2026-11-23",
+      "claimSources": [
+        {
+          "label": "作者原始说明与验证条件（可修订）",
+          "url": "https://github.com/vllm-project/vllm/pull/69132#validation"
+        },
+        {
+          "label": "固定版本：无目标时退出级联",
+          "url": "https://github.com/StevenWang-CY/vllm/blob/e51497fcb2a719a65c92af3a1a7d5f14280e086d/vllm/v1/kv_offload/tiering/p2p/manager.py#L486-L506"
+        }
       ]
     },
     {
@@ -179,15 +211,31 @@
       "change": "新纳入 · 容量管理",
       "title": "KV 池对象按实际注册范围分配",
       "changeText": "新纳入 Ascend 分层 Memcache 容量优化。部分缓存组只注册模型的一部分层，原分配下限仍按全模型层数计算，造成对象尾部预留过多。",
-      "mechanism": "当本地能确定整个对象的访问范围时，用起始偏移加已注册 KV 段总长度为新对象分配空间，并让传输构建与分配使用同一布局。独立对象键的流水段可支持非零偏移；范围不确定的共享键及 P/D 分离布局继续回退。",
-      "evidence": "作者报告 2 张 Ascend NPU、Qwen3.6-35B-A3B BF16、MTP3、kv_both、TP2/PP1、300 GiB 池下的 40 请求对照：运行后池 DRAM 从 241.62 降到 62.18 GiB，输入吞吐差异 0.75%。这些是同一实验 checkout 的特定前缀负载结果。",
+      "mechanism": "7997c0a 版在本地能确定整个对象的访问范围时，用起始偏移加已注册 KV 段总长度为新对象分配空间，分配与传输使用同一布局。独立键的流水段可支持非零偏移；该版对范围不明的共享键及 P/D 分离布局回退。后续扩展见下方专项回查，不能把旧版限制泛化为当前全部实现。",
+      "evidence": "作者报告 2 张 Ascend NPU、Qwen3.6-35B-A3B BF16、MTP3、kv_both、TP2/PP1、300 GiB 池下的 40 请求对照：运行后池 DRAM 从 241.62 降到 62.18 GiB，输入吞吐差异 0.75%。这些是同一实验 checkout 的特定前缀负载结果。 实验 checkout 未提供独立可复算的完整运行归档；这些 BF16 数字不归到后续 W4A8 修订。",
       "analysis": "这里节省的是外部池对象的过量预留，模型 KV 精度保持原设置。它与论文中的分页管理同样关注分配浪费，但作用对象和适用布局不同，不能直接套用其收益比例。",
       "next": "跟踪 PP、DCP 等布局的回退覆盖，以及已有大对象逐步退出池后，实际内存释放的过程。",
-      "basis": "已审阅当前 PR 说明；性能数字采用作者报告。",
+      "basis": "已审阅原报告版本 PR 说明；性能数字采用作者报告。",
       "readingScope": "分配规则、回退条件、详细改动及 AISBench 实验说明。",
       "topic": "lifecycle",
       "paperSlugs": [
         "pagedattention"
+      ],
+      "sourceVersion": "7997c0a667345cbbe9134d9b87f645bcd12810d1",
+      "sourceCheckedAt": "2026-11-23",
+      "claimSources": [
+        {
+          "label": "作者原始说明与验证条件（可修订）",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/22312#how-was-this-patch-tested"
+        },
+        {
+          "label": "原报告版本：对象范围计算",
+          "url": "https://github.com/zhangjinchi0013/vllm-ascend/blob/7997c0a667345cbbe9134d9b87f645bcd12810d1/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise/pool_worker.py"
+        },
+        {
+          "label": "后续版本：跨 worker 汇总范围",
+          "url": "https://github.com/zhangjinchi0013/vllm-ascend/blob/6d767315704661696169575cd2ef37ddc5b1b138/vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise/pool_worker.py#L422-L475"
+        }
       ]
     },
     {
@@ -197,15 +245,27 @@
       "title": "让较空闲的实例拉取另一实例的前缀",
       "changeText": "新纳入 NIXL peer lookup-and-pin 草稿。路由器可将请求交给较空闲的实例，由它向持有前缀的实例查询并拉取 KV。",
       "mechanism": "持有方查询最长可用前缀，增加引用保护，并等待查询之前已调度的步完成后返回地址。接收方拉取已有前缀、计算剩余输入；读取完成或租约到期后释放保护。查找失败、身份不符或超时则本地重算。",
-      "evidence": "作者在 2×A100-80GB、Qwen3-8B 与配套 router 上报告多种长度的输出一致和拉取对照。仅支持显式开启、pull 模式、单个完整注意力或 MLA 缓存组，不支持 DCP/PCP；文中 588 项测试结果早于 11 月 18 日合并 main，尚未在该次合并后复跑。",
+      "evidence": "作者在 2×A100-80GB、Qwen3-8B 与配套 router 上报告多种长度的输出一致和拉取对照。仅支持显式开启、pull 模式、单个完整注意力或 MLA 缓存组，不支持 DCP/PCP；文中 588 项测试结果早于 11 月 18 日合并 main，尚未在该次合并后复跑。 固定设计还排除 CPU offload blocks；两张卡各一个 engine 的实验不等于 TP/PP 全组合验证。",
       "analysis": "这把复用决策与实例负载联系起来：有缓存的实例排队较长时，搬运可能比等待或重算更合适；已有命中能立即服务时，额外查询和搬运也可能更慢。仍需把等待、传输和块保护一起计入决策。",
       "next": "跟踪合并 main 后的完整测试、配套 router 联调、并行布局支持及租约失效边界。",
-      "basis": "已审阅当前 PR 说明；未复跑实验或审计完整实现。",
+      "basis": "已审阅原报告版本 PR 说明；未复跑实验或审计完整实现。",
       "readingScope": "请求流程、功能限制、作者实验及测试版本说明。",
       "topic": "movement",
       "paperSlugs": [
         "sglang",
         "distserve"
+      ],
+      "sourceVersion": "9f9865610800c6865c5d60b28e18951e51e9c79b",
+      "sourceCheckedAt": "2026-11-23",
+      "claimSources": [
+        {
+          "label": "作者原始说明与验证条件（可修订）",
+          "url": "https://github.com/vllm-project/vllm/pull/68430#validation"
+        },
+        {
+          "label": "固定设计：支持布局与限制",
+          "url": "https://github.com/usationlabs/vllm/blob/9f9865610800c6865c5d60b28e18951e51e9c79b/docs/design/nixl_peer_lookup_pin.md#L361-L368"
+        }
       ]
     }
   ],
@@ -2050,6 +2110,168 @@
         "url": "https://github.com/vllm-project/vllm/pull/68285",
         "title": "Use Dflash prefix pattern for DSpine and LiLiCorr",
         "number": 68285
+      }
+    ],
+    "repositories": [
+      "vllm-project/vllm",
+      "vllm-project/vllm-ascend"
+    ],
+    "queries": [
+      {
+        "query": "created:2026-11-17..2026-11-23 KV in:title",
+        "limit": 60,
+        "returned": 60,
+        "truncated": true
+      },
+      {
+        "query": "created:2026-11-17..2026-11-23 prefix in:title",
+        "limit": 60,
+        "returned": 31,
+        "truncated": false
+      }
+    ],
+    "sort": "updated desc",
+    "selectionNote": "91 条检索返回 → 88 条去重标题线索 → 4 条精选新纳入、84 条未逐条分析。精选纳入量不是社区净新增量；检索日期条件与图表的上海时区创建日分别说明。"
+  },
+  "evidenceReview": {
+    "checkedAt": "2026-11-24",
+    "scope": "只对四条调度 PR 与五项重点案例做定向来源补核；没有重跑检索或全量刷新 59 条状态，不形成新一期报告。",
+    "verification": "本轮读取原始说明、相关评论及选定固定版本代码。所有测试和性能数字仍为提交方报告；本站只完成静态核对。",
+    "checks": [
+      {
+        "id": "github:vllm-project/vllm#54625",
+        "number": 54625,
+        "url": "https://github.com/vllm-project/vllm/pull/54625",
+        "checkedAt": "2026-11-24",
+        "headSha": "f1b9e5b8900258a3fbc59b39f7cbe0470bb7f27c",
+        "baseSha": "e423d357254a2438dd6c58505c3ade7e3be33197",
+        "previousHeadSha": "f1b9e5b8900258a3fbc59b39f7cbe0470bb7f27c",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "note": "head 与 11 月 23 日快照相同。重读 Serving results 与讨论；固定代码 threshold 默认 0.5。作者窗口对照不是本站复现，运行提交未与该 head 建立一一对应。",
+        "codeUrl": "https://github.com/fululi12/vllm/tree/f1b9e5b8900258a3fbc59b39f7cbe0470bb7f27c",
+        "descriptionUrl": "https://github.com/vllm-project/vllm/pull/54625#serving-results"
+      },
+      {
+        "id": "github:vllm-project/vllm#66361",
+        "number": 66361,
+        "url": "https://github.com/vllm-project/vllm/pull/66361",
+        "checkedAt": "2026-11-24",
+        "headSha": "03e8785ac5c3013baca4990e8948422dd3ebe630",
+        "baseSha": "cf5cea2da37d3dfed27d2e0aa3041c3e553c2d57",
+        "previousHeadSha": "376cd0583f5b4f6a74769afb1c8cca0a12da8854",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "note": "11 月 24 日新增 03e8785：仅修改 test_scheduler.py，用 ModelRunnerOutput 替代已移除的测试 helper。旧、新 head 的 scheduler.py blob 相同。旧 CPU 测试及模拟结果仍归原记录；没有据此认定新 head 已复跑。",
+        "codeUrl": "https://github.com/htang7415/vllm/tree/03e8785ac5c3013baca4990e8948422dd3ebe630",
+        "descriptionUrl": "https://github.com/vllm-project/vllm/pull/66361#validation"
+      },
+      {
+        "id": "github:vllm-project/vllm#66558",
+        "number": 66558,
+        "url": "https://github.com/vllm-project/vllm/pull/66558",
+        "checkedAt": "2026-11-24",
+        "headSha": "6075903ef5e8fff6af54a0d90f822329d8945cad",
+        "baseSha": "8db73f26c16afa748e9796e37d60f2e266ec281d",
+        "previousHeadSha": "6075903ef5e8fff6af54a0d90f822329d8945cad",
+        "state": "open",
+        "merged": false,
+        "draft": true,
+        "note": "head 未变。固定代码核对每步最多两次外部估计、未知值及 MultiConnector 顺序；单 seed 模拟没有主机时间，GPU 动机实验使用另一调度器。",
+        "codeUrl": "https://github.com/StevenWang-CY/vllm/tree/6075903ef5e8fff6af54a0d90f822329d8945cad",
+        "descriptionUrl": "https://github.com/vllm-project/vllm/pull/66558#validation"
+      },
+      {
+        "id": "github:vllm-project/vllm#66705",
+        "number": 66705,
+        "url": "https://github.com/vllm-project/vllm/pull/66705",
+        "checkedAt": "2026-11-24",
+        "headSha": "b427c8b9594c2c97365cd3af1eae96ef2b39414e",
+        "baseSha": "595b1514e837ba38df7ae51c411807783e227b78",
+        "previousHeadSha": "b427c8b9594c2c97365cd3af1eae96ef2b39414e",
+        "state": "open",
+        "merged": false,
+        "draft": true,
+        "note": "head 未变。固定代码为多队列独立 SPF 策略，waiting 的未知命中保持位置；21 项 CPU 测试是作者报告，GPU E2E 仍 pending。",
+        "codeUrl": "https://github.com/wzhao18/vllm/tree/b427c8b9594c2c97365cd3af1eae96ef2b39414e",
+        "descriptionUrl": "https://github.com/vllm-project/vllm/pull/66705#validation"
+      },
+      {
+        "id": "github:vllm-project/vllm#66795",
+        "number": 66795,
+        "url": "https://github.com/vllm-project/vllm/pull/66795",
+        "checkedAt": "2026-11-24",
+        "headSha": "7bbe46045a8907eb1e41b7d52692a720b3aa4d97",
+        "baseSha": "428c371b32c18a788def35abea1cb9f579278381",
+        "previousHeadSha": "7bbe46045a8907eb1e41b7d52692a720b3aa4d97",
+        "state": "closed",
+        "merged": true,
+        "draft": false,
+        "note": "head 未变。重读作者说明；396 passed、1 failed、1 xfailed 为该文所报单测。B300 E2E 属较早修订，配置未完全隔离。",
+        "codeUrl": "https://github.com/zyongye/vllm/tree/7bbe46045a8907eb1e41b7d52692a720b3aa4d97",
+        "descriptionUrl": "https://github.com/vllm-project/vllm/pull/66795#validation"
+      },
+      {
+        "id": "github:vllm-project/vllm#69132",
+        "number": 69132,
+        "url": "https://github.com/vllm-project/vllm/pull/69132",
+        "checkedAt": "2026-11-24",
+        "headSha": "e51497fcb2a719a65c92af3a1a7d5f14280e086d",
+        "baseSha": "ad227db3ceb2880e7775e3683ff9805c2dfa662b",
+        "previousHeadSha": "e51497fcb2a719a65c92af3a1a7d5f14280e086d",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "note": "head 未变。Validation 明确：16 个测量请求消除 20 个空任务及错误累计的 4 GiB 写入；这不是实际流量或内存下降。另有独立 P/D 功能对照，不能混作同一实验。",
+        "codeUrl": "https://github.com/waizuichougou/vllm/tree/e51497fcb2a719a65c92af3a1a7d5f14280e086d",
+        "descriptionUrl": "https://github.com/vllm-project/vllm/pull/69132#validation"
+      },
+      {
+        "id": "github:vllm-project/vllm-ascend#22312",
+        "number": 22312,
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22312",
+        "checkedAt": "2026-11-24",
+        "headSha": "6d767315704661696169575cd2ef37ddc5b1b138",
+        "baseSha": "9be56224cc27e9ffaf5336562551647220a86fd5",
+        "previousHeadSha": "7997c0a667345cbbe9134d9b87f645bcd12810d1",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "note": "后续 head 6d76731 已改为同一引擎共享对象键的 worker 汇总最大端点，包含 mixed 与 P/D；注册不完整时保留旧分配下限，读取时检查实际容量。11 月 23 日 7997c0a 的 BF16 / kv_both / 241.62→62.18 GiB 保留为旧实验；现说明的 W4A8 表不能替换或背书它。",
+        "codeUrl": "https://github.com/zhangjinchi0013/vllm-ascend/tree/6d767315704661696169575cd2ef37ddc5b1b138",
+        "descriptionUrl": "https://github.com/vllm-project/vllm-ascend/pull/22312#how-was-this-patch-tested"
+      },
+      {
+        "id": "github:vllm-project/vllm#69271",
+        "number": 69271,
+        "url": "https://github.com/vllm-project/vllm/pull/69271",
+        "checkedAt": "2026-11-24",
+        "headSha": "9f01761867a16295fde34ee72d75aac9f5f554a9",
+        "baseSha": "0e3c8dbdae9d55149b0fba4e6c1014b4b08c9c73",
+        "previousHeadSha": "7528cc07f44ca7f864118fad29e08ea36abf19ef",
+        "state": "open",
+        "merged": false,
+        "draft": false,
+        "note": "后续 head 9f01761 已变化。当前说明还列出 89444769 的两项 mock 测试；11 月 23 日 7528cc07 的两项结果仍保留原归属。等待到每个已跟踪 save 的 gather，而非该 gather 后的写入；前序串行写入仍可阻塞。真实 3FS、same-step load 与多 save task 覆盖未验证。",
+        "codeUrl": "https://github.com/lkhun9311/vllm/tree/9f01761867a16295fde34ee72d75aac9f5f554a9",
+        "descriptionUrl": "https://github.com/vllm-project/vllm/pull/69271#validation"
+      },
+      {
+        "id": "github:vllm-project/vllm#68430",
+        "number": 68430,
+        "url": "https://github.com/vllm-project/vllm/pull/68430",
+        "checkedAt": "2026-11-24",
+        "headSha": "9f9865610800c6865c5d60b28e18951e51e9c79b",
+        "baseSha": "cbb38c458499f0cb3d81741318b8465678b3fbd1",
+        "previousHeadSha": "9f9865610800c6865c5d60b28e18951e51e9c79b",
+        "state": "open",
+        "merged": false,
+        "draft": true,
+        "note": "head 未变。固定设计仅支持一个 full-attention 或 MLA KV group、GPU blocks、pull、无 DCP/PCP；TP/PP 的实际实验覆盖不能由发现字段推出。588 项单测早于合并 main，不能作为当前 head 全套通过。",
+        "codeUrl": "https://github.com/usationlabs/vllm/tree/9f9865610800c6865c5d60b28e18951e51e9c79b",
+        "descriptionUrl": "https://github.com/vllm-project/vllm/pull/68430#validation"
       }
     ]
   }
