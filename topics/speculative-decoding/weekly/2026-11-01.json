@@ -6,19 +6,19 @@
   "checkedAt": "2026-11-25",
   "indexCommit": "1fe2649b34888dfcbde58839c4765773ea953f4c",
   "title": "从候选数量到真实执行：推测解码的工程基础",
-  "overview": "首期覆盖 10 月 22 日至 11 月 1 日的 58 条日报线索。最有价值的变化是预算控制、执行图、草稿上下文和状态生命周期开始协同演进。减少草稿 token 或提高接受率只是逻辑层变化；能否减少实际张量行、重复投影、内核启动与状态读写，决定这些方法是否真正加速。",
-  "scope": "本期为回溯编写，按北京时间日报收录日分组（58 条去重线索），并非当时发布的状态快照或完整社区检索。2026-11-25 核对原始 PR 的主要说明与当前状态/head/base；其中 6 条另查关键补丁片段，其余为说明级核查。更新后的 PR 说明可能包含窗口之后的实验或改动，不能倒推至当时；测试和性能数字来自提交方，本站未复现。外围优化保留在来源索引中，不作为推测解码收益证据。",
+  "overview": "自适应验证开始进入固定执行图，草稿计算也从全量历史转向按需投影与缓存。同期的采样分片、ACL Graph 和专用验证内核表明，候选预算、物理执行宽度及状态归属正在成为推测解码的共同工程问题。",
+  "scope": "按北京时间日报收录日归档；58 条 PR，6 条附关键变更路径或片段。状态及版本以 2026-11-25 回查为准。",
   "stories": [
     {
       "slug": "budget",
       "title": "预算变小，物理验证工作也会变小吗？",
       "lead": "自适应验证与执行图的契约",
       "paragraphs": [
-        "#63421 将 adaptive verification 的预算选择改为单次预热 Triton 启动，避免动态编译；#63532 让 AdaFlash 长度头提供预测长度。但 #60229 显示 GPU 选择的请求宽度还要求 GDN 与 k-pool scatter 支持变长和 padding，否则逻辑预算不能安全进入固定图。#64915 尝试把固定 K 下入队/结束造成的不规则批次也纳入 varlen graph；#60532 使 pre-SM90 FlashInfer 的均匀多 token 验证走 FA2 FULL graph。",
-        "图的成本不仅是 replay：#64950 提议独立限制首次草稿捕获尺寸，#63819 补齐 warmup 编译变体，#63431 去掉仅用于显存估算的重复成本 profiling。Ascend #20279 提议 DFlash2 复用 ACL 图，#20254 将拒绝采样多次下发合入 ACL 图；#18717 使用设备长度，#19840 进一步将长度与 tiling 准备放入独立流。"
+        "#63421 将自适应验证（AV）的预算选择替换为预热 Triton kernel，#63532 接入 AdaFlash 预测长度。GPU 决定每请求验证长度后，#60229 使 GDN 和 k-pool scatter 支持变长及 padding；#64915 则尝试让固定 K 下的入队、结束请求也复用变长图。#60532 为 pre-SM90 FlashInfer 的均匀多 token 验证接通 FA2 FULL graph。",
+        "图捕获方面，#64950 独立限制首次草稿捕获规模，#63819 补齐 JIT warmup，#63431 消除启动时的重复 AV 成本测量。Ascend #20279 接入 DFlash2 ACL 图，#20254 将拒绝采样 kernel 合并回放；#18717/#19840 分别引入设备长度和独立流元数据准备。"
       ],
-      "keyEvidence": "作者报告 #63421：预算绑定 host 76–90→约 15 μs；#20254：910B 原路径设备约 110–170 μs、host 约 1.98 ms；后者仍是 PR 报告中的原路径 profiling。",
-      "assessment": "预算、图模式和编译变体应当一起测量：即使逻辑 K 变小，图填充、后端拒绝和同步仍可能保留全部成本。跟踪 #64915、#64950 与 Ascend graph/metadata 路径的合入及负对照。",
+      "keyEvidence": "#63421：预算绑定 host 76–90→约 15 μs。Ascend #20254 的 910B 原路径中，设备耗时约 110–170 μs，host 耗时约 1.98 ms。",
+      "assessment": "固定 K 也会因请求入队或结束产生不规则验证批次。#64915 的独立价值在于消除这种 eager fallback；后续重点是该路径的合入状态和兼容范围，而不只是 AV 的预算选择。",
       "sourceIds": [
         "github:vllm-project/vllm#63421",
         "github:vllm-project/vllm#63532",
@@ -38,13 +38,19 @@
           "sourceId": "github:vllm-project/vllm#63421",
           "environment": "预算绑定步骤，预热 Triton 对比 torch.compile",
           "result": "host 76–90→约 15 μs；GPU 85–100→22–30 μs",
-          "boundary": "不是完整 step；作者报告的选择器 microbench"
+          "boundary": "预算选择器 microbenchmark"
         },
         {
           "sourceId": "github:vllm-project/vllm#60532",
           "environment": "SM80，Qwen3.8-27B NVFP4，MTP3",
           "result": "TP1 73.6→108.1 tok/s；TP2 61.0→83.1 tok/s",
-          "boundary": "均匀验证、FlashInfer FA2；不能外推到其他架构"
+          "boundary": "均匀验证；FlashInfer FA2"
+        },
+        {
+          "sourceId": "github:vllm-project/vllm#64915",
+          "environment": "4×Rubin，DeepSeek-V4.1-Flash DSpark K5，DP/EP4，131K/1K，c256",
+          "result": "DeepGEMM 20862→39943 tok/s；10 秒 rank0 target profile 中 eager 58/251→0/417",
+          "boundary": "PR 已关闭未合并；FlashInfer 基线未达到 warmup 稳定性标准。"
         }
       ]
     },
@@ -56,8 +62,8 @@
         "#62784 在全 DP rank 都不再需要候选时令 K=0，仍完成草稿 KV 更新；#63710 与 Ascend #20060 在 DSpark 上先选必要后缀再投影，#64109 进一步限制滑窗草稿的 KV 预留，而不截断目标历史。#63245、#19724 则把 draft-only window 用于长历史接受率与 MRV2 适配。",
         "#19550 合并共享输入的 WKV 投影并复用 RoPE；#64948 省掉 EAGLE3 原始 aux 拼接；#64612 让 DFlash 草稿继承 FP8 KV。算法适配方面，#19753 提议 UNO 共享目标权重加 LoRA，#19682 支持 DSpine 的候选细化。"
       ],
-      "keyEvidence": "作者报告 #63245：单 A40、Llama-3.1-8B/EAGLE3、K3、32K、贪心，acceptance length 1.06→2.14，16→34 tok/s。",
-      "assessment": "应区分三类变化：跳过必然无用工作、限制草稿上下文以改变接受表现、共享权重或临时存储。目标输出正确性仍由验证保障；接受长度和草稿成本需分别记录。",
+      "keyEvidence": "#63245：单 A40、Llama-3.1-8B/EAGLE3、K3、32K、贪心，acceptance length 1.06→2.14，16→34 tok/s。",
+      "assessment": "草稿窗口有两个独立作用：#63245 通过缩短 EAGLE3 注意力历史恢复长上下文接受率，#64109 则减少 DFlash/DSpark 草稿的缓存预留。前者改变候选质量，后者改变物理资源需求。",
       "sourceIds": [
         "github:vllm-project/vllm#62784",
         "github:vllm-project/vllm#63710",
@@ -82,7 +88,7 @@
           "sourceId": "github:vllm-project/vllm#63710",
           "environment": "8×H20-3e，DeepSeek-V4.1-Flash，TP8+EP，64K/128",
           "result": "作者报告输出吞吐 +3%～4%",
-          "boundary": "Ascend 移植 #20060 的说明未提供独立 NPU 性能；不能复用 GPU 数字"
+          "boundary": "DeepSeek-V4.1-Flash GPU 原实现；Ascend 移植见 #20060"
         }
       ]
     },
@@ -94,8 +100,8 @@
         "#63554 让 rank 只持有自己验证的 draft logits，#63886 将 DSpark Markov loop 按同一 batch ownership 切分，先 vocab→batch all-to-all 再汇总候选。#57770 为 greedy argmax 做分块规约，#64033 将概率草稿的 top-k walk 压为 Triton；Ascend #20006 以行分块限制验证 top-k/top-p 峰值显存。",
         "#61589 为依赖下一 token 的草稿缓存引入 lookahead hash，#63219 修复 PP 结构化输出的逐请求候选覆盖，#18931 修复最后 PP stage 的 MTP embedding，#52921 对齐 offload block 数，#63444 批量初始化槽位草稿。"
       ],
-      "keyEvidence": "作者报告 #64033：H100、Qwen3.8-27B-FP8 DSpark K8、top-k64，c32 mean TPOT −1.3%、p99 −2.3%；#63444 明确无可测吞吐收益。",
-      "assessment": "采样优化不能只看 kernel 数；应区分概率分布正确性、跨 rank 归属、实际通信和临时内存。状态错误也可能直接表现为接受率下降。",
+      "keyEvidence": "#64033：H100、Qwen3.8-27B-FP8 DSpark K8、top-k64，c32 mean TPOT −1.3%、p99 −2.3%；#63444 明确无可测吞吐收益。",
+      "assessment": "#63554/#63886 将验证、概率缓存与 Markov 采样统一到按请求分片的所有权，避免每个 TP rank 重复持有全部概率。这为后续细粒度 LM-head TP 的候选路由提供了参照。",
       "sourceIds": [
         "github:vllm-project/vllm#63554",
         "github:vllm-project/vllm#63886",
@@ -119,7 +125,7 @@
           "sourceId": "github:vllm-project/vllm-ascend#20006",
           "environment": "Qwen3-8B DSpark，TP4 DP1，温度1，高并发",
           "result": "原 full-vocab sort OOM；行分块约束峰值临时存储",
-          "boundary": "未据此推断吞吐提升"
+          "boundary": "高并发验证的全词表排序 workspace"
         }
       ]
     },
@@ -129,10 +135,10 @@
       "lead": "从单算子走向多层融合与共享元数据",
       "paragraphs": [
         "#63440 将 Muse Spark 小批量 DSpark verify 的中间层放进 persistent FlyDSL 路径；#62994 则让 MiniMax-M3 原有 per-row FFN MonoKernel 支持 EAGLE3（最多 16 行），无需改 kernel。#63527 尝试让 Muse Spark mono 与 FP8 KV 同时启用。#61855 把 fused GDN MTP port 到 ROCm，Ascend #19954/#20345 优化 GDN 混合批元数据与组间共享，#19898 是普通 GDN 单 token 融合，可作为相关基础。",
-        "#20489 的外部 KV 池逐层交接则强调 Decode 拥有 speculative policy 与状态，#64852 的融合 norm+quant 同时覆盖若干 MTP norm 调用点。它们分别属于状态交接和共享模型执行，不应直接归为草稿算法。"
+        "#20489 的外部 KV 池逐层交接保留 Decode 侧的 speculative policy；#64852 的融合 norm+quant 覆盖部分 MTP norm。二者分别优化状态交接与共享模型执行。"
       ],
-      "keyEvidence": "作者报告 #62994：MI355X TP4、EAGLE3 K3，c1 ITL 6.98→6.11 ms，AL 2.78/2.78；#61855：MI350X Qwen3.5-35B-A3B MTP3 单请求 2.39→2.08 ms/token。",
-      "assessment": "专用路径可以同时服务 AR/Verify，但进入条件取决于实际 token rows、缓存布局和硬件。需要记录 fallback 比例；后续继续看草稿本身能否也复用该类执行器。",
+      "keyEvidence": "#62994：MI355X TP4、EAGLE3 K3，c1 ITL 6.98→6.11 ms，AL 2.78/2.78；#61855：MI350X Qwen3.5-35B-A3B MTP3 单请求 2.39→2.08 ms/token。",
+      "assessment": "#62994 只需修改 host 选路便可复用原 FFN kernel，而 #63440 重新组织跨层执行。两者代表不同的专用化成本，后续值得跟踪适用行数及草稿层复用。",
       "sourceIds": [
         "github:vllm-project/vllm#63440",
         "github:vllm-project/vllm#62994",
@@ -148,7 +154,7 @@
         {
           "sourceId": "github:vllm-project/vllm#63440",
           "environment": "8×MI355X，TP8+EP，Muse Spark，DSpark K7，AgentX c1",
-          "result": "作者报告 interactivity +57%、tok/s/GPU +28%",
+          "result": "interactivity +57%、tok/s/GPU +28%",
           "boundary": "合成 AL=4.05；对照为 base stock recipe；不能作为自然接受率收益"
         },
         {
@@ -181,7 +187,7 @@
   "otherGroups": [
     {
       "title": "共享后端与部署背景",
-      "body": "#20194 是 packed-cache 元数据，#19911/#19971 是 QLI 候选块及 Top512 排序（不是草稿候选）；#63638/#59774 涉及注意力与 KV，#63568 是 KDA prefill；#19851/#19868 是 KV transfer/PP。可帮助理解运行时，但不计为直接 SpecDec 优化。",
+      "body": "#20194 优化 packed-cache 元数据；#19911/#19971 优化 QLI 稀疏注意力候选块排序；#63638/#59774 涉及注意力与 KV，#63568 是 KDA prefill；#19851/#19868 涉及 KV transfer 与动态 PP。",
       "sourceIds": [
         "github:vllm-project/vllm-ascend#20194",
         "github:vllm-project/vllm-ascend#19911",
@@ -195,7 +201,7 @@
     },
     {
       "title": "外围优化及明确排除",
-      "body": "#64898/#20344 主要优化 Prefill，#64828/#63101 为 MoE 量化（后者无 spec benchmark），#62091/#62101/#63528 为一般模型执行/通信；#19869 明确排除 speculative/draft decoding。保留检索来源，不用来推断推测解码收益。",
+      "body": "#64898/#20344 优化 Prefill；#64828/#63101 涉及 MoE 量化；#62091/#62101/#63528 涉及通用模型执行与通信；#19869 的 FIA 零拷贝路径明确排除 speculative/draft decoding。",
       "sourceIds": [
         "github:vllm-project/vllm#64898",
         "github:vllm-project/vllm-ascend#20344",
@@ -210,11 +216,11 @@
   ],
   "synthesis": [
     {
-      "title": "预算与物理工作量",
-      "body": "假设：部分预算下降被固定图与 padding 抵消。",
-      "design": "固定模型和 K 上限，比较实际候选宽度、图模式与设备端长度；从小批均匀到混合批。",
-      "measure": "实际 Q rows、padding、plan、verify time、AL、TPOT。",
-      "decision": "若物理工作和时间不降，不应认定预算策略有效。",
+      "title": "关注变长验证的图覆盖",
+      "body": "#64915 的固定 K 不规则批次与 #60229 的自适应验证具有共同的变长后端需求。",
+      "design": "固定 K，构造入队/结束混合批；比较 eager 与 varlen graph 的 target trace。",
+      "measure": "实际 Q rows、graph replay 比例、verify time、TPOT。",
+      "decision": "关注短行批次能否保持图回放，以及收益是否集中在原先频繁 fallback 的负载。",
       "sourceIds": [
         "github:vllm-project/vllm#63421",
         "github:vllm-project/vllm#60229",
@@ -223,11 +229,11 @@
       ]
     },
     {
-      "title": "无用草稿与 KV 生命周期",
-      "body": "假设：P/D prefill 或长输入有未消费的候选与上下文投影。",
-      "design": "先定位消费者；比较完整/仅 context KV 或完整/受控后缀路径，检查输出和状态。",
-      "measure": "Draft 时间、context projection、KV bytes、AL、TTFT。",
-      "decision": "若下一阶段仍需该状态，禁止删除；吞吐/容量分别报告。",
+      "title": "从无用候选到纯 P 草稿资源",
+      "body": "#62784 已跳过无用 query；下一步是纯 P 的草稿图、权重和 workspace 是否仍被创建。",
+      "design": "对比普通 P 与仅 context KV 的 P/D 部署。",
+      "measure": "P 侧草稿耗时、context KV 写入、KV budget、TTFT。",
+      "decision": "重点核查交接状态与资源分配。",
       "sourceIds": [
         "github:vllm-project/vllm#62784",
         "github:vllm-project/vllm#63710",

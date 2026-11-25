@@ -6,8 +6,8 @@
   "checkedAt": "2026-11-25",
   "indexCommit": "1fe2649b34888dfcbde58839c4765773ea953f4c",
   "title": "物理宽度、延迟提交与异步依赖",
-  "overview": "第三期 38 条线索集中暴露了逻辑策略与真实执行的错位：动态 K 仍可能跑最大草稿块，图 padding 会进入 MoE，状态 commit 与 D2H 被无意串行化，纯 Prefill 仍可能分配草稿资源。本期研究重点因此从功能接通推进到真实工作量与依赖的消除。",
-  "scope": "本期为回溯编写，按北京时间日报收录日分组（38 条去重线索），并非当时发布的状态快照或完整社区检索。2026-11-25 核对原始 PR 的主要说明与当前状态/head/base；其中 5 条另查关键补丁片段，其余为说明级核查。更新后的 PR 说明可能包含窗口之后的实验或改动，不能倒推至当时；测试和性能数字来自提交方，本站未复现。外围优化保留在来源索引中，不作为推测解码收益证据。",
+  "overview": "动态 K 不一定缩小草稿块，图 padding 可能制造 MoE 热点，RecoverSSM commit 也可能被纳入无关的 D2H 等待。本期的集中变化是把逻辑调度映射到真实计算、内存和执行依赖。",
+  "scope": "按北京时间日报收录日归档；38 条 PR，5 条附关键变更路径或片段。状态及版本以 2026-11-25 回查为准。",
   "stories": [
     {
       "slug": "shape",
@@ -17,8 +17,8 @@
         "#66612 提议 DFlash/DFlash2 按本轮 K 收缩 query block，而非固定最大宽度；#56451 为 ROCm Triton sparse 路径接通 ragged verify，#62769 令 TP rank 0 决定预算及每请求容量，避免不同布局进入同一 collective。Ascend #20242 在 replay 前标出 graph padding，防止虚假行汇集到一个专家 rank。",
         "#62964 修复 FlashInfer 用 target Q heads 检查 drafter KV heads 的错误图支持判定；#65132 融合 AITER MLA graph metadata；#21512 固定 DFlash context tile 避免新 shape JIT；#63096 让 AITER 多轮 AR 草稿复用一个图，#66485/#67034 则处理小批长历史 split-KV 和窗口 MLA 后端。"
       ],
-      "keyEvidence": "作者报告 #66612：H100、Qwen3-8B DFlash2 动态 K，c128 11331→13917 tok/s（+22.8%）；plain DFlash 的 AL 1.67→1.62，故 opt-in。",
-      "assessment": "真实宽度不是 K 参数本身；需要记录 actual rows、pad、后端、图桶和各 rank 布局。动态策略的收益必须能追到实际工作量变化。",
+      "keyEvidence": "#66612：H100、Qwen3-8B DFlash2 动态 K，c128 11331→13917 tok/s（+22.8%）；plain DFlash 的 AL 1.67→1.62，故 opt-in。",
+      "assessment": "#66612 的收缩路径让动态 DFlash2 逼近各并发下的最佳静态 K，说明原先策略损失的一部分来自草稿仍按最大宽度执行。代价是按宽度捕获更多图；plain DFlash 还出现 AL 下降。",
       "sourceIds": [
         "github:vllm-project/vllm#66612",
         "github:vllm-project/vllm#56451",
@@ -48,7 +48,7 @@
           "sourceId": "github:vllm-project/vllm#63096",
           "environment": "MI355X，AITER 多步草稿图，K3",
           "result": "隔离 loop 571→463 μs（B1）",
-          "boundary": "作者未宣称端到端吞吐收益"
+          "boundary": "隔离 loop 改善；Serving 吞吐基本持平"
         }
       ]
     },
@@ -60,8 +60,8 @@
         "#66595 的 KDA RecoverSSM 提议将上一轮 accepted tokens 的 replay 并入下一轮 verify，sampling 后仅记录 pending count；prefix block 边界及请求离开时仍须完成提交。Ascend #21430 则不改变恢复算法，提前发出只依赖 post_update 的 computed-token D2H，让 RecoverSSM commit 与下一步输入准备重叠。",
         "#21444 在 Qwen hybrid/DFlash2 的合格 FA3 路径保留设备长度，#21542 将同类 skip 扩到 Kimi K3.1 FlashMLA，#21191 复用 device query boundary；#21403 在 310P 合并回读并移除逐请求 host 工作。"
       ],
-      "keyEvidence": "作者报告 #21430：A5、Qwen3.x GDN+MTP、c72，约 40 ms 每步空泡消失、decode TPS 24→约30；#66595：GLM-5.3-Flash MTP5 c128 输出吞吐 +5.4%。",
-      "assessment": "两类机制应分开验证：延迟提交改变状态协议，提前 D2H 只改变依赖顺序。先画最后写入者与消费者，再判断可重叠的工作，不可直接相加收益。",
+      "keyEvidence": "#21430：A5、Qwen3.x GDN+MTP、c72，约 40 ms 每步空泡消失、decode TPS 24→约30；#66595：GLM-5.3-Flash MTP5 c128 输出吞吐 +5.4%。",
+      "assessment": "#66595 将状态提交移到下一轮验证，#21430 则让 D2H 与现有 commit 重叠。两者分别修改状态协议与等待集合；值得跟踪它们是否能在同一后端组合。",
       "sourceIds": [
         "github:vllm-project/vllm#66595",
         "github:vllm-project/vllm-ascend#21430",
@@ -75,7 +75,7 @@
           "sourceId": "github:vllm-project/vllm-ascend#21430",
           "environment": "A5，Qwen3.x GDN+MTP，c72",
           "result": "作者报告约40 ms idle gap 消失，decode TPS 24→约30",
-          "boundary": "该 PR 仍开放；TPS 口径按原文，不能等同全场景 TPOT"
+          "boundary": "开放 PR；指标为原文 decode TPS"
         },
         {
           "sourceId": "github:vllm-project/vllm#66595",
@@ -93,8 +93,8 @@
         "#65217 延续 #62784，显式 prefill_context_kv_only 不调度草稿、不预留 lookahead、不捕获草稿图，并释放仅 drafting 读取的权重；#67291 进一步不建 draft attention builder 与 workspace。#54820 去除 ROCm DSpark 的共享词表占位，#21435 跳过 MTP 无需的 checkpoint shard，#67485/#67296 修正 KV sizing warmup 与 verify workspace/碎片预算。",
         "正确性方面 #64777 让 EAGLE 继承目标实际 kernel block size，#15851 使目标 DCP KV 与 replicated draft KV 分别描述，#66063 令 draft 在最后 PP rank 作为单 stage；#21439 补 GLM-5.3-Flash 的 aux hidden interface、独立 SWA KV 与设备长度。"
       ],
-      "keyEvidence": "作者报告 #67485：Kimi-K3-pruned75 DSpark TP4，默认配置启动成功，rank0 KV 25.92 GiB；原 0.90 workaround 16.59 GiB（不同内存配置）。",
-      "assessment": "不应把所有问题归因于显存不足或接受率。要沿着 ownership 检查 block size、stage、共享权重、context-only 与实际 workspace，并保留错误配置的最小复现。",
+      "keyEvidence": "#64777 发现 MiniMax-M3 使用 512-token logical block 时，Target 按 128-token kernel block 写 KV，Draft 却按 512-token 读，导致第二个及后续候选接受率崩溃。",
+      "assessment": "#64777 表明接受率回退也可能源于物理 KV 布局错误，而非草稿质量；#65217/#67291 则把纯 P 资源裁剪推进到图、权重与 builder 层。",
       "sourceIds": [
         "github:vllm-project/vllm#65217",
         "github:vllm-project/vllm#67291",
@@ -118,7 +118,7 @@
           "sourceId": "github:vllm-project/vllm#67485",
           "environment": "4×B200，Kimi-K3-pruned75 DSpark，TP4",
           "result": "默认启动成功；KV 25.92 GiB vs 0.90 下16.59 GiB",
-          "boundary": "不同 memory utilization；不能当作同配置容量加速"
+          "boundary": "默认配置与 0.90 workaround 的容量对照"
         }
       ]
     },
@@ -130,8 +130,8 @@
         "#61869 将 DeepSeek-V4.1 DSpark 接入已有 specialized target executor，使用 fused allreduce+mHC、attention/expert GEMM 与 Markov hook；#66051/#66764 分别缩短 Muse Spark 的 ROCm/NVIDIA 采样尾部；#66865/#63102 扩展 Qwen/GLM 专用执行，#66652 改 target/draft mHC 边界 kernel。",
         "Ascend #21209 将 LM-head TP 的 padding 约束移动到 logits hook，采样前裁回有效行；#18236 用同步 DP token bucket 缩小投影填充；#20566 衔接 MTP attention 的 FlashComm1 布局。"
       ],
-      "keyEvidence": "作者报告 #61869：GB300 TP4、DSpark K5，完整 step c1 −4.5%、batch8 −3.4%、batch40 −1.6%；#66051 的七轮 Markov 约 500→296 μs，AgentX c1 interactivity +3.1%。",
-      "assessment": "这是下一期草稿 MegaKernel 的直接技术背景：重复 launch 可减少，但收益取决于草稿占比、跨 rank 的路由及是否触发专用形状。",
+      "keyEvidence": "#61869：GB300 TP4、DSpark K5，完整 step c1 −4.5%、batch8 −3.4%、batch40 −1.6%；#66051 的七轮 Markov 约 500→296 μs，AgentX c1 interactivity +3.1%。",
+      "assessment": "#61869 复用 target executor，#66051/#66764 则融合草稿采样尾部。下一步是把离散的草稿层与采样段连接成更完整的专用路径。",
       "sourceIds": [
         "github:vllm-project/vllm#61869",
         "github:vllm-project/vllm#66051",
@@ -154,7 +154,7 @@
           "sourceId": "github:vllm-project/vllm#66051",
           "environment": "8×MI355X，TEP8，Muse Spark K7，monokernel",
           "result": "Markov 498–501→296 μs B1；AgentX c1 interactivity +3.1%",
-          "boundary": "c2 interactivity −1.1% 在噪声内；不是整体 40% 加速"
+          "boundary": "c2 interactivity −1.1%，在运行波动内"
         }
       ]
     }
@@ -167,7 +167,7 @@
   "otherGroups": [
     {
       "title": "相邻的普通执行工作",
-      "body": "#61498 将已有 Kimi MonoKernel 扩展至 AR；#61942 只跳过短稠密 prefill DSA（MTP 仍 scoring）；#18053 为 A5 W4A4 MegaMoE shared expert。它们提供共同执行背景，不直接证明 SpecDec 增益。",
+      "body": "#61498 将 Kimi MonoKernel 扩展至 AR；#61942 跳过短稠密 prefill 的 DSA scoring（MTP 层保持原路径）；#18053 融合 A5 W4A4 MegaMoE shared expert。",
       "sourceIds": [
         "github:vllm-project/vllm#61498",
         "github:vllm-project/vllm#61942",
@@ -177,11 +177,11 @@
   ],
   "synthesis": [
     {
-      "title": "先验证真实执行宽度",
-      "body": "假设：动态 K 降低逻辑 token 但物理 query/padding 未收缩。",
-      "design": "在固定 checkpoint、后端和 K 上限下对动态 K 与固定 K 扫描；仅在已有 narrow path 支持时做 on/off A/B，核对跨 TP 布局。",
-      "measure": "每步实际 Q、图桶、pad、verify/draft 时间、AL、TPOT。",
-      "decision": "若实际工作量不变或正确性失败，停止性能归因。",
+      "title": "动态 K 的图规模代价",
+      "body": "#66612 在减小草稿计算的同时增加 graph widths，值得比较实际运行收益与图资源。",
+      "design": "固定动态 schedule，对比 narrow flag on/off。",
+      "measure": "实际 query rows、捕获数量/显存、draft time、AL、吞吐。",
+      "decision": "定位不同并发下减少计算能否覆盖额外图资源的代价。",
       "sourceIds": [
         "github:vllm-project/vllm#66612",
         "github:vllm-project/vllm#56451",
@@ -190,11 +190,11 @@
       ]
     },
     {
-      "title": "先拆依赖再改 RecoverSSM",
-      "body": "假设：D2H 等待集合含有无关 commit。",
-      "design": "用同一 GDN/KDA 模型和固定 K 抓 post_update、copy、commit、CPU consumer 的事件链；仅修改可证明独立的边，验证部分接受、离开与 block 边界。",
-      "measure": "copy event、idle gap、step、状态一致性与吞吐。",
-      "decision": "未证实最后写入者和消费者关系前不做重排；pending 不能跨错误生命周期。",
+      "title": "RecoverSSM 的等待与提交",
+      "body": "#21430 与 #66595 分别针对 D2H 等待和 KDA 状态提交。",
+      "design": "固定 K，追踪 post_update、D2H、commit 与 CPU consumer；检查部分接受及 checkpoint 边界。",
+      "measure": "copy event、idle gap、step time、状态一致性。",
+      "decision": "区分可重叠的 commit 与必须立即完成的 checkpoint 更新。",
       "sourceIds": [
         "github:vllm-project/vllm#66595",
         "github:vllm-project/vllm-ascend#21430",

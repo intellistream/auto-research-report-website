@@ -1,8 +1,4 @@
 import type { Entry, Topic } from "./TopicPages";
-import initial from "../../topics/speculative-decoding/weekly/2026-11-01.json";
-import second from "../../topics/speculative-decoding/weekly/2026-11-08.json";
-import third from "../../topics/speculative-decoding/weekly/2026-11-15.json";
-import fourth from "../../topics/speculative-decoding/weekly/2026-11-22.json";
 
 export type WeeklySource = Entry & { headSha: string; baseSha: string; headRepo: string; mergedAt: string | null; state: string; merged: boolean; draft: boolean; createdAt: string; updatedAt: string; checkedAt: string; review: string; files: string[] };
 export type WeeklyFigure = { title: string; unit: string; rows: { label: string; value: number }[]; scale: number; precision: number; sourceId: string; note: string };
@@ -14,7 +10,8 @@ export type WeeklyEdition = {
   tracking: { fromEdition: string; fromSlug: string; body: string; sourceIds: string[] }[];
   synthesis: { title: string; body: string; design: string; measure: string; decision: string; sourceIds: string[] }[]; sources: WeeklySource[];
 };
-export const weeklyEditions: WeeklyEdition[] = ([initial,second,third,fourth] as WeeklyEdition[]).sort((a,b)=>b.id.localeCompare(a.id));
+const editionFiles = import.meta.glob<WeeklyEdition>("../../topics/speculative-decoding/weekly/*.json", { eager: true, import: "default" });
+export const weeklyEditions = Object.values(editionFiles).sort((a,b)=>b.id.localeCompare(a.id));
 export const latestEdition = weeklyEditions[0];
 export const legacyEdition = "2026-11-18";
 export function weeklyView(query: URLSearchParams) {

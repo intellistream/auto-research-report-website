@@ -6,8 +6,8 @@
   "checkedAt": "2026-11-25",
   "indexCommit": "1fe2649b34888dfcbde58839c4765773ea953f4c",
   "title": "专用执行扩展：从图复用到状态分工",
-  "overview": "第二期 25 条线索延续了首期的图与预算问题。值得关注的变化是专用 decode/verify 路径覆盖更多模型与行数、草稿图本身消除 host 更新，以及 P/D 节点只保留实际需要的状态。接受率估计和候选关联也出现新的可验证实现。",
-  "scope": "本期为回溯编写，按北京时间日报收录日分组（25 条去重线索），并非当时发布的状态快照或完整社区检索。2026-11-25 核对原始 PR 的主要说明与当前状态/head/base；其中 4 条另查关键补丁片段，其余为说明级核查。更新后的 PR 说明可能包含窗口之后的实验或改动，不能倒推至当时；测试和性能数字来自提交方，本站未复现。外围优化保留在来源索引中，不作为推测解码收益证据。",
+  "overview": "本期的专用验证路径扩展到更多模型、硬件与查询宽度，DFlash2 草稿图也开始直接消费设备长度。XPress 接受率估计器修复提供了一个有价值的负对照：自适应验证在高并发可以用更短接受长度换取吞吐，低并发仍可能退化。",
+  "scope": "按北京时间日报收录日归档；25 条 PR，4 条附关键变更路径或片段。状态及版本以 2026-11-25 回查为准。",
   "stories": [
     {
       "slug": "graph",
@@ -17,8 +17,8 @@
         "Ascend #21281 延续 #18717，让 GLM DFlash2 的 CANN FlashAttn 设备长度生产者进入 ACL 图，按 metadata identity、token count 和 geometry 在同一 capture 内共享；#19512 捕获 backbone、候选选择和 proposal cache 更新。#20820 尝试用 UpdatableGraph 的设备事件依赖替代每轮 host synchronize，仅对已注册 attention tasks 的图省略原屏障。",
         "GPU 侧 #65488 在同一次 prepare_dflash_inputs launch 增加并行 padding programs；#65182 让多组 Mamba state indices 和 accepted counts 直接绑定持久图输入。"
       ],
-      "keyEvidence": "作者报告 #65488：GB200、8 query rows/request，16K batched tokens 的输入准备 7.9–8.5→约 2.1 μs，host launch 数不变；#65182 记录每步 cudaMemcpyAsync 25→9。",
-      "assessment": "Graph replay 的收益取决于元数据准备、跨流依赖与地址/寿命契约；不是简单把所有 op 放进图。继续跟踪 Ascend #21281 与设备长度覆盖范围。",
+      "keyEvidence": "#65488：GB200、8 query rows/request，16K batched tokens 的输入准备 7.9–8.5→约 2.1 μs，host launch 数不变；#65182 记录每步 cudaMemcpyAsync 25→9。",
+      "assessment": "#21281 把此前 eager 设备长度方案延伸到 capture 资源的生命周期：同一图内兼容 attention group 共享 producer，不同图隔离。后续关注 FA3/FlashMLA 的设备长度覆盖。",
       "sourceIds": [
         "github:vllm-project/vllm-ascend#21281",
         "github:vllm-project/vllm-ascend#19512",
@@ -42,8 +42,8 @@
       "paragraphs": [
         "#65874 把 fused GDN MTP 的 8-token 上限扩到 9，DSpark K8 不再回退；小批 Split-V 借空闲 SM 增加并行度。#64829 在 CPU 上将 recurrent state 分块驻留并跨 draft tokens 复用。#66324、#63921、#61435、#65421 分别扩展 MiniMax/DeepSeek/Kimi 的专用 GPU 执行形状；#64442 将 DSpark Markov loop 改为 inverse CDF，保留默认路径。"
       ],
-      "keyEvidence": "作者报告 #65874：单请求 fused GDN 22.3→10.2 μs（B300），Qwen3.6-35B-A3B DSpark K8 吞吐 +18%；#65421 在 DSpark c64 的 384 行超出 256 行覆盖上限。",
-      "assessment": "应首先查 fallback 频率与物理 token 行数，而不是只看 request concurrency。专用路径复用目标 kernel 还是实现草稿独立 kernel，将成为下一期问题。",
+      "keyEvidence": "#65874：单请求 fused GDN 22.3→10.2 μs（B300），Qwen3.6-35B-A3B DSpark K8 吞吐 +18%；#65421 在 DSpark c64 的 384 行超出 256 行覆盖上限。",
+      "assessment": "专用内核的阈值通常按实际 token rows 而非并发数判定。#65874 只增加一个 token 的覆盖便让 K8 脱离慢路径；#65421 的 256 行上限仍会被 c64、K5 的验证批次超过。",
       "sourceIds": [
         "github:vllm-project/vllm#65874",
         "github:vllm-project/vllm#64829",
@@ -64,19 +64,19 @@
           "sourceId": "github:vllm-project/vllm#64442",
           "environment": "GB200，DeepSeek-V4.1 DSpark K5，DEP4",
           "result": "Markov 1.6×（1 req/rank）、2.7–3.9×（16–253）；step −1.7%/−3.2%",
-          "boundary": "不同上下文负载；opt-in；不是整步 kernel 倍率"
+          "boundary": "不同上下文负载；opt-in；Markov 与完整 step 分别计时"
         }
       ]
     },
     {
       "slug": "candidate",
-      "title": "候选质量和验证预算必须闭环",
+      "title": "候选相关性与自适应验证",
       "lead": "从估计器输入到候选相关性",
       "paragraphs": [
         "#65175 修复 XPress 未向 acceptance estimator 提供 logits、导致 AV 只验证首个草稿的问题。#64916 将 DFlash2 的相邻候选边评分融合为每 request/step 的 K×K Triton dot；Ascend #17147 通过 LiLiCorr 对 DFlash 各位置 top-k lattice 重排。#65103 尝试复用 top-p cutoff 已算出的 LSE，避免 rejection 再次规约；#63801 预取多 token 验证的历史 KV，说明验证成本也依赖数据搬运。"
       ],
-      "keyEvidence": "作者报告 #65175：H100、Qwen3-8B XPress K15，修复后 AV 在 c1/c8 仍损失约 8%，c32 起快于 AV off，AL 约 3.0–3.3 对 3.5–3.7。",
-      "assessment": "这是本期最清晰的负对照：较短 AL 可以换取更低 Target 成本，但低并发不一定划算。需要记录估计器实际输入与执行宽度，不仅报告接受率。",
+      "keyEvidence": "#65175：H100、Qwen3-8B XPress K15，修复后 AV 在 c1/c8 仍损失约 8%，c32 起快于 AV off，AL 约 3.0–3.3 对 3.5–3.7。",
+      "assessment": "#65175 的并发拐点说明 AV 策略需要同时考虑接受率和 Target 的边际验证成本；#64916/#17147 则从候选相关性改善 proposal，本质上作用于不同的成本项。",
       "sourceIds": [
         "github:vllm-project/vllm#65175",
         "github:vllm-project/vllm#64916",
@@ -89,7 +89,7 @@
           "sourceId": "github:vllm-project/vllm#65175",
           "environment": "H100，SPEED-Bench throughput_1K，greedy，3 trials",
           "result": "修复前 AV on 吞吐 −26%～−71%；修复后 c32+ 超过 AV off",
-          "boundary": "c1/c8 仍有负收益；不同并发不能混为单一加速比"
+          "boundary": "c1/c8 仍有约 8% 吞吐损失"
         }
       ]
     },
@@ -100,8 +100,8 @@
       "paragraphs": [
         "Ascend #21075 将首期 K=0 思路引入 MRV1 的纯 Prefill DSpark，仍写 context KV 并协调 DP rank；#20755 通过 native store 支持 hybrid decode checkpoint 的跨 TP 复用；#63971 保留本地 attention hit、仅拉取后缀与 recurrent state。#65553 让 GLM DSpark 继承 FP8 KV，#65619 让 QSA 多层和 MTP 共享 top-k buffer。"
       ],
-      "keyEvidence": "作者报告 #65619：GB200 TP4、MTP3，KV budget 每 GPU +1.52 GiB；#21075：A3 P/D TTFT 10244.83→10134.98 ms（−1.07%）。",
-      "assessment": "删除无消费者 buffer 与跨请求状态复用是不同机制；前者关注容量，后者必须核查 checkpoint 的 token 位置、布局和所有权。继续跟踪更彻底的 context-only 实现。",
+      "keyEvidence": "#65619：GB200 TP4、MTP3，KV budget 每 GPU +1.52 GiB；#21075：A3 P/D TTFT 10244.83→10134.98 ms（−1.07%）。",
+      "assessment": "纯 P 路径仍需传递 Decode 所用的 context KV。#21075 目前仅跳过 query，后续关注是否可以移除不参与交接的草稿图与 workspace。",
       "sourceIds": [
         "github:vllm-project/vllm-ascend#21075",
         "github:vllm-project/vllm-ascend#20755",
@@ -114,13 +114,13 @@
           "sourceId": "github:vllm-project/vllm-ascend#20755",
           "environment": "8×Ascend 910，Qwen3.8-27B W8A8，MTP3",
           "result": "paired restore TTFT 814.66→289.54 ms",
-          "boundary": "跨TP decode-history reuse；当前 PR 未合入，作者结果非本站复现"
+          "boundary": "跨 TP decode-history restore；开放 PR"
         },
         {
           "sourceId": "github:vllm-project/vllm#65619",
           "environment": "GB200，Qwen3.8-Flash-Next，TP4 EP，MTP3",
           "result": "可用 KV 143.60→145.12 GiB/rank",
-          "boundary": "共享临时 QSA buffer，不等同于 TPOT 下降"
+          "boundary": "共享 QSA/MTP 临时 buffer 后回收的 KV 预算"
         }
       ]
     }
@@ -133,7 +133,7 @@
   "otherGroups": [
     {
       "title": "共享模型执行与容量规划",
-      "body": "#60895 在 MTP5、合成 AL 的负载下评估 MegaMoE；#64659 在 DSpark 负载下优化 SP/GEMM-RS，c1 反而 −4%；#65463 是 warmup 后按实际 KV 容量重拟 max-model-len。属于共同执行环境，不把收益归到推测算法。",
+      "body": "#60895 在 MTP5、合成 AL 负载下评估 MegaMoE；#64659 在 DSpark 负载下优化 SP/GEMM-RS，c1 吞吐 −4%；#65463 在 warmup 后按实际 KV 容量重拟 max-model-len。",
       "sourceIds": [
         "github:vllm-project/vllm#60895",
         "github:vllm-project/vllm#64659",
@@ -143,11 +143,11 @@
   ],
   "synthesis": [
     {
-      "title": "先测实际宽度，再评估 AV",
-      "body": "假设：候选裁剪收益受估计器输入和后端执行形状制约。",
-      "design": "固定模型与 draft，比较 AV off/on；在可变 K 和负载下记录估计、预算、实际 Q、graph mode。",
-      "measure": "AL、物理 verify 时间、吞吐、TPOT、host cost。",
-      "decision": "若 AL 下降但 verify 未变，排查无效裁剪；若低并发负收益，保留负对照。",
+      "title": "XPress 的 AV 并发拐点",
+      "body": "重点跟踪 c8–32 附近，预算变化是否触发不同验证形状。",
+      "design": "在 XPress 同一 checkpoint 上比较 AV on/off，增加 c8、16、32 的采样点。",
+      "measure": "AL、预算、实际 Q rows、verify time、吞吐。",
+      "decision": "定位 AV 从负收益转为正收益的负载条件。",
       "sourceIds": [
         "github:vllm-project/vllm#65175",
         "github:vllm-project/vllm#65874",
@@ -155,15 +155,14 @@
       ]
     },
     {
-      "title": "P/D 节点只保留必要状态",
-      "body": "假设：纯 P 不需要 proposal query，但 Decode 仍需要 context KV。",
-      "design": "比较同条件 P/D 两臂；核对 KV 交接、DP 同步和状态完整后再启用 skip。",
-      "measure": "TTFT、P 侧设备时间、KV 容量、输出正确性。",
-      "decision": "若有 rank 需要候选或交接状态不全，回退。",
+      "title": "专用验证的覆盖边界",
+      "body": "K8 GDN 与 256-row ASM 路径体现了两种形状阈值。",
+      "design": "在相应模型上比较阈值两侧的 K 或 batch。",
+      "measure": "kernel 分派、fallback 次数、step time。",
+      "decision": "区分内核自身加速与摆脱慢路径的收益。",
       "sourceIds": [
-        "github:vllm-project/vllm-ascend#21075",
-        "github:vllm-project/vllm-ascend#20755",
-        "github:vllm-project/vllm#65619"
+        "github:vllm-project/vllm#65874",
+        "github:vllm-project/vllm#65421"
       ]
     }
   ],
@@ -171,7 +170,7 @@
     {
       "fromEdition": "2026-11-01",
       "fromSlug": "budget",
-      "body": "#18717 的 eager 设备长度方案延伸至 #21281 的图内生产者；#19512、#20820 则分别处理完整草稿图与 replay 更新顺序。它们相关但不是同一个 PR 的修订。",
+      "body": "#18717 的 eager 设备长度方案扩展至 #21281 的图内生产者；#19512/#20820 分别处理完整草稿图与 replay 更新顺序。",
       "sourceIds": [
         "github:vllm-project/vllm-ascend#21281",
         "github:vllm-project/vllm-ascend#19512",
@@ -189,7 +188,7 @@
     {
       "fromEdition": "2026-11-01",
       "fromSlug": "execution",
-      "body": "首期多层验证融合继续扩展到更多模型、形状与 GDN K8 覆盖；需要区分 fallback 和局部收益。",
+      "body": "多层验证融合扩展到更多模型与 token 行数，#65874 补齐 GDN K8。",
       "sourceIds": [
         "github:vllm-project/vllm#65874",
         "github:vllm-project/vllm#66324",
