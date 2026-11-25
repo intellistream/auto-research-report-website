@@ -107,7 +107,10 @@ describe("refactored website views", () => {
     );
     expect(specHtml).toContain("一次 Target 前向");
     expect(specHtml).toContain("从零开始，如何阅读本专题");
-    expect(specHtml).toContain("候选从哪里来");
-    expect(specHtml).toContain("阅读八章动态研究报告");
+    expect(specHtml).toContain("草稿如何生成，候选如何组织？");
+    expect(specHtml).toContain("接受更多，就一定更快吗？");
+    expect(specHtml).toContain("跟踪动态报告");
+    expect(specHtml).toContain("view=paper");
+    expect(specHtml).toContain("view=report");
   });
 });

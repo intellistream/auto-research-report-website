@@ -1,0 +1,91 @@
+/* Mechanism guide only; the academic reader and report retain their styles. */
+.specdec-mechanism { display:grid; gap:1.25rem; color:var(--ink-primary); line-height:1.7; }
+.specdec-mechanism h2 { font-size:clamp(1.2rem,2.4vw,1.55rem); margin:0 0 .65rem; font-weight:750; line-height:1.4; }
+.specdec-mechanism h3 { margin:0 0 .45rem; font-size:1rem; line-height:1.5; }
+.specdec-mechanism p { margin:.45rem 0; font-size:.9rem; line-height:1.75; }
+.specdec-mechanism a { color:var(--brand-primary); text-underline-offset:.2em; }
+.specdec-mechanism button { font:inherit; cursor:pointer; }
+.specdec-mechanism :focus-visible { outline:2px solid var(--brand-primary); outline-offset:3px; }
+.specdec-mech-round,.specdec-mech-section { min-width:0; border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:clamp(1rem,2.6vw,1.8rem); }
+.specdec-mech-round { background:#163d30; border-color:#477463; color:#f0fbf5; }
+.specdec-mech-round h2,.specdec-mech-round h3 { color:#f0fbf5; }
+.specdec-mech-round p { color:#d5e8dc; }
+.specdec-mech-round :focus-visible { outline-color:#d3f6df; }
+.specdec-mech-control { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:.6rem; margin:1rem 0; font-size:.84rem; }
+.specdec-mech-control [role=group] { display:flex; flex-wrap:wrap; gap:.2rem; padding:3px; border:1px solid #659381; border-radius:8px; }
+.specdec-mech-control button { padding:.3rem .65rem; border:0; border-radius:5px; background:transparent; color:#f0fbf5; }
+.specdec-mech-control button[aria-pressed=true] { background:#c8edd8; color:#103227; font-weight:700; }
+.specdec-mech-round-content { display:grid; gap:.7rem; }
+.specdec-mech-lane { padding:.85rem; border:1px solid #739888; background:#ffffff09; border-radius:var(--radius-md); min-width:0; }
+.specdec-mech-lane-active { background:#2b5a46; }
+.specdec-mech-lane h3 small { color:#cae0d3; font-weight:400; margin-left:.4rem; font-size:.75rem; }
+.specdec-mech-chain { display:flex; align-items:stretch; gap:1.2rem; }
+.specdec-mech-unit { flex:1; min-width:0; position:relative; border:1px solid var(--border-accent); border-radius:var(--radius-sm); background:var(--brand-soft); color:var(--ink-primary); text-align:center; padding:.35rem .2rem; }
+.specdec-mech-unit+ .specdec-mech-unit::before { content:"→"; position:absolute; right:100%; width:1.2rem; top:50%; transform:translateY(-50%); color:currentColor; }
+.specdec-mech-unit small,.specdec-mech-unit strong { display:block; }
+.specdec-mech-unit small { font-size:.72rem; }
+.specdec-mech-lane .specdec-mech-unit { color:#17382a; background:#c3ebd0; border-color:#a0ceb4; }
+.specdec-mech-lane .specdec-mech-unit+ .specdec-mech-unit::before { color:#d5e8dc; }
+.specdec-mech-stage { display:grid; grid-template-columns:8rem minmax(0,1fr); align-items:center; gap:.5rem; padding:.3rem 0; }
+.specdec-mech-stage>span { font-size:.78rem; color:#d5e8dc; }
+.specdec-mech-tokens,.specdec-mech-decisions { display:flex; flex-wrap:wrap; align-items:center; gap:.35rem; }
+.specdec-mech-tokens b,.specdec-mech-decisions>div { min-width:2.45rem; text-align:center; padding:.25rem .4rem; border:1px solid #8db6a0; border-radius:5px; background:#365e4c; color:#fff; }
+.specdec-mech-tokens b.specdec-mech-prefix { border-style:dashed; background:transparent; }
+.specdec-mech-decisions>div { flex:1; min-width:3.7rem; }
+.specdec-mech-decisions small { display:block; font-size:.68rem; }
+.specdec-mech-decisions [data-status=accepted],.specdec-mech-tokens .specdec-mech-accepted { background:#c3ebd0; color:#17382a; border-color:#c3ebd0; }
+.specdec-mech-decisions [data-status=rejected] { background:#f5dfb8; color:#573807; border-color:#f5dfb8; }
+.specdec-mech-decisions [data-status=discarded] { background:#294b3c; color:#c8d9ce; border-style:dashed; }
+.specdec-mech-tokens .specdec-mech-pending { color:#573807; background:#f5dfb8; border-color:#f5dfb8; }
+.specdec-mech-tokens small { font-size:.76rem; color:#d5e8dc; }
+.specdec-mech-result { display:flex; align-items:center; flex-wrap:wrap; gap:.4rem 1rem; padding:.6rem 0; font-size:.85rem; }
+.specdec-mech-result strong { font-size:1.2rem; }
+.specdec-mech-state,.specdec-mech-tree,.specdec-mech-directions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.8rem; }
+.specdec-mech-state>div { border-top:1px solid #729584; padding:.55rem .1rem; min-width:0; }
+.specdec-mech-state p { font-size:.82rem; }
+.specdec-mechanism .specdec-mech-note { font-size:.8rem; color:var(--ink-secondary); }
+.specdec-mech-round .specdec-mech-note { color:#d5e8dc; }
+.specdec-mechanism details { margin-top:.8rem; font-size:.85rem; }
+.specdec-mechanism summary { cursor:pointer; font-weight:650; }
+.specdec-mech-section { background:var(--bg-surface); }
+.specdec-mech-structures { display:grid; gap:.65rem; margin:1rem 0; }
+.specdec-mech-structures figure { margin:0; padding:.8rem; border:1px solid var(--border-default); border-radius:var(--radius-md); }
+.specdec-mech-structures figcaption { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:.35rem; margin-bottom:.5rem; }
+.specdec-mech-structures figcaption span,.specdec-mech-structures p { font-size:.78rem; color:var(--ink-secondary); }
+.specdec-mech-backbone { background:var(--brand-soft); color:var(--brand-primary); border:1px solid var(--border-accent); border-radius:var(--radius-sm); text-align:center; padding:.3rem; font-size:.83rem; }
+.specdec-mech-branches { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.2rem; margin-top:.75rem; }
+.specdec-mech-branches b { position:relative; text-align:center; border:1px solid var(--border-accent); border-radius:var(--radius-sm); padding:.3rem; }
+.specdec-mech-branches b::before,.specdec-mech-refine .specdec-mech-unit::after { content:""; height:.75rem; border-left:1px solid var(--border-accent); position:absolute; bottom:100%; left:50%; }
+.specdec-mech-refine { margin-top:.75rem; }
+.specdec-mech-tree>div,.specdec-mech-directions>article { min-width:0; border:1px solid var(--border-default); border-radius:var(--radius-md); padding:.85rem; }
+.specdec-mech-tree svg { width:100%; height:auto; display:block; overflow:visible; }
+.specdec-mech-tree svg text { font:14px var(--font-mono); text-anchor:middle; fill:var(--ink-primary); }
+.specdec-tree-edge { stroke:var(--brand-primary); stroke-width:1.5; fill:none; }
+.specdec-tree-root { fill:var(--bg-surface); stroke:var(--ink-secondary); stroke-dasharray:3 2; }
+.specdec-tree-node { fill:var(--brand-soft); stroke:var(--brand-primary); }
+.specdec-mech-cost { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:1.2rem; margin:1rem 0; }
+.specdec-mech-sliders label { display:flex; justify-content:space-between; align-items:baseline; gap:.5rem; font-size:.85rem; }
+.specdec-mech-sliders output { font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.specdec-mech-sliders input { width:100%; margin:.35rem 0 .9rem; accent-color:var(--brand-primary); }
+.specdec-mech-presets { display:flex; flex-wrap:wrap; gap:.4rem; }
+.specdec-mech-presets button { border:1px solid var(--border-default); border-radius:var(--radius-sm); background:var(--bg-surface); color:var(--ink-primary); padding:.35rem .5rem; font-size:.78rem; }
+.specdec-mech-cost-result { min-width:0; padding:.85rem; border:1px solid var(--border-accent); border-radius:var(--radius-md); background:var(--brand-soft); }
+.specdec-mech-cost-result>span,.specdec-mech-cost-result>strong { display:block; }
+.specdec-mech-cost-result>span { font-size:.83rem; }
+.specdec-mech-cost-result>strong { font-size:2rem; font-variant-numeric:tabular-nums; line-height:1.25; color:var(--brand-primary); }
+.specdec-mech-bar-label { display:flex; justify-content:space-between; font-size:.78rem; margin-top:.55rem; }
+.specdec-mech-bar { height:1rem; background:var(--bg-surface); border-radius:4px; display:flex; overflow:hidden; margin:.2rem 0; }
+.specdec-mech-bar span { height:100%; }
+.specdec-mech-ar-bar { background:#64748b; }
+.specdec-mech-bar [data-cost=draft],.specdec-mech-legend [data-cost=draft]::before { background:#8fa8b7; }
+.specdec-mech-bar [data-cost=verify],.specdec-mech-legend [data-cost=verify]::before { background:#347b5d; }
+.specdec-mech-bar [data-cost=other],.specdec-mech-legend [data-cost=other]::before { background:#bc8a44; }
+.specdec-mech-legend { display:flex; flex-wrap:wrap; gap:.3rem .65rem; font-size:.72rem; margin-top:.5rem; }
+.specdec-mech-legend span::before { content:""; display:inline-block; width:.65rem; height:.65rem; margin-right:.2rem; border-radius:2px; }
+.specdec-mech-directions { margin:1rem 0; }
+.specdec-mech-directions strong { font-size:.86rem; }
+.specdec-mech-directions .specdec-mech-methods { color:var(--ink-secondary); font-size:.78rem; }
+.specdec-mech-reading,.specdec-mech-sources { display:flex; flex-wrap:wrap; gap:.6rem 1.2rem; font-size:.86rem; }
+.specdec-mech-sources { color:var(--ink-secondary); padding:.6rem .2rem; }
+.specdec-mech-sources>p { flex-basis:100%; }
+@media(max-width:680px){.specdec-mech-state,.specdec-mech-tree,.specdec-mech-directions,.specdec-mech-cost { grid-template-columns:1fr; }.specdec-mech-stage { grid-template-columns:1fr; gap:.2rem; }.specdec-mech-control { justify-content:flex-start; }}
