@@ -62,7 +62,7 @@ describe("KV paper reading", () => {
     expect(new Set(all.map((entry) => entry.paper.slug)).size).toBe(all.length);
     for (const entry of all) {
       expect(entry.reviewLevel).toBe("paper-section");
-      expect(entry.checkedAt).toBe("2026-11-18");
+      expect(entry.checkedAt).toBe(entry.paper.evidenceReview ? "2026-11-24" : "2026-11-18");
       if (entry.sourceDay) {
         expect(entry.sourceDay).toMatch(/^\d{4}-\d{2}-\d{2}$/);
         expect(entry.sourceVersion).toMatch(/^arXiv:\d{4}\.\d{4,5}v\d+$/);
@@ -134,7 +134,7 @@ describe("KV paper reading", () => {
     for (const slug of ["kvdrive", "tutti"]) expect(get(slug).topics).not.toContain("scheduling");
   });
 
-  it("shows an ordered reading guide with working links on the paper landing page", () => {
+  it("shows task-based recommendations with working links on the paper landing page", () => {
     const html = render("/topics/kv-cache?view=papers");
     const guide = html.match(/<section class="kv-paper-recommendations".*?<\/section>/)?.[0];
     expect(guide).toBeDefined();
@@ -167,8 +167,10 @@ describe("KV paper reading", () => {
     expect(html).toContain('id="kv-paper-kivi"');
     expect(html).toContain("核心要点");
     expect(html).toContain("全精度残留区");
-    expect(html).toContain("</p><p>新产生的 KV");
-    expect(html).toContain("论文结果");
+    expect(html).toContain("展开机制细节");
+    expect(html).toContain("<dt>状态改变</dt>");
+    expect(html).toContain("新产生的 KV");
+    expect(html).toContain("原文主张与条件");
     expect(html).toContain("A100 80GB");
     expect(html).toContain("2.35–3.47 倍");
     expect(html).toContain("适用条件与局限");
@@ -186,4 +188,40 @@ describe("KV paper reading", () => {
     expect(html).toContain("1 篇论文");
     expect(html).toContain("关键词 StreamingLLM");
   });
+  it("keeps each recommendation tied to a decision task and selected source sections", () => {
+    const recommended = all.filter(({ paper }) => paper.recommendedReason);
+    expect(recommended).toHaveLength(6);
+    const guide = render("/topics/kv-cache?view=papers").match(/<section class="kv-paper-recommendations".*?<\/section>/)?.[0];
+    for (const { paper } of recommended) {
+      expect(guide).toContain(paper.readingTask!.goal);
+      expect(guide).toContain(paper.readingTask!.startAt);
+    }
+    expect(guide).not.toContain("必要先修");
+  });
+
+  it("keeps a numerical claim, its conditions, source location and verification limit outside disclosures", () => {
+    const html = render("/topics/kv-cache?view=papers&q=KIVI");
+    const claim = html.match(/<li[^>]*data-paper-claim="kivi-throughput-capacity".*?<\/li>/)?.[0];
+    expect(claim).toBeDefined();
+    for (const text of ["2.35–3.47", "A100 80GB", "Llama-2-7B", "161 / 338", "残留长度 32 / 128", "直到 OOM", "固定批次", "图 5", "作者实验报告", "本站未复现"]) {
+      expect(claim).toContain(text);
+    }
+    expect(claim).not.toContain("<details");
+    expect(html).toContain("其余 18 篇沿用原选读记录");
+  });
+
+  it("distinguishes token budgets, system baselines, theoretical assumptions and real serving setups", () => {
+    const get = (slug: string) => all.find(({ paper }) => paper.slug === slug)!.paper;
+    const h2o = get("h2o");
+    expect(h2o.findings![0].statement).toContain("48.00%");
+    expect(h2o.findings![0].statement).toContain("84.00%");
+    expect(h2o.findings![0].statement).toContain("85.00%");
+    expect(h2o.boundary).toContain("不是整卡显存");
+    expect(get("pagedattention").findings![0].limit).toContain("作者重实现");
+    const klpm = get("k-lpm");
+    expect(klpm.boundary).toContain("实测使用动态批次与固定缓存池");
+    expect(klpm.findings![0].limit).toContain("伪代码不一致");
+    expect(get("sglang").findings![0].kind).toBe("author-theory");
+  });
+
 });

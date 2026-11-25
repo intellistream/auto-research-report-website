@@ -345,3 +345,35 @@
     font-size: 16px;
   }
 }
+
+/* Readers can remove the entire floating control while reading or using a diagram. */
+.research-assistant .research-assistant-hide {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  color: var(--ink-secondary);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.research-assistant-hide:focus-visible,
+.research-assistant-visibility:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 3px;
+}
+
+.research-assistant-visibility {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--ink-secondary);
+  background: var(--bg-surface);
+  font: inherit;
+  cursor: pointer;
+}

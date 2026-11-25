@@ -32,7 +32,7 @@ describe("independent KV research library", () => {
   it("renders the normal KV entry point before any daily catalog or topic index is available", () => {
     const html = render("/topics/kv-cache", "archive unavailable");
     expect(html).toContain("独立技术专题");
-    expect(html).toContain("KV Cache 缓存了什么，为什么会成为推理瓶颈？");
+    expect(html).toContain('id="kv-basics-process"');
     expect(html).not.toContain("archive unavailable");
     const app = renderToStaticMarkup(
       <MemoryRouter initialEntries={["/topics/kv-cache?view=guide"]}><DocxPreview /></MemoryRouter>,
@@ -65,7 +65,7 @@ describe("independent KV research library", () => {
     expect(html).toContain("PR 记录");
     expect(html).toContain("收录 PR 的创建时间分布");
     expect(html).toContain("view=compare");
-    expect(html).not.toContain("KV Cache 缓存了什么，为什么会成为推理瓶颈？");
+    expect(html).not.toContain('id="kv-basics-process"');
   });
 
   it("validates unique source identities, reviewed classifications and optional report citations", () => {
@@ -153,4 +153,22 @@ describe("independent KV research library", () => {
     expect(filterResearch(rows, new URLSearchParams({ month: "2026-02" }))).toEqual([monthPaper]);
     expect(researchTimeline(rows)).toEqual([{ month: "2026-03", count: 1 }]);
   });
+  it("identifies the bounded six-paper recheck without relabelling the rest of the collection", () => {
+    const papers = kvResearch.entries.filter((entry) => entry.kind === "paper" && entry.paper);
+    const reviewed = papers.filter((entry) => entry.paper!.evidenceReview);
+    expect(reviewed.map((entry) => entry.paper!.slug).sort())
+      .toEqual(["distserve", "h2o", "k-lpm", "kivi", "pagedattention", "sglang"]);
+    expect(papers.filter((entry) => entry.checkedAt === "2026-11-18")).toHaveLength(18);
+    for (const entry of reviewed) {
+      expect(entry.sourceVersion).toMatch(/v\d+$/);
+      expect(entry.paper!.evidenceReview!.checkedAt).toBe("2026-11-24");
+      expect(entry.paper!.evidenceReview!.notCovered).toContain("未");
+      for (const finding of entry.paper!.findings!) {
+        expect(finding.url).toContain(entry.sourceVersion!.replace("arXiv:", ""));
+        expect(finding.conditions.length).toBeGreaterThan(15);
+        expect(finding.limit.length).toBeGreaterThan(15);
+      }
+    }
+  });
+
 });

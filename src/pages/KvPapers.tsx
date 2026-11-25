@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   filterPapers, kvResearch, paperCollectionFilter, paperViewQuery, researchSourceDate, researchTopicFilter,
-  type PaperCollection, type PaperEntry,
+  type PaperCollection, type PaperEntry, type PaperFinding,
 } from "./kv-research";
 import { revealTopicPart, safeTopicSource } from "./topic-report";
 import "./kv-papers.css";
@@ -35,7 +35,7 @@ function PaperRecommendations({ papers }: { papers: PaperEntry[] }) {
     <div className="kv-section-heading">
       <div>
         <h3 id="kv-paper-recommendations-title">推荐先读</h3>
-        <p>先理解分页和前缀复用，再按关心的问题选读。</p>
+        <p>按当前关注的问题选读，查看对应原文章节。</p>
       </div>
       <span className="kv-paper-recommendation-action">
         <PaperFilterLink search={new URLSearchParams({ view: "papers", collection: "recommended" })}>
@@ -45,11 +45,34 @@ function PaperRecommendations({ papers }: { papers: PaperEntry[] }) {
     </div>
     <ul className="kv-paper-recommendation-list">
       {papers.map(({ id, paper }) => <li key={id}>
+        {paper.readingTask && <h4>{paper.readingTask.goal}</h4>}
         <Link to={{ search: `view=papers&part=kv-paper-${paper.slug}` }}>{paper.shortName}</Link>
         <p>{paper.recommendedReason}</p>
+        {paper.readingTask && <dl className="kv-paper-task">
+          <div><dt>从哪里读</dt><dd>{paper.readingTask.startAt}</dd></div>
+        </dl>}
       </li>)}
     </ul>
   </section>;
+}
+
+const findingLabels: Record<PaperFinding["kind"], string> = {
+  "author-experiment": "作者实验报告",
+  "author-theory": "作者理论结论",
+  "author-method": "原文方法说明",
+};
+
+function PaperFindings({ findings }: { findings: PaperFinding[] }) {
+  return <ul className="kv-paper-findings">{findings.map((finding) => {
+    const source = safeTopicSource(finding.url);
+    return <li key={finding.id} data-paper-claim={finding.id}>
+      <p className="kv-paper-finding-label">{findingLabels[finding.kind]} · 本站未复现</p>
+      <p><strong>{finding.statement}</strong></p>
+      <p><strong>成立条件：</strong>{finding.conditions}</p>
+      <p><strong>据此能判断什么：</strong>{finding.limit}</p>
+      {source && <a href={source} target="_blank" rel="noreferrer">原文位置：{finding.location}</a>}
+    </li>;
+  })}</ul>;
 }
 
 function PaperCard({ entry, collection }: { entry: PaperEntry; collection: PaperCollection }) {
@@ -93,12 +116,28 @@ function PaperCard({ entry, collection }: { entry: PaperEntry; collection: Paper
       <div>
         <dt>{isSurvey ? "综述内容" : "核心方法"}</dt>
         <dd className="kv-reading-method">
-          {paper.method.split("\n\n").map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+          {paper.mechanism ? <>
+            <dl className="kv-paper-mechanism" aria-label={`${paper.shortName} 的数据流与状态变化`}>
+              <div><dt>输入</dt><dd>{paper.mechanism.input}</dd></div>
+              <div><dt>处理</dt><dd>{paper.mechanism.process}</dd></div>
+              <div><dt>状态改变</dt><dd>{paper.mechanism.state}</dd></div>
+              <div><dt>输出与去向</dt><dd>{paper.mechanism.output}</dd></div>
+            </dl>
+            <details className="kv-paper-method-detail"><summary>展开机制细节</summary>
+              {paper.method.split("\n\n").map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+            </details>
+          </> : paper.method.split("\n\n").map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
         </dd>
       </div>
-      {paper.result && <div><dt>论文结果</dt><dd>{paper.result}</dd></div>}
+      {paper.findings?.length ? <div><dt>原文主张与条件</dt><dd><PaperFindings findings={paper.findings} /></dd></div>
+        : paper.result && <div><dt>作者报告的结果</dt><dd>{paper.result}</dd></div>}
       <div><dt>{isSurvey ? "阅读提示" : "适用条件与局限"}</dt><dd>{paper.boundary}</dd></div>
     </dl>
+    {paper.evidenceReview && <aside className="kv-paper-evidence-review" aria-label={`${paper.shortName} 的本站核查范围`}>
+      <p><strong>本站核查 · {paper.evidenceReview.checkedAt}</strong> · 固定版本相关章节</p>
+      <p>{paper.evidenceReview.coverage}</p>
+      <p>{paper.evidenceReview.notCovered}</p>
+    </aside>}
     <div className="kv-reading-links">
       {source && <a href={source} target="_blank" rel="noreferrer">原始论文 <ArrowUpRight size={13} aria-hidden="true" /></a>}
       <Link to={{ search: `view=papers&part=${id}` }} aria-label={`定位 ${paper.shortName} 解读`}>本篇链接</Link>
@@ -123,6 +162,8 @@ export default function KvPapers() {
   const topicLabel = kvResearch.taxonomy.find(({ id }) => id === topic)?.label;
   const all = filterPapers(kvResearch.entries, new URLSearchParams());
   const recommended = all.filter(({ paper }) => paper.recommendedReason);
+  const rechecked = all.filter(({ paper }) => paper.evidenceReview);
+  const recheckDate = rechecked.map(({ paper }) => paper.evidenceReview!.checkedAt).sort().at(-1);
   const papers = filterPapers(kvResearch.entries, query);
 
   function filter(key: string, value: string) {
@@ -139,6 +180,7 @@ export default function KvPapers() {
       <h2>从论文理解 KV Cache</h2>
       <p>每篇解读说明问题从哪里来、方法怎样运行，以及结论在什么条件下成立。</p>
       <p><Link to={{ search: "view=survey" }}>比较不同论文的方法与条件</Link></p>
+      <p className="kv-paper-review-note">{recheckDate} 重点复核 {rechecked.length} 篇推荐论文的关键主张；其余 {all.length - rechecked.length} 篇沿用原选读记录。本站做原文相关章节核对，未复现模型质量或性能。综述用于寻找线索，关键实验仍需追到原论文。</p>
     </header>
     {!collection && !topic && !keyword.trim() && recommended.length > 0 &&
       <PaperRecommendations papers={recommended} />}

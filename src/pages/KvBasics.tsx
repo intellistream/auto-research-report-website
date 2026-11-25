@@ -1,112 +1,133 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigationType, useSearchParams } from "react-router-dom";
 import { CacheExample } from "./KvCacheStudy";
 import { kvResearch } from "./kv-research";
-import { estimateKVBytes } from "./kv-basics";
+import type { MemoryLoad, MemoryAction, MemoryComparison } from "./kv-basics";
+import KvLinearAttention from "./KvLinearAttention";
+import { KvGuideLink } from "./KvGuideLink";
+import KvGeneration from "./KvGeneration";
+import KvMemory from "./KvMemory";
+import { KvGuideChapterHeading, KvGuideChapterEnd } from "./KvGuideChapter";
+import "./kv-guide-layout.css";
+import { parseKvGuideState, withKvGuideState, shouldResetKvPosition, kvGuideFieldLabels } from "./kv-guide-state";
 
-const phases = {
-  prefill: {
-    label: "预填充 Prefill",
-    title: "先处理输入，把每层的 K 和 V 保存下来",
-    text: "模型先把输入拆成 token，再逐层计算。每个位置产生 Query（查询）、Key（键）和 Value（值）；查询与允许访问的 Key 计算相关程度，再加权汇总 Value。输入处理完成后，各层的历史 K、V 留在缓存中，模型得到生成下一个 token 所需的输出。",
-    input: "输入的多个 token", cache: "写入输入位置的 K、V", result: "得到第一个输出 token",
-  },
-  decode: {
-    label: "逐 token 生成 Decode",
-    title: "新 token 读取历史 KV，再追加自己的 K 和 V",
-    text: "下一轮把刚生成的 token 送回模型。在每一层，它产生新的 Q、K、V：Q 读取已有历史和当前位置的 K、V，新的 K、V 追加到缓存。随后采样下一个 token，重复这个过程，直到请求结束。缓存省下历史位置 K、V 的重复计算，读取历史和新 token 的计算仍然需要执行。",
-    input: "上轮生成的一个 token", cache: "读取历史 KV，并追加新 KV", result: "生成下一个 token",
-  },
+
+const researchConnections: Record<string, { object: string; mechanism: string }> = {
+  representation: { object: "改变数值的精度与表示", mechanism: "KIVI 用低位表示减少每个值的字节数；需权衡精度，并计入量化元数据与残留缓存。" },
+  lifecycle: { object: "改变保留的位置，或缓存块的分配", mechanism: "H₂O 淘汰部分历史，可能损失信息；PagedAttention 用分页减少分配浪费，需管理块表。分页本身不会缩小同一逻辑 KV 的原始字节数。" },
+  reuse: { object: "复用另一个请求已算好的前缀", mechanism: "SGLang 匹配已有前缀，省下输入计算；缓存必须实际存在且计算身份一致，保留缓存也要占用空间。" },
+  movement: { object: "改变 KV 的存放位置与传输方式", mechanism: "命中 CPU 或外部存储后，要准备设备空间、传回数据再计算；收益取决于带宽、传输量与并发条件。" },
+  scheduling: { object: "改变哪些请求先运行", mechanism: "k-LPM 利用前缀命中机会安排请求，同时考虑等待时间；命中更多不等于所有请求的延迟都更低。" },
 };
 
-function KVProcess() {
-  const [phase, setPhase] = useState<keyof typeof phases>("prefill");
-  const current = phases[phase];
-  return <section id="kv-basics-process" tabIndex={-1}>
-    <h3>一个请求怎样使用 KV？</h3>
-    <p>下面以因果自注意力、逐 token 生成的普通流程为例。每一层有自己的 KV，后续位置通过注意力读取允许访问的历史。</p>
-    <div className="kv-state-controls" role="group" aria-label="查看推理阶段">
-      {(Object.keys(phases) as (keyof typeof phases)[]).map(key =>
-        <button key={key} type="button" aria-pressed={phase === key} onClick={() => setPhase(key)}>{phases[key].label}</button>)}
-    </div>
-    <div className="kv-basics-phase" aria-live="polite" aria-atomic="true">
-      <h4>{current.title}</h4><p>{current.text}</p>
-      <ol className="kv-basics-flow">
-        <li><span>本轮输入</span><strong>{current.input}</strong></li>
-        <li><span>逐层注意力</span><strong>{current.cache}</strong></li>
-        <li><span>本轮输出</span><strong>{current.result}</strong></li>
-      </ol>
-    </div>
-    <p className="kv-muted">示意 · 未运行模型。Query 用于当前这一步的注意力计算；后续生成复用的是历史 Key 和 Value。</p>
-  </section>;
-}
-
-function KVMemory() {
-  const [tokens, setTokens] = useState(8192);
-  const [sequences, setSequences] = useState(4);
-  const gib = estimateKVBytes(tokens, sequences) / 2 ** 30;
-  return <section id="kv-basics-memory" className="kv-basics-memory" tabIndex={-1}>
-    <h3>为什么上下文一长，并发一多，缓存就变大？</h3>
-    <p>每多保留一个 token，就要多存一份各层的 K、V。多个独立请求同时运行时，各自保留历史。模型使用的 KV 头数、头维度、层数和每个数值的字节数，也会改变缓存占用。</p>
-    <div className="kv-memory-calculator">
-      <div className="kv-memory-controls">
-        <label htmlFor="kv-context-length">每个请求保留的 token 数 <output htmlFor="kv-context-length">{tokens.toLocaleString("en-US")}</output></label>
-        <input id="kv-context-length" type="range" min="1024" max="32768" step="1024" value={tokens} onChange={e => setTokens(Number(e.target.value))} />
-        <label htmlFor="kv-concurrent-sequences">同时驻留的请求数 <output htmlFor="kv-concurrent-sequences">{sequences}</output></label>
-        <input id="kv-concurrent-sequences" type="range" min="1" max="16" step="1" value={sequences} onChange={e => setSequences(Number(e.target.value))} />
-      </div>
-      <div className="kv-memory-result" aria-live="polite" aria-atomic="true"><span>估算 KV 存储量</span><strong>{gib.toFixed(2)} <small>GiB</small></strong><span>理论存储示意</span></div>
-    </div>
-    <p className="kv-muted">假设各请求等长、完整注意力、32 层、8 个 KV 头、每头 128 维、BF16（每值 2 字节），各请求的 KV 独立存储。1 GiB = 2³⁰ 字节。</p>
-    <details className="kv-basics-formula"><summary>查看公式与适用范围</summary>
-      <p>总字节数 = 2（K 与 V）× 请求数 × token 数 × 层数 × KV 头数 × 头维度 × 每值字节数。</p>
-      <p>GQA / MQA 使用的 KV 头数通常少于 Query 头数，公式应填实际 KV 头数。该示意不包含模型权重、激活、分配留空、量化辅助数据和分布式副本，也不直接适用于 MLA、滑动窗口或混合状态模型。共享前缀和各层不同布局需另算。</p>
-    </details>
-    <div className="kv-basics-next"><Link to={{search:"view=survey&topic=representation"}}>比较分页、淘汰和量化怎样减少占用</Link></div>
-  </section>;
-}
-
 export default function KvBasics() {
-  return <article className="kv-study kv-basics">
-    <header className="kv-study-intro">
-      <p className="kv-direction">KV 入门</p>
-      <h2>KV Cache 缓存了什么，为什么会成为推理瓶颈？</h2>
-      <p>KV Cache 保存注意力层已经计算好的 Key / Value 张量。先看它在一次生成中怎样被写入和读取，再理解容量、复用与搬运带来的问题。</p>
+  const [query, setQuery] = useSearchParams();
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  const parsed = parseKvGuideState(query);
+  const memory: MemoryLoad = { modelId: parsed.state.modelId, tokens: parsed.state.tokens, sequences: parsed.state.sequences };
+  const [comparison, setComparison] = useState<MemoryComparison | null>(null);
+  // This is a reset request, not the current cursor. A position-only URL replacement
+  // must not feed back into initialStep and reset the child's phase.
+  const [linearExample, setLinearExample] = useState({ step: parsed.state.position, revision: 0 });
+  const [parameterNotice, setParameterNotice] = useState(parsed.invalid);
+  const callbackPosition = useRef<number | null>(null);
+  const entryIdentity = `${location.key}:${location.search}`;
+  const previousEntry = useRef(entryIdentity);
+
+  useEffect(() => {
+    if (previousEntry.current !== entryIdentity) {
+      previousEntry.current = entryIdentity;
+      if (shouldResetKvPosition(navigationType, location.state)) {
+        if (callbackPosition.current !== parsed.state.position) {
+          setLinearExample(value => ({ step: parsed.state.position, revision: value.revision + 1 }));
+        }
+        if (navigationType === "POP") setComparison(null);
+      }
+      callbackPosition.current = null;
+      if ((location.state as { kvGuideNavigation?: string } | null)?.kvGuideNavigation !== "normalize") setParameterNotice(parsed.invalid);
+    }
+    const normalized = withKvGuideState(query, parsed.state);
+    if (normalized.toString() !== query.toString()) {
+      setQuery(normalized, { replace: true, state: { kvGuideNavigation: "normalize" } });
+    }
+  }, [entryIdentity, navigationType, location.state, query, setQuery, parsed.state.position]);
+
+  const updateMemory = (change: Partial<MemoryLoad>, action?: MemoryAction) => {
+    const next = { ...memory, ...change };
+    setParameterNotice([]);
+    setComparison(action ? { before: memory, after: next, action } : null);
+    if (next.modelId === memory.modelId && next.tokens === memory.tokens && next.sequences === memory.sequences) return;
+    setQuery(withKvGuideState(query, { ...parsed.state, ...next }), { replace: true, state: { kvGuideNavigation: "explore" } });
+  };
+  const selectLinearPosition = (step: number) => {
+    callbackPosition.current = step;
+    setLinearExample(value => ({ step, revision: value.revision + 1 }));
+  };
+  const updatePosition = useCallback((position: number) => {
+    // Ignore the old cursor reported while an external/explicit reset is pending.
+    if (previousEntry.current !== entryIdentity && shouldResetKvPosition(navigationType, location.state)) return;
+    if (position === parseKvGuideState(query).state.position) return;
+    setQuery(withKvGuideState(query, { ...parseKvGuideState(query).state, position }), { replace: true, state: { kvGuideNavigation: "explore" } });
+  }, [query, setQuery, entryIdentity, navigationType, location.state]);
+  const activePart = query.get("part") ?? "kv-basics-process";
+  const primaryChapters = [
+    { part: "kv-basics-process", number: "01", label: "生成与保存" },
+    { part: "kv-basics-memory", number: "02", label: "估算容量" },
+    { part: "kv-basics-lifecycle", number: "03", label: "复用与释放" },
+  ];
+  return <article className="kv-study kv-basics kv-guide">
+    <header className="kv-study-intro kv-guide-intro" id="kv-guide-start" tabIndex={-1}>
+      <h2>从生成到复用，读懂 <span>KV Cache</span></h2>
+      <p>先看 KV 怎样产生，再估算它的空间，最后看请求结束后的复用。线性注意力与混合模型放在选读中。</p>
     </header>
-    <nav className="kv-basics-outline" aria-label="入门阅读路径">
-      <Link to={{search:"view=guide&part=kv-basics-process"}}>理解生成流程</Link>
-      <Link to={{search:"view=guide&part=kv-basics-memory"}}>估算缓存占用</Link>
-      <Link to={{search:"view=guide&part=kv-basics-lifecycle"}}>认识复用与释放</Link>
-      <Link to={{search:"view=guide&part=kv-basics-questions"}}>选择研究问题</Link>
-    </nav>
-    <KVProcess /><KVMemory />
-    <section id="kv-basics-lifecycle" tabIndex={-1}>
-      <h3>一次生成结束后，KV 会发生什么？</h3>
-      <p>请求生成期间，系统持续追加 KV，并保护当前计算仍会读取的缓存块。请求结束后释放引用；开启前缀缓存时，一部分块可以继续保留，供后续请求匹配，需要腾出空间时再淘汰。</p>
-      <p>跨请求复用还要求计算身份一致、前缀匹配、缓存实际存在。模型、LoRA、多模态输入等都会影响身份；仅仅输入文本相同，不足以判断所有配置下都能复用。</p>
-      <div className="kv-basics-terms"><p><strong>一次生成中的历史读取</strong>：后续 token 读取同一请求已产生的 KV。</p><p><strong>请求之间的前缀复用</strong>：新请求接入可复用的前缀块，减少输入部分的重复计算。</p></div>
-      <p>缓存也可以移到 CPU、外部存储或其他实例。命中这些位置时，还需要恢复数据、准备设备空间，再安排计算。预填充与解码分离时，两个阶段之间同样需要交接 KV。</p>
-    </section>
-    <CacheExample />
-    <section id="kv-basics-questions" tabIndex={-1}>
-      <h3>从这些瓶颈出发，可以研究什么？</h3>
-      <p>容量决定能保留多少历史；读取和搬运影响每步执行时间；复用和调度决定哪些计算可以省下、哪些请求先运行。下面五组问题连接论文方法与社区实现。</p>
-      <div className="kv-question-grid">{kvResearch.taxonomy.map(question => <article className="kv-question-card" key={question.id}>
-        <span className="kv-direction">{question.label}</span><h4>{question.question}</h4><p>{question.description}</p>
-        <div className="kv-question-links">
-          <Link to={{search:`view=survey&topic=${question.id}`}}>比较代表方法</Link>
-          <Link to={{search:`view=evidence&topic=${question.id}`}}>查看社区 PR</Link>
-        </div>
-      </article>)}</div>
-    </section>
-    <section className="kv-basics-reading">
-      <div><h3>接下来读论文</h3><p>从推荐先读的六篇入手，再按研究问题比较机制与限制。</p><Link to={{search:"view=papers"}}>进入论文板块</Link></div>
-      <div><h3>接下来跟踪实现</h3><p>查看近期社区改动、已有验证和仍需继续跟踪的问题。</p><Link to={{search:"view=report"}}>阅读社区动态报告</Link></div>
-    </section>
-    <footer className="kv-basics-sources"><p>基础说明参考 PagedAttention 的 KV 管理背景、KIVI 的缓存表示分析及 vLLM 前缀缓存设计。交互图和容量计算用于解释机制。</p><div className="kv-sources">
-      <Link to={{search:"view=papers&part=kv-paper-pagedattention"}}>PagedAttention 解读与原文</Link>
-      <Link to={{search:"view=papers&part=kv-paper-kivi"}}>KIVI 解读与原文</Link>
-      <a href="https://docs.vllm.ai/en/latest/design/prefix_caching/" target="_blank" rel="noreferrer">vLLM 前缀缓存设计</a>
-    </div></footer>
+    {parameterNotice.length > 0 && <p className="kv-guide-parameter-notice" role="status">链接中的{parameterNotice.map(field => kvGuideFieldLabels[field]).join("、")}无效，已逐项恢复默认值；其余有效配置保留。地址已规范化，刷新使用修正后的配置。</p>}
+    <div className="kv-guide-layout">
+      <aside className="kv-guide-rail">
+        <nav className="kv-basics-outline" aria-label="入门阅读路径">
+          <p className="kv-guide-nav-label">基础必读</p>
+          <ol>{primaryChapters.map(chapter => <li key={chapter.part}><KvGuideLink part={chapter.part} ariaCurrent={activePart === chapter.part ? "location" : undefined}><span className="kv-guide-nav-number">{chapter.number}</span>{chapter.label}</KvGuideLink></li>)}</ol>
+          <p className="kv-guide-nav-label kv-guide-nav-secondary">之后再读</p>
+          <ul>
+            <li><KvGuideLink part="kv-basics-linear-attention" ariaCurrent={activePart === "kv-basics-linear-attention" ? "location" : undefined}><span className="kv-guide-nav-tag">选读</span>其他保存方式</KvGuideLink></li>
+            <li><KvGuideLink part="kv-basics-questions" ariaCurrent={activePart === "kv-basics-questions" ? "location" : undefined}><span className="kv-guide-nav-tag">研究</span>从问题出发</KvGuideLink></li>
+          </ul>
+        </nav>
+      </aside>
+      <div className="kv-guide-content">
+        <KvGeneration onCompare={selectLinearPosition} />
+        <KvMemory load={memory} comparison={comparison && comparison.after.modelId === memory.modelId && comparison.after.tokens === memory.tokens && comparison.after.sequences === memory.sequences ? comparison : null} onChange={updateMemory} />
+        <section id="kv-basics-lifecycle" className="kv-guide-chapter" tabIndex={-1}>
+          <KvGuideChapterHeading number="03" category="复用与释放" title="请求结束后，哪些缓存还能继续使用？">生成期间保留计算仍需读取的 KV；请求结束后释放引用。开启前缀缓存时，一部分块可以留下，供后续请求匹配，需要空间时再淘汰。</KvGuideChapterHeading>
+          <div className="kv-basics-terms"><p><strong>同一请求内读取历史</strong>后续 token 使用该请求已经产生的 KV。</p><p><strong>不同请求间复用前缀</strong>新请求接入可复用的前缀块，减少重复的输入计算。</p></div>
+          <p>跨请求复用要求计算身份一致、前缀匹配，而且缓存实际存在。模型、LoRA、多模态输入等都会影响身份，仅有相同文本还不够。</p>
+          <p>命中 CPU、外部存储或其他实例时，还要恢复数据、准备设备空间，再安排计算。预填充与解码分离时，两个阶段之间也需要交接 KV。</p>
+          <p className="kv-guide-example-intro">下面换到第二个请求的块管理示意，观察不同缓存位置的下一步；它不是前面三个输入位置的实际分块结果。</p>
+          <CacheExample headingLevel={4} />
+          <KvGuideChapterEnd part="kv-basics-questions" label="继续：选择研究问题">能否复用取决于身份、前缀、实际保留的缓存和所在位置。命中后仍可能需要传输与等待。</KvGuideChapterEnd>
+        </section>
+        <details className="kv-guide-extension">
+          <summary><span className="kv-guide-extension-label">选读</span><strong>历史也可以保存为递推状态</strong><span className="kv-guide-extension-note">比较线性注意力与混合模型</span></summary>
+          <div className="kv-guide-extension-body">
+            <KvLinearAttention initialStep={linearExample.step} resetToken={linearExample.revision} onPositionChange={updatePosition} onSelectHybrid={() => setComparison({ before: memory, after: { ...memory, modelId: "qwen3.5-35b-a3b" }, action: "model" })} />
+          </div>
+        </details>
+        <section id="kv-basics-questions" className="kv-guide-chapter kv-guide-research" tabIndex={-1}>
+          <KvGuideChapterHeading category="继续研究" title="你想减少哪一部分开销？">按你想改变的对象选择问题，再读对应论文与社区实现。收录数量不表示问题已经解决。</KvGuideChapterHeading>
+          <ul className="kv-guide-research-list">{kvResearch.taxonomy.map(question => <li key={question.id}>
+            <span className="kv-direction">{question.label}</span>
+            <div><h4>{question.question}</h4><p>{researchConnections[question.id]?.object}</p>
+              <details className="kv-guide-method-note"><summary>方法与边界</summary><p>{researchConnections[question.id]?.mechanism ?? question.description}</p></details>
+            </div>
+            <div className="kv-question-links"><Link to={{search:`view=survey&topic=${question.id}`}}>比较代表方法</Link><Link to={{search:`view=evidence&topic=${question.id}`}}>查看社区 PR</Link></div>
+          </li>)}</ul>
+          <div className="kv-basics-reading">
+            <div><h4>接下来读论文</h4><p>从推荐先读的六篇入手，比较方法与适用条件。</p><Link to={{search:"view=papers"}}>进入论文板块 →</Link></div>
+            <div><h4>接下来跟踪实现</h4><p>查看近期社区改动、已有验证与待跟踪问题。</p><Link to={{search:"view=report"}}>阅读社区动态报告 →</Link></div>
+          </div>
+        </section>
+        <footer className="kv-basics-sources"><details><summary>基础资料与出处</summary><p>生成与容量说明参考 PagedAttention 的 KV 管理背景和 KIVI 的缓存表示分析；前缀缓存、线性注意力与模型配置的依据放在对应章节。</p><div className="kv-sources"><Link to={{search:"view=papers&part=kv-paper-pagedattention"}}>PagedAttention 解读与原文</Link><Link to={{search:"view=papers&part=kv-paper-kivi"}}>KIVI 解读与原文</Link></div></details></footer>
+      </div>
+    </div>
   </article>;
 }

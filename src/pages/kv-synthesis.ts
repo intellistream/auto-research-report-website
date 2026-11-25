@@ -1,7 +1,15 @@
 import data from "./kv-synthesis.json";
 import { filterPapers, kvResearch, type PaperEntry, type ResearchTopicId } from "./kv-research";
 
-export type SynthesisRow = { slug: string; lever: string; benefit: string; boundary: string };
+export type SynthesisRow = {
+  slug: string;
+  lever: string;
+  benefit: string;
+  boundary: string;
+  useWhen: string;
+  notWhen: string;
+  sourceLocation: string;
+};
 export type SynthesisGroup = {
   id: ResearchTopicId;
   shortLabel: string;
@@ -10,6 +18,9 @@ export type SynthesisGroup = {
   summary: string;
   takeaway: string;
   measurement: string;
+  decision: string;
+  commonSetup: string;
+  notComparable: string;
   rows: SynthesisRow[];
   engineeringIds: string[];
 };
@@ -18,6 +29,17 @@ export const kvSynthesis = data as {
   revision: number;
   editedAt: string;
   basis: string;
+  qualityCase: {
+    title: string;
+    status: string;
+    question: string;
+    threshold: string;
+    steps: string[];
+    evidenceTitle: string;
+    evidenceNote: string;
+    evidenceSlugs: string[];
+    combination: string;
+  };
   groups: SynthesisGroup[];
 };
 
