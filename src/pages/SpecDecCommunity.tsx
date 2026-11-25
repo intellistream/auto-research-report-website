@@ -46,7 +46,7 @@ function WeeklyReport({ edition }: { edition: WeeklyEdition }) {
       <h2>{edition.title}</h2>
       <div className="specdec-week-meta"><span>观察窗口 <time>{edition.periodStart}</time> — <time>{edition.periodEnd}</time></span><span>来源核查 <time>{edition.checkedAt}</time></span></div>
       <div className="specdec-week-counts"><span><strong>{edition.sources.length}</strong> 条日报收录</span><span><strong>{count("vllm")}</strong> vLLM</span><span><strong>{count("vllm-ascend")}</strong> vLLM-Ascend</span></div>
-      <p>{edition.overview}</p><p className="specdec-week-reading-note">先读四个重点进展，再按需展开实验条件；文末提供三个可直接验证的研究问题。</p>
+      <p>{edition.overview}</p><p className="specdec-week-reading-note">性能数字来自 PR 提交方；展开各节可查看测试条件与限制。文末提供三个可验证的研究问题。</p>
       <div className="specdec-week-links"><Link to={{search:"view=evidence&week="+edition.id}}>查看本期 PR 列表</Link><Link to={{search:"view=report&tab=archive"}}>历期报告</Link></div>
       <details className="specdec-week-scope"><summary>本期取材与证据口径</summary><p>{edition.scope}</p></details>
     </header>

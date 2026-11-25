@@ -57,6 +57,8 @@ describe("SpecDec weekly community",()=>{
   it("filters keyword, edition and repository consistently with the trend",()=>{
     const q=new URLSearchParams("view=evidence&week=2026-11-22&repo=vllm-ascend");
     expect(filterWeeklyLibrary(spec,q)).toHaveLength(4);
+    const changed={...spec,entries:spec.entries.map(row=>row.workId.endsWith("#22473")?{...row,title:"changed live title"}:row)};
+    expect(filterWeeklyLibrary(changed,q).find(row=>row.workId.endsWith("#22473"))?.title).not.toBe("changed live title");
     q.set("q","22473");
     expect(filterWeeklyLibrary(spec,q).map(e=>e.workId)).toEqual(["github:vllm-project/vllm-ascend#22473"]);
     q.set("repo","vllm");

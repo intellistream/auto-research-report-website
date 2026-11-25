@@ -69,7 +69,7 @@
       "title": "验证成本为什么会在 K=3 与 K=4 之间突变？",
       "lead": "查询宽度、后端路由与长上下文",
       "paragraphs": [
-        "#68129 的原 Step5 PrimTS SWA 判定要求均匀查询且 q_len≤4，因此 K>3 会转向 prefill plan。改为 q_len≤max(4,K+1) 后，满足均匀形状的验证继续走分页 decode plan。这类离散切换无法由“每个草稿 token 增加固定成本”的模型解释。",
+        "#68129 的原 Step5 PrimTS SWA 判定要求均匀查询且 q_len≤4，因此 K>3 且验证占满 K+1 行时会转向 prefill plan。改为 q_len≤max(4,K+1) 后，满足均匀形状的验证继续走分页 decode plan。这类离散切换无法由“每个草稿 token 增加固定成本”的模型解释。",
         "#67133 在 gfx950 的 GQA 8:1、head dim 64、FP8 KV 条件下使用 split-KV 专用验证内核，全注意力按 KV 长度均衡工作组，滑窗由 kernel 内处理。#68782 则把不规则 XQA mask 的行索引构造移至已有长度信息的主机侧，使用非阻塞复制，去除每步同步。"
       ],
       "sourceIds": [
@@ -138,7 +138,7 @@
       "lead": "从真实依赖关系出发，而不是机械移植 GPU kernel",
       "paragraphs": [
         "#22473 在 attention 初始化后检查实际 draft groups：仅非空且全部 FA3 时开启设备长度路径，PP 同步约束仍优先。FA3 已消费拒绝修正后的 device sequence lengths，故不必等待额外 CPU snapshot。判断依据是数据消费者，而非草稿算法名称。",
-        "#22074 在 DFlash2 compute_candidates 中先聚合并补齐 DP hidden rows，在各词表分片局部 TopK，经 all-to-all 将 score/ID 送回请求所有者，再合并全局 TopK。通信交换从完整词表候选变为分片 TopK，但仍需评估 hidden gather、静态 padding 和小批量 collective 开销。#22156 则在 FULL graph 重写 Q 边界后同步裁剪 FIA 的 KV lengths 与 block tables，维护填充请求数契约。"
+        "#22074 在 DFlash2 compute_candidates 中先聚合并补齐 DP hidden rows，在各词表分片局部 TopK，经 all-to-all 将 score/ID 送回请求所有者，再合并全局 TopK。相较交换完整词表 logits 的朴素方案，这条新增支持路径只交换分片 TopK，但仍需评估 hidden gather、静态 padding 和小批量 collective 开销。#22156 则在 FULL graph 重写 Q 边界后同步裁剪 FIA 的 KV lengths 与 block tables，维护填充请求数契约。"
       ],
       "sourceIds": [
         "github:vllm-project/vllm-ascend#22473",
