@@ -2676,26 +2676,68 @@
     {
       "counts": {
         "byLabel": {
-          "methods": 74,
+          "methods": 77,
           "verification": 35,
           "runtime": 33
         },
         "byRepository": {
-          "vllm": 94,
-          "vllm-ascend": 48
+          "vllm": 95,
+          "vllm-ascend": 50
         },
         "manualExcluded": 0,
         "manualIncluded": 8,
-        "total": 142
+        "total": 145
       },
       "coverage": {
-        "days": 33,
+        "days": 34,
         "firstDay": "2026-10-22",
-        "lastDay": "2026-11-23",
-        "prs": 865
+        "lastDay": "2026-11-24",
+        "prs": 904
       },
       "description": "跟踪草稿模型、候选 token 生成与验证，以及推测解码的运行时适配。",
       "entries": [
+        {
+          "day": "2026-11-24",
+          "label": "methods",
+          "method": "rule",
+          "number": "V28",
+          "reason": "原日报推测解码章节候选（待一手核验）",
+          "repository": "vllm",
+          "stage": "speculative",
+          "summary": "把DFly目标与草稿层的校验分开：该型号的compressed-tensors目标层格式交由模型自身检查，仍拒绝检查点缓存量化或非空变换，空变换视为无变换；草稿层仍限BF16或128×128权重块、动态激活的W8A8 FP8。原生FP8检查不变。",
+          "title": "为HY4量化目标开放草稿推测解码",
+          "url": "https://github.com/vllm-project/vllm/pull/69274",
+          "version": "f2be123e128c64d7303bda9daf3b741c6c5458a5b62d6f724f2cbed980c866ae",
+          "workId": "github:vllm-project/vllm#69274"
+        },
+        {
+          "day": "2026-11-24",
+          "label": "methods",
+          "method": "rule",
+          "number": "A9",
+          "reason": "原日报推测解码章节候选（待一手核验）",
+          "repository": "vllm-ascend",
+          "stage": "speculative",
+          "summary": "验证时由原始投影计算门控，以FP32记录修正量、键与衰减，逆序重放已接受前缀并提交状态。支持无前缀缓存与边界对齐缓存两模式；分离部署仅允许MooncakeConnectorV2或MooncakePullConnector，两端张量并行、投机、布局和精度须匹配。",
+          "title": "为 Qwen GDN 混合模型启用实验性状态重算重放",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/22045",
+          "version": "f2be123e128c64d7303bda9daf3b741c6c5458a5b62d6f724f2cbed980c866ae",
+          "workId": "github:vllm-project/vllm-ascend#22045"
+        },
+        {
+          "day": "2026-11-24",
+          "label": "methods",
+          "method": "rule",
+          "number": "A10",
+          "reason": "原日报推测解码章节候选（待一手核验）",
+          "repository": "vllm-ascend",
+          "stage": "speculative",
+          "summary": "现在，受支持的本地草稿模型可以独立选用 FA3，目标模型与草稿模型分别捕获计算图，物理 KV 缓存布局保持不变，同时对外提供零拷贝的逻辑视图。当目标文本配置、加载标签、草稿架构、数据类型、硬件或 FA3 算子不满足条件时，仍回退到原有后端。",
+          "title": "GLM-5.3-Flash 草稿模型可选用高效注意力与计算图",
+          "url": "https://github.com/vllm-project/vllm-ascend/pull/22172",
+          "version": "f2be123e128c64d7303bda9daf3b741c6c5458a5b62d6f724f2cbed980c866ae",
+          "workId": "github:vllm-project/vllm-ascend#22172"
+        },
         {
           "day": "2026-11-23",
           "label": "methods",
