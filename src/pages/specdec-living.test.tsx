@@ -111,7 +111,7 @@ describe("SpecDec novice-to-research reading contract", () => {
 
   it("preserves the historical disclosure contract and ACLGraph", () => {
     for (const topicId of ["aclgraph", "speculative-decoding"]) {
-      const brief = render(`/topics/${topicId}?view=report${topicId==="speculative-decoding"?"&edition=2026-11-18":""}`);
+      const brief = render(`/topics/${topicId}?view=report${topicId === "speculative-decoding" ? "&edition=2026-11-18" : "&legacy=1"}`);
       if (topicId === "aclgraph") {
         expect(brief).toContain("研究范围与方法");
         expect(brief).toContain("如何使用这些来源");

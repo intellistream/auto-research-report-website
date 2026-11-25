@@ -5,6 +5,7 @@ import actualIndex from "../../public/word-reports/topics.json";
 import source from "../../topics/aclgraph/survey.json";
 import TopicPages, { type Topic, type TopicIndex } from "./TopicPages";
 import { readingSurvey, validatedSurvey, type TopicSurvey } from "./topic-survey";
+import AclGraphSurveyMap from "./AclGraphSurveyMap";
 
 const topic = actualIndex.topics.find((item) => item.id === "aclgraph") as unknown as Topic;
 const survey = source as TopicSurvey;
@@ -16,17 +17,70 @@ function render(item: Topic, view: string) {
   </MemoryRouter>);
 }
 
+function renderMap(item: Topic, showTaxonomy = true) {
+  return renderToStaticMarkup(<MemoryRouter><AclGraphSurveyMap topic={item}
+    htmlHref="/paper.html" revealSection={() => false} showTaxonomy={showTaxonomy} /></MemoryRouter>);
+}
+
 describe("continuous survey presentation", () => {
   it("uses reviewed source data and exposes traceable evidence, limitations and questions", () => {
     expect(validatedSurvey(checkedTopic)).toEqual(survey);
     const html = render(checkedTopic, "paper");
     expect(html).not.toContain(survey.thesis);
     const map = html.slice(html.indexOf('<figure class="acl-taxonomy">'), html.indexOf("</figure>"));
+    expect(survey.paperVersion).toBe("62dba962fda5240ee8b37bdac3d8c877245daabcdab03265e7ef7ead46d0fd86");
+    expect(survey.reportVersion).toBe("6dd5554a521e6faeb3477353dd6258a54089733402109dec9c3555eb67ba1d66");
+    expect(source.scenarios).toHaveLength(4);
+    const scenarioWorks = source.scenarios.flatMap((scenario) => scenario.works);
+    expect(scenarioWorks).toHaveLength(24);
+    expect(source.scenarios.map((scenario) => scenario.works.length)).toEqual([8, 4, 6, 6]);
+    expect(source.scenarios.map((scenario) => scenario.paperAnchor)).toEqual([
+      "section-3-1", "section-3-2", "section-3-3", "section-3-4",
+    ]);
     expect(survey.routes).toHaveLength(4);
-    expect(survey.routes.flatMap((route) => route.subcategories!)).toHaveLength(12);
-    expect(map).toContain('<table class="acl-taxonomy-table"');
+    expect(survey.routes.map((route) => route.id)).toEqual(["capture", "replay-state", "scheduling", "lifecycle"]);
+    const groups = survey.routes.flatMap((route) => route.subcategories!);
+    expect(groups).toHaveLength(10);
+    const mechanismWorks = groups.flatMap((group) => group.works);
+    expect(mechanismWorks).toHaveLength(33);
+    expect(survey.routes.map((route) => route.subcategories!.flatMap((group) => group.works).length)).toEqual([7, 5, 12, 9]);
+    const works = [...scenarioWorks, ...mechanismWorks];
+    expect(new Set(works.map((work) => work.reference)).size).toBe(57);
+    expect(Object.fromEntries(works.map((work) => [work.label, work.reference]))).toEqual({
+      Orca: 51, vLLM: 52, Llumnix: 53, SGLang: 54, Hydragen: 55, ChunkAttention: 56,
+      FlexAttention: 57, FlashMask: 58, "Sarathi-Serve": 59, DistServe: 60,
+      "POD-Attention": 61, "PLA-Serve (LAPS)": 11, Cortex: 62, CoRa: 63, ACRoBat: 64,
+      SpecInfer: 65, Sequoia: 66, "EAGLE-2": 67, Punica: 68, "S-LoRA": 69, COMET: 70,
+      "Triton-Distributed": 71, FlashOverlap: 31, "CloudMatrix384（昇腾超节点）": 30,
+      "动态编译系统 Nimble（2021）": 8, DISC: 9, Relax: 10, GraCE: 4, "xLLM（昇腾实证）": 5,
+      "Breakable CUDA Graphs": 6, "Hybrid JIT–CUDA Graph": 7, vAttention: 16, MoonBright: 17,
+      FlashInfer: 14, PolyGraph: 15, "Event Tensor (ETC)": 18,
+      "GPU 调度系统 Nimble（2020）": 20, IOS: 21, Taskflow: 23, "DNN 图优化系统 AutoGraph": 72,
+      Opara: 22, SET: 24, Rammer: 25, MUSTARD: 26, FlashMoE: 27, MPK: 19,
+      NanoFlow: 28, "MegaScale-Infer": 29, "Breaking the Ice": 32, ServerlessLLM: 33,
+      "DEEPSERVE（昇腾）": 34, BlitzScale: 35, CRIUgpu: 38, "PhoenixOS / PhOS": 39,
+      "服务物化系统 Medusa": 36, Foundry: 37, GCR: 40,
+    });
+    expect(map.match(/<table class="acl-taxonomy-table"/g)).toHaveLength(2);
+    expect(map).toContain("ACLGraph 综述研究版图总览");
+    expect(map).toContain("遵循 ACM CSUR 多视角系统综述框架");
+    expect(map).toContain("视角一：典型大模型推理场景版图（第 3 章 · 4 大场景 · 24 项代表工作）");
+    expect(map).toContain("视角二：通用执行图系统核心机制版图（第 4 章 · 4 大机制 · 33 项代表工作）");
+    expect(map.indexOf('id="acl-taxonomy-scenarios-heading"')).toBeLessThan(map.indexOf('id="acl-taxonomy-mechanisms-heading"'));
+    for (const heading of ["典型推理场景（正文章节）", "动态性来源与图化策略", "代表场景工作（24 项，点击编号直达参考文献）",
+      "核心系统机制（正文章节）", "细粒度机制分组（10 组）", "代表系统工作（33 项，点击编号直达参考文献）"]) {
+      expect(map).toContain(heading);
+    }
+    expect(survey.routes.map((route) => route.paperAnchor)).toEqual([
+      "section-4-3", "section-4-4", "section-4-5", "section-4-6",
+    ]);
     expect(map.match(/scope="rowgroup"/g)).toHaveLength(4);
-    expect(map.match(/scope="row"/g)).toHaveLength(12);
+    expect(map.match(/scope="row"/g)).toHaveLength(14);
+    expect(map.match(/class="acl-taxonomy-citation"/g)).toHaveLength(57);
+    for (const scenario of source.scenarios) {
+      for (const text of [scenario.title, scenario.dynamicity, scenario.strategy]) expect(map).toContain(text);
+      expect(map).toContain(`#${scenario.paperAnchor}"`);
+    }
     for (const route of survey.routes) {
       expect(map).toContain(`#${route.paperAnchor}"`);
       for (const subcategory of route.subcategories!) {
@@ -37,6 +91,12 @@ describe("continuous survey presentation", () => {
         }
       }
     }
+    for (const work of works) expect(map).toContain(`#ref-${work.reference}"`);
+    for (const legacy of ["双平面", "平面 I", "平面 II", "Tree 1", "Tree 2", "T1-L", "T2-L", "T1-B", "T2-B", "早期剪枝", "相邻剪枝"]) {
+      expect(JSON.stringify(source)).not.toContain(legacy);
+      expect(html).not.toContain(legacy);
+    }
+    expect(html).toContain('<details class="acl-taxonomy-evidence"><summary>分章查看工程证据与待验证问题</summary>');
     const first = survey.routes[0];
     expect(html).toContain(first.assessment);
     expect(html).toContain(first.limitation);
@@ -45,11 +105,65 @@ describe("continuous survey presentation", () => {
     expect(html).toContain(topic.report!.references.find((item) => item.id === first.sourceIds[0])!.url);
   });
 
+  it("hides malformed or missing scenarios while retaining the validated mechanism map and evidence", () => {
+    const withFirst = (changes: Record<string, unknown>) => source.scenarios.map((item, index) => index ? item : { ...item, ...changes });
+    const invalid: unknown[] = [undefined, null, {}, [], [null, ...source.scenarios.slice(1)], source.scenarios.slice(1),
+      withFirst({ title: " " }), withFirst({ dynamicity: undefined }), withFirst({ strategy: null }),
+      withFirst({ paperAnchor: "javascript:alert(1)" }), withFirst({ paperAnchor: "section-3-2" }),
+      withFirst({ paperAnchor: "section-3-1#ref-1" }), withFirst({ paperSection: "4.3" }),
+      withFirst({ works: undefined }), withFirst({ works: [] }),
+      withFirst({ id: source.scenarios[1].id }),
+      withFirst({ paperSection: "3.2", paperAnchor: "section-3-2" }),
+    ];
+    for (const reference of [0, -1, 1.5, 75, "51", true, null, undefined, NaN, Infinity, source.scenarios[0].works[1].reference]) {
+      invalid.push(withFirst({ works: source.scenarios[0].works.map((work, index) => index ? work : { ...work, reference }) }));
+    }
+    for (const work of [null, {}, { label: " ", reference: 51 }]) {
+      invalid.push(withFirst({ works: [work, ...source.scenarios[0].works.slice(1)] }));
+    }
+    for (const scenarios of invalid) {
+      const item = { ...checkedTopic, survey: { ...survey, scenarios } as TopicSurvey };
+      expect(validatedSurvey(item)).toBe(item.survey);
+      const html = render(item, "paper");
+      expect(html).not.toContain('id="acl-taxonomy-scenarios-heading"');
+      expect(html).toContain('id="acl-taxonomy-mechanisms-heading"');
+      expect(html.match(/class="acl-taxonomy-citation"/g)).toHaveLength(33);
+      expect(html).toContain(survey.routes[0].assessment);
+      expect(html).not.toContain("#ref-75");
+    }
+  });
+
+  it("retains the platform-example fallback when any mechanism subcategories are absent", () => {
+    const fallback = { ...survey, routes: survey.routes.map((route, index) => index ? route : { ...route, subcategories: undefined }) };
+    const item = { ...checkedTopic, survey: fallback };
+    expect(validatedSurvey(item)).toBe(fallback);
+    const html = render(item, "paper");
+    expect(html).toContain('id="acl-taxonomy-scenarios-heading"');
+    expect(html).not.toContain('id="acl-taxonomy-mechanisms-heading"');
+    expect(html).toContain('class="acl-taxonomy-branches"');
+    expect(html).toContain("昇腾直接工作");
+    expect(html).toContain("可借鉴的 GPU 工作");
+    expect(html).toContain(survey.routes[0].assessment);
+    for (const route of survey.routes) expect(html).toContain(`#${route.paperAnchor}"`);
+    const withoutExamples = { ...item, survey: { ...fallback, routes: fallback.routes.map((route) => ({ ...route, examples: undefined })) } };
+    expect(renderMap(withoutExamples)).toContain("昇腾接口映射及适用条件待核验。");
+  });
+
+  it("keeps the plain engineering guide when taxonomy is disabled and omits an unavailable report", () => {
+    const html = renderMap(checkedTopic, false);
+    expect(html).toContain("技术路线与待验证问题");
+    expect(html).toContain(survey.thesis);
+    expect(html).toContain(survey.routes[0].assessment);
+    expect(html).not.toContain('class="acl-taxonomy"');
+    expect(renderMap({ ...checkedTopic, report: undefined })).toBe("");
+    expect(renderMap({ ...checkedTopic, survey: undefined, report: { ...topic.report!, taxonomy: [] } })).toBe("");
+  });
+
   it("accepts matching new versions without a frontend hash edit", () => {
     const version = "b".repeat(64);
     const next = { ...checkedTopic, report: { ...topic.report!, version, revision: 4 }, survey: { ...survey, reportVersion: version } };
     expect(validatedSurvey(next)).toBe(next.survey);
-    expect(render(next, "report")).toContain(survey.update.summary);
+    expect(render(next, "report&legacy=1")).toContain(survey.update.summary);
     expect(render(next, "paper")).toContain(survey.routes[0].assessment);
   });
 
@@ -72,7 +186,7 @@ describe("continuous survey presentation", () => {
       taxonomy: [{ problem: "新报告的问题", approach: "新路线", tradeoff: "新边界", sourceIds: ["E1"] }],
     } };
     expect(validatedSurvey(next)).toBeUndefined();
-    const report = render(next, "report");
+    const report = render(next, "report&legacy=1");
     expect(report).toContain("新报告推翻旧的服务判断。");
     expect(report).not.toContain(survey.update.summary);
     expect(report).toContain(topic.report!.evidenceDetails![0].result);
@@ -120,7 +234,7 @@ describe("continuous survey presentation", () => {
   });
 
   it("separates the dated topic reassessment, frozen report and pending leads", () => {
-    const html = render(checkedTopic, "report");
+    const html = render(checkedTopic, "report&legacy=1");
     expect(html).toContain(survey.researchAssessment!.summary);
     expect(html).toContain("选题复评于");
     expect(html).toContain("冻结报告修订 3 与同版 PDF 保留原研究截止日期");
