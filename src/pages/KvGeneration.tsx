@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { generationAt, generationFrames, promptPositions } from "./kv-generation";
+import { generationAt, generationConnections, generationFrames, promptPositions } from "./kv-generation";
 import { KvGuideLink } from "./KvGuideLink";
 import { KvSnapshotText } from "./KvSnapshotText";
 import { KvGuideChapterHeading, KvGuideChapterEnd } from "./KvGuideChapter";
@@ -11,18 +11,58 @@ const panels = [
   { operation: "回送与写入", focus: "cache", input: "x4 已回送", compute: "Q4 / K4 / V4", weight: "Q4 尚未读取历史", value: "等待读取", sampler: "等待向量 y4", feedback: "新增 K4 / V4，共 4 个 KV 位置。下一步：用 Q4 读取历史。", next: "下一步读取位置 1…4；读取本身不再增加 KV 条目。" },
   { operation: "读取历史", focus: "read", input: "已处理 x4", compute: "Q4 / K4 / V4（记录）", weight: "Q4 与 K1…K4", value: "V1…V4 得到 y4", sampler: "尚未执行后续计算与采样", feedback: "读取完成，得到向量 y4，KV 仍为 4 个位置。下一步：计算并采样。", next: "y4 还不是 token；接着经过后续模型计算、输出头与采样。" },
   { operation: "采样 token", focus: "sample", input: "x4 已处理，x5 待回送", compute: "Q4 / K4 / V4（记录）", weight: "已使用本轮权重", value: "已得到 y4", sampler: "已完成，选出 x5", feedback: "x5 已采样，但尚无自己的 KV。下一步：将 x5 送回模型。", next: "只有把 x5 送回模型并处理，才会产生 K5 / V5；记录 Q4 不等于缓存旧 Q。" },
-  { operation: "写入后读取", focus: "read", input: "x5 已回送", compute: "Q5 / K5 / V5", weight: "Q5 与 K1…K5", value: "V1…V5 得到 y5", sampler: "尚未执行后续计算与采样", feedback: "新增 K5 / V5 并读出 y5，共 5 个 KV 位置。本段结束，可回看或重播。", next: "本段到 y5。标准循环可继续到停止条件；最终输出 token 未必再次回送。" },
+  { operation: "回送与写入", focus: "cache", input: "x5 已回送", compute: "Q5 / K5 / V5", weight: "Q5 尚未读取历史", value: "等待读取", sampler: "等待向量 y5", feedback: "新增 K5 / V5，共 5 个 KV 位置。下一步：用 Q5 读取历史。", next: "下一步读取位置 1…5；读取本身不再增加 KV 条目。" },
+  { operation: "读取历史", focus: "read", input: "已处理 x5", compute: "Q5 / K5 / V5（记录）", weight: "Q5 与 K1…K5", value: "V1…V5 得到 y5", sampler: "尚未执行后续计算与采样", feedback: "读取完成，得到向量 y5，KV 仍为 5 个位置。本段结束，可回看或重播。", next: "本段到 y5。标准循环可继续到停止条件；最终输出 token 未必再次回送。" },
 ] as const;
 
 const tokenStatuses = ["输入", "待回送", "已处理", "未生成"] as const;
 const existingStatuses = ["输入写入", "新增", "保留"] as const;
 
+
+const connectionLabels = [
+  "尚未写入 KV",
+  "写入 x1–x3 的 K / V",
+  "写入 K4 / V4",
+  "Q4 读取位置 1–4 的 KV",
+  "采样 x5，保留已有 KV",
+  "写入 K5 / V5",
+  "Q5 读取位置 1–5 的 KV",
+] as const;
+
+function connectionPosition(position: number) {
+  return `calc((100% - 4 * var(--kv-flow-gap)) / 10 + ${position - 1} * (100% + var(--kv-flow-gap)) / 5)`;
+}
+
+function KvGenerationConnections({ frame }: { frame: number }) {
+  const flow = generationConnections(frame);
+  const first = flow.readPositions[0];
+  const last = flow.readPositions.at(-1);
+  return <figure className="kv-generation-transfer" aria-label="本帧输入与 KV 缓存的关系">
+    <figcaption><KvSnapshotText text={connectionLabels[frame]} variants={connectionLabels} /></figcaption>
+    <div className="kv-generation-connections" aria-hidden="true">
+      {flow.readPositions.length > 0 && <>
+        <span className="kv-flow-read-bus" style={{ left: connectionPosition(first), width: `calc(${connectionPosition(last!)} - ${connectionPosition(first)})` }} />
+        {flow.readPositions.map(position => <span key={position} className="kv-flow-read-source" data-read-position={position}
+          style={{ left: connectionPosition(position) }} />)}
+        <svg className="kv-flow-read-target" data-query-position={flow.queryPosition} style={{ left: connectionPosition(flow.queryPosition!) }}
+          width="24" height="28" viewBox="0 0 24 28" fill="none" focusable="false">
+          <path d="M12 27V2M6 8L12 2L18 8" />
+        </svg>
+      </>}
+      {flow.writePositions.map(position => <svg key={position} className="kv-flow-write" data-write-position={position}
+        style={{ left: connectionPosition(position) }} width="24" height="56" viewBox="0 0 24 56" fill="none" focusable="false">
+        <path d="M12 1V54M6 48L12 54L18 48" />
+      </svg>)}
+    </div>
+  </figure>;
+}
+
 export default function KvGeneration({ onCompare }: { onCompare: (position: number) => void }) {
   const [frame, setFrame] = useState(0);
   const current = generationAt(frame);
   const scene = panels[frame];
-  const comparePosition = frame === 5 ? 5 : 4;
-  const writtenHere = frame === 2 || frame === 5;
+  const comparePosition = frame >= 5 ? 5 : 4;
+  const connections = generationConnections(frame);
   const readHere = scene.focus === "read";
   const sampled = current.pendingToken !== null;
   const variants = (field: keyof typeof panels[number]) => panels.map(panel => panel[field]);
@@ -36,27 +76,33 @@ export default function KvGeneration({ onCompare }: { onCompare: (position: numb
         <div className="kv-demo-actions">
           <button type="button" aria-controls="kv-generation-scene" onClick={() => setFrame(value => Math.min(generationFrames.length - 1, value + 1))} disabled={frame === generationFrames.length - 1}>{current.action}</button>
           <button type="button" aria-controls="kv-generation-scene" disabled={frame === 0} onClick={() => setFrame(value => Math.max(0, value - 1))}>上一步</button>
-          <button type="button" aria-controls="kv-generation-scene" onClick={() => setFrame(0)}>重播六帧</button>
+          <button type="button" aria-controls="kv-generation-scene" onClick={() => setFrame(0)}>重播七帧</button>
         </div>
+        <p className="kv-generation-color-key">浅绿：已有输入或缓存；浅黄：采样后待回送；边框与箭头：本步操作。</p>
         <p className="kv-generation-feedback" aria-live="polite" aria-atomic="true"><KvSnapshotText text={scene.feedback} variants={variants("feedback")} /></p>
       </div>
       <div id="kv-generation-scene">
         <h4><KvSnapshotText text={current.title} variants={generationFrames.map(item => item.title)} /></h4>
-        <div className="kv-generation-tokens" role="group" aria-label="同一请求中的 token 位置，含未来占位">
-          {[1, 2, 3, 4, 5].map(position => <div key={position} className={current.currentPosition === position ? "is-current" : current.pendingToken === position ? "is-pending" : ""}>
-            <strong>x{position}</strong><span><KvSnapshotText text={position <= promptPositions.length ? "输入" : current.pendingToken === position ? "待回送" : current.kvPositions.includes(position) ? "已处理" : "未生成"} variants={tokenStatuses} /></span>
-          </div>)}
-        </div>
         <div className={"kv-generation-model" + (scene.focus === "model" ? " is-active" : "")} data-snapshot-region="model">
           <div><span>本帧模型输入</span><strong><KvSnapshotText text={scene.input} variants={variants("input")} /></strong></div>
           <div><span>本层 Q / K / V 计算</span><strong><KvSnapshotText text={scene.compute} variants={variants("compute")} /></strong></div>
         </div>
-        <div className={"kv-generation-cache" + (scene.focus === "cache" ? " is-active" : "")}>
-          <div className="kv-generation-cache-heading"><strong>持久保留：{current.kvPositions.length} 个 KV 位置</strong></div>
+        <p className="kv-generation-row-label">Token 序列</p>
+        <div className="kv-generation-tokens" role="group" aria-label="同一请求中的 token 位置，含未来占位">
+          {[1, 2, 3, 4, 5].map(position => <div key={position} className={[
+            position <= promptPositions.length || current.kvPositions.includes(position) ? "is-input" : "",
+            current.currentPosition === position ? "is-current" : current.pendingToken === position ? "is-pending" : "",
+          ].filter(Boolean).join(" ")}>
+            <strong>x{position}</strong><span><KvSnapshotText text={position <= promptPositions.length ? "输入" : current.pendingToken === position ? "待回送" : current.kvPositions.includes(position) ? "已处理" : "未生成"} variants={tokenStatuses} /></span>
+          </div>)}
+        </div>
+        <KvGenerationConnections frame={frame} />
+        <div className={"kv-generation-cache" + (connections.writePositions.length ? " is-writing" : "")}>
+          <div className="kv-generation-cache-heading"><strong>KV 缓存</strong></div>
           <div className={"kv-generation-cache-space" + (readHere ? " is-reading" : "")}>
             {current.kvPositions.length > 0 ? <div className="kv-generation-slots" role="group" aria-label="本层已有的 KV 条目">
-              {current.kvPositions.map(position => <div key={position} className={"is-stored" + (writtenHere && current.newKVPosition === position ? " is-new" : "")}>
-                <strong><span>K{position}</span><span className="kv-generation-kv-divider" aria-hidden="true">/</span><span>V{position}</span></strong><span><KvSnapshotText text={writtenHere && current.newKVPosition === position ? "新增" : frame === 1 ? "输入写入" : "保留"} variants={existingStatuses} /></span>
+              {current.kvPositions.map(position => <div key={position} className={"is-stored" + (connections.writePositions.includes(position) ? " is-new" : "")}>
+                <strong><span>K{position}</span><span className="kv-generation-kv-divider" aria-hidden="true">/</span><span>V{position}</span></strong><span><KvSnapshotText text={frame === 1 ? "输入写入" : connections.writePositions.includes(position) ? "新增" : "保留"} variants={existingStatuses} /></span>
               </div>)}
             </div> : <p className="kv-generation-empty">尚无 KV 条目，先处理输入。</p>}
           </div>

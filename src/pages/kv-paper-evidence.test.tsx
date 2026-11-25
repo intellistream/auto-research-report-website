@@ -21,7 +21,7 @@ function renderComparison(topic: string) {
 describe("decision-critical KV paper evidence", () => {
   it("preserves provenance and quantitative limits even when optional paper details are closed", () => {
     const kivi = visible(renderPapers("q=KIVI"));
-    for (const text of ["2.35–3.47", "A100 80GB", "Llama-2-7B", "161 / 338", "残留长度 32 / 128", "直到 OOM", "固定批次", "图 5", "本站未复现"]) {
+    for (const text of ["2.35–3.47", "A100 80GB", "Llama-2-7B", "161 / 338", "残留长度 32 / 128", "直到 OOM", "固定批次", "图 5", "作者实验报告"]) {
       expect(kivi).toContain(text);
     }
     const h2o = visible(renderPapers("q=H2O"));
@@ -42,7 +42,6 @@ describe("decision-critical KV paper evidence", () => {
     const guide = visible(renderPapers(""));
     for (const entry of all.filter(({ paper }) => paper.recommendedReason)) {
       expect(guide).toContain(entry.paper.readingTask!.goal);
-      expect(guide).toContain(entry.paper.readingTask!.startAt);
     }
   });
 
@@ -58,8 +57,8 @@ describe("decision-critical KV paper evidence", () => {
       }
     }
     const caseHtml = visible(renderComparison("representation"));
-    expect(caseHtml).toContain("比较设计 · 未执行共同实验");
-    expect(caseHtml).toContain("尚未指定阈值");
+    expect(caseHtml).toContain("共同对照示例");
+    expect(caseHtml).toContain("容许退化阈值");
     expect(caseHtml).toContain("同一次配置联合测质量");
     expect(caseHtml).toContain("独立收益不能相乘");
     expect(caseHtml.match(/data-quality-evidence=/g)).toHaveLength(3);

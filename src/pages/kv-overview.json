@@ -1,0 +1,175 @@
+{
+  "title": "KV Cache 总体综述",
+  "summary": "KV Cache 的工作主要在减少重复计算、降低状态存储成本，以及让状态及时到达计算位置。单项节省最终能否改善服务，还取决于复用是否合法、状态何时可读，以及质量与等待约束。",
+  "materialThrough": "2026-11-24",
+  "relatedWorkThrough": "2026-11-25",
+  "judgments": [
+    {
+      "id": "ready",
+      "title": "命中更多，不一定更早得到首 token",
+      "body": "前缀匹配只说明存在可复用状态。状态在外部存储或另一实例时，查询、访问保护、资源准入和恢复仍可能带来等待；应比较等待、恢复与重算的完整成本。",
+      "evidence": {
+        "papers": [
+          "sglang",
+          "lmcache"
+        ],
+        "prs": [
+          "github:vllm-project/vllm#66558",
+          "github:vllm-project/vllm#68430"
+        ]
+      }
+    },
+    {
+      "id": "memory",
+      "title": "省下的字节，需要分清来自哪里",
+      "body": "分页减少分配浪费，历史淘汰改变可读取的 token，量化降低数值位宽，外部池调整减少对象预留。它们的质量影响、运行开销和内存口径不同，收益比例不能直接互换。",
+      "evidence": {
+        "papers": [
+          "pagedattention",
+          "h2o",
+          "kivi"
+        ],
+        "prs": [
+          "github:vllm-project/vllm-ascend#22312"
+        ]
+      }
+    },
+    {
+      "id": "lifetime",
+      "title": "复用和传输必须服从块的生命周期",
+      "body": "任务提交、数据复制、远端写入和读取结束是不同时间点。缓存块只有在相关读取结束后才能安全复用；缩短同步范围时，要同时检查抢占、取消和异常路径。",
+      "evidence": {
+        "prs": [
+          "github:vllm-project/vllm#66795",
+          "github:vllm-project/vllm#69271"
+        ]
+      }
+    }
+  ],
+  "directions": [
+    {
+      "id": "reuse",
+      "title": "缓存复用与匹配",
+      "question": "哪些已有计算可以安全复用？",
+      "progress": "连续前缀可以通过树结构共享；模板模块和片段移动也有对应方法。社区实现继续减少哈希与重复探测开销。",
+      "boundary": "连续前缀、独立模块和近似片段的计算依赖不同。需要同时核对 token 身份、位置与上下文、访问授权及格式兼容；位置修正不能一般性补回缺失的上下文依赖。",
+      "evidence": {
+        "papers": [
+          "sglang",
+          "prompt-cache",
+          "cacheslide"
+        ],
+        "prs": [
+          "github:vllm-project/vllm#63454",
+          "github:vllm-project/vllm-ascend#19755"
+        ]
+      }
+    },
+    {
+      "id": "representation",
+      "title": "缓存表示、布局与压缩",
+      "question": "怎样降低存储和访问成本，同时满足质量要求？",
+      "progress": "分页、历史筛选和低比特量化分别减少分配浪费、保留的历史范围和每项状态的字节数。工程实现也在适配特定硬件与注意力路径。",
+      "boundary": "需要把残留区、量化参数、评分状态、工作区及转换开销计入实际峰值。相同的显存下降不代表相同的质量或速度；后端收益还受硬件、头维度与模型配置限制。",
+      "evidence": {
+        "papers": [
+          "pagedattention",
+          "h2o",
+          "kivi"
+        ],
+        "prs": [
+          "github:vllm-project/vllm#59774",
+          "github:vllm-project/vllm#59131"
+        ]
+      }
+    },
+    {
+      "id": "lifecycle",
+      "title": "容量与生命周期管理",
+      "question": "哪些状态应该保留，何时可以回收？",
+      "progress": "请求内历史筛选、请求间前缀淘汰和混合状态协调，分别管理不同对象。社区也在补齐在途传输与抢占时的块保护。",
+      "boundary": "删除当前请求的历史可能改变输出质量；删除供后续请求复用的前缀则增加未来重算。多缓存组和异步读写还需验证恢复边界及异常下的资源释放，不能用同一个命中率概括。",
+      "evidence": {
+        "papers": [
+          "h2o",
+          "streamingllm",
+          "saecache"
+        ],
+        "prs": [
+          "github:vllm-project/vllm#63851",
+          "github:vllm-project/vllm#66795"
+        ]
+      }
+    },
+    {
+      "id": "movement",
+      "title": "缓存放置与数据传输",
+      "question": "状态放在哪里，怎样及时交给计算？",
+      "progress": "多级缓存、隐藏态重建和预填充/解码分离，从存取管理、回读表示与部署分工三个层次降低状态交接成本。逐层保存和异构并行交接已有对应实现。",
+      "boundary": "可查到不等于可读，传输时间也不能脱离依赖直接与计算相减。需要固定链路、布局和并行配置，比较回读、重建、同步、块保护与首 token 等待。",
+      "evidence": {
+        "papers": [
+          "lmcache",
+          "hcache",
+          "distserve"
+        ],
+        "prs": [
+          "github:vllm-project/vllm-ascend#20489",
+          "github:vllm-project/vllm#64475"
+        ]
+      }
+    },
+    {
+      "id": "scheduling",
+      "title": "缓存感知调度",
+      "question": "复用、排队与容量冲突时，应先服务谁？",
+      "progress": "已有方法分别使用前缀匹配、到达次序和 KV 空闲量控制排序或准入；社区也在把 CPU 缓存命中与等待老化纳入调度。",
+      "boundary": "命中未必就绪，获得处理机会也不保证已有可用块或更低的端到端等待。应在相同到达轨迹与资源下，联合检查重算、回载、抢占和冷请求的尾延迟。",
+      "evidence": {
+        "papers": [
+          "sglang",
+          "k-lpm",
+          "gllm"
+        ],
+        "prs": [
+          "github:vllm-project/vllm#66361",
+          "github:vllm-project/vllm#66558"
+        ]
+      }
+    }
+  ],
+  "validation": {
+    "week": "2026-11-23",
+    "questionId": "kv-rq-prefix-ready",
+    "title": "就绪成本的估计误差，何时会改变前缀复用决策？",
+    "status": "候选问题 · 待验证",
+    "decision": "先做单个连接器的测量和边界验证，再判断是否值得开发新的调度策略。",
+    "basis": "前缀排序、公平性、恢复规划，以及复用与负载均衡已有相关工作。更具体的待验证问题是：估计过期、未知就绪或资源争用，是否会稳定改变“等待、恢复、重算”的选择。",
+    "steps": [
+      {
+        "label": "记录完整路径",
+        "body": "选单引擎和一个受支持的 CPU/外部缓存连接器，逐请求记录查询、可读、分配、恢复、计算与首 token 时间，按关键路径分析重叠。"
+      },
+      {
+        "label": "做同条件对照",
+        "body": "固定模型、到达轨迹、容量和输出约束，对照 FCFS、设备命中、外部命中及保守成本决策，同时观察冷请求等待。"
+      },
+      {
+        "label": "决定是否继续",
+        "body": "先约定质量、延迟目标和有意义的收益。若估计误差不改变选择、资源准入才是主因，或强基线已满足目标，就停止新策略投入。"
+      }
+    ],
+    "boundary": "相关工作覆盖与目标连接器上的受控对照仍不足以确认研究创新性。当前判断只支持小规模验证；新策略收益需要实验确认。",
+    "evidence": {
+      "papers": [
+        "sglang",
+        "k-lpm",
+        "cacheflow"
+      ],
+      "sources": [
+        "paper-preble-abstract",
+        "proposal-53277"
+      ]
+    }
+  }
+}

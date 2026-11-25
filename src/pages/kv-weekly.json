@@ -1,0 +1,442 @@
+{
+  "schemaVersion": 1,
+  "timeZone": "Asia/Shanghai",
+  "weekStartsOn": "Monday",
+  "scope": "已收录的 59 条 PR；11/23 统一状态/head 快照，11/24 仅九项定向补核。创建和合入按明确事件时间换算；未覆盖的进展不能解释为零。",
+  "reports": [
+    {
+      "week": "2026-11-16",
+      "title": "从命中长度到回载等待",
+      "status": "retrospective",
+      "compiledAt": "2026-11-25",
+      "materialThrough": "2026-11-23",
+      "note": "回溯整理：原观察来自 11/17；周内事件由 11/23 快照事后核验。不是当时发布的周报，也不是完整社区周统计。",
+      "summary": "把原有回载排序设想保留为同一研究问题的起点，先确认省下补算后，等待与公平性是否改善。",
+      "questions": [
+        {
+          "id": "kv-rq-prefix-ready",
+          "classification": "候选假设 · 先做边界验证",
+          "experimentStatus": "本站未运行模型、模拟器或受控性能实验",
+          "value": "若能找到稳定的误判区间，可指导是否复用、何时回载及如何设保守回退，减少无效策略开发。价值须由目标服务的首 token 延迟与公平性约束确认。",
+          "title": "回载等待应该怎样计入排序？",
+          "basis": "沿用 2026-11-17 原调度观察，2026-11-25 回溯整理；不声称当周发布过这份周报。",
+          "change": "起点：外部命中与设备命中等权，省下补算未必改善尾部等待。",
+          "scene": "多个长会话争用有限 GPU KV；一部分前缀在设备，一部分在 CPU 或连接器中，短后缀请求仍需排队。",
+          "bottleneck": "原材料没有在同一硬件、base 和 trace 下分开测量排序、回载与资源准入，尚不能判断哪一项主导 TTFT（首 token 延迟）。",
+          "evidence": [
+            {
+              "sourceIds": [
+                "pr-66558-original"
+              ],
+              "finding": "外部命中参与排序的作者单 seed 模拟减少了重算，却增加加载量且 TTFT p99 变差。",
+              "boundary": "模拟未计主机时间；不是 GPU 在线结果，不能由命中率推出普遍收益。"
+            },
+            {
+              "sourceIds": [
+                "pr-54625-original",
+                "pr-66361-original",
+                "pr-66705-original"
+              ],
+              "finding": "窗口、老化与最短 Prefill 分别控制不同排序因素。",
+              "boundary": "四条 PR 的 base 与验证方式不同，没有联合验证或可直接比较的排名。"
+            },
+            {
+              "sourceIds": [
+                "paper-sglang-original"
+              ],
+              "finding": "共享前缀复用和调度的关系已有工作讨论。",
+              "boundary": "离线命中结论有容量等条件，不能当作在线最短等待保证。"
+            }
+          ],
+          "gap": "工程缺口是缺少同条件测量；研究空间尚未确认。先检查外部恢复成本是否造成可重复的策略反转，再讨论新排序。",
+          "hypothesis": "在外部恢复成为显著开销的负载中，区分设备命中与外部命中成本，可能比等权命中排序更好地控制 TTFT p99；若计入主机开销后没有收益，则否定这一投入方向。",
+          "minimum": [
+            {
+              "label": "最小验证",
+              "body": "先选一个受支持的模型与连接器，固定一个可比较 base，用同一请求 trace 重放设备命中、外部命中与 miss；为查询、准入、加载和首 token 记独立时间。"
+            },
+            {
+              "label": "对照",
+              "body": "保留 FCFS、设备命中排序、受支持的外部命中排序；老化与独立 SPF 作为可移植对照，不默认把四条 PR 组合。"
+            },
+            {
+              "label": "指标",
+              "body": "TTFT p50/p99、逐 token 间隔、冷请求最大等待、重算 token、实际回载字节及主机查询/排序耗时；同时校验输出。"
+            },
+            {
+              "label": "数据与环境",
+              "body": "需要可公开或已获授权的多会话 trace、冷/热前缀比例与长度、固定模型/分词器、GPU 与 CPU 容量、连接器及版本。设备和 trace 尚未落实；不依赖未公开模拟器才可执行。"
+            },
+            {
+              "label": "判断与停止",
+              "body": "先约定质量、SLO 和最低有意义收益。若资源准入而非回载主导，或可重复差异不足，则停止开发成本感知排序；记录反例。"
+            }
+          ],
+          "cost": "第一阶段只做版本兼容核对与请求级计时；需一次可运行的 GPU/CPU 分层环境。未估算人日，移植四条不同 base 的策略可能成为主要成本。",
+          "uncertainty": "回载是否真是目标环境的瓶颈尚不清楚；相关工作尚未充分核查，不能据此宣称创新。",
+          "relatedWork": {
+            "checkedAt": "2026-11-17",
+            "coverage": "本周保留原分析引用的 SGLang 与四条 PR。",
+            "pending": "原观察的相关工作核查不完整；后续核查与判断收缩见下一周，不能回写成当周已知的新发现。"
+          }
+        }
+      ],
+      "progress": [
+        {
+          "title": "排序信号提供了可验证起点",
+          "body": "11/17 已有四条调度 PR 的专项分析；它们提供不同的窗口、外部命中、老化和短 Prefill 机制，但不构成四种策略的同条件排名。",
+          "sourceIds": [
+            "pr-54625-original",
+            "pr-66361-original",
+            "pr-66558-original",
+            "pr-66705-original"
+          ]
+        },
+        {
+          "title": "周内事件补上就绪与容量条件",
+          "body": "11/18–21 的三条新建 PR 涉及 peer 查找、池对象预留和空任务；11/19 NIXL 在途块保护合入。它们作为后续诊断线索；11/23 的详细解读属于事后注释，不能当作当周已验证的性能结论。",
+          "sourceIds": [
+            "pr-68430-edition",
+            "pr-22312-edition",
+            "pr-69132-edition",
+            "pr-66795-edition"
+          ]
+        }
+      ]
+    },
+    {
+      "week": "2026-11-23",
+      "title": "先测就绪成本，再决定是否改排序",
+      "status": "partial",
+      "compiledAt": "2026-11-25",
+      "materialThrough": "2026-11-24",
+      "note": "阶段周报：PR 材料仅至 11/24；11/25 只补查相关工作，未全量刷新 PR。11/25–29 的社区进展尚未收集。",
+      "summary": "本周没有足够依据增加新方向。继续同一问题，把投入建议收缩为一个连接器的诊断和边界验证。",
+      "questions": [
+        {
+          "id": "kv-rq-prefix-ready",
+          "classification": "候选假设 · 先做边界验证",
+          "experimentStatus": "本站未运行模型、模拟器或受控性能实验",
+          "value": "若能找到稳定的误判区间，可指导是否复用、何时回载及如何设保守回退，减少无效策略开发。价值须由目标服务的首 token 延迟与公平性约束确认。",
+          "title": "就绪成本的估计误差，何时会改变前缀复用决策？",
+          "basis": "基于 11/17 原问题、11/23 快照、11/24 定向代码补核与 11/25 相关工作核查；本周更新旧问题，未新增独立方向。",
+          "change": "判断收缩：先验证可观测性与估计误差，不直接投入新的成本加权排序。",
+          "scene": "多会话请求已有前缀，但它可能仍在外部存储、另一实例或未完成的计算中；系统还要取得目标块与访问保护，才能生成首 token。",
+          "bottleneck": "命中长度没有表达“何时可读”。查询与 fence、资源准入、恢复和主机处理可能交叠；目前缺少目标连接器上的同条件测量，不能预设搬运是瓶颈。",
+          "evidence": [
+            {
+              "sourceIds": [
+                "pr-66558-original",
+                "pr-66361-original"
+              ],
+              "finding": "省重算与减尾延迟并不等价；老化能改变处理机会，仍需区分模拟条件与真实服务。",
+              "boundary": "旧 CPU 测试/单 seed 模拟保留原 head，11/24 测试兼容修订不证明新 head 复跑。"
+            },
+            {
+              "sourceIds": [
+                "pr-68430-edition",
+                "pr-69271-edition",
+                "pr-66795-edition"
+              ],
+              "finding": "peer lookup 的 fence/pin、HF3FS 的 gather 等待和 NIXL 的在途保护给出了命中后仍需就绪的具体机制。",
+              "boundary": "功能修复支持诊断维度，不证明这三项可直接组合，也没有证明其等待占目标负载主要部分。"
+            },
+            {
+              "sourceIds": [
+                "paper-sglang",
+                "paper-k-lpm",
+                "paper-cacheflow"
+              ],
+              "finding": "前缀排序、公平性与整批恢复规划已有研究，普通的“加成本、加老化”不是可直接认定的新贡献。",
+              "boundary": "各自的理论模型、系统条件和指标不同；未在目标连接器上做可移植性与受控对照。"
+            },
+            {
+              "sourceIds": [
+                "paper-preble-abstract",
+                "proposal-53277"
+              ],
+              "finding": "定向补查发现，复用与负载均衡、恢复成本与驻留等信号已有公开工作或提案。",
+              "boundary": "Preble 只核对摘要；#53277 是提案正文，不等于实现或效果证明。相关工作覆盖仍未完成。"
+            }
+          ],
+          "gap": "工程缺口：同一请求的命中、可读、准入与首 token 尚缺一条可核验记录。候选研究空间：在目标连接器中，过期估计、未知就绪和资源争用是否导致稳定且可解释的决策反转；尚无创新性结论。",
+          "hypothesis": "在预先定义的负载区间内，完整就绪成本的估计误差会导致“等待 / 恢复 / 重算”选择反转；带估计年龄与未知回退的保守决策，可能比仅用命中 token 或字节/带宽更少违反 TTFT 和公平性目标。若既有策略已满足目标，或估计误差不影响选择，则否定该方向。",
+          "minimum": [
+            {
+              "label": "最小验证",
+              "body": "第一阶段只选单引擎、单一受支持的 CPU/外部缓存连接器，逐请求记录查询、fence/可读、分配、恢复、计算及首 token 时间。先比较真实命中与 miss；跨实例扩展只有在第一阶段有证据时再做。"
+            },
+            {
+              "label": "对照与消融",
+              "body": "同一 base、模型、trace、输出约束与资源下，对照 FCFS、设备命中、受支持的外部命中，以及保守成本决策；分别移除估计年龄、未知回退、准入成本。可移植时加入老化/k-LPM；另核对 CacheFlow 与 #53277 已覆盖什么，不强行组合 PR。"
+            },
+            {
+              "label": "指标",
+              "body": "主指标为 TTFT p50/p99 和预先约定 SLO 的达标率；约束包括冷请求最大等待/越过次数、逐 token 间隔和输出一致性。辅指标记录估计误差、实际字节、主机开销、块驻留时间与失败回退。重叠区间按关键路径分析，不相加冒充端到端时间。"
+            },
+            {
+              "label": "数据与环境",
+              "body": "需要固定公开模型/分词器、KV dtype、GPU/CPU 容量与带宽、连接器 head/base、可复放的多会话 trace 和到达时间。先用可公开的合成前缀/长度/到达组合，再用有权限的真实 trace；多 seed/重复运行记录区间。设备、trace、SLO 阈值与预算仍待落实。"
+            },
+            {
+              "label": "判断与停止",
+              "body": "先锁定质量/SLO、最低有意义收益和实验预算。计时不可对齐或输出错误时先修工程；若准入主导、误差不改变决策、置信区间无有意义差异，或强基线已满足目标，就停止新算法投入。"
+            }
+          ],
+          "cost": "先完成一个连接器的请求级计时和同条件回放，避免先移植全部策略。需要 GPU/CPU 分层环境；跨实例/NIXL/3FS 只作后续扩展，资源未确认前不承诺周期或收益。",
+          "uncertainty": "最关键的不确定性是能否稳定观测完整就绪成本，以及现有工作是否已覆盖误差处理。此项目前值得小规模核查，不足以支持直接立项开发新算法。",
+          "relatedWork": {
+            "checkedAt": "2026-11-25",
+            "coverage": "本周对照既有 SGLang、k-LPM、CacheFlow 阅读记录；重新打开 k-LPM 算法与 CacheFlow §3，并定向核对 Preble v2/正式摘要和 issue #53277 正文。",
+            "pending": "仍需精读 Preble 算法/实现，查 #53277 及相关策略的后续实现，核对目标连接器的可移植强基线。未做系统综述或穷尽检索。"
+          }
+        }
+      ],
+      "progress": [
+        {
+          "title": "正确性修复明确了等待的对象",
+          "body": "HF3FS #69271 于北京时间 11/23 新建。原报告的等待点是保存任务的 gather，不能扩大为该次写入和元数据已完成；相关 mock 测试不是实际 3FS 或线上吞吐验证。",
+          "sourceIds": [
+            "pr-69271-edition"
+          ]
+        },
+        {
+          "title": "后续版本改变适用范围，旧结果不能移用",
+          "body": "Ascend #22312 在 11/23→11/24 的版本之间从本地可判定范围扩展到跨 worker 汇总对象端点。旧 BF16 实验保留旧 head，不用后续 W4A8 表替换或背书。#66361 仅为测试兼容修订，不算新的调度机制。",
+          "sourceIds": [
+            "pr-22312-edition",
+            "pr-22312-recheck",
+            "pr-66361-original"
+          ]
+        },
+        {
+          "title": "相关工作核查减少重复选题风险",
+          "body": "11/25 的定向核查未支持把一般成本感知、老化或复用与负载均衡视为新贡献。先验证目标连接器上的误差区间；缺少独立证据时不增加问题数量。",
+          "sourceIds": [
+            "paper-k-lpm",
+            "paper-cacheflow",
+            "paper-preble-abstract",
+            "proposal-53277"
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "pr-54625-original",
+      "kind": "pr",
+      "workId": "github:vllm-project/vllm#54625",
+      "label": "vLLM #54625",
+      "url": "https://github.com/vllm-project/vllm/pull/54625",
+      "version": "f1b9e5b8900258a3fbc59b39f7cbe0470bb7f27c",
+      "checkedAt": "2026-11-17",
+      "scope": "原专项分析；作者测试/模拟条件见完整方法比较，本站未复现。",
+      "readingSearch": "view=compare&part=kv-pr-54625"
+    },
+    {
+      "id": "pr-66361-original",
+      "kind": "pr",
+      "workId": "github:vllm-project/vllm#66361",
+      "label": "vLLM #66361",
+      "url": "https://github.com/vllm-project/vllm/pull/66361",
+      "version": "376cd0583f5b4f6a74769afb1c8cca0a12da8854",
+      "checkedAt": "2026-11-17",
+      "scope": "原专项分析；作者测试/模拟条件见完整方法比较，本站未复现。",
+      "readingSearch": "view=compare&part=kv-pr-66361"
+    },
+    {
+      "id": "pr-66558-original",
+      "kind": "pr",
+      "workId": "github:vllm-project/vllm#66558",
+      "label": "vLLM #66558",
+      "url": "https://github.com/vllm-project/vllm/pull/66558",
+      "version": "6075903ef5e8fff6af54a0d90f822329d8945cad",
+      "checkedAt": "2026-11-17",
+      "scope": "原专项分析；作者测试/模拟条件见完整方法比较，本站未复现。",
+      "readingSearch": "view=compare&part=kv-pr-66558"
+    },
+    {
+      "id": "pr-66705-original",
+      "kind": "pr",
+      "workId": "github:vllm-project/vllm#66705",
+      "label": "vLLM #66705",
+      "url": "https://github.com/vllm-project/vllm/pull/66705",
+      "version": "b427c8b9594c2c97365cd3af1eae96ef2b39414e",
+      "checkedAt": "2026-11-17",
+      "scope": "原专项分析；作者测试/模拟条件见完整方法比较，本站未复现。",
+      "readingSearch": "view=compare&part=kv-pr-66705"
+    },
+    {
+      "id": "pr-66795-edition",
+      "kind": "pr",
+      "workId": "github:vllm-project/vllm#66795",
+      "label": "vLLM #66795",
+      "url": "https://github.com/vllm-project/vllm/pull/66795",
+      "version": "7bbe46045a8907eb1e41b7d52692a720b3aa4d97",
+      "checkedAt": "2026-11-23",
+      "scope": "当前正文、状态与 head；原始说明与各修订的验证范围分别保留。 已复核原报告版本 PR 说明与合入状态；未独立复现。",
+      "readingSearch": "view=report&edition=2026-11-23&part=kv-update-nixl-lifetime"
+    },
+    {
+      "id": "pr-69271-edition",
+      "kind": "pr",
+      "workId": "github:vllm-project/vllm#69271",
+      "label": "vLLM #69271",
+      "url": "https://github.com/vllm-project/vllm/pull/69271",
+      "version": "7528cc07f44ca7f864118fad29e08ea36abf19ef",
+      "checkedAt": "2026-11-23",
+      "scope": "原报告 7528cc07 的 HF3FS connector、公共异步状态及抢占回归测试；后续 head 独立列示。 已核对说明、讨论与三个文件补丁；未独立复现。",
+      "readingSearch": "view=report&edition=2026-11-23&part=kv-update-hf3fs-preemption"
+    },
+    {
+      "id": "pr-69132-edition",
+      "kind": "pr",
+      "workId": "github:vllm-project/vllm#69132",
+      "label": "vLLM #69132",
+      "url": "https://github.com/vllm-project/vllm/pull/69132",
+      "version": "e51497fcb2a719a65c92af3a1a7d5f14280e086d",
+      "checkedAt": "2026-11-23",
+      "scope": "Overview、Validation、Details；未进行完整代码审计。 已审阅原报告版本 PR 说明；测试与运行数字采用作者报告。",
+      "readingSearch": "view=report&edition=2026-11-23&part=kv-update-p2p-empty-jobs"
+    },
+    {
+      "id": "pr-22312-edition",
+      "kind": "pr",
+      "workId": "github:vllm-project/vllm-ascend#22312",
+      "label": "Ascend #22312",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/22312",
+      "version": "7997c0a667345cbbe9134d9b87f645bcd12810d1",
+      "checkedAt": "2026-11-23",
+      "scope": "分配规则、回退条件、详细改动及 AISBench 实验说明。 已审阅原报告版本 PR 说明；性能数字采用作者报告。",
+      "readingSearch": "view=report&edition=2026-11-23&part=kv-update-memcache-sizing"
+    },
+    {
+      "id": "pr-68430-edition",
+      "kind": "pr",
+      "workId": "github:vllm-project/vllm#68430",
+      "label": "vLLM #68430",
+      "url": "https://github.com/vllm-project/vllm/pull/68430",
+      "version": "9f9865610800c6865c5d60b28e18951e51e9c79b",
+      "checkedAt": "2026-11-23",
+      "scope": "请求流程、功能限制、作者实验及测试版本说明。 已审阅原报告版本 PR 说明；未复跑实验或审计完整实现。",
+      "readingSearch": "view=report&edition=2026-11-23&part=kv-update-peer-prefix"
+    },
+    {
+      "id": "paper-sglang",
+      "kind": "paper",
+      "workId": "paper:arxiv:2312.07104v2",
+      "label": "SGLang / RadixAttention",
+      "url": "https://arxiv.org/html/2312.07104v2#S3",
+      "version": "arXiv:2312.07104v2",
+      "checkedAt": "2026-11-24",
+      "scope": "§3、图 3 的基数树操作与淘汰，附录 A.3 的离线证明与在线讨论，以及 §8 的调度公平性。 本站未复现实验；各方法的基线和条件不可互换。",
+      "readingSearch": "view=papers&part=kv-paper-sglang"
+    },
+    {
+      "id": "paper-k-lpm",
+      "kind": "paper",
+      "workId": "paper:arxiv:2502.04677v3",
+      "label": "k-LPM",
+      "url": "https://arxiv.org/html/2502.04677v3",
+      "version": "arXiv:2502.04677v3",
+      "checkedAt": "2026-11-24",
+      "scope": "§2 的计算与缓存假设、§4 的算法 1 与到达模型、§5.1 的评估讨论和 §6。调度步数按 arXiv v3 与会议版的算法 1 整理。 本站未复现实验；各方法的基线和条件不可互换。",
+      "readingSearch": "view=papers&part=kv-paper-k-lpm"
+    },
+    {
+      "id": "paper-cacheflow",
+      "kind": "paper",
+      "workId": "paper:arxiv:2604.25080v2",
+      "label": "CacheFlow",
+      "url": "https://arxiv.org/html/2604.25080v2",
+      "version": "arXiv:2604.25080v2",
+      "checkedAt": "2026-11-18",
+      "scope": "以 arXiv v2 为准，核对 §3.1–3.2 的三维恢复与整批动态规划、§4.1 的实验条件，以及附录 A.1–A.2。 本站未复现实验；各方法的基线和条件不可互换。",
+      "readingSearch": "view=papers&part=kv-paper-cacheflow"
+    },
+    {
+      "id": "paper-sglang-original",
+      "kind": "paper",
+      "workId": "paper:arxiv:2312.07104v2",
+      "label": "SGLang / RadixAttention",
+      "url": "https://arxiv.org/html/2312.07104v2#S3",
+      "version": "arXiv:2312.07104v2",
+      "checkedAt": "2026-11-17",
+      "scope": "11/17 原专项分析引用；前缀复用与公平性讨论。11/24 的完整补核不回填为当周进展。",
+      "readingSearch": "view=report&edition=2026-11-17"
+    },
+    {
+      "id": "paper-preble-abstract",
+      "kind": "paper",
+      "workId": "paper:arxiv:2407.00023v2",
+      "label": "Preble",
+      "url": "https://arxiv.org/abs/2407.00023v2",
+      "version": "arXiv:2407.00023v2",
+      "checkedAt": "2026-11-25",
+      "scope": "本轮仅核对 v2 元数据、摘要与 ICLR 2025 正式摘要：已协同考虑 KV 复用和计算负载均衡；完整算法、实现与性能条件仍待精读。"
+    },
+    {
+      "id": "proposal-53277",
+      "kind": "proposal",
+      "workId": "github-issue:vllm-project/vllm#53277",
+      "label": "vLLM issue #53277",
+      "url": "https://github.com/vllm-project/vllm/issues/53277",
+      "version": "2026-11-25 正文核查（原链接可修订）",
+      "checkedAt": "2026-11-25",
+      "scope": "定向阅读提案的 Summary、Phase 1/2 与观测字段：已提出恢复、驻留和公平性信号。它是 issue，不是 PR；未全面核查评论或后续实现，不当作已合入/已验证。"
+    },
+    {
+      "id": "pr-22312-recheck",
+      "kind": "pr",
+      "workId": "github:vllm-project/vllm-ascend#22312",
+      "label": "Ascend #22312 后续版本",
+      "url": "https://github.com/zhangjinchi0013/vllm-ascend/tree/6d767315704661696169575cd2ef37ddc5b1b138",
+      "version": "6d767315704661696169575cd2ef37ddc5b1b138",
+      "checkedAt": "2026-11-24",
+      "scope": "后续 head 6d76731 已改为同一引擎共享对象键的 worker 汇总最大端点，包含 mixed 与 P/D；注册不完整时保留旧分配下限，读取时检查实际容量。11 月 23 日 7997c0a 的 BF16 / kv_both / 241.62→62.18 GiB 保留为旧实验；现说明的 W4A8 表不能替换或背书它。",
+      "readingSearch": "view=evidence&q=github%3Avllm-project%2Fvllm-ascend%2322312"
+    }
+  ],
+  "revisions": [
+    {
+      "id": "revision-22312-20261124",
+      "workId": "github:vllm-project/vllm-ascend#22312",
+      "kind": "mechanism",
+      "fromCheckedAt": "2026-11-23",
+      "toCheckedAt": "2026-11-24",
+      "fromVersion": "7997c0a667345cbbe9134d9b87f645bcd12810d1",
+      "toVersion": "6d767315704661696169575cd2ef37ddc5b1b138",
+      "description": "跨 worker 汇总对象范围，扩展 mixed / P/D 布局并保留回退；提交发生日未另核，按两次核对之间的区间记录。",
+      "sourceIds": [
+        "pr-22312-recheck"
+      ]
+    },
+    {
+      "id": "revision-66361-20261124",
+      "workId": "github:vllm-project/vllm#66361",
+      "kind": "test-only",
+      "fromCheckedAt": "2026-11-23",
+      "toCheckedAt": "2026-11-24",
+      "fromVersion": "376cd0583f5b4f6a74769afb1c8cca0a12da8854",
+      "toVersion": "03e8785ac5c3013baca4990e8948422dd3ebe630",
+      "description": "11/24 替换测试 helper；scheduler.py blob 相同。不计为机制实质修订，旧测试不视为新版本已复跑。",
+      "sourceIds": [
+        "pr-66361-original"
+      ]
+    },
+    {
+      "id": "revision-69271-20261124",
+      "workId": "github:vllm-project/vllm#69271",
+      "kind": "unclassified",
+      "fromCheckedAt": "2026-11-23",
+      "toCheckedAt": "2026-11-24",
+      "fromVersion": "7528cc07f44ca7f864118fad29e08ea36abf19ef",
+      "toVersion": "9f01761867a16295fde34ee72d75aac9f5f554a9",
+      "description": "后续 head 与测试记录改变；未将差异单独确认为机制实质变化，不计入机制事件。",
+      "sourceIds": [
+        "pr-69271-edition"
+      ]
+    }
+  ]
+}

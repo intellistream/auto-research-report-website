@@ -1,6 +1,6 @@
 import { BookOpen, Check, FileText, Layers } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
-import { filterResearch, kvResearch, researchReviewLabels } from "./kv-research";
+import { filterResearch, kvResearch } from "./kv-research";
 import { kvSynthesis, synthesisGroup, synthesisPaper, synthesisPaperLink } from "./kv-synthesis";
 import { safeTopicSource } from "./topic-report";
 import study from "./kv-cache-study.json";
@@ -17,11 +17,6 @@ export default function KvResearchOverview() {
   const prs = filterResearch(communityEntries, new URLSearchParams({ topic: group.id }));
   const engineering = group.engineeringIds.map((id) => prs.find((entry) => entry.id === id))
     .filter((entry) => !!entry);
-  const sourceEntries = [
-    ...group.rows.flatMap((row) => { const entry = synthesisPaper(row.slug); return entry ? [entry] : []; }),
-    ...engineering,
-  ];
-  const checkedAt = [...new Set(sourceEntries.map((entry) => entry.checkedAt))].sort();
 
   return <article className="kv-synthesis">
     <header className="kv-synthesis-intro">
@@ -52,7 +47,7 @@ export default function KvResearchOverview() {
       </header>
 
       <section className="kv-synthesis-conditions" aria-label="本组的比较前提">
-        <p className="kv-synthesis-comparison-kind">机制与适用条件对照 · 未做同配置性能实验</p>
+        <p className="kv-synthesis-comparison-kind">机制与适用条件对照</p>
         <h4>{group.decision}</h4>
         <p><strong>共同对照先固定：</strong>{group.commonSetup}</p>
         <p><strong>目前不能直接比较：</strong>{group.notComparable}</p>
@@ -74,9 +69,7 @@ export default function KvResearchOverview() {
               <div><dt>适用条件</dt><dd>{row.useWhen}</dd></div>
               <div><dt>不适用或待核</dt><dd>{row.notWhen}</dd></div>
             </dl>
-            <p className="kv-synthesis-row-basis">原文范围：{row.sourceLocation}<br />
-              {entry.paper.evidenceReview ? `关键主张复核 ${entry.paper.evidenceReview.checkedAt}` : `沿用选读记录 ${entry.checkedAt}，本轮未重核`}
-            </p>
+            <p className="kv-synthesis-row-basis">原文位置：{row.sourceLocation}</p>
             <div className="kv-synthesis-paper-links">
               <Link to={synthesisPaperLink(row.slug)} aria-label={`阅读 ${entry.paper.shortName} 解读`}>阅读解读与证据</Link>
               {source && <a href={source} target="_blank" rel="noreferrer">固定版本原文</a>}
@@ -134,7 +127,6 @@ export default function KvResearchOverview() {
         </div>
         <Link to={{ search: `view=evidence&kind=pr&topic=${group.id}` }}>查看本组 {prs.length} 条 PR</Link>
       </div>
-      <p className="kv-synthesis-source-note">下面是共同关注这一问题的工程材料。关联依据是研究主题，不表示这些 PR 实现或复现了上面的论文。</p>
       <div className="kv-synthesis-engineering-grid">{engineering.map((entry) => {
         const method = study.methods.find((item) => item.workId === entry.id);
         const snapshot = snapshotFor(entry.id);
@@ -143,11 +135,11 @@ export default function KvResearchOverview() {
         return <article key={entry.id} data-comparison-evidence={entry.id}>
           <p className="kv-synthesis-pr-meta">
             {entry.repository === "vllm" ? "vLLM" : "vLLM Ascend"} #{entry.id.split("#")[1]}
-            <span>{researchReviewLabels[entry.reviewLevel]}</span>
           </p>
           <h4>{entry.title}</h4>
           <p>{entry.summary}</p>
-          <p className="kv-muted">原说明核对 {entry.checkedAt}{sourceCheck && <> · 专项来源补核 {sourceCheck.checkedAt}</>}{sourceCheck && sourceCheck.headSha !== entry.headSha ? " · 后续代码版本已变化，机制适用范围需复核" : snapshot && snapshot.headSha !== entry.headSha ? " · 本期代码版本已变化，后续机制待复核" : ""}</p>
+          {((sourceCheck && sourceCheck.headSha !== entry.headSha) || (snapshot && snapshot.headSha !== entry.headSha)) &&
+            <p className="kv-muted">后续代码版本已变化</p>}
           <div className="kv-synthesis-pr-links">
             <Link to={{ search: "view=evidence&q=" + entry.id.split("#")[1] }}>查看社区 PR 记录</Link>
             {method && <Link to={{ search: `view=compare&part=kv-pr-${method.number}` }}>阅读机制与对照条件</Link>}
@@ -157,19 +149,15 @@ export default function KvResearchOverview() {
       })}</div>
     </section>
 
-    <aside className="kv-synthesis-evidence-note" aria-label="已有深入工程对比">
+    <aside className="kv-synthesis-evidence-note" aria-label="前缀感知调度工程实例">
       <FileText size={23} aria-hidden="true" />
       <div>
-        <p className="kv-synthesis-eyebrow">已有深入对比 · 前缀感知调度</p>
+        <p className="kv-synthesis-eyebrow">工程实例 · 前缀感知调度</p>
         <h3>少重算，还要看搬运和等待</h3>
         <p>PR #66558 的作者单 seed 模拟中，prompt 重算减少，同时 CPU 回载量和 p99 首 token 等待增加。它提示我们：命中更多缓存之后，仍需核对数据在哪里、怎样恢复，以及谁在等待。</p>
         <Link to={{ search: "view=compare&part=kv-pr-66558" }}>查看原始条件和四条 PR 的方法对比</Link>
       </div>
     </aside>
 
-    <footer className="kv-synthesis-footer">
-      <p>综合整理于 <time dateTime={kvSynthesis.editedAt}>{kvSynthesis.editedAt}</time> · 来源核对日期 {checkedAt.join("、")}</p>
-      <p>{kvSynthesis.basis} 工程链接按共同主题关联，引用关系不自动表示实现采用。</p>
-    </footer>
   </article>;
 }

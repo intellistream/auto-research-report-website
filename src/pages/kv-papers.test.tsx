@@ -102,7 +102,7 @@ describe("KV paper reading", () => {
     const html = render("/topics/kv-cache?view=papers&collection=notes-supplement&topic=lifecycle&q=NACL");
     expect(html.match(/class="kv-reading-card"/g)).toHaveLength(1);
     expect(html).toContain('aria-label="论文收录范围"');
-    expect(html).toContain("笔记增补");
+    expect(html).toContain("扩展阅读");
     expect(html).toContain("topic=lifecycle&amp;collection=notes-supplement");
     expect(filterPapers(kvResearch.entries, new URLSearchParams({ collection: "notes-supplement", q: "PagedAttention" }))).toEqual([]);
   });
@@ -188,13 +188,13 @@ describe("KV paper reading", () => {
     expect(html).toContain("1 篇论文");
     expect(html).toContain("关键词 StreamingLLM");
   });
-  it("keeps each recommendation tied to a decision task and selected source sections", () => {
+  it("keeps recommendation scenarios without chapter-reading instructions", () => {
     const recommended = all.filter(({ paper }) => paper.recommendedReason);
     expect(recommended).toHaveLength(6);
     const guide = render("/topics/kv-cache?view=papers").match(/<section class="kv-paper-recommendations".*?<\/section>/)?.[0];
     for (const { paper } of recommended) {
       expect(guide).toContain(paper.readingTask!.goal);
-      expect(guide).toContain(paper.readingTask!.startAt);
+      expect(guide).not.toContain(paper.readingTask!.startAt);
     }
     expect(guide).not.toContain("必要先修");
   });
@@ -203,11 +203,10 @@ describe("KV paper reading", () => {
     const html = render("/topics/kv-cache?view=papers&q=KIVI");
     const claim = html.match(/<li[^>]*data-paper-claim="kivi-throughput-capacity".*?<\/li>/)?.[0];
     expect(claim).toBeDefined();
-    for (const text of ["2.35–3.47", "A100 80GB", "Llama-2-7B", "161 / 338", "残留长度 32 / 128", "直到 OOM", "固定批次", "图 5", "作者实验报告", "本站未复现"]) {
+    for (const text of ["2.35–3.47", "A100 80GB", "Llama-2-7B", "161 / 338", "残留长度 32 / 128", "直到 OOM", "固定批次", "图 5", "作者实验报告"]) {
       expect(claim).toContain(text);
     }
     expect(claim).not.toContain("<details");
-    expect(html).toContain("其余 18 篇沿用原选读记录");
   });
 
   it("distinguishes token budgets, system baselines, theoretical assumptions and real serving setups", () => {

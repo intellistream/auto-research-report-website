@@ -135,10 +135,13 @@ describe("independent KV research library", () => {
 
   it("separates current community progress from the dated research observations", () => {
     const current = render("/topics/kv-cache?view=report");
-    expect(current).toContain("社区 PR · 动态报告");
-    expect(current).toContain("本期新纳入 PR");
+    expect(current).toContain("社区 PR · 每周总结");
+    expect(current).toContain("本周值得进一步研究的问题");
     expect(current).toContain("2026-11-23");
-    expect(current).toContain("相较 2026-11-17");
+    expect(current).toContain("2026-11-29");
+    const edition = render("/topics/kv-cache?view=report&edition=2026-11-23");
+    expect(edition).toContain("本期新纳入 PR");
+    expect(edition).toContain("相较 2026-11-17");
     const history = render("/topics/kv-cache?view=report&edition=2026-11-17");
     expect(history).toContain("历史报告 · 首轮调度观察");
     expect(history).toContain("研究问题与实验设想");

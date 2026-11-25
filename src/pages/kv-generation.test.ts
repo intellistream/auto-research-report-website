@@ -1,11 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { generationAt, generationFrames } from "./kv-generation";
+import { generationAt, generationConnections, generationFrames } from "./kv-generation";
 import { attentionViewAt, advanceAttentionDemo, rewindAttentionDemo, type DemoCursor } from "./kv-linear-demo";
 
 describe("one request across generation and attention", () => {
-  it("keeps six snapshots with only the KV positions that actually exist", () => {
-    expect(generationFrames).toHaveLength(6);
-    expect(generationFrames.map((_, frame) => generationAt(frame).kvPositions.length)).toEqual([0, 3, 4, 4, 4, 5]);
+  it("connects writes only to newly created KV and reads only to existing KV without resubmitting history", () => {
+    expect(Array.from({length:generationFrames.length}, (_, frame) => generationConnections(frame).writePositions))
+      .toEqual([[], [1,2,3], [4], [], [], [5], []]);
+    expect(generationConnections(3)).toEqual({writePositions:[], readPositions:[1,2,3,4], queryPosition:4});
+    expect(generationConnections(5)).toEqual({writePositions:[5], readPositions:[], queryPosition:null});
+    expect(generationConnections(6)).toEqual({writePositions:[], readPositions:[1,2,3,4,5], queryPosition:5});
+    for (let frame=0; frame<generationFrames.length; frame++) {
+      const current=generationAt(frame), previous=frame ? generationAt(frame-1).kvPositions : [];
+      const flow=generationConnections(frame);
+      expect(flow.writePositions).toEqual(current.kvPositions.filter(position=>!previous.includes(position)));
+      expect(flow.readPositions.every(position=>current.kvPositions.includes(position))).toBe(true);
+      if (current.pendingToken) expect(flow.writePositions).not.toContain(current.pendingToken);
+      if (!flow.readPositions.length) expect(flow.queryPosition).toBeNull();
+    }
+  });
+
+  it("keeps seven snapshots with only the KV positions that actually exist", () => {
+    expect(generationFrames).toHaveLength(7);
+    expect(generationFrames.map((_, frame) => generationAt(frame).kvPositions.length)).toEqual([0, 3, 4, 4, 4, 5, 5]);
     for (const [frame] of generationFrames.entries()) {
       const current = generationAt(frame);
       expect(current.kvPositions).toEqual(Array.from({ length: current.kvPositions.length }, (_, index) => index + 1));
@@ -13,8 +29,9 @@ describe("one request across generation and attention", () => {
     }
     expect(generationAt(1).attentionOutput).toBe(3);
     expect(generationAt(1).pendingToken).toBe(4);
-    expect(generationAt(5).attentionOutput).toBe(5);
-    for (const invalid of [-1, 1.5, 6, NaN]) expect(() => generationAt(invalid)).toThrow(RangeError);
+    expect(generationAt(5).attentionOutput).toBeNull();
+    expect(generationAt(6).attentionOutput).toBe(5);
+    for (const invalid of [-1, 1.5, 7, NaN]) expect(() => generationAt(invalid)).toThrow(RangeError);
   });
   it("creates KV only when a predicted token is processed in the next round", () => {
     const afterPrefill = generationAt(1);
@@ -39,7 +56,25 @@ describe("one request across generation and attention", () => {
     generationAt(5);
     expect(generationAt(2)).toEqual(written);
     expect(generationAt(4).currentPosition).toBeNull();
-    expect(() => generationAt(6)).toThrow(RangeError);
+    expect(() => generationAt(7)).toThrow(RangeError);
+  });
+
+  it("separates x5 writing from reading without producing y5 early or growing KV during the read", () => {
+    const written = generationAt(5), read = generationAt(6);
+    expect(written.currentPosition).toBe(5);
+    expect(written.kvPositions).toEqual([1,2,3,4,5]);
+    expect(written.readPositions).toEqual([]);
+    expect(written.attentionOutput).toBeNull();
+    expect(written.action).toBe("用 Q5 读取历史");
+    expect(read.kvPositions).toEqual(written.kvPositions);
+    expect(read.readPositions).toEqual([1,2,3,4,5]);
+    expect(read.attentionOutput).toBe(5);
+    expect(generationConnections(6).writePositions).toEqual([]);
+    expect(generationAt(5)).toEqual(written);
+    for (let frame = 0; frame < generationFrames.length; frame++) {
+      const flow = generationConnections(frame);
+      expect(flow.writePositions.length > 0 && flow.readPositions.length > 0).toBe(false);
+    }
   });
 
   it("requires update then read before advancing, carries state forward and reverses each action", () => {

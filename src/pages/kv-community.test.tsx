@@ -13,22 +13,22 @@ function render(search = "") {
   </MemoryRouter>);
 }
 
-describe("KV three-section reading paths", () => {
-  it("groups old and new routes under three purposeful primary sections", () => {
+describe("KV topic reading paths", () => {
+  it("groups old and new routes under the correct primary sections", () => {
     for (const [search, active] of [
-      ["", "KV 入门"], ["view=papers", "论文"], ["view=survey&topic=representation", "论文"],
-      ["view=report", "社区 PR"], ["view=evidence&topic=movement", "社区 PR"],
-      ["view=compare&part=kv-pr-66558", "社区 PR"], ["view=report&edition=2026-11-17", "社区 PR"],
+      ["", "导引"], ["view=papers", "论文"], ["view=survey&topic=representation", "论文"],
+      ["view=overview", "总体综述"], ["view=report", "社区进展"], ["view=evidence&topic=movement", "社区进展"],
+      ["view=compare&part=kv-pr-66558", "社区进展"], ["view=report&edition=2026-11-17", "社区进展"],
     ]) {
       const html = render(search);
       const nav = html.match(/<nav class="kv-topic-nav kv-primary-nav".*?<\/nav>/)![0];
-      expect(nav.match(/<a /g)).toHaveLength(3);
+      expect(nav.match(/<a /g)).toHaveLength(4);
       expect(nav.match(/<a[^>]*aria-current="page"[^>]*>.*?<\/a>/)?.[0]).toContain("<strong>" + active + "</strong>");
       expect(html).not.toContain("daily unavailable");
       expect(html).not.toContain(">研究综述<");
     }
     expect(render("view=survey")).toContain('aria-label="论文板块页面"');
-    expect(render("view=compare")).toContain('aria-label="社区 PR 板块页面"');
+    expect(render("view=compare")).toContain('aria-label="社区进展 板块页面"');
   });
 
   it("keeps paper deep links independent of old PR-only filters", () => {
@@ -52,7 +52,7 @@ describe("KV three-section reading paths", () => {
     expect(html).toContain("原机制核对 2026-11-17");
     expect(html).toContain("专项来源补核 2026-11-24");
     expect(html).toContain("代码版本已变更");
-    expect(html).toContain("view=report&amp;part=kv-update-nixl-lifetime");
+    expect(html).toContain("view=report&amp;edition=2026-11-23&amp;part=kv-update-nixl-lifetime");
   });
 
   it("distinguishes version changes, reviewed stories, new entries and unreviewed search hits", () => {
@@ -87,7 +87,7 @@ describe("KV three-section reading paths", () => {
     for (const story of kvCommunity.stories) {
       expect(snapshotFor(story.id)).toBeDefined();
       for (const slug of story.paperSlugs) expect(kvResearch.entries.some(entry=>entry.paper?.slug===slug)).toBe(true);
-      expect(render("view=report")).toContain('id="kv-update-' + story.slug + '"');
+      expect(render("view=report&edition=2026-11-23")).toContain('id="kv-update-' + story.slug + '"');
     }
     expect(kvResearch.entries.filter(entry=>entry.kind==="paper")).toHaveLength(24);
     expect(JSON.stringify(kvCommunity)).not.toMatch(/WPSDrive|来源文件|\.docx|[A-Z]:\\/);
@@ -102,7 +102,7 @@ describe("KV three-section reading paths", () => {
 
 
   it("keeps capped query and selection limits visible without expanding archived counts", () => {
-    const html = render("view=report");
+    const html = render("view=report&edition=2026-11-23");
     // These limits must be outside collapsed source details.
     const visibleScope = html.match(/<section class="kv-scope-summary".*?<\/section>/)![0];
     expect(visibleScope).toContain("vllm-project/vllm-ascend");
@@ -121,7 +121,7 @@ describe("KV three-section reading paths", () => {
     expect(snapshotFor("github:vllm-project/vllm#66361")?.headSha).toBe("376cd0583f5b4f6a74769afb1c8cca0a12da8854");
     expect(evidenceCheckFor("github:vllm-project/vllm#66361")?.headSha).toBe("03e8785ac5c3013baca4990e8948422dd3ebe630");
     expect(kvStudy.methods.find(method => method.number === 66361)?.headSha).toBe("376cd0583f5b4f6a74769afb1c8cca0a12da8854");
-    const html = render("view=report");
+    const html = render("view=report&edition=2026-11-23");
     expect(html).toContain("旧 CPU 测试及模拟结果仍归原记录");
     expect(html).toContain("241.62 降到 62.18 GiB");
     expect(html).toContain("W4A8 表不能替换或背书它");
