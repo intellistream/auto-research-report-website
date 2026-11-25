@@ -8,7 +8,7 @@ export type WeeklyEdition = {
   stories: { slug: string; title: string; lead: string; paragraphs: string[]; sourceIds: string[]; metrics: { sourceId: string; environment: string; result: string; boundary: string }[]; assessment: string }[];
   otherIds: string[]; synthesis: { title: string; body: string; sourceIds: string[] }[]; sources: WeeklySource[];
 };
-export const weeklyEditions: WeeklyEdition[] = [first].sort((a,b)=>b.id.localeCompare(a.id));
+export const weeklyEditions: WeeklyEdition[] = [first as WeeklyEdition].sort((a,b)=>b.id.localeCompare(a.id));
 export const latestEdition = weeklyEditions[0];
 export const legacyEdition = "2026-11-18";
 export function weeklyView(query: URLSearchParams) {

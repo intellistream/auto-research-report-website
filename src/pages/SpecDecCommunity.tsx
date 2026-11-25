@@ -18,8 +18,9 @@ function SourceLinks({ ids, edition }: { ids: string[]; edition: WeeklyEdition }
   })}</div>;
 }
 function Jump({ edition, part, children }: { edition: WeeklyEdition; part: string; children: string }) {
+  const [query]=useSearchParams();
   return <Link to={{search:new URLSearchParams({view:"report",edition:edition.id,part}).toString()}} onClick={event=>{
-    if (event.button===0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && new URLSearchParams(window.location.hash.split("?")[1]??window.location.search).get("part")===part) revealTopicPart(document,part,window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    if (event.button===0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && query.get("part")===part && query.get("edition")===edition.id) revealTopicPart(document,part,window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }}>{children}</Link>;
 }
 function WeeklyReport({ edition }: { edition: WeeklyEdition }) {
