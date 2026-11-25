@@ -91,7 +91,7 @@ describe("refactored website views", () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(kvHtml).toContain('aria-label="KV Cache 三大板块"');
+    expect(kvHtml).toContain('aria-label="KV Cache 专题板块"');
     expect(kvHtml).toContain('aria-label="入门阅读路径"');
     expect(kvHtml).toContain('id="kv-basics-process"');
     expect(kvHtml).toContain("估算 KV 存储量");

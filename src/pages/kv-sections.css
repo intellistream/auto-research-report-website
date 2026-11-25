@@ -1,6 +1,6 @@
 /* Keep the grid item within its track; wide comparison tables scroll locally. */
 .kv-topic { width:100%; }
-.kv-primary-nav { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); padding:0; gap:0; margin-bottom:1.5rem; }
+.kv-primary-nav { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); padding:0; gap:0; margin-bottom:1.5rem; }
 .kv-primary-nav a { display:grid; gap:.25rem; padding:1rem 1.25rem; white-space:normal; }
 .kv-primary-nav a strong { font-size:1.0625rem; }
 .kv-primary-nav a span { font-size:.875rem; font-weight:400; color:#526d5d; }
@@ -110,6 +110,7 @@
   .kv-basics-flow { grid-template-columns:minmax(0,1fr); }
 }
 @media(max-width:590px) {
+  .kv-primary-nav { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .kv-primary-nav a { padding:.75rem .6rem; }
   .kv-primary-nav a strong { font-size:.9375rem; }
   .kv-primary-nav a span { font-size:.875rem; }

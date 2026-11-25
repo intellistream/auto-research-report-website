@@ -1,0 +1,32 @@
+.kv-overview { color:var(--ink-primary); font-size:1rem; line-height:1.8; min-width:0; }
+.kv-overview h2 { margin:0 0 .8rem; font-size:clamp(1.5rem,3vw,2rem); line-height:1.4; }
+.kv-overview h3 { margin:0 0 1rem; font-size:1.3rem; line-height:1.5; }
+.kv-overview h4 { margin:0 0 .6rem; font-size:1.0625rem; line-height:1.6; }
+.kv-overview p { margin:.55rem 0; }
+.kv-overview a { color:var(--brand-primary); text-underline-offset:.2em; }
+.kv-overview :focus-visible { outline:2px solid var(--brand-primary); outline-offset:4px; }
+.kv-overview [id] { scroll-margin-top:calc(var(--header-height,64px) + 1rem); }
+.kv-overview-intro { max-width:66rem; margin-bottom:2rem; }
+.kv-overview .kv-overview-dates { display:flex; flex-wrap:wrap; gap:.25rem 1.25rem; margin-top:1rem; color:var(--ink-secondary); font-size:.875rem; }
+.kv-overview > section { margin-top:2.5rem; }
+.kv-overview-judgments { border-left:3px solid var(--brand-primary); padding:.25rem 0 .25rem 1.25rem; }
+.kv-overview-judgments > article + article { margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid var(--border-default); }
+.kv-overview-references { display:flex; flex-wrap:wrap; gap:.3rem 1rem; font-size:.875rem; margin:.75rem 0; }
+.kv-overview-references a { overflow-wrap:anywhere; }
+.kv-overview-directions { display:grid; gap:1rem; }
+.kv-overview-directions > article { padding:clamp(1rem,3vw,1.5rem); background:var(--bg-surface); border:1px solid var(--border-default); border-radius:.65rem; min-width:0; }
+.kv-overview-directions header p { color:var(--ink-secondary); }
+.kv-overview dl { margin:1rem 0; }
+.kv-overview dl > div { display:grid; grid-template-columns:8.5rem minmax(0,1fr); gap:1rem; padding:.85rem 0; border-top:1px solid var(--border-default); }
+.kv-overview dt { font-size:.9375rem; font-weight:650; }
+.kv-overview dd { margin:0; overflow-wrap:anywhere; }
+.kv-overview-comparison { display:inline-block; margin-top:.3rem; font-size:.9375rem; }
+.kv-overview-validation { border-top:2px solid var(--border-accent); padding-top:1.5rem; }
+.kv-overview .kv-overview-status { display:inline-block; color:var(--brand-primary); background:var(--brand-soft); border-radius:.3rem; padding:.15rem .6rem; font-size:.875rem; margin:0 0 .75rem; }
+.kv-overview-decision { font-weight:650; }
+.kv-overview .kv-overview-boundary { color:var(--ink-secondary); }
+@media(max-width:590px) {
+  .kv-overview dl > div { grid-template-columns:minmax(0,1fr); gap:.3rem; }
+  .kv-overview-judgments { padding-left:.85rem; }
+  .kv-overview > section { margin-top:2rem; }
+}

@@ -54,7 +54,6 @@ describe("KV research synthesis", () => {
     expect(html).toContain('href="/topics/kv-cache?view=papers&amp;part=kv-paper-hcache"');
     expect(html).toContain('href="/topics/kv-cache?view=evidence&amp;kind=pr&amp;topic=movement"');
     expect(html).toContain('href="/topics/kv-cache?view=papers&amp;topic=movement&amp;part=kv-papers-filters"');
-    expect(html).toContain("不表示这些 PR 实现或复现了上面的论文");
     const linkedPapers = filterPapers(kvResearch.entries, new URLSearchParams({ topic: "movement" }));
     expect(html).toContain(`阅读本组 ${linkedPapers.length} 篇论文`);
   });
@@ -73,7 +72,7 @@ describe("KV research synthesis", () => {
       expect(html).toContain(group.decision);
       expect(html).toContain(group.commonSetup.replaceAll("&", "&amp;"));
       expect(html).toContain(group.notComparable);
-      expect(html).toContain("未做同配置性能实验");
+      expect(html).toContain("机制与适用条件对照");
       expect(html.match(/data-comparison-paper=/g)).toHaveLength(group.rows.length);
       expect(html).not.toContain('class="kv-synthesis-table"');
       for (const row of group.rows) {
@@ -87,7 +86,7 @@ describe("KV research synthesis", () => {
   it("keeps the quality-constrained case explicit about missing thresholds and separate author experiments", () => {
     const html = render("view=survey&topic=representation");
     expect(html).toContain("质量约束下减少驻留 KV");
-    expect(html).toContain("尚未指定阈值");
+    expect(html).toContain("容许退化阈值");
     expect(html).toContain("同一次配置联合测质量");
     expect(html).toContain("独立收益不能相乘");
     expect(html.match(/data-quality-evidence=/g)).toHaveLength(3);

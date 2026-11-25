@@ -4,10 +4,11 @@ import {
   type DailyReference, type ResearchEntry,
 } from "./kv-research";
 import {
-  communityEntries, evidenceCheckFor, filterCommunity, hasVersionChange, kvCommunity,
+  communityDate, communityEntries, evidenceCheckFor, filterCommunity, hasVersionChange, kvCommunity,
   prState, prStateLabels, snapshotFor, storyFor,
 } from "./kv-community";
 import study from "./kv-cache-study.json";
+import { materialPart } from "./kv-weekly";
 import "./kv-community-evidence.css";
 
 export function DailyCitations({ references }: { references?: DailyReference[] }) {
@@ -33,10 +34,11 @@ function MaterialCard({ entry }: { entry: ResearchEntry }) {
   const changed = snapshot && hasVersionChange(snapshot);
   const compared = study.methods.some(method => method.workId === entry.id);
   const community = entry.repository === "vllm" ? "vLLM" : "vLLM Ascend";
-  return <li className="kv-material-card" data-material-id={entry.id}>
+  return <li className="kv-material-card" data-material-id={entry.id} id={materialPart(entry.id)} tabIndex={-1}>
     <div className="kv-material-meta">
       <span>{community} #{entry.id.split("#")[1]}</span>
       <span>创建于（上海时区）<time dateTime={entry.sourceDay!}>{entry.sourceDay}</time></span>
+      {snapshot?.mergedAt && <span>合入于（上海时区）<time dateTime={snapshot.mergedAt}>{communityDate(snapshot.mergedAt)}</time></span>}
       <span className={"kv-pr-status " + state}>{prStateLabels[state]}</span>
       <span>状态核对 {snapshot?.checkedAt ?? entry.checkedAt}</span>
     </div>
@@ -55,7 +57,7 @@ function MaterialCard({ entry }: { entry: ResearchEntry }) {
     </div>
     <div className="kv-material-links">
       <a href={entry.url} target="_blank" rel="noreferrer">原始 PR</a>
-      {story && <Link to={{search:"view=report&part=kv-update-" + story.slug}}>阅读本期分析</Link>}
+      {story && <Link to={{search:"view=report&edition=2026-11-23&part=kv-update-" + story.slug}}>旧报告解读（11/23）</Link>}
       {compared && <Link to={{search:"view=compare&part=kv-pr-" + entry.id.split("#")[1]}}>阅读调度专项分析</Link>}
       <Link to={{search:"view=survey&topic=" + entry.primaryTopic}}>相关论文方法</Link>
     </div>
@@ -90,7 +92,7 @@ export default function KvMaterialLibrary() {
 
   function filter(key: string, value: string) {
     const next = new URLSearchParams(query);
-    for (const field of ["label", "kind", "part", "edition", "collection"]) next.delete(field);
+    for (const field of ["label", "kind", "part", "edition", "week", "collection"]) next.delete(field);
     next.set("view", "evidence");
     if (topic) next.set("topic", topic);
     if (key !== "month") next.delete("month");
@@ -100,15 +102,15 @@ export default function KvMaterialLibrary() {
 
   return <article className="kv-study kv-research-library">
     <header className="kv-study-intro">
-      <p className="kv-direction">社区 PR · 查询与趋势</p>
-      <h2>PR 列表与趋势</h2>
+      <p className="kv-direction">社区 PR · 全部 PR</p>
+      <h2>全部 PR</h2>
       <p>按研究问题查找已收录实现，分别查看有日期的状态快照、机制解读和来源版本。</p>
-      <p className="kv-muted">本期状态快照至 {kvCommunity.edition}；{kvCommunity.evidenceReview.checkedAt} 仅对九项材料专项补核，后续版本单列。本期技术判断见<Link to={{search:"view=report"}}>动态报告</Link>；每条简介保留自己的分析日期。</p>
+      <p className="kv-muted">本期状态快照至 {kvCommunity.edition}；{kvCommunity.evidenceReview.checkedAt} 仅对九项材料专项补核，后续版本单列。研究问题与周内进展见<Link to={{search:"view=report"}}>每周总结</Link>；每条简介保留自己的分析日期。</p>
     </header>
     <dl className="kv-review-summary">
       <div><dt>已收录 PR</dt><dd>{communityEntries.length}</dd></div>
-      <div><dt>本期新纳入</dt><dd>{kvCommunity.newEntries.length}</dd></div>
-      <div><dt>研究问题组</dt><dd>{kvResearch.taxonomy.length}</dd></div>
+      <div><dt>11/23 新纳入材料</dt><dd>{kvCommunity.newEntries.length}</dd></div>
+      <div><dt>材料分类</dt><dd>{kvResearch.taxonomy.length}</dd></div>
     </dl>
     <section className="kv-scope-summary" aria-labelledby="kv-library-scope">
       <h3 id="kv-library-scope">这是已收录材料的查询页</h3>
@@ -125,8 +127,8 @@ export default function KvMaterialLibrary() {
       <label>PR 状态（本期快照）<select value={query.get("state") ?? ""} onChange={e => filter("state", e.target.value)}>
         <option value="">全部状态</option>{Object.entries(prStateLabels).map(([id,label]) => <option key={id} value={id}>{label}</option>)}
       </select></label>
-      <label>本期跟踪<select value={query.get("review") ?? ""} onChange={e => filter("review", e.target.value)}>
-        <option value="">全部已收录</option><option value="edition">有本期分析</option><option value="changed">既有 PR 版本变化</option>
+      <label>原报告跟踪<select value={query.get("review") ?? ""} onChange={e => filter("review", e.target.value)}>
+        <option value="">全部已收录</option><option value="edition">11/23 版有解读</option><option value="changed">11/17→23 版本变化</option>
       </select></label>
       <label className="kv-community-search">检索 PR<input type="search" value={query.get("q") ?? ""} placeholder="编号、标题或机制关键词" onChange={e => filter("q", e.target.value)} /></label>
       <button type="button" onClick={() => setQuery({view:"evidence"},{replace:true})}>清除筛选</button>
@@ -141,7 +143,7 @@ export default function KvMaterialLibrary() {
             <strong>{row.count}</strong><i style={{height:Math.max(3,row.count/maximum*110) + "px"}} aria-hidden="true"/><span>{row.month}</span>
           </button></li>)}</ol>
       </div>
-      <figcaption>按当前问题、社区、状态、本期跟踪与关键词筛选后的 PR 创建月份统计；创建时间换算 Asia/Shanghai（上海时区），每条计一次。月份按钮筛选列表，图保留全部可选月份。它只反映已收录样本的创建分布，不代表全社区趋势或本期净新增；本期进展另见动态报告。</figcaption>
+      <figcaption>按当前问题、社区、状态、本期跟踪与关键词筛选后的 PR 创建月份统计；创建时间换算 Asia/Shanghai（上海时区），每条计一次。月份按钮筛选列表，图保留全部可选月份。它只反映已收录样本的创建分布，不代表全社区趋势或本期净新增；周内进展另见每周总结。</figcaption>
       <details className="kv-chart-data"><summary>查看图表数据</summary><table><thead><tr><th>创建月份</th><th>PR 数量</th></tr></thead><tbody>{months.map(row=><tr key={row.month}><td>{row.month}</td><td>{row.count}</td></tr>)}</tbody></table></details>
     </figure>}
     <section aria-labelledby="kv-materials-title"><h3 id="kv-materials-title">PR 记录</h3>
