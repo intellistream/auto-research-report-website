@@ -3,22 +3,32 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import actualIndex from "../../public/word-reports/topics.json";
 import TopicPages, { type TopicIndex } from "./TopicPages";
-import { weeklyEditions, latestEdition, filterWeeklyLibrary, weeklyView } from "./specdec-weekly";
+import { weeklyEditions, latestEdition, filterWeeklyLibrary, weeklyView, priorMergeEvents, sourceStatus, outstandingWatchlist } from "./specdec-weekly";
 const index=actualIndex as unknown as TopicIndex;
 const spec=index.topics.find(t=>t.id==="speculative-decoding")!;
 const render=(search: string)=>renderToStaticMarkup(<MemoryRouter initialEntries={["/topics/speculative-decoding?"+search]}><Routes><Route path="/topics/:topicId" element={<TopicPages index={index}/>}/></Routes></MemoryRouter>);
 describe("SpecDec weekly community",()=>{
   it("freezes a complete, unique cohort with valid source references",()=>{
     expect(new Set(weeklyEditions.map(e=>e.id)).size).toBe(weeklyEditions.length);
+    expect(weeklyEditions.map(e=>[e.id,e.sources.length])).toEqual([["2026-11-22",18],["2026-11-15",38],["2026-11-08",25],["2026-11-01",58]]);
+    const all=weeklyEditions.flatMap(e=>e.sources.map(s=>s.workId));
+    expect(all.length).toBe(139);
+    expect(new Set(all)).toEqual(new Set(spec.entries.filter(s=>s.day>="2026-10-22"&&s.day<="2026-11-22").map(s=>s.workId)));
     for(const e of weeklyEditions){
       const ids=new Set(e.sources.map(s=>s.workId));
       expect(ids.size).toBe(e.sources.length);
       const primary=[...e.stories.flatMap(s=>s.sourceIds),...e.otherIds];
       expect(new Set(primary)).toEqual(ids);
       expect(primary.length).toBe(ids.size);
+      expect(e.otherGroups.flatMap(g=>g.sourceIds)).toEqual(e.otherIds);
+      for(const track of e.tracking){const prior=weeklyEditions.find(p=>p.id===track.fromEdition)!;expect(prior.periodEnd<e.periodStart).toBe(true);expect(prior.stories.some(story=>story.slug===track.fromSlug)).toBe(true);expect(track.sourceIds.every(id=>ids.has(id))).toBe(true);}
+      for(const event of priorMergeEvents(e)) expect(event.prior.periodEnd<e.periodStart&&event.source.merged).toBe(true);
       for(const s of e.sources){
         expect(s.day>=e.periodStart&&s.day<=e.periodEnd).toBe(true);
         expect(s.headSha).toMatch(/^[a-f0-9]{40}$/);
+        expect(s.baseSha).toMatch(/^[a-f0-9]{40}$/);
+        expect(s.headRepo).toMatch(/^[^/]+\/[^/]+$/);
+        expect(!!s.mergedAt).toBe(s.merged);
         expect(s.version).toMatch(/^[a-f0-9]{64}$/);
         expect(s.url).toBe("https://github.com/"+s.workId.slice("github:".length).replace("#","/pull/"));
         expect(spec.entries.some(row=>row.workId===s.workId)).toBe(true);
