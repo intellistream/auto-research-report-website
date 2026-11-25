@@ -66,3 +66,11 @@
   .specdec-week-bar strong { grid-column:2; grid-row:1; }
   .specdec-week-observation dl>div { grid-template-columns:1fr; gap:.1rem; }
 }
+
+.specdec-week-edition { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:.5rem; }
+.specdec-week-edition label { color:var(--ink-secondary); font-size:.8rem; }
+.specdec-week-edition select { max-width:100%; border:1px solid var(--border-default); border-radius:var(--radius-sm); background:var(--bg-surface); color:var(--ink-primary); padding:.3rem .4rem; font:inherit; }
+.specdec-week-tracking { font-size:.9rem; }
+.specdec-week-tracking h3 { font-size:1.15rem; }
+.specdec-week-tracking ul { padding-left:1.1rem; }
+.specdec-week-tracking li { margin:.4rem 0; }

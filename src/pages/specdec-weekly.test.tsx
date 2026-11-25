@@ -45,7 +45,12 @@ describe("SpecDec weekly community",()=>{
     expect(report).toContain("同一 PR 内的局部与整步降幅");
     expect(report).toContain("0.057 ms");
     expect(report).not.toContain('id="survey-analysis"');
-    expect(render("view=report&tab=archive")).toContain("初始动态研究报告");
+    const archive=render("view=report&tab=archive");
+    expect(archive).toContain("初始动态研究报告");
+    for(const e of weeklyEditions){expect(archive).toContain(e.title);const html=render("view=report&edition="+e.id);expect(html).toContain(e.title);expect(html).toContain("选择期次");}
+    expect(render("view=report&edition=2026-11-01")).toContain("已关闭（未合并）");
+    expect(render("view=report&edition=2026-11-08")).toContain("跨期进展");
+    expect(outstandingWatchlist().every(item=>sourceStatus(item.source)!=="已合并")).toBe(true);
     expect(render("view=report&edition=2026-11-18")).toContain('id="survey-analysis"');
     expect(render("view=report&part=survey-section-0")).toContain('id="survey-section-0"');
     expect(render("view=report&edition=2099-01-01")).toContain("未找到该期周报");

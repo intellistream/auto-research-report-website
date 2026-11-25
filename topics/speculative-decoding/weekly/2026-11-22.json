@@ -6,12 +6,12 @@
   "checkedAt": "2026-11-25",
   "indexCommit": "1fe2649b34888dfcbde58839c4765773ea953f4c",
   "title": "推测解码的关键路径：从草稿融合到设备端执行",
-  "overview": "本周最值得关注的不是新的草稿算法，而是固定接受规则下，推测执行如何真正缩短关键路径。ROCm 的跨层草稿融合与 NVIDIA 的专用 drafter 大幅降低了草稿耗时，但完整解码步改善有限；验证内核、状态布局和昇腾的设备端长度消费则提供了其他切入点。四类进展可以归结为一个问题：哪些计算、搬运或等待是本轮有效输出真正需要的？",
-  "scope": "取材于本站 11 月 16—22 日（北京时间日报日期）收录的 18 条去重 PR，均于本期内合入；不代表全社区检索。11 月 25 日核对全部 PR 描述、合入信息及 head，核查其中 14 条的关键变更片段；其余 4 条为描述级核对。所有性能数据来自提交方，未独立复现；测试版本可能早于最终 head。",
+  "overview": "本期延续前三期的真实执行宽度、状态所有权和异步依赖问题。ROCm 与 NVIDIA 的专用草稿进一步缩短局部耗时，但完整解码步改善有限；验证内核、状态布局和全 FA3 设备长度路径提供了不同切入点。关键问题仍然是：哪些计算、搬运或等待是有效输出真正需要的？",
+  "scope": "本期按北京时间日报收录日回溯 18 条去重 PR，均于窗口内合入；不是全社区检索。2026-11-25 核对原始 PR 说明、状态/head/base，14 条另查关键补丁片段或路径。作者测试版本可能早于最终 head；性能未独立复现。",
   "stories": [
     {
       "slug": "draft",
-      "title": "草稿快了 38%，为什么整步只快 3%？",
+      "title": "草稿耗时下降 38%，为何整步仅下降 3%？",
       "lead": "局部融合与跨层持久执行",
       "paragraphs": [
         "#65985 将 Muse Spark 的 5 层 DSpark 草稿和最终 norm 放入一次 persistent FlyDSL launch。每请求 7 个 query rows，1/2 请求映射到 S=8/16，权重原位读取、peer buffer 预分配，各 rank 按同一形状契约选路；其余形状回退。这不是省去数学上的归约，而是将频繁下发和层间协同纳入同一执行路径。",
@@ -66,7 +66,7 @@
     },
     {
       "slug": "verify",
-      "title": "验证成本为什么会在 K=3 与 K=4 之间突变？",
+      "title": "K=3 与 K=4 之间可能出现验证成本断点吗？",
       "lead": "查询宽度、后端路由与长上下文",
       "paragraphs": [
         "#68129 的原 Step5 PrimTS SWA 判定要求均匀查询且 q_len≤4，因此 K>3 且验证占满 K+1 行时会转向 prefill plan。改为 q_len≤max(4,K+1) 后，满足均匀形状的验证继续走分页 decode plan。这类离散切换无法由“每个草稿 token 增加固定成本”的模型解释。",
@@ -243,7 +243,14 @@
       "mergedAt": "2026-11-21T00:55:46Z",
       "checkedAt": "2026-11-25",
       "review": "description",
-      "files": []
+      "files": [],
+      "baseSha": "820fce0d6755e3ebd72abf01be099df4001835ca",
+      "headRepo": "roborluo/vllm_ds4.1",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-20T19:13:04Z",
+      "updatedAt": "2026-11-21T00:55:47Z"
     },
     {
       "day": "2026-11-21",
@@ -265,7 +272,14 @@
       "files": [
         "csrc/gdn/fused_gdn_decode_16bit_kernel.cu",
         "csrc/gdn/fused_gdn_decode_kernel.cu"
-      ]
+      ],
+      "baseSha": "2f170a0fed20fd84dfcf6da2a3a8188a32f67e4e",
+      "headRepo": "gau-nernst/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-21T01:35:56Z",
+      "updatedAt": "2026-11-21T08:56:27Z"
     },
     {
       "day": "2026-11-20",
@@ -286,7 +300,14 @@
       "review": "patch",
       "files": [
         "vllm/models/kimi_k3/nvidia/specialized_decode/drafter/gqa.py"
-      ]
+      ],
+      "baseSha": "d2da27eb2defb88377636fba83d9a41ad35bf44d",
+      "headRepo": "mgoin/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-19T13:34:05Z",
+      "updatedAt": "2026-11-19T20:21:45Z"
     },
     {
       "day": "2026-11-20",
@@ -307,7 +328,14 @@
       "review": "patch",
       "files": [
         "vllm_ascend/worker/v2/model_runner.py"
-      ]
+      ],
+      "baseSha": "1e0f0da1f740400a1d6796bcc23a13b53ca0b464",
+      "headRepo": "yihua-fan/vllm-ascend",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-19T09:46:55Z",
+      "updatedAt": "2026-11-20T07:40:50Z"
     },
     {
       "day": "2026-11-20",
@@ -328,7 +356,14 @@
       "review": "patch",
       "files": [
         "vllm/v1/attention/backends/flashinfer.py"
-      ]
+      ],
+      "baseSha": "3d0cc3502b10fca55a8c0ab35d39fde3ba2b8f2a",
+      "headRepo": "csahithi/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-19T19:03:05Z",
+      "updatedAt": "2026-11-20T02:55:42Z"
     },
     {
       "day": "2026-11-20",
@@ -349,7 +384,14 @@
       "review": "patch",
       "files": [
         "vllm_ascend/models/deepseek_v41/model.py"
-      ]
+      ],
+      "baseSha": "03f69b977b088680686af6198cc52ab2a5bae542",
+      "headRepo": "GDzhu01/vllm-ascend",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-19T11:04:56Z",
+      "updatedAt": "2026-11-20T08:27:44Z"
     },
     {
       "day": "2026-11-19",
@@ -370,7 +412,14 @@
       "review": "patch",
       "files": [
         "vllm/config/speculative.py"
-      ]
+      ],
+      "baseSha": "0c1fcdb649bb84ea178379c7badf2953fe1c4fcf",
+      "headRepo": "xuanzic/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-03T00:41:50Z",
+      "updatedAt": "2026-11-19T06:18:25Z"
     },
     {
       "day": "2026-11-19",
@@ -391,7 +440,14 @@
       "review": "patch",
       "files": [
         "vllm/v1/worker/gpu/spec_decode/multi_module_mtp/speculator.py"
-      ]
+      ],
+      "baseSha": "6f687a0836363e636740919b0ee4510aff80098f",
+      "headRepo": "luyixiao95/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-11T04:18:07Z",
+      "updatedAt": "2026-11-19T01:17:41Z"
     },
     {
       "day": "2026-11-19",
@@ -413,7 +469,14 @@
       "files": [
         "vllm_ascend/worker/v2/spec_decode/dflash/speculator.py",
         "vllm_ascend/worker/v2/spec_decode/dspark/speculator.py"
-      ]
+      ],
+      "baseSha": "58c42a4c1f0d84557c939d7534a294afc8a2cd4c",
+      "headRepo": "shenyunyang/vllm-ascend",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-17T07:44:01Z",
+      "updatedAt": "2026-11-20T01:25:34Z"
     },
     {
       "day": "2026-11-19",
@@ -435,7 +498,14 @@
       "files": [
         "vllm/v1/attention/ops/rocm_gqa_verify.py",
         "vllm/v1/attention/backends/rocm_aiter_fa.py"
-      ]
+      ],
+      "baseSha": "34aac94f9c349c76be42e8d1c8849b69ad6303e1",
+      "headRepo": "ROCm/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-12T01:39:36Z",
+      "updatedAt": "2026-11-20T04:08:19Z"
     },
     {
       "day": "2026-11-19",
@@ -456,7 +526,14 @@
       "review": "patch",
       "files": [
         "vllm/models/step5/nvidia/prims_ts.py"
-      ]
+      ],
+      "baseSha": "4092096fef1fb0b1fcda9e1bc697b72e5eb55522",
+      "headRepo": "JaredforReal/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-17T09:33:21Z",
+      "updatedAt": "2026-11-19T04:08:47Z"
     },
     {
       "day": "2026-11-18",
@@ -475,7 +552,14 @@
       "mergedAt": "2026-11-18T15:19:15Z",
       "checkedAt": "2026-11-25",
       "review": "description",
-      "files": []
+      "files": [],
+      "baseSha": "c2d7d74774a8550cb6f6a19931fcaebbe0f9f0d1",
+      "headRepo": "xaguilar-amd/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-10-28T10:10:33Z",
+      "updatedAt": "2026-11-18T15:19:15Z"
     },
     {
       "day": "2026-11-18",
@@ -498,7 +582,14 @@
         "vllm_ascend/models/qwen3_dflash2.py",
         "vllm_ascend/ops/vocab_parallel_embedding.py",
         "vllm_ascend/worker/v2/spec_decode/dflash2/speculator.py"
-      ]
+      ],
+      "baseSha": "80a705e62778bee2d49ffa72becf557961f7c181",
+      "headRepo": "danziheng1024/vllm-ascend",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-16T13:10:29Z",
+      "updatedAt": "2026-11-18T12:09:59Z"
     },
     {
       "day": "2026-11-17",
@@ -517,7 +608,14 @@
       "mergedAt": "2026-11-17T00:28:51Z",
       "checkedAt": "2026-11-25",
       "review": "description",
-      "files": []
+      "files": [],
+      "baseSha": "fdc3364c9543de38e8900360ea1fd6df9c1ec557",
+      "headRepo": "zixi-qi/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-15T21:09:47Z",
+      "updatedAt": "2026-11-17T00:28:51Z"
     },
     {
       "day": "2026-11-16",
@@ -539,7 +637,14 @@
       "files": [
         "vllm/models/muse_spark/amd/mono/drafter.py",
         "vllm/models/muse_spark/amd/mono/kernels/draft.py"
-      ]
+      ],
+      "baseSha": "261042baa696a1412816508e6189587606bc64a7",
+      "headRepo": "azaidy/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-05T21:00:02Z",
+      "updatedAt": "2026-11-16T02:30:07Z"
     },
     {
       "day": "2026-11-16",
@@ -560,7 +665,14 @@
       "review": "patch",
       "files": [
         "vllm/kernels/triton/fused_pre_fc_norms.py"
-      ]
+      ],
+      "baseSha": "12e8576f6f41012e2a56ddcc5a4516bf8b6edac9",
+      "headRepo": "gau-nernst/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-15T02:37:28Z",
+      "updatedAt": "2026-11-16T04:45:56Z"
     },
     {
       "day": "2026-11-16",
@@ -579,7 +691,14 @@
       "mergedAt": "2026-11-16T03:56:52Z",
       "checkedAt": "2026-11-25",
       "review": "description",
-      "files": []
+      "files": [],
+      "baseSha": "193d81ab898f797586e318b0344afd9aa2cc2ea7",
+      "headRepo": "rasyosef/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-07T22:14:21Z",
+      "updatedAt": "2026-11-16T03:56:53Z"
     },
     {
       "day": "2026-11-16",
@@ -601,6 +720,62 @@
       "files": [
         "vllm/model_executor/layers/mamba/gdn/qwen_gdn_linear_attn.py",
         "vllm/third_party/flash_linear_attention/ops/layernorm_guard.py"
+      ],
+      "baseSha": "12e8576f6f41012e2a56ddcc5a4516bf8b6edac9",
+      "headRepo": "gau-nernst/vllm",
+      "state": "closed",
+      "merged": true,
+      "draft": false,
+      "createdAt": "2026-11-15T04:17:59Z",
+      "updatedAt": "2026-11-16T04:46:28Z"
+    }
+  ],
+  "otherGroups": [
+    {
+      "title": "模型接入与布局兼容性",
+      "body": "#69023 修正草稿模型专家开关的判断，#64261 放宽非因果 draft 的 DCP 重排阈值，#66323 为 LFM3 接入 EAGLE3 辅助隐藏态。属于正确性/支持范围，未据此推出性能收益。",
+      "sourceIds": [
+        "github:vllm-project/vllm#69023",
+        "github:vllm-project/vllm#64261",
+        "github:vllm-project/vllm#66323"
+      ]
+    }
+  ],
+  "tracking": [
+    {
+      "fromEdition": "2026-11-15",
+      "fromSlug": "specialized",
+      "body": "#65985 将此前 #66051 的 Muse Spark Markov 专用化背景推进到五层草稿与最终 norm 的 persistent launch；#68701 是 Kimi GQA drafter 的另一条专用路径，而非同一实现。",
+      "sourceIds": [
+        "github:vllm-project/vllm#65985",
+        "github:vllm-project/vllm#68701"
+      ]
+    },
+    {
+      "fromEdition": "2026-11-15",
+      "fromSlug": "shape",
+      "body": "本期 #68129 的 Step5 plan 阈值与 #67133 的 Split-KV 验证继续说明，物理验证成本随 query width、历史长度与后端分派变化。",
+      "sourceIds": [
+        "github:vllm-project/vllm#68129",
+        "github:vllm-project/vllm#67133"
+      ]
+    },
+    {
+      "fromEdition": "2026-11-15",
+      "fromSlug": "async",
+      "body": "#22473 从此前特定 Qwen/Kimi 设备长度路径进一步提炼为全 FA3 草稿组准入；不是所有 backend 都可跳过 host sync。",
+      "sourceIds": [
+        "github:vllm-project/vllm-ascend#22473"
+      ]
+    },
+    {
+      "fromEdition": "2026-11-15",
+      "fromSlug": "ownership",
+      "body": "#22485 的 HC buffer、#65263 的 Gemma4 MTP hash 与 #22156 的 FULL graph metadata 继续验证资源归属和图填充契约。",
+      "sourceIds": [
+        "github:vllm-project/vllm-ascend#22485",
+        "github:vllm-project/vllm#65263",
+        "github:vllm-project/vllm-ascend#22156"
       ]
     }
   ]
