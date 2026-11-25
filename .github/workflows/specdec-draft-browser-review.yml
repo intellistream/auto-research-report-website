@@ -1,0 +1,84 @@
+name: SpecDec draft browser review
+on:
+  push:
+    branches: [research/specdec-weekly-report-20261125]
+    paths: ['.github/workflows/specdec-draft-browser-review.yml']
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm install --no-save --package-lock=false playwright-core@1.56.1
+      - name: Inspect production rendering and interactions
+        run: |
+          python3 -m http.server 5173 --directory dist > /tmp/specdec-http.log 2>&1 &
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright-core';
+          import assert from 'node:assert/strict';
+          import { execFileSync } from 'node:child_process';
+          import fs from 'node:fs';
+          const executablePath=execFileSync('which',['google-chrome'],{encoding:'utf8'}).trim();
+          const browser=await chromium.launch({executablePath,headless:true,args:['--no-sandbox']});
+          const url='http://127.0.0.1:5173/#/topics/speculative-decoding?view=report';
+          fs.mkdirSync('browser-review',{recursive:true});
+          try {
+            for(const width of [1440,768,390,320]){
+              const page=await browser.newPage({viewport:{width,height:900}});
+              const errors=[];
+              page.on('pageerror',error=>errors.push(error.message));
+              await page.goto(url);
+              await page.locator('.specdec-week-article').waitFor({timeout:30000});
+              await page.evaluate(()=>document.fonts.ready);
+              const layout=await page.evaluate(()=>{
+                const article=document.querySelector('.specdec-week-article');
+                const figures=[...article.querySelectorAll('.specdec-week-figure')];
+                const overflow=[...article.querySelectorAll('section,figure,nav,.specdec-week-bar,dl')].filter(el=>el.scrollWidth>el.clientWidth+3).map(el=>({class:el.className,scroll:el.scrollWidth,client:el.clientWidth}));
+                return {viewport:innerWidth,document:document.documentElement.scrollWidth,article:Math.round(article.getBoundingClientRect().width),articleScroll:article.scrollWidth,figures:figures.length,overflow};
+              });
+              console.log('LAYOUT '+JSON.stringify(layout));
+              assert.equal(layout.figures,2);
+              assert.deepEqual(layout.overflow,[]);
+              assert(layout.articleScroll<=layout.article+3);
+              assert(layout.document<=width+3);
+              assert.equal(await page.locator('.specdec-week-metrics[open]').count(),0);
+              await page.locator('.specdec-week-metrics summary').first().click();
+              assert.equal(await page.locator('.specdec-week-metrics[open]').count(),1);
+              await page.locator('.specdec-week-metrics summary').first().click();
+              await page.locator('.specdec-week-toc a').first().click();
+              await page.waitForTimeout(500);
+              assert.equal(await page.evaluate(()=>document.activeElement.id),'week-draft');
+              await page.locator('.specdec-week-sources summary').click();
+              assert.equal(await page.locator('.specdec-week-sources li').count(),18);
+              await page.locator('.specdec-week-sources summary').click();
+              await page.evaluate(()=>window.scrollTo(0,0));
+              if(width===1440||width===390)await page.screenshot({path:'browser-review/weekly-'+width+'.png',fullPage:true});
+              await page.locator('.specdec-week-nav a').nth(1).click();
+              await page.locator('.specdec-week-search input').fill('22473');
+              await page.waitForTimeout(200);
+              assert.match(await page.locator('.specdec-week-library').innerText(),/FA3/);
+              await page.locator('.specdec-week-nav a').nth(2).click();
+              await page.getByText('初始动态研究报告（历史专题稿）',{exact:true}).click();
+              await page.locator('.specdec-week-legacy-note').waitFor();
+              assert.deepEqual(errors,[]);
+              console.log('PASS '+width+'px: report, figures, details, directory, PR search, archive');
+              await page.close();
+            }
+          } finally { await browser.close(); }
+          JS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: specdec-draft-browser-review
+          path: browser-review/
+          retention-days: 1
