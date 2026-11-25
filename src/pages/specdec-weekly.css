@@ -1,0 +1,43 @@
+.specdec-community { min-width:0; color:var(--ink-primary); }
+.specdec-week-nav { display:flex; flex-wrap:wrap; gap:.45rem 1.2rem; border-bottom:1px solid var(--border-default); margin:0 0 1.5rem; }
+.specdec-week-nav a { padding:.55rem .1rem; color:var(--ink-secondary); font-weight:650; text-decoration:none; border-bottom:2px solid transparent; }
+.specdec-week-nav a[aria-current="page"] { color:var(--brand-primary); border-color:var(--brand-primary); }
+.specdec-week-article { max-width:61rem; margin-inline:auto; line-height:1.8; }
+.specdec-week-header { padding:0 0 1.2rem; border-bottom:1px solid var(--border-default); }
+.specdec-week-kicker { margin:0 0 .3rem; color:var(--brand-primary); font-size:.82rem; font-weight:700; }
+.specdec-week-header h2 { font-size:clamp(1.45rem,3vw,2rem); line-height:1.4; margin:.2rem 0 .65rem; }
+.specdec-week-meta,.specdec-week-links,.specdec-week-counts { display:flex; flex-wrap:wrap; gap:.4rem 1rem; align-items:baseline; }
+.specdec-week-meta { color:var(--ink-secondary); font-size:.84rem; }
+.specdec-week-counts { margin:1rem 0; font-size:.88rem; color:var(--ink-secondary); gap:.5rem 1.5rem; }
+.specdec-week-counts strong { font-size:1.3rem; color:var(--ink-primary); }
+.specdec-week-links { margin:.5rem 0; font-size:.84rem; }
+.specdec-week-scope,.specdec-week-sources { font-size:.86rem; border:1px solid var(--border-default); border-radius:var(--radius-md); padding:.7rem 1rem; margin:1rem 0; }
+.specdec-week-scope summary,.specdec-week-sources summary { cursor:pointer; font-weight:650; }
+.specdec-week-toc { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.4rem 1rem; padding:1rem 0; border-bottom:1px solid var(--border-default); font-size:.88rem; }
+.specdec-week-section { padding:1.5rem 0; border-bottom:1px solid var(--border-default); scroll-margin-top:calc(var(--header-height) + 18px); }
+.specdec-week-section h3 { font-size:clamp(1.15rem,2.2vw,1.45rem); line-height:1.45; margin:0 0 .5rem; }
+.specdec-week-section h4 { font-size:1rem; margin:1rem 0 .35rem; }
+.specdec-week-section p { margin:.5rem 0 .85rem; }
+.specdec-week-section .specdec-week-kicker { margin:0 0 .3rem; }
+.specdec-week-lead { color:var(--ink-secondary); }
+.specdec-week-table { max-width:100%; overflow-x:auto; margin:1rem 0; }
+.specdec-week-table table { width:100%; border-collapse:collapse; min-width:34rem; font-size:.85rem; line-height:1.55; }
+.specdec-week-table caption { text-align:left; font-weight:650; padding:0 0 .5rem; }
+.specdec-week-table th,.specdec-week-table td { text-align:left; vertical-align:top; padding:.65rem .6rem; border-bottom:1px solid var(--border-default); }
+.specdec-week-table thead th { background:var(--bg-subtle); }
+.specdec-week-table tbody th { width:31%; font-weight:650; }
+.specdec-week-table small { display:block; font-weight:400; color:var(--ink-secondary); margin-top:.3rem; }
+.specdec-week-assessment { border-left:3px solid var(--brand-primary); padding:.15rem .9rem; }
+.specdec-week-other,.specdec-week-sources ul,.specdec-week-archive ul { list-style:none; padding:0; margin:.5rem 0; }
+.specdec-week-other li,.specdec-week-sources li,.specdec-week-archive li { border-bottom:1px solid var(--border-default); padding:.75rem 0; overflow-wrap:anywhere; }
+.specdec-week-other li:last-child,.specdec-week-sources li:last-child,.specdec-week-archive li:last-child { border-bottom:0; }
+.specdec-week-other strong { display:block; margin-top:.2rem; }
+.specdec-week-other p { margin:.25rem 0; font-size:.9rem; }
+.specdec-week-files { display:grid; gap:.2rem; }
+.specdec-week-sources small,.specdec-week-archive time,.specdec-week-legacy-note { color:var(--ink-secondary); }
+.specdec-week-search { align-items:end; }
+.specdec-week-search input { min-width:0; width:100%; border:1px solid var(--border-default); border-radius:var(--radius-sm); padding:.55rem; background:var(--bg-surface); color:var(--ink-primary); font:inherit; }
+.specdec-week-search button { padding:.5rem .8rem; border:1px solid var(--border-default); border-radius:var(--radius-sm); background:var(--bg-surface); color:var(--ink-primary); cursor:pointer; }
+.specdec-week-archive h3 { margin:.3rem 0; font-size:1.05rem; }
+.specdec-week-archive p { margin:.2rem 0; }
+@media(max-width:600px){.specdec-week-toc{grid-template-columns:1fr}.specdec-week-counts{gap:.4rem .9rem}}
