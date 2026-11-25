@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useHref, useSearchParams } from "react-router-dom";
 import { Check, CheckCircle2, ChevronDown, Circle, Clock3, Copy, Download, ExternalLink, FileText, LoaderCircle, Search, TriangleAlert } from "lucide-react";
-import { isResearchTaskId, mergeResearchJobProgress, researchTaskHref, submitResearchJob, type ResearchJob, type ResearchStage } from "./research-api";
+import { isResearchTaskId, mergeResearchJobProgress, researchTaskHref, submitResearchJob, warmResearchEndpoint, type ResearchJob, type ResearchStage } from "./research-api";
 import { watchResearchJob } from "./research-polling";
 import "./research-query.css";
 
@@ -209,6 +209,10 @@ function ResearchQueryContent({ publicMode, taskId, invalidTask, onCreated }: {
   const keyword = query.trim();
   const validQuery = [...keyword].length >= 2 && /[\p{L}\p{N}]/u.test(keyword);
   const activeTaskId = taskId ?? job?.id;
+
+  useEffect(() => {
+    if (publicMode) void warmResearchEndpoint();
+  }, [publicMode]);
 
   useEffect(() => () => submitRequest.current?.abort(), []);
 

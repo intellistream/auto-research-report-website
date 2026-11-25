@@ -1,4 +1,4 @@
-import { createResearchApiResolver } from "./research-endpoint";
+import { createResearchApiResolver, ResearchEndpointUnavailableError } from "./research-endpoint";
 
 type ResearchStatus = "queued" | "running" | "complete" | "failed";
 export type ResearchStage = "searching" | "supplementing_1" | "supplementing_2"
@@ -21,6 +21,10 @@ export type ResearchJob = {
 
 const connectionError = "无法连接调研服务。请确认网站已接入调研接口，再试一次。";
 const uncertainSubmission = "连接中断，无法确认任务是否已提交。请勿立即重复提交；若已获得任务链接，请通过链接查看。";
+export const discoveryError = "无法获取调研服务最新地址，任务尚未提交，请稍后重试。";
+const endpointRotatedSubmission = "调研服务通道已更新，本次请求未送达当前服务，请直接重新点击「创建调研任务」。";
+const getTimeoutMs = 15_000;
+const postTimeoutMs = 30_000;
 const statuses: ResearchStatus[] = ["queued", "running", "complete", "failed"];
 const stages: ResearchStage[] = [
   "searching", "supplementing_1", "supplementing_2", "synthesizing", "reviewing", "revising", "rendering",
@@ -104,18 +108,19 @@ export function mergeResearchJobProgress(previous: ResearchJob | undefined, next
 }
 
 class ResearchRequestError extends Error {
-  constructor(message: string, readonly retryable: boolean) { super(message); }
+  constructor(message: string, readonly retryable: boolean, readonly transportFailure = false) { super(message); }
 }
 
 export function isRetryableResearchError(cause: unknown) {
-  return cause instanceof ResearchRequestError && cause.retryable;
+  return (cause instanceof ResearchRequestError || cause instanceof ResearchEndpointUnavailableError) && cause.retryable;
 }
 
 let resolverKey = "";
 let resolver: ReturnType<typeof createResearchApiResolver>;
 function serviceResolver() {
-  const base = researchApiBase(import.meta.env.VITE_RESEARCH_API_BASE, window.location.origin);
-  const configUrl = import.meta.env.VITE_RESEARCH_API_CONFIG_URL;
+  const configUrl = import.meta.env.VITE_RESEARCH_API_CONFIG_URL?.trim();
+  const configuredBase = import.meta.env.VITE_RESEARCH_API_BASE?.trim();
+  const base = configUrl && !configuredBase ? undefined : researchApiBase(configuredBase, window.location.origin);
   const key = JSON.stringify([base, configUrl]);
   if (!resolver || resolverKey !== key) {
     resolver = createResearchApiResolver(configUrl, base);
@@ -124,54 +129,92 @@ function serviceResolver() {
   return resolver;
 }
 
+export function warmResearchEndpoint(): Promise<void> {
+  return serviceResolver().resolve().then(() => undefined, () => undefined);
+}
+
+function createTimeoutSignal(timeoutMs: number, externalSignal?: AbortSignal) {
+  const controller = new AbortController();
+  const forwardAbort = () => controller.abort(externalSignal?.reason);
+  if (externalSignal?.aborted) forwardAbort();
+  else externalSignal?.addEventListener("abort", forwardAbort, { once: true });
+  const timer = setTimeout(() => controller.abort(new Error("Request timed out")), timeoutMs);
+  return {
+    signal: controller.signal,
+    cleanup() {
+      clearTimeout(timer);
+      externalSignal?.removeEventListener("abort", forwardAbort);
+    },
+  };
+}
+
 async function requestAt(base: string, path: string, options: RequestInit, expectedId?: string) {
   const submitting = options.method === "POST";
   const signal = options.signal;
   signal?.throwIfAborted();
-  let response: Response;
+  const timeout = createTimeoutSignal(submitting ? postTimeoutMs : getTimeoutMs, signal ?? undefined);
   try {
-    response = await fetch(`${base}/api/research/jobs${path}`, {
-      ...options, cache: "no-store",
-      credentials: new URL(base).origin === window.location.origin ? "same-origin" : "omit",
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),
-    });
-  } catch {
+    let response: Response;
+    try {
+      response = await fetch(`${base}/api/research/jobs${path}`, {
+        ...options, cache: "no-store",
+        credentials: new URL(base).origin === window.location.origin ? "same-origin" : "omit",
+        signal: timeout.signal,
+      });
+    } catch {
+      signal?.throwIfAborted();
+      throw new ResearchRequestError(submitting ? uncertainSubmission : connectionError, !submitting, submitting);
+    }
     signal?.throwIfAborted();
-    throw new ResearchRequestError(submitting ? uncertainSubmission : connectionError, !submitting);
-  }
-  signal?.throwIfAborted();
-  if (!response.headers.get("content-type")?.includes("application/json")) {
-    throw new ResearchRequestError(submitting ? uncertainSubmission : connectionError, !submitting);
-  }
-  let data: unknown;
-  try { data = await response.json(); }
-  catch {
+    const gatewayFailure = [502, 503, 504, 408].includes(response.status);
+    const rejected = response.status >= 400 && response.status < 500 && response.status !== 408;
+    if (!response.headers.get("content-type")?.includes("application/json")) {
+      throw new ResearchRequestError(submitting ? uncertainSubmission : connectionError, !submitting, submitting && !rejected);
+    }
+    let data: unknown;
+    try { data = await response.json(); }
+    catch (cause) {
+      signal?.throwIfAborted();
+      const transportFailure = submitting && !rejected
+        && (gatewayFailure || timeout.signal.aborted || !(cause instanceof SyntaxError));
+      throw new ResearchRequestError(submitting ? uncertainSubmission : connectionError, !submitting, transportFailure);
+    }
     signal?.throwIfAborted();
-    throw new ResearchRequestError(submitting ? uncertainSubmission : connectionError, !submitting);
-  }
-  signal?.throwIfAborted();
-  if (!response.ok) {
-    const detail = (data as { detail?: unknown } | null)?.detail;
-    const temporary = response.status >= 500 || response.status === 408 || response.status === 429;
-    throw new ResearchRequestError(submitting && temporary && response.status !== 429 ? uncertainSubmission
-      : typeof detail === "string" && detail ? detail : connectionError, !submitting && temporary);
-  }
-  try { return parseResearchJob(data, base, expectedId); }
-  catch (cause) {
-    if (submitting) throw new ResearchRequestError(uncertainSubmission, false);
-    throw cause;
-  }
+    if (!response.ok) {
+      const detail = (data as { detail?: unknown } | null)?.detail;
+      const temporary = response.status >= 500 || response.status === 408 || response.status === 429;
+      throw new ResearchRequestError(submitting && temporary && response.status !== 429 ? uncertainSubmission
+        : typeof detail === "string" && detail ? detail : connectionError, !submitting && temporary, submitting && gatewayFailure);
+    }
+    try { return parseResearchJob(data, base, expectedId); }
+    catch (cause) {
+      if (submitting) throw new ResearchRequestError(uncertainSubmission, false);
+      throw cause;
+    }
+  } finally { timeout.cleanup(); }
 }
 
 async function requestResearchJob(path: string, options: RequestInit, expectedId?: string) {
   const discovery = serviceResolver();
+  const submitting = options.method === "POST";
   options.signal?.throwIfAborted();
-  const base = await discovery.resolve();
+  const base = await (submitting ? discovery.resolveForSubmission() : discovery.resolve());
   options.signal?.throwIfAborted();
   try { return await requestAt(base, path, options, expectedId); }
   catch (cause) {
     options.signal?.throwIfAborted();
-    if (options.method === "POST" || !isRetryableResearchError(cause)) throw cause;
+    if (submitting) {
+      if (discovery.isConfigured() && cause instanceof ResearchRequestError && cause.transportFailure) {
+        discovery.invalidate();
+        let nextBase: string | undefined;
+        try { nextBase = await discovery.resolve(true); }
+        catch { /* Preserve the original submission error if discovery is unavailable. */ }
+        options.signal?.throwIfAborted();
+        if (nextBase && nextBase !== base) throw new ResearchRequestError(endpointRotatedSubmission, false);
+      }
+      throw cause;
+    }
+    if (!isRetryableResearchError(cause)) throw cause;
     discovery.invalidate();
     const nextBase = await discovery.resolve(true);
     options.signal?.throwIfAborted();
