@@ -27,9 +27,26 @@ describe("capacity result scope and comparison", () => {
     expect(html).toContain("80 <small>GiB</small>");
     expect(html).toContain("125.00%");
     expect(html).toContain("超出参照 16 GiB");
-    expect(html.match(/style="width:100%"/g)).toHaveLength(64);
+    expect(html.match(/class="kv-hbm-cell"/g)).toHaveLength(64);
+    expect(html.match(/class="kv-hbm-cell is-overflow"/g)).toHaveLength(16);
+    expect(html.match(/style="width:100%"/g)).toHaveLength(80);
+    expect(html).toContain("绿色表示参照内 64 GiB，橙色表示超出 16 GiB");
+    expect(html).not.toContain("图中最多填满 64 格");
     expect(html).toContain('disabled="">已缓存长度翻倍');
     expect(html).toContain('disabled="">请求数翻倍');
+  });
+  it("preserves one GiB per cell across the reference boundary and fractional overflow", () => {
+    const below = render({ ...initialMemoryLoad, tokens: 25600, sequences: 16 });
+    expect(below).toContain("62.5 <small>GiB</small>");
+    expect(below).not.toContain('class="kv-hbm-overflow"');
+    expect(below).toContain("参照图未填部分");
+    const fractional = render({ ...initialMemoryLoad, tokens: 27648, sequences: 16 });
+    expect(fractional).toContain("67.5 <small>GiB</small>");
+    const fills = [...fractional.matchAll(/class="kv-hbm-cell is-overflow"><span style="width:([\d.]+)%"/g)]
+      .map(match => Number(match[1]) / 100);
+    expect(fills).toEqual([1, 1, 1, 0.5]);
+    expect(64 + fills.reduce((sum, fill) => sum + fill, 0)).toBe(67.5);
+    expect(fractional).toContain("橙色表示超出 3.5 GiB；每格仍为 1 GiB");
   });
   it("shows a comparison only after an explicit action while preserving the current result", () => {
     const after = { ...initialMemoryLoad, tokens: 16384 };

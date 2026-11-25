@@ -17,8 +17,8 @@ import "./kv-sections.css";
 const sections = [
   { id: "guide", label: "导引", purpose: "理解缓存怎样工作" },
   { id: "papers", label: "论文", purpose: "掌握方法与适用条件" },
-  { id: "overview", label: "总体综述", purpose: "把握整体进展与待解问题" },
   { id: "report", label: "社区进展", purpose: "跟踪实现进展与变化" },
+  { id: "overview", label: "综合分析", purpose: "把握整体进展与待解问题" },
 ] as const;
 
 export function kvTopicView(query: URLSearchParams) {
