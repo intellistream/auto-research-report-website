@@ -9,7 +9,7 @@ import TopicResearchReport from "./TopicResearchReport";
 import "./aclgraph-topic.css";
 
 const title = "ACL Graph";
-const subtitle = "昇腾推理图执行：捕获、回放与动态状态";
+const subtitle = "昇腾推理图执行：捕获、重放与动态状态";
 const path = "/topics/aclgraph";
 const sections = [
   { id: "guide", label: "导引", search: "" },
