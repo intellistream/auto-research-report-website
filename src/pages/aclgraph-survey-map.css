@@ -66,6 +66,13 @@
   text-wrap: balance;
 }
 
+.acl-taxonomy-view-note {
+  margin: .4rem 0 0;
+  color: var(--ink-secondary);
+  font-size: .875rem;
+  line-height: 1.65;
+}
+
 .acl-taxonomy-table-scroll {
   max-width: 100%;
   overflow-x: auto;
@@ -88,7 +95,11 @@
 
 .acl-taxonomy-major { width: 24%; }
 .acl-taxonomy-minor { width: 30%; }
-.acl-taxonomy-scenarios .acl-taxonomy-minor { width: 35%; }
+.acl-taxonomy-scenarios .acl-taxonomy-table { min-width: 78rem; }
+.acl-taxonomy-scenarios .acl-taxonomy-major { width: 16%; }
+.acl-taxonomy-scenarios .acl-taxonomy-minor { width: 18%; }
+.acl-scenario-impact,
+.acl-scenario-adaptation { width: 22%; }
 .acl-taxonomy-table thead {
   border-bottom: 1px solid var(--border-accent);
   background: var(--bg-surface);
@@ -113,6 +124,17 @@
 }
 .acl-scenario-strategy p + p { margin-top: .6rem; }
 .acl-scenario-strategy strong { display: block; color: var(--ink-primary); font-size: .76rem; font-weight: 650; }
+.acl-scenario-workload,
+.acl-scenario-work-context {
+  display: block;
+  margin-top: .2rem;
+  color: var(--ink-secondary);
+  font-size: .83rem;
+  font-weight: 400;
+  line-height: 1.65;
+}
+.acl-scenario-works .acl-taxonomy-work { display: block; }
+.acl-scenario-works .acl-taxonomy-work + .acl-taxonomy-work { margin-top: .6rem; }
 .acl-taxonomy-section {
   display: block;
   margin-top: .3rem;

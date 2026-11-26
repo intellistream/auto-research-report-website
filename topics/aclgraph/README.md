@@ -30,7 +30,8 @@ npm run build
 
 | 数据 | 页面用途 | 更新依据 |
 | --- | --- | --- |
-| `thesis`、`scenarios` | 第 3 章四大典型推理场景、24 项独立文献；动态性与图化策略 | 同版论文第 3 章与权威引用编号映射 |
+| `thesis` | 冻结论文的章节组织摘要 | 同版论文 |
+| `scenarios` | 网页前置负载表：六类变化、24 项相关工作；负载、动态来源、图影响、归纳适配思路与工作对象 | 原论文及冻结稿的引用编号；分组独立于原稿小节标题 |
 | `routes`、`subcategories` | 第 4 章四大通用执行图核心机制、10 组 33 项独立文献；判断与局限 | 同版论文第 4.3–4.6 节；工程记录仍绑定原冻结报告 |
 | `update` | 学术稿版本摘要与历史工程报告变化 | 摘要对应 v5 CSUR 六章双视角综述；分项仍为报告修订 2 → 3 的实际对照，不等于今日重测 |
 | `researchAssessment` | 待验证问题的研究资格、重开条件 | 2026-11-17 共享研究反馈，范围为第二项工作的纯推理论文选题 |
@@ -40,12 +41,25 @@ npm run build
 
 v5 遵循 ACM CSUR 多视角系统综述框架，共六章：第 1 章引言，第 2 章软硬件技术基础，第 3 章典型大模型推理场景，第 4 章通用执行图系统架构与核心机制，第 5 章多维实证归因与昇腾 ACLGraph 工程落地，第 6 章五项可检验研究机遇。第 3、4 章构成并列技术视角；全篇收录 74 项文献与规范来源、147 条社区 PR，其中场景 24 项与机制 33 项共 57 项不重复引用。
 
-| 典型推理场景 | 正文锚点 | 代表工作数 |
+网页前置负载表于 2026-11-26 按主要变化来源重组。六类可同时出现；`strategy` 是综述归纳的图适配思路，`works[].context` 标明每项工作的实际研究对象。原稿正文、PDF、Word 和机制视角保持冻结版本；行内“参阅原稿”链接提供相关内容入口，不表示正文已经采用新分类。
+
+| 主要变化来源 | 相关原稿锚点 | 相关工作数 |
 | --- | --- | --- |
-| 稳态自回归解码与高并发连续批处理 | `section-3-1` | 8 |
-| 混合批处理、分块预填充与 PD 分离 | `section-3-2` | 4 |
-| 投机解码与动态控制流推理 | `section-3-3` | 6 |
-| 混合专家、多租户与多模态分布式推理 | `section-3-4` | 6 |
+| 请求组成与 KV 状态变化 | `section-3-1` | 6 |
+| 阶段与执行规模变化 | `section-3-2` | 5 |
+| 控制流与验证结构变化 | `section-3-3` | 5 |
+| 注意力掩码与稀疏结构变化 | `section-3-1` | 2 |
+| 适配器与专家配置变化 | `section-3-4` | 3 |
+| 跨设备依赖与执行组织变化 | `section-3-4` | 3 |
+
+本次归类核验依据：
+
+- [Cortex](https://proceedings.mlsys.org/paper_files/paper/2021/hash/eca986d585a03890a412587a2f5ccb43-Abstract.html) 是递归模型编译，[ACRoBat](https://proceedings.mlsys.org/paper_files/paper/2024/hash/096b1019463f34eb241e87cfce8dfe16-Abstract-Conference.html) 是一般动态控制流自动批处理；两者列作动态模型对照。[CoRa](https://www.pdl.cmu.edu/PDL-FTP/BigLearning/MLSys-2022-the-cora-tensor-compiler.pdf) 处理不规则张量与填充，归执行规模变化。
+- [FlexAttention](https://proceedings.mlsys.org/paper_files/paper/2025/file/61a9278dfef5f871b5e472389f8d6fa1-Paper-Conference.pdf) 与 [FlashMask](https://arxiv.org/html/2410.01359v2) 对应注意力访问和稀疏掩码，独立于请求调度。FlexAttention §6.3 也提供图集成证据。
+- [PLA-Serve / LAPS](https://proceedings.mlsys.org/paper_files/paper/2026/hash/bbb7506579431a85861a05fff048d3e1-Abstract-Conference.html) 明确对短预填充使用 CUDA Graph 聚类，因此在该行直接署名；不将其归为离线批处理。
+- [COMET](https://arxiv.org/html/2502.19811v3) 支撑 MoE 通信计算重叠；Triton-Distributed、FlashOverlap 和 CloudMatrix384 分别作为通信机制或部署架构参照。原表“多模态编码器”缺少对应工作，本次移除此标签。
+
+核验范围为上述原论文摘要及争议处的相关段落，不据此声称每项工作实现了同一套图捕获、重放或地址更新机制。
 
 | 核心机制路由 | 正文锚点 | 细粒度机制分组 | 代表工作数 |
 | --- | --- | --- | --- |

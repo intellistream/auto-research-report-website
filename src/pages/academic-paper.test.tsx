@@ -135,7 +135,7 @@ describe("academic manuscript branch", () => {
     expect(actual.version).toBe("62dba962fda5240ee8b37bdac3d8c877245daabcdab03265e7ef7ead46d0fd86");
     expect(actual.manuscriptRevision).toBe("v5-csur-20261124");
     expect(actual.literatureCutoff).toBe("2026-11-24");
-    expect(html).toContain("视角一：典型大模型推理场景版图（第 3 章 · 4 大场景 · 24 项代表工作）");
+    expect(html).toContain("视角一：推理负载的动态性与图适配（6 类变化 · 24 项相关工作）");
     expect(html).toContain("视角二：通用执行图系统核心机制版图（第 4 章 · 4 大机制 · 33 项代表工作）");
     expect(html).toContain("细粒度机制分组（10 组）");
     for (const section of ["3-1", "3-2", "3-3", "3-4", "4-3", "4-4", "4-5", "4-6"]) {
@@ -146,8 +146,8 @@ describe("academic manuscript branch", () => {
     expect(references).toHaveLength(57);
     expect(new Set(references).size).toBe(57);
     expect(references.slice(0, 24)).toEqual([
-      51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 11,
-      62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 31, 30,
+      51, 52, 53, 54, 55, 56, 59, 60, 61, 11, 63,
+      62, 64, 65, 66, 67, 57, 58, 68, 69, 70, 71, 31, 30,
     ]);
     expect(references.slice(24)).toEqual([
       8, 9, 10, 4, 5, 6, 7, 16, 17, 14, 15, 18,
