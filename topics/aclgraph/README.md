@@ -41,25 +41,27 @@ npm run build
 
 v5 遵循 ACM CSUR 多视角系统综述框架，共六章：第 1 章引言，第 2 章软硬件技术基础，第 3 章典型大模型推理场景，第 4 章通用执行图系统架构与核心机制，第 5 章多维实证归因与昇腾 ACLGraph 工程落地，第 6 章五项可检验研究机遇。第 3、4 章构成并列技术视角；全篇收录 74 项文献与规范来源、147 条社区 PR，其中场景 24 项与机制 33 项共 57 项不重复引用。
 
-网页前置负载表于 2026-11-26 按主要图适配问题归并为四个研究方向，沿“负载变化 → 执行图影响 → 图适配需求”展开。四个方向是问题分区，不是互斥的图属性或系统类别；`boundary` 明确主讲边界，`requirement` 是综述归纳的能力需求，`works[].context` 标明实际研究对象，`works[].role` 标明本表采用的主要证据角色。一个工作可能具有其他证据角色，本表标签不排除这些能力。
+网页前置负载表于 2026-11-26 按主要图适配问题归并为四个研究方向，沿“负载变化 → 执行图影响 → 图适配需求”展开。四个方向是问题分区，不是互斥的图属性或系统类别；`boundary` 明确主讲边界，`requirement` 是综述归纳的能力需求，`works[].context` 标明实际研究对象，`works[].role` 标明本表采用的主要证据角色。`works[].graphEvidence` 单独记录所引论文版本的图重放证据状态与适用条件；使用或集成图重放，不等于提出动态适配方法。
 
 原稿正文、PDF、Word 和机制视角保持冻结版本；`paperSections` 指向相关的原稿小节，并不表示正文已经采用新目录。第三章目录草案见文末，本轮不修改冻结正文的目录、锚点与下载文件。
 
 | 主要图适配问题 | 相关原稿锚点 | 相关工作数 |
 | --- | --- | --- |
-| 请求集合与运行时状态变化 | `section-3-1`、`section-3-4` | 8 |
-| 计算阶段、张量形状与注意力访问结构变化 | `section-3-1`、`section-3-2`、`section-3-3` | 6 |
+| 请求集合与运行时状态变化 | `section-3-1`、`section-3-4` | 6 |
+| 计算阶段、张量形状与注意力访问结构变化 | `section-3-1`、`section-3-2`、`section-3-3` | 7 |
 | 控制流与条件计算路径变化 | `section-3-3` | 5 |
-| 分布式执行依赖与跨设备协同变化 | `section-3-2`、`section-3-4` | 5 |
+| 分布式执行依赖与跨设备协同变化 | `section-3-1`、`section-3-2`、`section-3-4` | 6 |
 
 本次归类核验依据：
 
-- [Cortex](https://proceedings.mlsys.org/paper_files/paper/2021/hash/eca986d585a03890a412587a2f5ccb43-Abstract.html) 是递归模型编译，[ACRoBat](https://proceedings.mlsys.org/paper_files/paper/2024/hash/096b1019463f34eb241e87cfce8dfe16-Abstract-Conference.html) 是一般动态控制流自动批处理；两者列作动态模型对照。[CoRa](https://www.pdl.cmu.edu/PDL-FTP/BigLearning/MLSys-2022-the-cora-tensor-compiler.pdf) 处理不规则张量与填充，归执行规模变化。
+- [Cortex](https://proceedings.mlsys.org/paper_files/paper/2021/hash/eca986d585a03890a412587a2f5ccb43-Abstract.html) 的 §2 P.1 假设控制流由输入数据结构决定，而非运行中计算值；仅列作输入结构驱动的递归编译对照，不能用来证明结果驱动分支的适配。[ACRoBat](https://proceedings.mlsys.org/paper_files/paper/2024/hash/096b1019463f34eb241e87cfce8dfe16-Abstract-Conference.html) 是一般动态控制流自动批处理；[CoRa](https://www.pdl.cmu.edu/PDL-FTP/BigLearning/MLSys-2022-the-cora-tensor-compiler.pdf) 处理不规则张量与填充。后两者仍是关联技术，不标为图重放实现。
+- [Hydragen](https://arxiv.org/abs/2402.05099v2) 主讲移至第二类，突出共享前缀注意力的计算与访问组织；§3.5 明确后缀内核兼容解码步间长度变化与 CUDA Graph，限定于该实现。[Llumnix](https://www.usenix.org/conference/osdi24/presentation/sun-biao) 主讲移至第四类，突出跨实例重调度与状态迁移；不据此声称捕获图可跨实例复用。
+- [Sequoia](https://proceedings.neurips.cc/paper_files/paper/2024/file/ea1f5f0878d43ff4fb8bf64ef4a2326c-Paper-Conference.pdf) §4 明确在预先确定树结构后使用 PyTorch CUDA Graph；不与 EAGLE-2 的动态树混写，也不声称动态树可直接复用同一图。
 - [FlexAttention](https://proceedings.mlsys.org/paper_files/paper/2025/file/61a9278dfef5f871b5e472389f8d6fa1-Paper-Conference.pdf) 与 [FlashMask](https://arxiv.org/html/2410.01359v2) 对应注意力访问和稀疏掩码，在第二个方向中与形状问题分别讨论。FlexAttention §6.3 也提供图集成证据；网页以算子与编译关联技术为主要角色，并在工作说明中保留图集成信息。
 - [PLA-Serve / LAPS](https://proceedings.mlsys.org/paper_files/paper/2026/hash/bbb7506579431a85861a05fff048d3e1-Abstract-Conference.html) 明确对短预填充使用 CUDA Graph 聚类，因此在该行直接署名；不将其归为离线批处理。
 - [COMET](https://arxiv.org/html/2502.19811v3) 支撑 MoE 通信计算重叠，列入第四个方向，不作为动态专家路由图适配的直接证据；Triton-Distributed、FlashOverlap 和 CloudMatrix384 分别作为通信机制或部署架构参照。多模态作为目录后续的覆盖候选，本轮不新增缺少对应文献的网页标签。
 
-核验范围为上述原论文摘要及争议处的相关段落，不据此声称每项工作实现了同一套图捕获、重放或地址更新机制。
+2026-11-26 已逐项核对这 24 篇所选版本的摘要、相关方法与实现/实验段落，并检索全文图相关术语。图证据为：适配/兼容 2 项（PLA-Serve、Hydragen）、明确使用 1 项（Sequoia）、集成支持 1 项（FlexAttention）、静态图描述 1 项（CloudMatrix384）、未见直接证据 19 项。CloudMatrix384 §4.2.1–4.2.2 提及静态图执行与泛化捕获，未据此确认具体 ACL Graph API 或重放协议。“未见直接证据”仅针对所核原文，不否定后续软件版本或代码支持，也不否定这些工作的负载/关联技术价值。
 
 | 核心机制路由 | 正文锚点 | 细粒度机制分组 | 代表工作数 |
 | --- | --- | --- | --- |
@@ -102,7 +104,7 @@ v5 遵循 ACM CSUR 多视角系统综述框架，共六章：第 1 章引言，�
 
 主讲问题：谁参与本轮执行，各请求对应什么状态、KV 索引和参数绑定。序列长度作为有效长度元数据时在这里讨论；实际张量规格变化在 3.2 讨论。请求迁移只在这里说明身份、状态归属与绑定的变化，传递协议及跨设备协同转到 3.4。
 
-主讲工作：Orca [51]、vLLM [52]、Llumnix [53]、SGLang [54]、Hydragen [55]、ChunkAttention [56]、Punica [68]、S-LoRA [69]。这些工作提供负载、状态管理或专用优化证据，不统一宣称实现图重放。
+主讲工作：Orca [51]、vLLM [52]、SGLang [54]、ChunkAttention [56]、Punica [68]、S-LoRA [69]。这些工作提供负载、状态管理或专用优化证据，不统一宣称实现图重放。Hydragen 的注意力计算组织主讲见 3.2；Llumnix 的跨实例迁移主讲见 3.4。
 
 ### 3.2 计算阶段、张量形状与注意力访问结构变化
 
@@ -112,7 +114,7 @@ v5 遵循 ACM CSUR 多视角系统综述框架，共六章：第 1 章引言，�
 
 主讲问题：计算规模和数据访问集合怎样变化。形状与访问语义是两个子方向，不能混称同一种图属性。固定容量内有效长度更新不等于实际张量尺寸改变；固定算子骨架中的掩码改变也不自动改变图拓扑。P/D 混批的计算异构在本节，分离部署的状态传递在 3.4。
 
-主讲工作：Sarathi-Serve [59]、POD-Attention [61]、PLA-Serve / LAPS [11]、CoRa [63]、FlexAttention [57]、FlashMask [58]。PLA-Serve 提供直接图适配证据；FlexAttention 保留其图集成讨论，其余工作按实际负载或算子、编译贡献解释。
+主讲工作：Sarathi-Serve [59]、POD-Attention [61]、PLA-Serve / LAPS [11]、CoRa [63]、Hydragen [55]、FlexAttention [57]、FlashMask [58]。PLA-Serve 提供短预填充分桶图复用证据，Hydragen 提供特定后缀内核的图兼容证据；FlexAttention 保留其图集成讨论。其余工作按实际负载或算子、编译贡献解释。
 
 ### 3.3 控制流与条件计算路径变化
 
@@ -120,9 +122,9 @@ v5 遵循 ACM CSUR 多视角系统综述框架，共六章：第 1 章引言，�
 - 3.3.2 投机解码与动态验证结构
 - 3.3.3 MoE 动态路由与条件专家执行
 
-主讲问题：运行结果怎样决定后续路径、验证和状态提交。分别说明任务结构实际变化，以及通过固定任务结构中的元数据表达动态选择这两种情况。草稿树、掩码、专家选择不能直接等同于捕获图 DAG。
+主讲问题：输入结构或运行结果怎样决定执行路径、验证和状态提交。区分输入结构预先决定的控制流程与结果驱动的分支，并区分任务结构实际变化及固定任务结构中的元数据更新。草稿树、掩码、专家选择不能直接等同于捕获图 DAG。
 
-现有主讲工作：Cortex [62]、ACRoBat [64]、SpecInfer [65]、Sequoia [66]、EAGLE-2 [67]。Cortex 和 ACRoBat 是通用动态模型的编译对照，不归为投机解码方法。3.3.3 是待证据落实的目录项：本轮不增加论文，也不用 COMET 的通信重叠贡献替代专家路由图适配证据；正式改正文前再核对其适用实现和来源。
+现有主讲工作：Cortex [62]、ACRoBat [64]、SpecInfer [65]、Sequoia [66]、EAGLE-2 [67]。Cortex 仅作输入结构驱动的递归编译对照，ACRoBat 是通用动态模型的编译对照，二者均不归为投机解码方法。Sequoia 明确在预定树结构下使用 CUDA Graph，不作为运行时动态树重放的证据。3.3.3 是待证据落实的目录项：不增加论文，也不用 COMET 的通信重叠贡献替代专家路由图适配证据；正式改正文前再核对其适用实现和来源。
 
 ### 3.4 分布式执行依赖与跨设备协同变化
 
@@ -132,7 +134,7 @@ v5 遵循 ACM CSUR 多视角系统综述框架，共六章：第 1 章引言，�
 
 主讲问题：多个设备或流怎样满足数据就绪、生产—消费顺序和缓冲所有权约束。固定并行部署不是动态性的充分条件；须明确是数据就绪波动、部署或绑定变化，还是依赖关系实际变化。仅完成时间不同，不表示需要改变图结构。通用事件、调度与重叠机制回指第四章。
 
-主讲工作：DistServe [60]、COMET [70]、Triton-Distributed [71]、FlashOverlap [31]、CloudMatrix384 [30]。它们分别支持分离服务、MoE 重叠、分布式编译、通信重叠和部署架构，不统一标为 Graph Replay 系统。
+主讲工作：Llumnix [53]、DistServe [60]、COMET [70]、Triton-Distributed [71]、FlashOverlap [31]、CloudMatrix384 [30]。它们分别支持跨实例迁移、分离服务、MoE 重叠、分布式编译、通信重叠和部署架构，不统一标为 Graph Replay 系统；CloudMatrix384 的静态图描述也不等于明确的 ACL Graph 重放实现证据。
 
 ### 与三层方案的区别及归属规则
 
@@ -142,4 +144,4 @@ v5 遵循 ACM CSUR 多视角系统综述框架，共六章：第 1 章引言，�
 
 现有六个网页分组的内容按上述四个方向重组：请求与 KV → 3.1；阶段与规模、掩码与稀疏访问 → 3.2；控制流与验证 → 3.3；适配器与专家拆为 LoRA 状态 → 3.1、专家选择 → 3.3；跨设备协同 → 3.4。由于原“适配器与专家”分组被拆开，不再宣称新结构仍是六个互斥变化维度。
 
-下一轮逐篇检查现有 24 项工作与正文中的具体论断；本轮不扩充文献，不修改冻结正文、PDF 或 Word。
+本轮已按逐篇核对结果更新网页总览表的主讲归属和证据标注；未扩充文献，未修改冻结正文、PDF 或 Word。正文中的具体论断仍待后续单独修订。

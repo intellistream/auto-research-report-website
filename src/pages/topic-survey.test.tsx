@@ -33,9 +33,9 @@ describe("continuous survey presentation", () => {
     expect(source.scenarios).toHaveLength(4);
     const scenarioWorks = source.scenarios.flatMap((scenario) => scenario.works);
     expect(scenarioWorks).toHaveLength(24);
-    expect(source.scenarios.map((scenario) => scenario.works.length)).toEqual([8, 6, 5, 5]);
+    expect(source.scenarios.map((scenario) => scenario.works.length)).toEqual([6, 7, 5, 6]);
     expect(source.scenarios.map((scenario) => scenario.paperSections)).toEqual([
-      ["3.1", "3.4"], ["3.1", "3.2", "3.3"], ["3.3"], ["3.2", "3.4"],
+      ["3.1", "3.4"], ["3.1", "3.2", "3.3"], ["3.3"], ["3.1", "3.2", "3.4"],
     ]);
     expect(survey.routes).toHaveLength(4);
     expect(survey.routes.map((route) => route.id)).toEqual(["capture", "replay-state", "scheduling", "lifecycle"]);
@@ -67,7 +67,7 @@ describe("continuous survey presentation", () => {
     expect(map).toContain("视角一：推理负载变化与图适配需求（4 个研究方向 · 24 项相关工作）");
     expect(map).toContain("视角二：通用执行图系统核心机制版图（第 4 章 · 4 大机制 · 33 项代表工作）");
     expect(map.indexOf('id="acl-taxonomy-scenarios-heading"')).toBeLessThan(map.indexOf('id="acl-taxonomy-mechanisms-heading"'));
-    for (const heading of ["研究方向与典型负载", "动态性来源", "对执行图的影响", "图适配需求", "代表工作及研究对象",
+    for (const heading of ["研究方向与典型负载", "动态性来源", "对执行图的影响", "图适配需求", "代表工作与图重放证据",
       "核心系统机制（正文章节）", "细粒度机制分组（10 组）", "代表系统工作（33 项，点击编号直达参考文献）"]) {
       expect(map).toContain(heading);
     }
@@ -82,6 +82,8 @@ describe("continuous survey presentation", () => {
       for (const work of scenario.works) {
         expect(map).toContain(work.context);
         expect(map).toContain(work.role);
+        expect(map).toContain(`图重放 · ${work.graphEvidence.status}`);
+        expect(map).toContain(work.graphEvidence.detail);
       }
       for (const section of scenario.paperSections) expect(map).toContain(`#section-${section.replaceAll(".", "-")}"`);
     }
@@ -124,7 +126,9 @@ describe("continuous survey presentation", () => {
       invalid.push(withFirst({ works: source.scenarios[0].works.map((work, index) => index ? work : { ...work, reference }) }));
     }
     for (const work of [null, {}, { label: " ", reference: 51 }, { label: "Orca", reference: 51, context: " " },
-      { ...source.scenarios[0].works[0], role: "unknown" }, { ...source.scenarios[0].works[0], role: undefined }]) {
+      { ...source.scenarios[0].works[0], role: "unknown" }, { ...source.scenarios[0].works[0], role: undefined },
+      ...[undefined, null, {}, { status: "unknown", detail: "A claim" }, { status: "明确使用", detail: " " }]
+        .map((graphEvidence) => ({ ...source.scenarios[0].works[0], graphEvidence }))]) {
       invalid.push(withFirst({ works: [work, ...source.scenarios[0].works.slice(1)] }));
     }
     for (const scenarios of invalid) {

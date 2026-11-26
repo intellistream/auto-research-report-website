@@ -6,7 +6,11 @@ import { readingSurvey, surveyReportLink, validatedSurvey, type PlatformExample 
 import "./aclgraph-survey-map.css";
 
 const evidenceRoles = ["负载证据", "适配证据", "关联技术"] as const;
-type SurveyWork = { label: string; reference: number; context?: string; role?: typeof evidenceRoles[number] };
+const graphEvidenceStatuses = ["适配/兼容", "明确使用", "集成支持", "静态图描述", "未见直接证据"] as const;
+type SurveyWork = {
+  label: string; reference: number; context?: string; role?: typeof evidenceRoles[number];
+  graphEvidence?: { status: typeof graphEvidenceStatuses[number]; detail: string };
+};
 type SurveyScenario = {
   id: string; title: string; paperSections: string[];
   workload: string; dynamicity: string; boundary: string; impact: string; requirement: string; works: SurveyWork[];
@@ -31,7 +35,9 @@ function validScenarios(value: unknown): value is SurveyScenario[] {
     && new Set(item.paperSections).size === item.paperSections.length
     && Array.isArray(item.works) && item.works.length > 0
     && item.works.every((work: unknown) => validWork(work) && nonemptyText(work.context)
-      && evidenceRoles.some((role) => role === work.role)))) return false;
+      && evidenceRoles.some((role) => role === work.role)
+      && graphEvidenceStatuses.some((status) => status === work.graphEvidence?.status)
+      && nonemptyText(work.graphEvidence?.detail)))) return false;
   const references = value.flatMap((item) => item.works.map((work) => work.reference));
   return new Set(value.map((item) => item.id)).size === value.length
     && new Set(references).size === references.length;
@@ -41,6 +47,9 @@ function WorkCitations({ works, htmlHref, showContext = false }: { works: Survey
   return <>{works.map((work, index) => <span className="acl-taxonomy-work" key={`${work.reference}-${work.label}`}>
     {index > 0 && !showContext && "；"}{work.label} <a className="acl-taxonomy-citation" href={`${htmlHref}#ref-${work.reference}`} target="_blank" rel="noreferrer" aria-label={`${work.label}，参考文献 ${work.reference}`}>[{work.reference}]</a>
     {showContext && <small className="acl-scenario-work-context"><span className="acl-scenario-work-role">{work.role}</span>{work.context}</small>}
+    {showContext && work.graphEvidence && <small className="acl-scenario-work-evidence">
+      <strong>图重放 · {work.graphEvidence.status}</strong>{work.graphEvidence.detail}
+    </small>}
   </span>)}</>;
 }
 
@@ -138,12 +147,12 @@ export default function AclGraphSurveyMap({ topic, htmlHref, revealSection, show
           <header className="acl-taxonomy-view-header">
             <span className="acl-taxonomy-view-label" aria-hidden="true">视角一 · 负载动态性</span>
             <h4 id="acl-taxonomy-scenarios-heading">{scenarioTitle}</h4>
-            <p className="acl-taxonomy-view-note" id="acl-scenario-note">沿“负载变化 → 执行图影响 → 适配需求”分析，按主要问题分组；同一负载可涉及多个方向。末列区分负载证据、适配证据与关联技术，并非所有工作都直接研究图重放。正文与下载仍保留当前原稿。</p>
+            <p className="acl-taxonomy-view-note" id="acl-scenario-note">沿“负载变化 → 执行图影响 → 适配需求”分析，按主要问题分组；同一负载可涉及多个方向。末列分别标明本表用途与图重放证据，证据仅针对所引论文版本。使用图重放不等于提出动态适配方法，“未见直接证据”不排除后续代码支持。正文与下载仍保留当前原稿。</p>
           </header>
           <div className="acl-taxonomy-table-scroll" role="region" aria-label="典型推理场景表，可横向滚动" tabIndex={0}>
             <table className="acl-taxonomy-table" aria-labelledby="acl-taxonomy-scenarios-heading" aria-describedby="acl-scenario-note">
               <colgroup><col className="acl-taxonomy-major" /><col className="acl-taxonomy-minor" /><col className="acl-scenario-impact" /><col className="acl-scenario-adaptation" /><col /></colgroup>
-              <thead><tr><th scope="col">研究方向与典型负载</th><th scope="col">动态性来源</th><th scope="col">对执行图的影响</th><th scope="col">图适配需求</th><th scope="col">代表工作及研究对象</th></tr></thead>
+              <thead><tr><th scope="col">研究方向与典型负载</th><th scope="col">动态性来源</th><th scope="col">对执行图的影响</th><th scope="col">图适配需求</th><th scope="col">代表工作与图重放证据</th></tr></thead>
               <tbody>{scenarios.map((item) => <tr key={item.id}>
                 <th scope="row">
                   <strong>{item.title}</strong>
