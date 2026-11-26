@@ -135,6 +135,18 @@
 }
 .acl-scenario-works .acl-taxonomy-work { display: block; }
 .acl-scenario-works .acl-taxonomy-work + .acl-taxonomy-work { margin-top: .6rem; }
+.acl-scenario-work-role {
+  display: inline-block;
+  margin-right: .4em;
+  color: var(--acl-view-accent);
+  font-size: .72rem;
+  font-weight: 650;
+}
+.acl-scenario-strategy .acl-scenario-boundary {
+  padding-top: .6rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: .78rem;
+}
 .acl-taxonomy-section {
   display: block;
   margin-top: .3rem;
