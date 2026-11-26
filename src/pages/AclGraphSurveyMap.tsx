@@ -5,10 +5,10 @@ import { safeTopicSource } from "./topic-report";
 import { readingSurvey, surveyReportLink, validatedSurvey, type PlatformExample } from "./topic-survey";
 import "./aclgraph-survey-map.css";
 
-type SurveyWork = { label: string; reference: number };
+type SurveyWork = { label: string; reference: number; context?: string };
 type SurveyScenario = {
   id: string; title: string; paperSection: string; paperAnchor: string;
-  dynamicity: string; strategy: string; works: SurveyWork[];
+  workload: string; dynamicity: string; impact: string; strategy: string; works: SurveyWork[];
 };
 
 const nonemptyText = (value: unknown): value is string => typeof value === "string" && value.trim().length > 0;
@@ -17,25 +17,27 @@ function validWork(value: unknown): value is SurveyWork {
   if (!value || typeof value !== "object") return false;
   const work = value as Partial<SurveyWork>;
   return nonemptyText(work.label) && typeof work.reference === "number"
-    && Number.isInteger(work.reference) && work.reference > 0 && work.reference <= 74;
+    && Number.isInteger(work.reference) && work.reference > 0 && work.reference <= 74
+    && (work.context === undefined || nonemptyText(work.context));
 }
 
 function validScenarios(value: unknown): value is SurveyScenario[] {
-  if (!Array.isArray(value) || value.length !== 4) return false;
+  if (!Array.isArray(value) || value.length === 0) return false;
   if (!value.every((item): item is SurveyScenario => item && typeof item === "object"
-    && [item.id, item.title, item.dynamicity, item.strategy].every(nonemptyText)
+    && [item.id, item.title, item.workload, item.dynamicity, item.impact, item.strategy].every(nonemptyText)
     && typeof item.paperSection === "string" && /^3\.[1-4]$/.test(item.paperSection)
     && item.paperAnchor === `section-${item.paperSection.replaceAll(".", "-")}`
-    && Array.isArray(item.works) && item.works.length > 0 && item.works.every(validWork))) return false;
+    && Array.isArray(item.works) && item.works.length > 0
+    && item.works.every((work: unknown) => validWork(work) && nonemptyText(work.context)))) return false;
   const references = value.flatMap((item) => item.works.map((work) => work.reference));
-  return new Set(value.map((item) => item.id)).size === 4
-    && new Set(value.map((item) => item.paperAnchor)).size === 4
-    && references.length === 24 && new Set(references).size === 24;
+  return new Set(value.map((item) => item.id)).size === value.length
+    && new Set(references).size === references.length;
 }
 
-function WorkCitations({ works, htmlHref }: { works: SurveyWork[]; htmlHref: string }) {
+function WorkCitations({ works, htmlHref, showContext = false }: { works: SurveyWork[]; htmlHref: string; showContext?: boolean }) {
   return <>{works.map((work, index) => <span className="acl-taxonomy-work" key={`${work.reference}-${work.label}`}>
-    {index > 0 && "；"}{work.label} <a className="acl-taxonomy-citation" href={`${htmlHref}#ref-${work.reference}`} target="_blank" rel="noreferrer" aria-label={`${work.label}，参考文献 ${work.reference}`}>[{work.reference}]</a>
+    {index > 0 && !showContext && "；"}{work.label} <a className="acl-taxonomy-citation" href={`${htmlHref}#ref-${work.reference}`} target="_blank" rel="noreferrer" aria-label={`${work.label}，参考文献 ${work.reference}`}>[{work.reference}]</a>
+    {showContext && <small className="acl-scenario-work-context">{work.context}</small>}
   </span>)}</>;
 }
 
@@ -69,6 +71,9 @@ export default function AclGraphSurveyMap({ topic, htmlHref, revealSection, show
   const scenarioData = (survey as { scenarios?: unknown }).scenarios;
   const scenarios = checked && checked.paperVersion === topic.academicPaper?.version && validScenarios(scenarioData)
     ? scenarioData : undefined;
+  const scenarioTitle = scenarios
+    ? `视角一：推理负载的动态性与图适配（${scenarios.length} 类变化 · ${scenarios.flatMap((item) => item.works).length} 项相关工作）`
+    : "";
   const hasSubcategories = survey.routes.every((item) => item.subcategories?.length
     && item.subcategories.every((subcategory) => subcategory.works.every(validWork))
     && typeof item.paperAnchor === "string" && /^section-\d+(?:-\d+)*$/.test(item.paperAnchor));
@@ -124,28 +129,30 @@ export default function AclGraphSurveyMap({ topic, htmlHref, revealSection, show
       <figure className="acl-taxonomy">
         <figcaption>
           <h3 id="acl-survey-map-heading">ACLGraph 综述研究版图总览</h3>
-          <p className="acl-taxonomy-subtitle" id="acl-taxonomy-subtitle">遵循 ACM CSUR 多视角系统综述框架：第 3 章按四大典型大模型推理场景定位动态失配（24 项），第 4 章按四大通用执行图核心机制归类系统原语（33 项），全篇收录 74 项文献来源</p>
+          <p className="acl-taxonomy-subtitle" id="acl-taxonomy-subtitle">从负载变化追踪执行图的适配需求，再按系统机制查阅实现。章节与参考文献链接对应当前原稿；全篇收录 74 项文献来源。</p>
         </figcaption>
         {scenarios && <section className="acl-taxonomy-view acl-taxonomy-scenarios" aria-labelledby="acl-taxonomy-scenarios-heading">
           <header className="acl-taxonomy-view-header">
-            <span className="acl-taxonomy-view-label" aria-hidden="true">视角一 · 场景需求</span>
-            <h4 id="acl-taxonomy-scenarios-heading">视角一：典型大模型推理场景版图（第 3 章 · 4 大场景 · 24 项代表工作）</h4>
+            <span className="acl-taxonomy-view-label" aria-hidden="true">视角一 · 负载动态性</span>
+            <h4 id="acl-taxonomy-scenarios-heading">{scenarioTitle}</h4>
+            <p className="acl-taxonomy-view-note" id="acl-scenario-note">按主要变化来源组织，各类可同时出现。图适配思路为综述归纳；末列注明各项工作的研究对象。</p>
           </header>
           <div className="acl-taxonomy-table-scroll" role="region" aria-label="典型推理场景表，可横向滚动" tabIndex={0}>
-            <table className="acl-taxonomy-table" aria-labelledby="acl-taxonomy-scenarios-heading" aria-describedby="acl-taxonomy-subtitle">
-              <colgroup><col className="acl-taxonomy-major" /><col className="acl-taxonomy-minor" /><col /></colgroup>
-              <thead><tr><th scope="col">典型推理场景（正文章节）</th><th scope="col">动态性来源与图化策略</th><th scope="col">代表场景工作（24 项，点击编号直达参考文献）</th></tr></thead>
+            <table className="acl-taxonomy-table" aria-labelledby="acl-taxonomy-scenarios-heading" aria-describedby="acl-scenario-note">
+              <colgroup><col className="acl-taxonomy-major" /><col className="acl-taxonomy-minor" /><col className="acl-scenario-impact" /><col className="acl-scenario-adaptation" /><col /></colgroup>
+              <thead><tr><th scope="col">变化维度与典型负载</th><th scope="col">动态性来源</th><th scope="col">对执行图的影响</th><th scope="col">图适配思路</th><th scope="col">相关工作及研究对象</th></tr></thead>
               <tbody>{scenarios.map((item) => <tr key={item.id}>
                 <th scope="row">
+                  <strong>{item.title}</strong>
+                  <span className="acl-scenario-workload">{item.workload}</span>
                   <a href={`${htmlHref}#${item.paperAnchor}`} target="_blank" rel="noreferrer" onClick={(event) => {
                     if (!event.button && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && revealSection(item.paperAnchor)) event.preventDefault();
-                  }}>{item.title}<span className="acl-taxonomy-section">第 {item.paperSection} 节</span></a>
+                  }}><span className="acl-taxonomy-section">参阅原稿第 {item.paperSection} 节</span></a>
                 </th>
-                <td className="acl-scenario-strategy">
-                  <p><strong>动态性来源</strong>{item.dynamicity}</p>
-                  <p><strong>图化策略</strong>{item.strategy}</p>
-                </td>
-                <td><WorkCitations works={item.works} htmlHref={htmlHref} /></td>
+                <td className="acl-scenario-strategy"><p>{item.dynamicity}</p></td>
+                <td className="acl-scenario-strategy"><p>{item.impact}</p></td>
+                <td className="acl-scenario-strategy"><p>{item.strategy}</p></td>
+                <td className="acl-scenario-works"><WorkCitations works={item.works} htmlHref={htmlHref} showContext /></td>
               </tr>)}</tbody>
             </table>
           </div>
