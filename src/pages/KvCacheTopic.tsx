@@ -7,6 +7,7 @@ import KvResearchOverview from "./KvResearchOverview";
 import KvTopicOverview from "./KvTopicOverview";
 import KvBasics from "./KvBasics";
 import KvCommunityReport from "./KvCommunityReport";
+import KvPrTrends from "./KvPrTrends";
 import { KvMethodComparison } from "./KvCacheStudy";
 import { filterPapers, kvResearch, paperViewQuery, researchTopicFilter } from "./kv-research";
 import { communityEntries } from "./kv-community";
@@ -25,7 +26,7 @@ export function kvTopicView(query: URLSearchParams) {
   const view = query.get("view");
   // Old material-library paper links now land in the dedicated reading section.
   if (view === "evidence" && query.get("kind") === "paper") return "papers";
-  if (["guide", "papers", "survey", "overview", "compare", "report", "evidence"].includes(view ?? "")) return view!;
+  if (["guide", "papers", "survey", "overview", "compare", "report", "trends", "evidence"].includes(view ?? "")) return view!;
   if (!view && ["repo", "label", "topic", "kind", "month"].some((key) => query.has(key))) {
     return query.get("kind") === "paper" ? "papers" : "evidence";
   }
@@ -106,6 +107,7 @@ export default function KvCacheTopic() {
     </nav>}
     {section === "report" && <nav className="kv-subnav" aria-label="社区进展 板块页面">
       <Link to={{ search: sectionSearch("report") }} aria-current={view === "report" || view === "compare" ? "page" : undefined}>每周总结</Link>
+      <Link to={{ search: sectionSearch("trends") }} aria-current={view === "trends" ? "page" : undefined}>PR 趋势分析</Link>
       <Link to={{ search: sectionSearch("evidence", topic) }} aria-current={view === "evidence" ? "page" : undefined}>全部 PR</Link>
     </nav>}
     {view === "guide" && <KvBasics />}
@@ -114,6 +116,7 @@ export default function KvCacheTopic() {
     {view === "overview" && <KvTopicOverview />}
     {view === "compare" && <KvMethodComparison />}
     {view === "report" && <KvCommunityReport />}
+    {view === "trends" && <KvPrTrends />}
     {view === "evidence" && <KvMaterialLibrary />}
   </div>;
 }
