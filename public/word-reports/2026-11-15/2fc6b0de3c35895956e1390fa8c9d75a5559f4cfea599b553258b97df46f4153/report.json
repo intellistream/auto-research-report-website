@@ -1,0 +1,593 @@
+{
+  "schemaVersion": 1,
+  "day": "2026-11-15",
+  "title": "vLLM 与 vLLM Ascend 性能优化日报",
+  "intro": [
+    [
+      {
+        "text": "工程 PR 从 vLLM 与 vLLM Ascend 两仓北京时间当日合入的条目中筛选。"
+      }
+    ]
+  ],
+  "sections": [
+    {
+      "key": "summary",
+      "title": "一 本日归纳",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "减少重复准备与无效搬运，按实际需求安排缓存和通信。编码器缓存容量可独立于每步计算预算设定，让同一页的第二个请求直接复用缓存，不再重新编码整张图。流水线并行张量交接改为可选复制引擎路径，目的是减少对发送方计算单元的占用；已有性能数字对应旧实现，当前重构后仍待设备复验。\n\n修复越界与放开受限组合，扩大已有路径适用范围。预热虚拟请求按请求数与单请求最大长度乘积封顶总词元数，避免注意力读取块表行尾之外的内存。双侧通信的无效专家编号改为负一，并移除混合专家后端对 NVLink 通信的支持检查，使此前被挡下的组合可直接运行。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "flow",
+      "title": "二 推理流程与优化位置",
+      "figure": "2026-11-15/2fc6b0de3c35895956e1390fa8c9d75a5559f4cfea599b553258b97df46f4153/flow.png",
+      "blocks": []
+    },
+    {
+      "key": "startup",
+      "title": "三 服务启动与模型准备",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注预热阶段虚拟请求长度超出块表行宽所引发的越界读取风险。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "限制预热虚拟请求长度"
+        },
+        {
+          "kind": "entry",
+          "number": "V1",
+          "title": "限制预热虚拟请求长度以消除块表越界读取",
+          "workId": "github:vllm-project/vllm#67545",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：预热构造的虚拟请求可能超过单请求最大长度，注意力读取块表行尾之外的内存，导致引擎启动时非法访存崩溃。显式配置或自动拟合降低最大长度后都可能触发，是否崩溃取决于行后残留值，因此表现间歇。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在虚拟运行中按请求数与单请求最大长度的乘积封顶总词元数，使每个虚拟请求不超出块表行宽。封顶生效时，自动调优的桶列表仍按原批处理词元上限构建，性能分析运行则按可调度的更少词元进行。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在单张 H200 上以显式配置复现，主分支三次均在启动时崩溃，本改动三次均正常启动并生成。该崩溃依赖行后残留内存出现越界值，其他显卡或分配器状态可能只发生越界读取而不报错；默认配置下虚拟运行与主分支一致。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #67545",
+                "url": "https://github.com/vllm-project/vllm/pull/67545"
+              }
+            ]
+          ],
+          "needsReview": false,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false,
+          "sourceReview": {
+            "reviewer": "Codex",
+            "reviewedAt": "2026-11-26T15:12:29+08:00",
+            "status": "passed",
+            "summary": "PR H200 interleaved三次基线fault/三次修复启动生成、dummy cap、autotune桶不变与stale memory条件均有直接依据，代码cap位于_dummy_run，startup分类正确。",
+            "sources": [
+              "https://github.com/vllm-project/vllm/pull/67545"
+            ],
+            "headSha": "57c2db7ff7e9b6b2589d1cf129bfc96ecb297ba2"
+          }
+        }
+      ],
+      "intro": "本章关注预热阶段虚拟请求长度超出块表行宽所引发的越界读取风险。"
+    },
+    {
+      "key": "scheduling",
+      "title": "四 请求接入与调度",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "多模态编码器缓存容量原先受每步批处理预算限制，跨请求复用空间有限，本节关注如何让缓存容量独立配置。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "解耦编码器缓存容量与批处理预算"
+        },
+        {
+          "kind": "entry",
+          "number": "V2",
+          "title": "开放编码器缓存容量配置以支持跨请求复用",
+          "workId": "github:vllm-project/vllm#65534",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：多模态编码器缓存容量原先由每步批处理预算推导，跨请求复用最多只能保留约八个图像项。生产文档解析对同一页发两个请求，超出上限后第二个请求会重新编码整张图。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：新增编码器缓存容量参数，可独立于每步计算预算设定，未设置时沿用原有推导。容量低于单项最大长度时抬升并告警；性能分析阶段按新容量补足常驻缓存，避免富余显存被划给 KV 缓存。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在单卡 H100 上以 65536 令牌缓存对比默认值，同一图像的第二请求端到端耗时由约 0.478 秒降至约 0.378 秒，流水线吞吐提升约 19%。无可复用页面的场景吞吐基本不变，收益仅在并发工作集超过缓存容量时出现。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #65534",
+                "url": "https://github.com/vllm-project/vllm/pull/65534"
+              }
+            ]
+          ],
+          "needsReview": false,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false,
+          "sourceReview": {
+            "reviewer": "Codex",
+            "reviewedAt": "2026-11-26T15:12:29+08:00",
+            "status": "passed",
+            "summary": "PR单变量encoder-cache-size65536、batch预算16384不变、prefix cache关闭且3次均值支持0.478→0.378s和5.34→6.34 pages/s；新增residency helper与最大单项floor有测试，缓存管理归scheduling合理。",
+            "sources": [
+              "https://github.com/vllm-project/vllm/pull/65534"
+            ],
+            "headSha": "0e519b6761bc94645909cd962f1b9dc6fc2bf954"
+          }
+        }
+      ],
+      "intro": "多模态编码器缓存容量原先受每步批处理预算限制，跨请求复用空间有限，本节关注如何让缓存容量独立配置。"
+    },
+    {
+      "key": "prefill",
+      "title": "五 Prefill 输入上下文处理",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章涉及长提示下 KV 缓存的行偏移范围，以及模型内部流水线张量传输。传输改动分别说明旧实现的测量与当前重构后的验证范围。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "扩大收集内核行偏移位宽"
+        },
+        {
+          "kind": "entry",
+          "number": "V3",
+          "title": "将 K 缓存收集行偏移改为 64 位以消除越界写入",
+          "workId": "github:vllm-project/vllm#65926",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：DeepSeek-V4.1 的 K 缓存收集内核用 32 位整数计算输出行偏移。预填充分块超过 2^31 个元素时，行指针会绕回工作区下方约 4 GiB；在 MI355X 上以 TP8 启动自适应 DSpark 验证时，3 次运行全部在启动阶段内存故障。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：把 FP8、单遍 FP8 和 MXFP8 收集内核的行偏移改为在进入令牌循环前用 64 位整数算一次，与 NVFP4 收集一致。CUDA 上这些内核仅作回退，偏移低于 2^31 时行为不变；DeepSeek-V4.0 同类内核工作区未超限，保持原样。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：8×MI355X 上，较早修订（同样使用 64 位偏移、乘法仍在循环内）令 DeepSeek-V4.1 自适应 DSpark 验证由旧版 3/3 启动内存故障变为 2/2 就绪，其中一次完成并发 64 的 256/256 请求。当前把乘法移至循环前的版本通过三个大偏移内核回归，整文件 148 通过、58 跳过；该当前版本未另报完整服务重测，也未测量新增整数计算的性能开销。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #65926",
+                "url": "https://github.com/vllm-project/vllm/pull/65926"
+              }
+            ]
+          ],
+          "needsReview": false,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false,
+          "sourceReview": {
+            "reviewer": "Codex",
+            "reviewedAt": "2026-11-26T15:12:29+08:00",
+            "status": "corrected",
+            "summary": "PR明确服务2/2就绪与256/256完成来自较早修订（int64乘法在循环内）；当前将乘法移至循环前仅复测kernel。原文混称修订版服务实测，补齐版本边界。",
+            "sources": [
+              "https://github.com/vllm-project/vllm/pull/65926"
+            ],
+            "headSha": "d5021c4ab12464a62224623f488c08305b28f1b2"
+          }
+        },
+        {
+          "kind": "group",
+          "title": "将张量交接迁至 SDMA 引擎"
+        },
+        {
+          "kind": "entry",
+          "number": "V4",
+          "title": "将流水线并行张量交接迁至 SDMA 引擎以避开计算单元",
+          "workId": "github:vllm-project/vllm#65658",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：在 ROCm 上做流水线并行时，阶段间中间张量经点对点拷贝，实际以 blit 内核占用发送方计算单元，拖慢其后续计算：拷贝 201 MiB 张量期间，发送方 8192³ BF16 矩阵乘慢 5.1 倍。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：当前代码把流水线交接重构为复制引擎传输，通过 VLLM_PP_TRANSPORT=copy_engine 选择；ROCm gfx950 使用 SDMA、HIP 流内存操作与 HSA 信号协调复制及槽位复用。旧正文中的发送线程、/dev/shm 计数器和 --pp-sdma-handoff 描述属于较早设计，不能当作当前实现。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：较早实现的 MI355X 微基准报告发送方矩阵乘开销由 +411% 降至 +1.4%，MiniMax-M3.1-Flash TP1×PP2 eager 预填充吞吐提高 3.6%、平均首令牌延迟降低 3.4%。评审指出这些测量对应旧设计；当前重构后的 MI355X 完整服务对照与传输测试尚缺已完成回执，因此仍待核对，不能沿用旧数字证明当前 head 收益。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #65658",
+                "url": "https://github.com/vllm-project/vllm/pull/65658"
+              }
+            ]
+          ],
+          "needsReview": true,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false,
+          "sourceReview": {
+            "reviewer": "Codex",
+            "reviewedAt": "2026-11-26T15:12:29+08:00",
+            "status": "unverified",
+            "summary": "PR当前diff已重构为VLLM_PP_TRANSPORT=copy_engine、HIP流内存操作与HSA信号；原文/PR正文仍是旧--pp-sdma-handoff、线程、/dev/shm三槽设计。评审明确要求更新描述并重跑当前MI355X E2E和test_pp_transport，未见后续完成证据，不能通过当前head性能/正确性。又属于同一服务内部PP而非P/D。建议保留待核并更正文案。",
+            "sources": [
+              "https://github.com/vllm-project/vllm/pull/65658",
+              "https://github.com/vllm-project/vllm/pull/65658#pullrequestreview-5866318805"
+            ],
+            "headSha": "7ded4d8251fa4b4d9f5c0db19d4f59f0a3f595f3"
+          }
+        }
+      ],
+      "intro": "本章涉及长提示下 KV 缓存的行偏移范围，以及模型内部流水线张量传输。传输改动分别说明旧实现的测量与当前重构后的验证范围。"
+    },
+    {
+      "key": "pd_transfer",
+      "title": "六 P/D 分离部署的缓存交接",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "decode",
+      "title": "七 Decode 常规生成",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本章关注解码与线性层执行路径上的通信等待、内核启动次数和矩阵乘效率，并涉及混合专家通信后端的可用性修正。"
+            }
+          ],
+          "chapterIntro": true
+        },
+        {
+          "kind": "group",
+          "title": "重叠全归约通信与计算"
+        },
+        {
+          "kind": "entry",
+          "number": "V5",
+          "title": "为纯张量并行引入双批次重叠以隐藏全归约等待",
+          "workId": "github:vllm-project/vllm#63483",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：纯张量并行下，每步的全归约与计算串行执行，通信期间计算单元空转。此前双批次重叠只在旧版模型运行器上支持，而该运行器即将移除，新版缺少这一能力。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在新版模型运行器上启用双批次重叠：超过预填充阈值的长步拆成两个微批次，每个微批次的全归约在通信流上执行，同时另一微批次继续计算，两者交替让出。多模态模型的视觉编码器不参与拆分；拆分步不走计算图捕获，解码步在阈值高于批大小时保留计算图。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：在 M3 服务分支上，四张 MI355X 跑多轮轨迹，每组测 3600 秒一次。开启双批重叠后，并发 64 的单用户交互速度第 90 百分位由 23.6 升至 30.8 词元/秒，每卡总吞吐提高约 10%。并发 32 的每卡吞吐由 44573 降至 44009 词元/秒。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #63483",
+                "url": "https://github.com/vllm-project/vllm/pull/63483"
+              }
+            ]
+          ],
+          "needsReview": false,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false,
+          "sourceReview": {
+            "reviewer": "Codex",
+            "reviewedAt": "2026-11-26T15:12:29+08:00",
+            "status": "passed",
+            "summary": "PR MRV2 pureTP DBO机制、split步无graph/视觉塔外置/阈值与原文一致；M3 serving branch单次3600s表23.6→30.8及53692→59281、c32 44573→44009数字准确，原文明示分支和单次测量而未冒充主干独立对照。",
+            "sources": [
+              "https://github.com/vllm-project/vllm/pull/63483"
+            ],
+            "headSha": "80970dd99d86b5d7f5f9d9f2b67623216e1b5ad1"
+          }
+        },
+        {
+          "kind": "group",
+          "title": "合并延迟接缝的内核启动"
+        },
+        {
+          "kind": "entry",
+          "number": "V6",
+          "title": "合并延迟 mHC 接缝为单次 HIP 启动",
+          "workId": "github:vllm-project/vllm#65992",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：gfx950 上 DeepSeek-V4.1 的融合延迟 mHC 接缝由两次 Triton 启动完成，每个解码层有两处、草稿模型另有一处。Prefill、混合步以及超出重叠阈值的解码步会完全暴露这部分开销；小批次解码中，部分门控已被侧流重叠隐藏。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：gfx950 上权重已打包且归一化权重为 BF16 时，接缝改走 AITER 单次 HIP 内核，用打包权重一次完成原两次 Triton 启动的工作，侧流门控同样如此；否则仍用原 Triton 接缝。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：预填 4,096 词元步中，接缝从 7.1–7.5毫秒降到 4.6–4.7毫秒，占步长 1.6–1.9%；但 8k 预填的首词元等待时间与输入吞吐变化不足 3%（p≥0.26），4k/C64 的 +1.45% 吞吐也未超过同臂两倍极差。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #65992",
+                "url": "https://github.com/vllm-project/vllm/pull/65992"
+              }
+            ]
+          ],
+          "needsReview": false,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false,
+          "sourceReview": {
+            "reviewer": "Codex",
+            "reviewedAt": "2026-11-26T15:12:29+08:00",
+            "status": "corrected",
+            "summary": "原文泛称接缝在关键路径完全暴露，但PR明确C1–C128 gate被side-stream隐藏，C256超128-token阈值及prefill/mixed才全部串行暴露；数字不必改，只修正因果范围。",
+            "sources": [
+              "https://github.com/vllm-project/vllm/pull/65992"
+            ],
+            "headSha": "2570741caab8d8a68f2545a68f303fa0548a48e3"
+          }
+        },
+        {
+          "kind": "group",
+          "title": "块缩放线性层接入调优矩阵乘"
+        },
+        {
+          "kind": "entry",
+          "number": "V7",
+          "title": "为块缩放线性层接入调优矩阵乘并加速激活量化",
+          "workId": "github:vllm-project/vllm#67377",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：DeepSeek-V4.1-Flash 在八卡 MI355X 上以数据并行注意力加专家并行混合专家运行，其 32x32 块缩放 MXFP8 线性层走 Triton 块32 矩阵乘，该路径没有单卡张量并行调优，仅达到 MXFP8 峰值的 21% 至 31%。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：在 gfx950 上，为 DeepSeek-V4.1-Flash 的块缩放线性层接入 AITER 的 FlyDSL 调优内核，按矩阵形状选核。加快激活量化，并在载入时原地重排权重。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：离线矩阵形状耗时按剖析调用数加权，Prefill 为 189.8→106.7 毫秒/步，Decode 为 4544→2822 微秒/步；激活量化 M=32768、K=8192 为 357→172 微秒。DP8/EP8 配置权重原地预重排、不增模型显存；mono decode 为保留行主序会另存预重排副本。当前服务对照采用合成接受长度 3.51，比较本 PR 前后两个修订，每卡吞吐 27385→26714、交互性 4.60→4.61，差异在约 5% 运行波动内；不是当前 head 对 main 的独立收益测量。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #67377",
+                "url": "https://github.com/vllm-project/vllm/pull/67377"
+              }
+            ]
+          ],
+          "needsReview": false,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false,
+          "sourceReview": {
+            "reviewer": "Codex",
+            "reviewedAt": "2026-11-26T15:12:29+08:00",
+            "status": "corrected",
+            "summary": "PR当前E2E对比的是本PR两个修订，且使用synthetic acceptance_length3.51；原文未披露。‘不增显存’仅DP/EP单副本，mono decode需额外预排副本，补齐范围；保留offline权重数字与未显著服务增益。",
+            "sources": [
+              "https://github.com/vllm-project/vllm/pull/67377"
+            ],
+            "headSha": "7e37a334b8080944549179da29bf3d412fd519c2"
+          }
+        },
+        {
+          "kind": "group",
+          "title": "修正专家编号并放开通信后端限制"
+        },
+        {
+          "kind": "entry",
+          "number": "V8",
+          "title": "修正双侧专家编号并放开混合专家后端对NVLink通信的限制",
+          "workId": "github:vllm-project/vllm#67592",
+          "paragraphs": [
+            [
+              {
+                "text": "问题：使用DeepGEMM或Triton混合专家后端时，FlashInfer NVLink单侧与双侧全对全通信会被直接拒绝，只能退回默认后端；双侧路径还会把填充槽的专家编号设为专家总数，查表越界，Triton输出乱码，DeepGEMM启动即崩。"
+              }
+            ],
+            [
+              {
+                "text": "优化方法：把双侧通信的无效专家编号改为负一，使填充槽在归约和专家映射中被正确跳过；同时移除两个后端对单侧、双侧NVLink通信的支持检查，让它们直接运行。此前被挡下的组合现在可以选用，未复现的越界访问报告仍待排查。"
+              }
+            ],
+            [
+              {
+                "text": "效果与边界：GB300 上的 GLM-5.3 FP8 测试中，双侧通信配 Triton 的 GSM8K 在缓存压力前后由两个 0.0 变为 0.878 和 0.886。配 DeepGEMM 的服务可以启动，两项分数为 0.935 和 0.927。早期非法访存报告未复现，其他模型和量化配置未覆盖。"
+              }
+            ],
+            [
+              {
+                "text": "来源："
+              },
+              {
+                "text": "vLLM #67592",
+                "url": "https://github.com/vllm-project/vllm/pull/67592"
+              }
+            ]
+          ],
+          "needsReview": false,
+          "provisionalLocation": false,
+          "titlePending": false,
+          "brief": false,
+          "sourceReview": {
+            "reviewer": "Codex",
+            "reviewedAt": "2026-11-26T15:12:29+08:00",
+            "status": "passed",
+            "summary": "PR Two-sided root cause与-1 sentinel直接支持填充索引越界；GB300 GSM8K n123 flood前后0→0.878/0.886与DeepGEMM0.935/0.927准确，保留原始IMA未复现/其他模型未测边界，decode专家路径合理。",
+            "sources": [
+              "https://github.com/vllm-project/vllm/pull/67592"
+            ],
+            "headSha": "11bc72a17c9d2f3474888160a51bbfce494daeff"
+          }
+        }
+      ],
+      "intro": "本章关注解码与线性层执行路径上的通信等待、内核启动次数和矩阵乘效率，并涉及混合专家通信后端的可用性修正。"
+    },
+    {
+      "key": "speculative",
+      "title": "八 推测解码",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "output_return",
+      "title": "九 输出返回与状态更新",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "resource_reclaim",
+      "title": "十 资源回收与缓存保留",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "papers",
+      "title": "十一 论文",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "parts": [
+            {
+              "text": "本期未收录该章条目。"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "upstream": 8,
+    "ascend": 0,
+    "papers": 0
+  },
+  "warnings": [],
+  "pipelineStatus": "completed_program_checks",
+  "publicationStatus": "reviewed",
+  "sourceReview": {
+    "parentVersion": "0bd3d3b130152e6f3d4ff068cb2acca5214c5ebb3b68f1ac19a36d5dee03e789",
+    "reviewer": "Codex",
+    "reviewedAt": "2026-11-26T15:12:29+08:00",
+    "counts": {
+      "passed": 4,
+      "unverified": 1,
+      "corrected": 3
+    },
+    "editorialSections": [
+      "pd_transfer",
+      "prefill",
+      "summary"
+    ]
+  },
+  "sha256": "2fc6b0de3c35895956e1390fa8c9d75a5559f4cfea599b553258b97df46f4153"
+}

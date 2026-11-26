@@ -351,7 +351,7 @@
       ]
     },
     "2026-11-14": {
-      "current": "8e53c3d0adb286d03c7a885c62b4d991a8f648724504f76f2108ff9c421c4d9a",
+      "current": "67e17707393e20c6375135036cfa85c8a1e592eda24ddb7688e3d6ab9c695ff8",
       "versions": [
         {
           "sha256": "8e53c3d0adb286d03c7a885c62b4d991a8f648724504f76f2108ff9c421c4d9a",
@@ -361,11 +361,20 @@
             "ascend": 1,
             "papers": 0
           }
+        },
+        {
+          "sha256": "67e17707393e20c6375135036cfa85c8a1e592eda24ddb7688e3d6ab9c695ff8",
+          "path": "2026-11-14/67e17707393e20c6375135036cfa85c8a1e592eda24ddb7688e3d6ab9c695ff8/report.json",
+          "counts": {
+            "upstream": 26,
+            "ascend": 1,
+            "papers": 0
+          }
         }
       ]
     },
     "2026-11-15": {
-      "current": "0bd3d3b130152e6f3d4ff068cb2acca5214c5ebb3b68f1ac19a36d5dee03e789",
+      "current": "2fc6b0de3c35895956e1390fa8c9d75a5559f4cfea599b553258b97df46f4153",
       "versions": [
         {
           "sha256": "0bd3d3b130152e6f3d4ff068cb2acca5214c5ebb3b68f1ac19a36d5dee03e789",
@@ -375,11 +384,20 @@
             "ascend": 0,
             "papers": 0
           }
+        },
+        {
+          "sha256": "2fc6b0de3c35895956e1390fa8c9d75a5559f4cfea599b553258b97df46f4153",
+          "path": "2026-11-15/2fc6b0de3c35895956e1390fa8c9d75a5559f4cfea599b553258b97df46f4153/report.json",
+          "counts": {
+            "upstream": 8,
+            "ascend": 0,
+            "papers": 0
+          }
         }
       ]
     },
     "2026-11-16": {
-      "current": "d2678efe2393164ed290c70b8fb6a89d113cdb3703a607db1a6e64354fae6d54",
+      "current": "f9d444f8836cf616dbb510059c29da405f66a9fb2a18a9f519e59e0085172327",
       "versions": [
         {
           "sha256": "d2678efe2393164ed290c70b8fb6a89d113cdb3703a607db1a6e64354fae6d54",
@@ -389,11 +407,20 @@
             "ascend": 5,
             "papers": 0
           }
+        },
+        {
+          "sha256": "f9d444f8836cf616dbb510059c29da405f66a9fb2a18a9f519e59e0085172327",
+          "path": "2026-11-16/f9d444f8836cf616dbb510059c29da405f66a9fb2a18a9f519e59e0085172327/report.json",
+          "counts": {
+            "upstream": 23,
+            "ascend": 5,
+            "papers": 0
+          }
         }
       ]
     },
     "2026-11-17": {
-      "current": "5d347de85fef0fa92b40eb834e0a26447844d21ccf3a13d7ba6ebc3357f0cee8",
+      "current": "33661be8bbf3338c688d0227fd2c0322e4294d7de02334bb1ae3842fac99cfff",
       "versions": [
         {
           "sha256": "5d347de85fef0fa92b40eb834e0a26447844d21ccf3a13d7ba6ebc3357f0cee8",
@@ -403,11 +430,20 @@
             "ascend": 5,
             "papers": 0
           }
+        },
+        {
+          "sha256": "33661be8bbf3338c688d0227fd2c0322e4294d7de02334bb1ae3842fac99cfff",
+          "path": "2026-11-17/33661be8bbf3338c688d0227fd2c0322e4294d7de02334bb1ae3842fac99cfff/report.json",
+          "counts": {
+            "upstream": 32,
+            "ascend": 5,
+            "papers": 0
+          }
         }
       ]
     },
     "2026-11-18": {
-      "current": "b362b9e070b9ffc7e17fcf9ec55a076b19da5c283d982365bb0174cddb00b068",
+      "current": "d8db06dde8101c5c37ce91b1c26617052fa58a291440fd51816f4cd6130c4822",
       "versions": [
         {
           "sha256": "b362b9e070b9ffc7e17fcf9ec55a076b19da5c283d982365bb0174cddb00b068",
@@ -417,11 +453,20 @@
             "ascend": 8,
             "papers": 0
           }
+        },
+        {
+          "sha256": "d8db06dde8101c5c37ce91b1c26617052fa58a291440fd51816f4cd6130c4822",
+          "path": "2026-11-18/d8db06dde8101c5c37ce91b1c26617052fa58a291440fd51816f4cd6130c4822/report.json",
+          "counts": {
+            "upstream": 24,
+            "ascend": 8,
+            "papers": 0
+          }
         }
       ]
     },
     "2026-11-19": {
-      "current": "b0e834f019cc7aed0b434e52dbbb32acd9f39a70dc7393e73636679abb8f0ad2",
+      "current": "71d8612205916e560ac76d3573aa68f5e0e0f44f5cbafa25f3a8ba2fa9a1939c",
       "versions": [
         {
           "sha256": "b0e834f019cc7aed0b434e52dbbb32acd9f39a70dc7393e73636679abb8f0ad2",
@@ -431,11 +476,20 @@
             "ascend": 9,
             "papers": 0
           }
+        },
+        {
+          "sha256": "71d8612205916e560ac76d3573aa68f5e0e0f44f5cbafa25f3a8ba2fa9a1939c",
+          "path": "2026-11-19/71d8612205916e560ac76d3573aa68f5e0e0f44f5cbafa25f3a8ba2fa9a1939c/report.json",
+          "counts": {
+            "upstream": 43,
+            "ascend": 9,
+            "papers": 0
+          }
         }
       ]
     },
     "2026-11-20": {
-      "current": "77f9eb813fce957fecddb30d9e03aa2e0de2deee5e8d5729518c6a748f76a43e",
+      "current": "657b48f26fd401e93ce014ba59d8ab26cf53f118cfaedc8c09743be4a103af42",
       "versions": [
         {
           "sha256": "77f9eb813fce957fecddb30d9e03aa2e0de2deee5e8d5729518c6a748f76a43e",
@@ -445,11 +499,20 @@
             "ascend": 14,
             "papers": 0
           }
+        },
+        {
+          "sha256": "657b48f26fd401e93ce014ba59d8ab26cf53f118cfaedc8c09743be4a103af42",
+          "path": "2026-11-20/657b48f26fd401e93ce014ba59d8ab26cf53f118cfaedc8c09743be4a103af42/report.json",
+          "counts": {
+            "upstream": 40,
+            "ascend": 14,
+            "papers": 0
+          }
         }
       ]
     },
     "2026-11-21": {
-      "current": "d99714d13181b3e643bd0de48d09edc1822db9947bc0496b8ff5574592fb12e6",
+      "current": "bb57f3ab2ea26792c2b235d7d42e77f4817466f08347747392ccd9e5cbea06dc",
       "versions": [
         {
           "sha256": "d99714d13181b3e643bd0de48d09edc1822db9947bc0496b8ff5574592fb12e6",
@@ -459,11 +522,20 @@
             "ascend": 2,
             "papers": 0
           }
+        },
+        {
+          "sha256": "bb57f3ab2ea26792c2b235d7d42e77f4817466f08347747392ccd9e5cbea06dc",
+          "path": "2026-11-21/bb57f3ab2ea26792c2b235d7d42e77f4817466f08347747392ccd9e5cbea06dc/report.json",
+          "counts": {
+            "upstream": 10,
+            "ascend": 2,
+            "papers": 0
+          }
         }
       ]
     },
     "2026-11-22": {
-      "current": "a9aabdaf0823e20265adfdbd88cd2daf6dcb6d29f0d7b6b325fb7a1370a8f855",
+      "current": "aa505691550c1c8c002002de59bd3814d139df3bd1c211cdb92021756fbb684c",
       "versions": [
         {
           "sha256": "a9aabdaf0823e20265adfdbd88cd2daf6dcb6d29f0d7b6b325fb7a1370a8f855",
@@ -473,11 +545,20 @@
             "ascend": 0,
             "papers": 0
           }
+        },
+        {
+          "sha256": "aa505691550c1c8c002002de59bd3814d139df3bd1c211cdb92021756fbb684c",
+          "path": "2026-11-22/aa505691550c1c8c002002de59bd3814d139df3bd1c211cdb92021756fbb684c/report.json",
+          "counts": {
+            "upstream": 4,
+            "ascend": 0,
+            "papers": 0
+          }
         }
       ]
     },
     "2026-11-23": {
-      "current": "ba4657afdd16e0f65555fa94a26a0489526bf1f8211f3f4e9d07bc05814aefd4",
+      "current": "34358849734445c02b727c920c2dbf44d0bbdaf01f3c56445c6eea4b7d801d16",
       "versions": [
         {
           "sha256": "ba4657afdd16e0f65555fa94a26a0489526bf1f8211f3f4e9d07bc05814aefd4",
@@ -487,15 +568,33 @@
             "ascend": 14,
             "papers": 0
           }
+        },
+        {
+          "sha256": "34358849734445c02b727c920c2dbf44d0bbdaf01f3c56445c6eea4b7d801d16",
+          "path": "2026-11-23/34358849734445c02b727c920c2dbf44d0bbdaf01f3c56445c6eea4b7d801d16/report.json",
+          "counts": {
+            "upstream": 8,
+            "ascend": 14,
+            "papers": 0
+          }
         }
       ]
     },
     "2026-11-24": {
-      "current": "f2be123e128c64d7303bda9daf3b741c6c5458a5b62d6f724f2cbed980c866ae",
+      "current": "fc7c87d675badef2d4d3484f86c9b0e2b7d29d8c8f8285f3fe32888351cd1575",
       "versions": [
         {
           "sha256": "f2be123e128c64d7303bda9daf3b741c6c5458a5b62d6f724f2cbed980c866ae",
           "path": "2026-11-24/f2be123e128c64d7303bda9daf3b741c6c5458a5b62d6f724f2cbed980c866ae/report.json",
+          "counts": {
+            "upstream": 29,
+            "ascend": 10,
+            "papers": 0
+          }
+        },
+        {
+          "sha256": "fc7c87d675badef2d4d3484f86c9b0e2b7d29d8c8f8285f3fe32888351cd1575",
+          "path": "2026-11-24/fc7c87d675badef2d4d3484f86c9b0e2b7d29d8c8f8285f3fe32888351cd1575/report.json",
           "counts": {
             "upstream": 29,
             "ascend": 10,

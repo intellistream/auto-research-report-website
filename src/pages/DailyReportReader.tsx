@@ -296,7 +296,10 @@ export default function DailyReportReader({
             {report.pipelineStatus ? (
               <span className="reader-status-pill">
                 系统日报 · {report.publicationStatus === "reviewed" ? "已复核发布" : "预览"} ·{" "}
-                {pipelineStatuses[report.pipelineStatus]}
+                {report.sourceReview
+                  ? report.sections.some((item) => item.blocks.some((block) => block.kind === "entry" && block.needsReview))
+                    ? "仍有条目待补证据" : "待核对项已核完"
+                  : pipelineStatuses[report.pipelineStatus]}
               </span>
             ) : (
               <span className="reader-status-pill subtle">历史归档研报</span>
@@ -599,6 +602,23 @@ export default function DailyReportReader({
                             ),
                           )}
                         </div>
+
+                        {block.sourceReview && (
+                          <details className="reader-source-review">
+                            <summary>
+                              {block.sourceReview.status === "corrected" ? "专家修订后通过" :
+                                block.sourceReview.status === "passed" ? "专家核对通过" : "核对后仍待补证据"}
+                              {" · "}{block.sourceReview.reviewedAt.slice(0, 10)}
+                            </summary>
+                            <p>{block.sourceReview.summary}</p>
+                            <p>审核：{block.sourceReview.reviewer}</p>
+                            <div className="source-foot-links">
+                              {block.sourceReview.sources.map((url, index) => (
+                                <RichParts key={url} parts={[{ text: `核对依据 ${index + 1}`, url }]} />
+                              ))}
+                            </div>
+                          </details>
+                        )}
 
                         {sourceRows.length > 0 && (
                           <footer className="reader-entry-sources">
