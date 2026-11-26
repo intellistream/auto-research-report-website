@@ -1,0 +1,991 @@
+{
+  "schemaVersion": 1,
+  "version": "mod-eight-stages/1",
+  "reviewedOn": "2026-11-26",
+  "definitionSource": "首页 InferenceMap 与 OverviewPage 的现行八环节；现复用 src/inference-stages.json，保持 ID、名称及顺序。",
+  "taxonomySha256": "8a29c179de16e8667c3cdce5e3b5bbee05cd880b2e7b708ac39a7646ca8d8e76",
+  "note": "只按已披露的执行位置映射；未映射项保留在目录，不计入环节关联。来源的状态生命周期、观测与服务管理分类另存，不作为额外推理环节。映射不代表运行效果或性能已验证。",
+  "mods": {
+    "adm": {
+      "stages": [
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 prefill/decode；实现摘要为 DP 调度元数据在多 rank 间的一次 CPU all-reduce。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill",
+        "decode"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/11/summary_zh",
+          "identityValue": "adm",
+          "valueSha256": "b5e88f09c12405ec25460c9b1651d33198a1fd93c9289681e19e2f6eb1fdff60"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/adm/phases",
+          "identityValue": "adm",
+          "valueSha256": "e39fdcfd6de508b7eb5dc065f2681e4018b93939d938f5b9fe9645b2458f559b"
+        }
+      ]
+    },
+    "ascend-attention-boundary": {
+      "stages": [
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 prefill/decode；摘要披露 Ascend 注意力执行边界组件，不扩展到输出或回收。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill",
+        "decode"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/43/summary_zh",
+          "identityValue": "ascend-attention-boundary",
+          "valueSha256": "ed282d437b5139f670bd8fcf8f5acfd10939cad40e1231e65b1f5556bc3696bd"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/ascend-attention-boundary/phases",
+          "identityValue": "ascend-attention-boundary",
+          "valueSha256": "e39fdcfd6de508b7eb5dc065f2681e4018b93939d938f5b9fe9645b2458f559b"
+        }
+      ]
+    },
+    "ascend-quant-toolkit": {
+      "stages": [
+        "startup"
+      ],
+      "status": "mapped",
+      "basis": "摘要明确离线 Ascend 模型量化产物及混合精度 recipe 准备，属于模型准备；不表示在线执行或性能已验收。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "offline_preparation"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/16/summary_zh",
+          "identityValue": "ascend-quant-toolkit",
+          "valueSha256": "f4e8acb125a083523f92ad2de1f9089987696730656c2e1813a0e765f307f5d7"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/ascend-quant-toolkit/phases",
+          "identityValue": "ascend-quant-toolkit",
+          "valueSha256": "346fa58bb81eb89b7caa843c261524993f1e30d6ffee6453a373f0cc16c80543"
+        }
+      ]
+    },
+    "betterscale": {
+      "stages": [
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 prefill/decode；摘要披露多卡异步执行和驻留状态路径。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill",
+        "decode"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/69/summary_zh",
+          "identityValue": "betterscale",
+          "valueSha256": "5384966fcaf83b750b05ddf1965933bc38acd0ed866cf1d6e8a2ff400e562f17"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/betterscale/phases",
+          "identityValue": "betterscale",
+          "valueSha256": "e39fdcfd6de508b7eb5dc065f2681e4018b93939d938f5b9fe9645b2458f559b"
+        }
+      ]
+    },
+    "bidkv": {
+      "stages": [
+        "scheduling"
+      ],
+      "status": "mapped",
+      "basis": "摘要明确调用 preemption-policy API 执行缓存压力下的请求选择；对应请求调度。state_lifecycle 不等于请求结束后的回收。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "request_admission",
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/12/summary_zh",
+          "identityValue": "bidkv",
+          "valueSha256": "ee6902d9eeb0fce7abd54d6cffa82c7900ade7e7a5a762292f4a969c5032a35b"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/bidkv/phases",
+          "identityValue": "bidkv",
+          "valueSha256": "749b32aa85a49b1834513187181950a8fa30880d4c2db31384a4986e31a11506"
+        }
+      ]
+    },
+    "capacity-tuning": {
+      "stages": [
+        "scheduling",
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 request_admission/prefill/decode；摘要描述执行席位与常驻席位容量，保持这三个已声明作用位置。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "request_admission",
+        "prefill",
+        "decode"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/63/summary_zh",
+          "identityValue": "capacity-tuning",
+          "valueSha256": "50f7fd8491c14310b2f07e9f04a81b51ac4e9bd2b2ae2139a4cb6f813e122264"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/capacity-tuning/phases",
+          "identityValue": "capacity-tuning",
+          "valueSha256": "16e766894e65138a7c96627ab6ba1eca91ddac88d7c995d5c86565c5aaad6307"
+        }
+      ]
+    },
+    "core-attention-boundary": {
+      "stages": [
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 prefill/decode；公开摘要为 Core 注意力边界搜索，归属不表示窗口级生效或因果收益已证明。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill",
+        "decode"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/49/summary_zh",
+          "identityValue": "core-attention-boundary",
+          "valueSha256": "ce93f50134cb0afaf42d2e4ea608b05f08496642fc6714e956e74215f7900add"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/core-attention-boundary/phases",
+          "identityValue": "core-attention-boundary",
+          "valueSha256": "e39fdcfd6de508b7eb5dc065f2681e4018b93939d938f5b9fe9645b2458f559b"
+        }
+      ]
+    },
+    "diffspec": {
+      "stages": [
+        "decode",
+        "speculative"
+      ],
+      "status": "mapped",
+      "basis": "官网 decode 加上摘要中明确的 Eagle3 target/draft、草稿 KV 检索和验证路径，分别对应循环生成与推测解码。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "decode"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/13/summary_zh",
+          "identityValue": "diffspec",
+          "valueSha256": "ce5e5c08b87b10f577dea0a781f86d464b3bf5e4de640a2da212519379d504e5"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/diffspec/phases",
+          "identityValue": "diffspec",
+          "valueSha256": "7447fec72326d4134aa9593caac6c881142bb2e6018cdfaff673cb5e5644e462"
+        }
+      ]
+    },
+    "dla": {
+      "stages": [
+        "scheduling"
+      ],
+      "status": "mapped",
+      "basis": "摘要明确输出长度感知的请求准入与抢占，phases 为 request_admission；不因输出预算而计入输出返回。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "request_admission"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/74/summary_zh",
+          "identityValue": "dla",
+          "valueSha256": "e818f7db714bc5702114261ef9670cd5a295ca4192ec0f264a4beddb01079c89"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/dla/phases",
+          "identityValue": "dla",
+          "valueSha256": "3c1d0d9483cadad1da2d35e026156f56ab7de13e14f44b0abb590f69dbef1b95"
+        }
+      ]
+    },
+    "gdn-state-codec": {
+      "stages": [
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 decode；摘要为循环状态编解码。状态生命周期只作辅助分类，不自动计为回收。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "decode",
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/44/summary_zh",
+          "identityValue": "gdn-state-codec",
+          "valueSha256": "e80d9622daf85ddf44d1ce2a1e7b5cf0c3fd8d9bf0b44ace5bc276c8d5f16bca"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/gdn-state-codec/phases",
+          "identityValue": "gdn-state-codec",
+          "valueSha256": "c629bc933e66690a7550f920884444da9e0e17977655aff86df5a606856dfb12"
+        }
+      ]
+    },
+    "graph-coverage": {
+      "stages": [
+        "startup",
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "摘要明确引擎构造前应用图捕获配置，并覆盖实际 query-token 批次；官网 phases 声明 service_startup/prefill/decode。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "service_startup",
+        "prefill",
+        "decode"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/56/summary_zh",
+          "identityValue": "graph-coverage",
+          "valueSha256": "f16de9b608b8398ad5341be9fca1fa0718c3e20fdcf541795c9d4d87d0d54f51"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/graph-coverage/phases",
+          "identityValue": "graph-coverage",
+          "valueSha256": "0eda1524667de5ddeab4e535f4ce70b60c78c41d4fa90e33e75d4de2994f613f"
+        }
+      ]
+    },
+    "guarded-progress-async": {
+      "stages": [],
+      "status": "unmapped",
+      "basis": "公开摘要仅定位到 CorrectedWorker 中受保护的 H2D 进度复制及源生命周期检查，未区分具体 prefill/decode/结束回收时点。",
+      "unmappedReason": "公开摘要仅定位到 CorrectedWorker 中受保护的 H2D 进度复制及源生命周期检查，未区分具体 prefill/decode/结束回收时点。",
+      "sourcePhases": [
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/62/summary_zh",
+          "identityValue": "guarded-progress-async",
+          "valueSha256": "fc0cd17b0a79dae119fd2d29c0368a841f800788332690a6fa5203e9663e81ed"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/guarded-progress-async/phases",
+          "identityValue": "guarded-progress-async",
+          "valueSha256": "e3a64746d2cefa4196dfdd1868da22f9ea0c203654e8838e12446a588c0b99c3"
+        }
+      ]
+    },
+    "hust-joint-packed": {
+      "stages": [],
+      "status": "unmapped",
+      "basis": "摘要仅披露每 rank 按对象与 dtype 合并锁页主机状态分配，未说明分配发生的具体推理步骤；不能将状态管理直接当作资源回收。",
+      "unmappedReason": "摘要仅披露每 rank 按对象与 dtype 合并锁页主机状态分配，未说明分配发生的具体推理步骤；不能将状态管理直接当作资源回收。",
+      "sourcePhases": [
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/60/summary_zh",
+          "identityValue": "hust-joint-packed",
+          "valueSha256": "33e1f43ddead4fa889a32b8e9ebe76d9c5e0fd5f7deca270c4a59c375c133f3b"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/hust-joint-packed/phases",
+          "identityValue": "hust-joint-packed",
+          "valueSha256": "e3a64746d2cefa4196dfdd1868da22f9ea0c203654e8838e12446a588c0b99c3"
+        }
+      ]
+    },
+    "hust-m01-correction": {
+      "stages": [],
+      "status": "unmapped",
+      "basis": "摘要披露 CorrectedWorker 的请求状态校正与活动快照校验，未明确所处八环节或各环节调用范围。",
+      "unmappedReason": "摘要披露 CorrectedWorker 的请求状态校正与活动快照校验，未明确所处八环节或各环节调用范围。",
+      "sourcePhases": [
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/59/summary_zh",
+          "identityValue": "hust-m01-correction",
+          "valueSha256": "57b9ce34f504a943b36f39ce2a504937f18a610473930918fd84fc773d2078ed"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/hust-m01-correction/phases",
+          "identityValue": "hust-m01-correction",
+          "valueSha256": "e3a64746d2cefa4196dfdd1868da22f9ea0c203654e8838e12446a588c0b99c3"
+        }
+      ]
+    },
+    "intern-s2": {
+      "stages": [
+        "startup",
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 service_startup/prefill/decode；摘要为专用 worker、词表检查与模型接入，保留这三处来源声明。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "service_startup",
+        "prefill",
+        "decode"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/65/summary_zh",
+          "identityValue": "intern-s2",
+          "valueSha256": "bd9497a0f76725a7c424c1c08f70deed0443dd803247c73dd9934ebbcd732266"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/intern-s2/phases",
+          "identityValue": "intern-s2",
+          "valueSha256": "0eda1524667de5ddeab4e535f4ce70b60c78c41d4fa90e33e75d4de2994f613f"
+        }
+      ]
+    },
+    "kv-materialization-arrival-control": {
+      "stages": [
+        "scheduling"
+      ],
+      "status": "mapped",
+      "basis": "摘要明确请求到达时选择 full-reuse、partial-reuse 或 recompute，并有真实 scheduler 决策；不把状态恢复泛化为 P/D 交接或结束回收。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "request_admission",
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/39/summary_zh",
+          "identityValue": "kv-materialization-arrival-control",
+          "valueSha256": "2557258efb2ca8e9bf839fb99495e5c171b1e818eca616ebd0aa889107295cff"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/kv-materialization-arrival-control/phases",
+          "identityValue": "kv-materialization-arrival-control",
+          "valueSha256": "749b32aa85a49b1834513187181950a8fa30880d4c2db31384a4986e31a11506"
+        }
+      ]
+    },
+    "kv-transfer-observability-migration": {
+      "stages": [],
+      "status": "unmapped",
+      "basis": "摘要为 Worker 回执与重新入队、准入、首次计算的恢复链观测；未明确属于 Prefill/Decode 分离传输，不能仅凭 KV transfer 名称映射 P/D 交接。",
+      "unmappedReason": "摘要为 Worker 回执与重新入队、准入、首次计算的恢复链观测；未明确属于 Prefill/Decode 分离传输，不能仅凭 KV transfer 名称映射 P/D 交接。",
+      "sourcePhases": [
+        "observability",
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/30/summary_zh",
+          "identityValue": "kv-transfer-observability-migration",
+          "valueSha256": "af55c8d3be0eb842fbd107875613416f2275716424536caa58eb7301ca1b8d5f"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/kv-transfer-observability-migration/phases",
+          "identityValue": "kv-transfer-observability-migration",
+          "valueSha256": "72875930e6319fc9b81d384ab516c972443a835bf712b0ee636facace46662c7"
+        }
+      ]
+    },
+    "kvcompress-ascend": {
+      "stages": [
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 prefill/decode；摘要为运行时 KV 状态转换和逐层压缩，state_lifecycle 留作辅助资料。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill",
+        "decode",
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/17/summary_zh",
+          "identityValue": "kvcompress-ascend",
+          "valueSha256": "39ec827008c9637d7e226ce0318c01c09fb4915e8aabceb0ed7ee52b6e95b400"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/kvcompress-ascend/phases",
+          "identityValue": "kvcompress-ascend",
+          "valueSha256": "1f25dbff4aa322da5a440c267f3207306339975e0a566a8e9695bcdf8c40ba0a"
+        }
+      ]
+    },
+    "latchmoe": {
+      "stages": [
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 prefill/decode；摘要为执行时的 MoE 专家权重卸载，而非仅离线模型准备。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill",
+        "decode"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/71/summary_zh",
+          "identityValue": "latchmoe",
+          "valueSha256": "f103462dceca4c6a4e245e474bb8e9f3b87552983cbce3d03ee070c5a0567476"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/latchmoe/phases",
+          "identityValue": "latchmoe",
+          "valueSha256": "e39fdcfd6de508b7eb5dc065f2681e4018b93939d938f5b9fe9645b2458f559b"
+        }
+      ]
+    },
+    "llm-serving-cost-pricing-model": {
+      "stages": [],
+      "status": "unmapped",
+      "basis": "摘要与适用条件明确是用户自有离线服务成本/定价分析 CLI、inspect-only 且拒绝运行时启用；offline_preparation 不足以证明它准备模型。",
+      "unmappedReason": "摘要与适用条件明确是用户自有离线服务成本/定价分析 CLI、inspect-only 且拒绝运行时启用；offline_preparation 不足以证明它准备模型。",
+      "sourcePhases": [
+        "offline_preparation",
+        "observability"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/37/summary_zh",
+          "identityValue": "llm-serving-cost-pricing-model",
+          "valueSha256": "8c09fbced461826b9fe3ed029e3c0d34e434c032d2a9e4e4ac1d43870ca34d38"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/llm-serving-cost-pricing-model/phases",
+          "identityValue": "llm-serving-cost-pricing-model",
+          "valueSha256": "128d1eb77ec56c8e0ddad4838f871cd1c801b49b86ea76f2fde46c20edc23839"
+        }
+      ]
+    },
+    "memory-tracker": {
+      "stages": [],
+      "status": "unmapped",
+      "basis": "摘要明确采集计算图捕获显存并导出轨迹，但未明确捕获发生的准备/运行时点；观测工具不据此强行归入模型准备或其他步骤。",
+      "unmappedReason": "摘要明确采集计算图捕获显存并导出轨迹，但未明确捕获发生的准备/运行时点；观测工具不据此强行归入模型准备或其他步骤。",
+      "sourcePhases": [
+        "observability"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/79/summary_zh",
+          "identityValue": "memory-tracker",
+          "valueSha256": "5c0d33b26b848de5eb23d94ec090ea6c37c58e839d931f3486be9eec7ff6dc10"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/memory-tracker/phases",
+          "identityValue": "memory-tracker",
+          "valueSha256": "064e1df1ef4dd561de7aec5efa7a613718405b4f8895fc89f638d2f6337510ec"
+        }
+      ]
+    },
+    "muxpd": {
+      "stages": [
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "摘要明确按模型层推进完整 prompt 的 prefill、独立 decode runner 生成；无跨实例 KV 交接的明确依据，不因名称含 PD 就增加 P/D 交接。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill",
+        "decode"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/50/summary_zh",
+          "identityValue": "muxpd",
+          "valueSha256": "a5cf52a67707cac871611239e2ff88075cf64235fc71ce92bfbd4c149aac7247"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/muxpd/phases",
+          "identityValue": "muxpd",
+          "valueSha256": "e39fdcfd6de508b7eb5dc065f2681e4018b93939d938f5b9fe9645b2458f559b"
+        }
+      ]
+    },
+    "pegaflow-vllm-connectors": {
+      "stages": [],
+      "status": "unmapped",
+      "basis": "摘要披露外部 PegaFlow KV save/load 和 Ascend 适配，未单列八环节调用时点，也未证明是 Prefill/Decode 分离传输；数据生命周期由外部服务负责。",
+      "unmappedReason": "摘要披露外部 PegaFlow KV save/load 和 Ascend 适配，未单列八环节调用时点，也未证明是 Prefill/Decode 分离传输；数据生命周期由外部服务负责。",
+      "sourcePhases": [
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/10/summary_zh",
+          "identityValue": "pegaflow-vllm-connectors",
+          "valueSha256": "c7b7753f829a2a07a310cdff37393a906c71f12dbe14783df3be5c0df5536ba8"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/pegaflow-vllm-connectors/phases",
+          "identityValue": "pegaflow-vllm-connectors",
+          "valueSha256": "e3a64746d2cefa4196dfdd1868da22f9ea0c203654e8838e12446a588c0b99c3"
+        }
+      ]
+    },
+    "pipeline-microbatch-migration": {
+      "stages": [
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 prefill/decode；摘要披露流水并行 microbatch 研究载体，跨组件不等于新增流程环节。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill",
+        "decode"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/33/summary_zh",
+          "identityValue": "pipeline-microbatch-migration",
+          "valueSha256": "b5e84aa548c2ceb2a89aba56e78fe6a7604bb51499b9fde37f1474614aecc465"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/pipeline-microbatch-migration/phases",
+          "identityValue": "pipeline-microbatch-migration",
+          "valueSha256": "e39fdcfd6de508b7eb5dc065f2681e4018b93939d938f5b9fe9645b2458f559b"
+        }
+      ]
+    },
+    "prefill-admission": {
+      "stages": [
+        "scheduling",
+        "prefill"
+      ],
+      "status": "mapped",
+      "basis": "摘要明确 long-prefill 阈值控制短请求准入并保留 step token 预算；官网 request_admission/prefill 对应调度与输入处理。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "request_admission",
+        "prefill"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/57/summary_zh",
+          "identityValue": "prefill-admission",
+          "valueSha256": "f05d79fafdbc323c0860bde16d39066a53345a17470d58471f98697b9976e370"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/prefill-admission/phases",
+          "identityValue": "prefill-admission",
+          "valueSha256": "caa44180d05119bc37c54adfc678bf550f3ba1fa97aae72c0349127ea5278dd2"
+        }
+      ]
+    },
+    "prefix-router-migration": {
+      "stages": [
+        "scheduling"
+      ],
+      "status": "mapped",
+      "basis": "摘要明确基于 KV 事件和负载选择 backend；属于请求路由/调度，事件维护与缓存状态不自动映射为结束回收。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "request_admission",
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/18/summary_zh",
+          "identityValue": "prefix-router-migration",
+          "valueSha256": "62c89c679f756666c67dd302ae4da10dbac93546fca5260aa22fd146f3fb5fb1"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/prefix-router-migration/phases",
+          "identityValue": "prefix-router-migration",
+          "valueSha256": "749b32aa85a49b1834513187181950a8fa30880d4c2db31384a4986e31a11506"
+        }
+      ]
+    },
+    "pyramidkv-ascend-migration": {
+      "stages": [
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 prefill/decode；摘要为 query-window 打分与逐层 KV 保留，不据保留一词推导请求结束回收。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill",
+        "decode",
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/21/summary_zh",
+          "identityValue": "pyramidkv-ascend-migration",
+          "valueSha256": "0d40c4bbeb82973182e52b93671cd1bfc515361894e6d87dec58f600a7c6ccf6"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/pyramidkv-ascend-migration/phases",
+          "identityValue": "pyramidkv-ascend-migration",
+          "valueSha256": "1f25dbff4aa322da5a440c267f3207306339975e0a566a8e9695bcdf8c40ba0a"
+        }
+      ]
+    },
+    "quantized-kv-cache-migration": {
+      "stages": [
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 prefill/decode；摘要与已披露验证为动态 INT8 KV 的运行时表示及算子，状态分类另存。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill",
+        "decode",
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/26/summary_zh",
+          "identityValue": "quantized-kv-cache-migration",
+          "valueSha256": "a40787a23786f6a275b0c02ec18b9421b8d7ff505ce7d6729e3e69a445b39598"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/quantized-kv-cache-migration/phases",
+          "identityValue": "quantized-kv-cache-migration",
+          "valueSha256": "1f25dbff4aa322da5a440c267f3207306339975e0a566a8e9695bcdf8c40ba0a"
+        }
+      ]
+    },
+    "request-lifecycle-profiler": {
+      "stages": [],
+      "status": "unmapped",
+      "basis": "公开摘要为 finish/preemption/KV-reclaim 回调的生命周期观测，横跨多个事件且未给出流程优化位置；不把监听结束/回收事件等同于执行输出或回收步骤。",
+      "unmappedReason": "公开摘要为 finish/preemption/KV-reclaim 回调的生命周期观测，横跨多个事件且未给出流程优化位置；不把监听结束/回收事件等同于执行输出或回收步骤。",
+      "sourcePhases": [
+        "observability"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/35/summary_zh",
+          "identityValue": "request-lifecycle-profiler",
+          "valueSha256": "25a8b4762ee9eeb47925f1a10120523f6d4e02561476be17c3fe1a1fd65f28bd"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/request-lifecycle-profiler/phases",
+          "identityValue": "request-lifecycle-profiler",
+          "valueSha256": "064e1df1ef4dd561de7aec5efa7a613718405b4f8895fc89f638d2f6337510ec"
+        }
+      ]
+    },
+    "sealed-serving-warmup": {
+      "stages": [
+        "startup"
+      ],
+      "status": "mapped",
+      "basis": "摘要明确在服务就绪前准备规定编译形状；正式阶段编译封锁是同一预热合同的边界，不扩展到未经定位的具体请求步骤。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "service_startup"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/61/summary_zh",
+          "identityValue": "sealed-serving-warmup",
+          "valueSha256": "c00379a4241c0e8fc9f6f3fb6b659d46280f7e79de94482057cc57e33a08e98f"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/sealed-serving-warmup/phases",
+          "identityValue": "sealed-serving-warmup",
+          "valueSha256": "3607dab851e13b5cdf5f0e5dbcf181451ff1162274b6be1ab9c78fe3217d5b58"
+        }
+      ]
+    },
+    "short-prefill-tail": {
+      "stages": [
+        "prefill"
+      ],
+      "status": "mapped",
+      "basis": "摘要明确优先执行 1–256 token 预填充尾段，官网 phases 为 prefill。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/64/summary_zh",
+          "identityValue": "short-prefill-tail",
+          "valueSha256": "1f7870e7c88c1c1b0c2cfddd238cee4244c083d9502b20a5cd8bad3cfa8048da"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/short-prefill-tail/phases",
+          "identityValue": "short-prefill-tail",
+          "valueSha256": "f06e26177f38ebce08a002250fd537f68d0fa7792edd0648fe64dbba9fc36f78"
+        }
+      ]
+    },
+    "simllm-migration": {
+      "stages": [
+        "prefill"
+      ],
+      "status": "mapped",
+      "basis": "官网 prefill 与摘要中的任务匹配、受限 KV snapshot 和 worker 侧近似前缀复用对应输入处理；state_lifecycle 不是独立流程环节。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill",
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/27/summary_zh",
+          "identityValue": "simllm-migration",
+          "valueSha256": "9058b863f3ec93345a85221162f84a5b2deda58952c02a5a2ce419025d30bd50"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/simllm-migration/phases",
+          "identityValue": "simllm-migration",
+          "valueSha256": "734d4fa14301a66edce1524f20531e267ca937ff7c0f6af6f1ee1f453d94723b"
+        }
+      ]
+    },
+    "slicegpt-migration": {
+      "stages": [
+        "startup"
+      ],
+      "status": "mapped",
+      "basis": "摘要明确离线模型转换 Toolkit 与默认关闭的运行时产物加载器，官网 offline_preparation/service_startup 均归模型准备。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "offline_preparation",
+        "service_startup"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/22/summary_zh",
+          "identityValue": "slicegpt-migration",
+          "valueSha256": "54f6b18f28719bfb659f3794575460f0af5e48aa5881d55dfbafbc8370e6a7f9"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/slicegpt-migration/phases",
+          "identityValue": "slicegpt-migration",
+          "valueSha256": "84ad5e6bdd38b7319a0fa3a916c19988862c1e8a4709cd3adf02a5267b66e56d"
+        }
+      ]
+    },
+    "state-page-copy": {
+      "stages": [],
+      "status": "unmapped",
+      "basis": "摘要仅定位到 R9 worker 共有状态存储和 State FA 页复制，未披露八环节调用位置；不从 state_lifecycle 推导结束回收。",
+      "unmappedReason": "摘要仅定位到 R9 worker 共有状态存储和 State FA 页复制，未披露八环节调用位置；不从 state_lifecycle 推导结束回收。",
+      "sourcePhases": [
+        "state_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/66/summary_zh",
+          "identityValue": "state-page-copy",
+          "valueSha256": "c481c4049b40543354fde5ebecd82df2e87defa34a296c0353bb914d76b08473"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/state-page-copy/phases",
+          "identityValue": "state-page-copy",
+          "valueSha256": "e3a64746d2cefa4196dfdd1868da22f9ea0c203654e8838e12446a588c0b99c3"
+        }
+      ]
+    },
+    "traceloom": {
+      "stages": [],
+      "status": "unmapped",
+      "basis": "摘要为把 profiler 事件关联到调度步骤的时间线分析工具；没有将分析执行位置限定为推理调度环节，不将被观察对象等同工具作用阶段。",
+      "unmappedReason": "摘要为把 profiler 事件关联到调度步骤的时间线分析工具；没有将分析执行位置限定为推理调度环节，不将被观察对象等同工具作用阶段。",
+      "sourcePhases": [
+        "observability"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/70/summary_zh",
+          "identityValue": "traceloom",
+          "valueSha256": "d8d96ebc878430e69c46c17b6a80f9b80d44d4c5255538f645f6b6adc914b5c3"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/traceloom/phases",
+          "identityValue": "traceloom",
+          "valueSha256": "064e1df1ef4dd561de7aec5efa7a613718405b4f8895fc89f638d2f6337510ec"
+        }
+      ]
+    },
+    "unified-communication-migration": {
+      "stages": [
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 prefill/decode；摘要为宿主 communicator 上的集合通信及原生回退，不根据通信生命周期增设服务支撑环节。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill",
+        "decode"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/28/summary_zh",
+          "identityValue": "unified-communication-migration",
+          "valueSha256": "4aabee8fd52611c211a13291eabe7a6ed9074883850feb9e4093f016f650079e"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/unified-communication-migration/phases",
+          "identityValue": "unified-communication-migration",
+          "valueSha256": "e39fdcfd6de508b7eb5dc065f2681e4018b93939d938f5b9fe9645b2458f559b"
+        }
+      ]
+    },
+    "vllm-hust-extension-manager": {
+      "stages": [
+        "startup"
+      ],
+      "status": "mapped",
+      "basis": "摘要为 MOD 发现、兼容性检查、配置和受监管启动，官网明确 service_startup；service_lifecycle 保留作管理范围，不成为第九环节。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "service_startup",
+        "service_lifecycle"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/1/summary_zh",
+          "identityValue": "vllm-hust-extension-manager",
+          "valueSha256": "a48688d15a9c6aea9e9f6eb4178674e470f0b2c1e77d6dab16ec43eda7d6e1bc"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/vllm-hust-extension-manager/phases",
+          "identityValue": "vllm-hust-extension-manager",
+          "valueSha256": "5704298ccdd41597d471573bc72e3800c4590e6f636382e2dc497e4f50418b1d"
+        }
+      ]
+    },
+    "vllm-hust-opset": {
+      "stages": [
+        "prefill",
+        "decode"
+      ],
+      "status": "mapped",
+      "basis": "官网 phases 明确 prefill/decode；摘要为已验证 Graph/Triton 路径中的 MatMul 和 Linear–SwiGLU 算子优化。",
+      "unmappedReason": null,
+      "sourcePhases": [
+        "prefill",
+        "decode"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "public:data__ecosystem.json",
+          "jsonPointer": "/components/45/summary_zh",
+          "identityValue": "vllm-hust-opset",
+          "valueSha256": "16cb2a3bbc8403e3d4c54d10b6f6a12dd3c93e6d775e1f57ea318b168faac0df"
+        },
+        {
+          "sourceId": "public:data__mod-taxonomy.json",
+          "jsonPointer": "/components/vllm-hust-opset/phases",
+          "identityValue": "vllm-hust-opset",
+          "valueSha256": "e39fdcfd6de508b7eb5dc065f2681e4018b93939d938f5b9fe9645b2458f559b"
+        }
+      ]
+    }
+  }
+}

@@ -3,6 +3,7 @@ import {
   Activity,
   ArrowUpRight,
   BookOpen,
+  Boxes,
   CalendarDays,
   Compass,
   Github,
@@ -127,6 +128,7 @@ export default function SiteLayout({
               <BookOpen size={15} aria-hidden />
               技术专题
             </NavLink>
+            <NavLink to="/group-mods"><Boxes size={15} aria-hidden />组内 MOD</NavLink>
             <NavLink to="/research">
               <Search size={15} aria-hidden />
               研究查询
@@ -146,10 +148,10 @@ export default function SiteLayout({
               type="button"
               className="site-search-trigger"
               onClick={() => setSearchOpen(true)}
-              aria-label="全局检索 PR、日报与专题（快捷键 Ctrl+K）"
+              aria-label="全局检索 PR、日报、专题与 MOD（快捷键 Ctrl+K）"
             >
               <Search size={15} aria-hidden />
-              <span className="site-search-placeholder">检索 PR / 日报 / 专题…</span>
+              <span className="site-search-placeholder">检索 PR / 日报 / 专题 / MOD…</span>
               <kbd aria-hidden="true">Ctrl K</kbd>
             </button>
 
@@ -189,6 +191,7 @@ export default function SiteLayout({
               <BookOpen size={16} aria-hidden />
               技术专题
             </NavLink>
+            <NavLink to="/group-mods"><Boxes size={15} aria-hidden />组内 MOD</NavLink>
             <NavLink to="/research">
               <Search size={16} aria-hidden />
               研究查询

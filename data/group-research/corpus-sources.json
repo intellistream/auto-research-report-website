@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "rulesVersion": "community-corpus/1",
+  "scope": "站内当前日报及实际专题路由消费的 PR 材料；离线重建，不抓取 GitHub，不改变首页统计。",
+  "daily": {
+    "catalog": "public/word-reports/catalog.json",
+    "flowIndex": "public/word-reports/flow-index.json",
+    "versionPolicy": "catalog_current_only",
+    "identityPolicy": "explicit_workId_then_single_PR_link; additional_links_are_references",
+    "referenceKinds": [
+      "prerequisite",
+      "dependency",
+      "comparison",
+      "related",
+      "unclassified"
+    ]
+  },
+  "implementationSources": [
+    "scripts/lib/community-corpus.mjs",
+    "scripts/build-community-corpus.mjs"
+  ],
+  "runtime": {
+    "entryPoint": "src/pages/TopicPages.tsx",
+    "indexLoader": "src/pages/DocxPreview.tsx",
+    "indexRequest": "topics.json",
+    "staticJson": [
+      "src/pages/aclgraph-dynamic-report.json",
+      "src/pages/kv-cache-study.json",
+      "src/pages/kv-community.json",
+      "src/pages/kv-overview.json",
+      "src/pages/kv-research.json",
+      "src/pages/kv-synthesis.json",
+      "src/pages/kv-weekly.json"
+    ],
+    "globs": [
+      {
+        "module": "src/pages/specdec-weekly.ts",
+        "pattern": "../../topics/speculative-decoding/weekly/*.json",
+        "directory": "topics/speculative-decoding/weekly",
+        "suffix": ".json",
+        "adapter": "specdec_weekly",
+        "selection": "all direct JSON editions loaded by import.meta.glob, including reachable archives"
+      }
+    ]
+  },
+  "topicSources": [
+    {
+      "id": "published-topic-index",
+      "path": "public/word-reports/topics.json",
+      "adapter": "topic_index",
+      "excludeTopicIds": [
+        "kv-cache"
+      ],
+      "include": [
+        "topics[id!=kv-cache].entries",
+        "report.references[kind=pr]",
+        "report.pendingEvidence",
+        "report.evidenceDetails and cited report sections/taxonomy/gaps/bottleneckMigration/conclusions"
+      ],
+      "boundary": "TopicPages filters kv-cache out of archiveTopics; ACL legacy report and speculative-decoding initial report remain reachable. Paper/documentation references never become PR identities."
+    },
+    {
+      "id": "aclgraph-dynamic",
+      "path": "src/pages/aclgraph-dynamic-report.json",
+      "adapter": "aclgraph",
+      "include": [
+        "allTrackedPrs",
+        "featuredPrs",
+        "baselineUpdates",
+        "insights via featuredSlugs",
+        "nextWatchlist via tracked watchPrs"
+      ],
+      "boundary": "Only the current imported report; legacyArchive paths do not expand the corpus."
+    },
+    {
+      "id": "kv-research",
+      "path": "src/pages/kv-research.json",
+      "adapter": "kv_research",
+      "include": [
+        "entries[kind=pr && decision=included]"
+      ],
+      "boundary": "filterResearch/ communityEntries admit included PRs; excluded and pending review records and papers are excluded."
+    },
+    {
+      "id": "kv-community",
+      "path": "src/pages/kv-community.json",
+      "adapter": "kv_community",
+      "include": [
+        "newEntries[kind=pr && decision=included]",
+        "snapshots/stories/evidenceReview.checks for communityEntries membership",
+        "observations/followUps via admitted stories/ids"
+      ],
+      "boundary": "communityEntries is the included kv-research PRs plus admitted newEntries. search.candidates is a raw search receipt, never a material library."
+    },
+    {
+      "id": "kv-method-study",
+      "path": "src/pages/kv-cache-study.json",
+      "adapter": "kv_study",
+      "include": [
+        "methods",
+        "sources with explicit PR URLs",
+        "observations/questions linked through method numbers"
+      ],
+      "boundary": "Source documentation blob/tree URLs and papers are retained only inside original source records, never counted as PRs."
+    },
+    {
+      "id": "kv-overview",
+      "path": "src/pages/kv-overview.json",
+      "adapter": "kv_overview",
+      "include": [
+        "judgments/directions/validation.evidence.prs resolved through communityEntries",
+        "evidence.sources resolved through kv-weekly.sources[kind=pr]"
+      ],
+      "boundary": "Same resolution as KvTopicOverview.References; unresolved IDs, paper slugs, and issue/proposal sources do not add PRs."
+    },
+    {
+      "id": "kv-synthesis",
+      "path": "src/pages/kv-synthesis.json",
+      "adapter": "kv_synthesis",
+      "include": [
+        "groups.engineeringIds resolved through included communityEntries and group topic"
+      ],
+      "boundary": "Matches KvResearchOverview engineering selection; paper comparison rows do not add PR identities."
+    },
+    {
+      "id": "kv-weekly",
+      "path": "src/pages/kv-weekly.json",
+      "adapter": "kv_weekly",
+      "include": [
+        "sources[kind=pr]",
+        "revisions linked to admitted PRs",
+        "reports.questions/progress via sourceIds"
+      ],
+      "boundary": "Paper and proposal sources stay separate; a code recheck URL is attached to its declared workId rather than treated as a PR URL."
+    }
+  ],
+  "exclusions": [
+    "Non-current daily versions, fixtures, synthetic/legacy public/data samples, and arbitrary repository JSON are not scanned.",
+    "public/word-reports/topics.json topics[id=kv-cache] is superseded by KvCacheTopic.",
+    "kv-research entries with decision=excluded/pending, and all paper entries.",
+    "kv-community.search.candidates and search receipts are not collected material.",
+    "ACL legacyArchive artifact paths and unimported topic drafts are not followed.",
+    "GitHub issues, blobs, trees, commits, release links and papers cannot be normalized to PR identities."
+  ]
+}

@@ -4,3 +4,6 @@ dist/
 *.tsbuildinfo
 .vite/
 .DS_Store
+
+# Local verification and withdrawn public-history audit
+.qa/

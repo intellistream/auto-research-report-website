@@ -11,6 +11,7 @@ const DailyReportReader = lazy(() => import("./DailyReportReader"));
 const TopicPages = lazy(() => import("./TopicPages"));
 const Contributors = lazy(() => import("./Contributors"));
 const ResearchQuery = lazy(() => import("./ResearchQuery"));
+const GroupMods = lazy(() => import("./GroupMods"));
 
 function ReaderRoute({ catalog, days }: { catalog: Catalog; days: string[] }) {
   const { day: requestedDay } = useParams();
@@ -38,9 +39,10 @@ function ReaderRoute({ catalog, days }: { catalog: Catalog; days: string[] }) {
 
 export default function DocxPreview() {
   const { pathname } = useLocation();
+  const groupRoute = /^\/group-mods(?:\/|$)/.test(pathname);
   const topicRoute = /^\/topics(?:\/|$)/.test(pathname);
   const kvTopicRoute = /^\/topics\/kv-cache\/?$/.test(pathname);
-  const result = useJson<Catalog>(topicRoute ? undefined : "catalog.json");
+  const result = useJson<Catalog>(topicRoute || groupRoute ? undefined : "catalog.json");
   const catalog = result?.data;
   const days = useMemo(
     () => (catalog?.schemaVersion === 1 ? Object.keys(catalog.days).sort().reverse() : []),
@@ -53,7 +55,9 @@ export default function DocxPreview() {
 
   return (
     <SiteLayout catalog={catalog} days={days} wide={overview}>
-      {pathname === "/contributors" ? (
+      {groupRoute ? (
+        <Suspense fallback={<div className="overview-status-card" role="status">正在打开组内 MOD…</div>}><Routes><Route path="/group-mods/*" element={<GroupMods />} /></Routes></Suspense>
+      ) : pathname === "/contributors" ? (
         <Suspense fallback={<div className="overview-status-card" role="status">正在打开贡献者页面…</div>}>
           <Contributors />
         </Suspense>

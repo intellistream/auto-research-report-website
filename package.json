@@ -9,12 +9,17 @@
     "dev:docx": "vite --mode docx --host 127.0.0.1",
     "dev:pipeline": "vite --mode pipeline --host 127.0.0.1",
     "build": "tsc -b && vite build",
-    "test": "vitest run",
+    "test": "npm run test:group-mods && vitest run",
     "preview": "vite preview --host 0.0.0.0",
     "check:topic-survey": "node scripts/check-topic-surveys.mjs",
-    "predev": "npm run check:topic-survey && node scripts/prepare-catalog.mjs",
-    "pretest": "npm run check:topic-survey && node scripts/prepare-catalog.mjs",
-    "prebuild": "npm run check:topic-survey && node scripts/prepare-catalog.mjs"
+    "predev": "npm run check:topic-survey && node scripts/prepare-catalog.mjs && npm run check:group-mods",
+    "pretest": "npm run check:topic-survey && node scripts/prepare-catalog.mjs && npm run check:group-mods",
+    "prebuild": "npm run check:topic-survey && node scripts/prepare-catalog.mjs && npm run check:group-mods",
+    "import:group-mods": "node scripts/import-group-research.mjs",
+    "check:group-mods": "node scripts/check-group-research.mjs",
+    "test:group-mods": "node --test scripts/tests/group-research-*.node.mjs scripts/tests/community-corpus.node.mjs scripts/tests/mod-pr-screening.node.mjs",
+    "build:community-corpus": "node scripts/build-community-corpus.mjs",
+    "screen:mod-prs": "node scripts/screen-mod-prs.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "4.4.1",
