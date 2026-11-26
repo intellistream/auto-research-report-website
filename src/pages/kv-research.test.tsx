@@ -136,7 +136,7 @@ describe("independent KV research library", () => {
   it("separates current community progress from the dated research observations", () => {
     const current = render("/topics/kv-cache?view=report");
     expect(current).toContain("社区 PR · 每周总结");
-    expect(current).toContain("本周值得进一步研究的问题");
+    expect(current).toContain('id="kv-weekly-questions-title"');
     expect(current).toContain("2026-11-23");
     expect(current).toContain("2026-11-29");
     const edition = render("/topics/kv-cache?view=report&edition=2026-11-23");

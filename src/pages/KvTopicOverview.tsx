@@ -61,11 +61,12 @@ export default function KvTopicOverview() {
 
     <section className="kv-overview-validation" aria-labelledby="kv-overview-validation">
       <h3 id="kv-overview-validation" tabIndex={-1}>潜在研究方向</h3>
-      <p className="kv-overview-status">{validation.status}</p>
       <h4>{validation.title}</h4>
-      <p className="kv-overview-decision">{validation.decision}</p>
-      <p>{validation.basis}</p>
-      <dl>{validation.steps.map(step => <div key={step.label}><dt>{step.label}</dt><dd>{step.body}</dd></div>)}</dl>
+      {validation.problem.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
+      <dl>
+        <div><dt>现有不足</dt><dd>{validation.limitation}</dd></div>
+        <div><dt>潜在改进方向</dt><dd>{validation.direction}</dd></div>
+      </dl>
       <p className="kv-overview-boundary">{validation.boundary}</p>
       <References evidence={validation.evidence}/>
       <Link className="kv-overview-comparison" to={{ search: weeklySearch(new URLSearchParams(), validation.week, validation.questionId) }}>
