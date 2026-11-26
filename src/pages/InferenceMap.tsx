@@ -5,17 +5,14 @@ import InferenceStageDemo from "./InferenceStageDemo";
 import ChapterIntro from "./ChapterIntro";
 import type { ChapterIntros } from "./chapter-intros";
 import "./inference-map.css";
+import inferenceStages from "../inference-stages.json";
 
-const labels = {
-  startup: "模型准备", scheduling: "请求调度", prefill: "输入处理", pd_transfer: "P/D 缓存交接",
-  decode: "循环生成", speculative: "推测解码", output_return: "输出返回",
-  resource_reclaim: "资源回收与缓存保留", classification_conflict: "分类不一致",
-} as const;
+const labels = { ...inferenceStages, classification_conflict: "分类不一致" };
 
 type Stage = keyof typeof labels;
 export type IndexedPR = { day: string; version: string; stage: string; number: string; workId: string; title: string };
 
-const stages = ["startup", "scheduling", "prefill", "pd_transfer", "decode", "speculative", "output_return", "resource_reclaim"] as const;
+const stages = Object.keys(inferenceStages) as (keyof typeof inferenceStages)[];
 const main = [
   { key: "scheduling", action: "排队 → 成批" },
   { key: "prefill", action: "输入 → KV 与首 token" },

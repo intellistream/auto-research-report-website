@@ -20,17 +20,8 @@ import ReportTrends, { uniquePRs } from "../pages/ReportTrends";
 import { selectChapterIntros, type FlowIndex } from "../pages/chapter-intros";
 import { localReports, type Catalog } from "../pages/report-preview-data";
 import "./overview.css";
-
-const stageNames: Record<string, string> = {
-  startup: "模型准备",
-  scheduling: "请求调度",
-  prefill: "输入处理",
-  pd_transfer: "P/D 缓存交接",
-  decode: "循环生成",
-  speculative: "推测解码",
-  output_return: "输出返回",
-  resource_reclaim: "资源回收与缓存保留",
-};
+import inferenceStages from "../inference-stages.json";
+const stageNames: Record<string,string> = inferenceStages;
 
 const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 function formatWeekday(day: string) {
@@ -460,6 +451,7 @@ export default function OverviewPage({
               select={(stage) => filter("stage", stage)}
               scope={JSON.stringify([source, from, to])}
             />
+          <p className="overview-group-mod-link"><Link to={"/group-mods" + (query.get("stage") ? "?stage=" + encodeURIComponent(query.get("stage")!) : "")}>查看本环节的组内 MOD 与社区对照</Link></p>
 
             <details className="overview-flow-reference">
               <summary>

@@ -1,0 +1,6097 @@
+{
+  "schemaVersion": 1,
+  "rulesVersion": "mod-pr-screening/1",
+  "asOf": "2026-11-26",
+  "scope": {
+    "expectedModCount": 38,
+    "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+    "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+    "sourceSha256": "8fedc9a0f47d39a7f969b24dd8552a9bdc36b70e2d03df2c558dda2c3c157d16"
+  },
+  "notice": "problem、mechanism、applicability 和接口名称保留冻结公开事实。groups 是召回候选材料的中英文检索表达（含相邻方法），不声明 MOD 已实现其中每一种方法，也不补写原有故障。环节仅作辅助；自动命中只表示待核查线索，零命中不表示社区无人研究。",
+  "weakTerms": [
+    "cache",
+    "caches",
+    "attention",
+    "boundary",
+    "boundaries",
+    "缓存",
+    "注意力",
+    "边界",
+    "state",
+    "状态",
+    "graph",
+    "图",
+    "token",
+    "tokens",
+    "query",
+    "request",
+    "requests",
+    "请求",
+    "model",
+    "models",
+    "模型",
+    "scheduler",
+    "worker",
+    "rank",
+    "ranks",
+    "prefill",
+    "decode",
+    "startup",
+    "scheduling",
+    "observability",
+    "输入处理",
+    "循环生成",
+    "模型准备",
+    "请求调度",
+    "性能",
+    "吞吐",
+    "vllm",
+    "ascend",
+    "gpu",
+    "npu",
+    "cuda",
+    "h2d",
+    "预填充",
+    "解码",
+    "调度器"
+  ],
+  "profiles": [
+    {
+      "modId": "mod:vllm-hust:adm",
+      "componentId": "adm",
+      "displayName": "昇腾分布式元数据",
+      "problem": "多卡 DP 调度需要跨 rank 同步元数据，合并通信时仍须保持原生 token 向量和图模式结果一致。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "按版本固定、默认关闭的昇腾 DP 调度元数据插件；保持原生 token 向量和图模式结果，将 DP2、DP4 各 rank 元数据打包到一次 CPU 组 all-reduce。",
+      "objects": [
+        "DP metadata",
+        "data parallel metadata",
+        "scheduler metadata",
+        "调度元数据",
+        "DP元数据",
+        "跨rank元数据"
+      ],
+      "interfaces": [
+        "all-reduce"
+      ],
+      "interfaceDisclosure": "named_in_public_facts",
+      "applicability": {
+        "status": "verified",
+        "host": "vLLM-HUST + vLLM-Ascend-HUST",
+        "versions": [
+          "Core e1248fa2655fdb8d72f80a5d6c28fa9c75b660c0",
+          "Ascend 367b8e62da799870a7476ce34f5f7658589a8aad",
+          "ADM performance artifact 16362b2d6c229ec1c900b87cdb2c974039db95a6",
+          "ECPA 0.3 package 462e0750faf7eea6317b13b692fb3326894d5796"
+        ],
+        "platforms": [
+          "Ascend 910B2 · TP1/DP4 · FULL_DECODE_ONLY graph"
+        ],
+        "models": [
+          "Qwen3-30B-A3B-W8A8 — matched DP4 serving qualified",
+          "Qwen3.5-35B-A3B — DP2 functional; throughput benefit unconfirmed"
+        ],
+        "python": [
+          ">=3.11"
+        ],
+        "requirements_zh": "Manifest 0.3 wheel 已可发现并通过 clean-wheel 测试。ECPA 可表达启用意图，但启动仍要求精确匹配 runtime-qualification profile；打包不会扩大既有性能结论，也不会把 ADM 变成恢复协议。",
+        "requirements_en": "The Manifest 0.3 wheel is discoverable and clean-wheel tested. ECPA may express enable intent, but launch still requires the exact runtime-qualification profile; packaging does not widen the published performance result or make ADM a recovery protocol."
+      },
+      "aliases": [
+        "ADM",
+        "Ascend Distributed Metadata",
+        "adm"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/0",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/11",
+            "identityValue": "adm",
+            "valueSha256": "ee91945da6e0b34151e77caa1a12430831f8be740c0b1e31a8eab8ce47312ec5"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "DP metadata",
+            "data parallel metadata",
+            "scheduler metadata",
+            "调度元数据",
+            "DP元数据",
+            "跨rank元数据"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "all-reduce",
+            "all_reduce",
+            "metadata packing",
+            "packed metadata",
+            "元数据打包",
+            "CPU group",
+            "CPU组"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "interface",
+          "kind": "interface",
+          "label": "公开接口或配置名称",
+          "terms": [
+            "all-reduce"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "ADM",
+            "Ascend Distributed Metadata",
+            "adm"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "interface+object",
+          "all": [
+            "interface",
+            "object"
+          ]
+        },
+        {
+          "id": "interface+mechanism",
+          "all": [
+            "interface",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:ascend-attention-boundary",
+      "componentId": "ascend-attention-boundary",
+      "displayName": "昇腾注意力计算边界调优",
+      "problem": "公开资料说明了昇腾注意力边界组件及并发对照实验，尚未明确其针对的原有性能瓶颈。",
+      "problemBasis": "source_insufficient",
+      "mechanism": "默认关闭的 Ascend 注意力边界组件公开预览。Qwen3.5 TP2+EP 归档在 OFF/ON 的 C1/C2/C4/C8/C16 每个单元均包含三次有效 900 秒重复，并公开预先声明的吞吐中位样本。",
+      "objects": [
+        "attention boundary",
+        "attention boundaries",
+        "注意力边界",
+        "注意力计算边界",
+        "attention execution",
+        "注意力执行"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "vLLM 0.23.0+empty + vLLM-Ascend 0.23.0.post1",
+        "versions": [
+          "vllm-hust-ascend-attention-boundary @ 4a1843d1e2a81f0415a1cfa5141e9b17b3262835"
+        ],
+        "platforms": [
+          "Ascend 910B2 · TP2+EP · FULL_DECODE_ONLY"
+        ],
+        "models": [
+          "Qwen3.5-35B-A3B · C1/C2/C4/C8/C16 repeat-backed protocol observations"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "使用固定运行时和源码版本，并保持组件默认关闭。每次运行的正式请求阶段激活证据已隔离，但 tokenizer 身份和未选中重复实验的公开原始证据仍不完整，不宣称性能因果归因。",
+        "requirements_en": "Use the pinned runtime and source revision with the component default-off. Formal-request activation is isolated per run, but tokenizer identity and public raw coverage for non-selected repeats remain incomplete. No causal performance attribution is claimed."
+      },
+      "aliases": [
+        "Ascend Attention Boundary Optimization",
+        "ascend-attention-boundary",
+        "Ascend Attention Boundary"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/1",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/43",
+            "identityValue": "ascend-attention-boundary",
+            "valueSha256": "01e23568ceca7c44dbe60c2ed880c5e9df88991966ca0707606c46391704490a"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "attention boundary",
+            "attention boundaries",
+            "注意力边界",
+            "注意力计算边界",
+            "attention execution",
+            "注意力执行"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "boundary search",
+            "binary search",
+            "boundary tuning",
+            "边界搜索",
+            "边界调优",
+            "边界查找",
+            "二分搜索"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Ascend Attention Boundary Optimization",
+            "ascend-attention-boundary",
+            "Ascend Attention Boundary"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:ascend-quant-toolkit",
+      "componentId": "ascend-quant-toolkit",
+      "displayName": "昇腾模型量化工具",
+      "problem": "混合精度量化产物包含不同精度配置和权重分片，部署前需要校验元数据与分片完整性，并匹配宿主加载器和算子的接口要求。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "已具备许可证、可构建包与 fail-closed 产物校验的 Ascend Quant Toolkit 0.5.0 源码，并纳入 Qwen3.5-35B-A3B W4A8 + GDN W8A8 混合精度 recipe。校验器是工具子组件，不是第二个运行时 MOD；服务激活仍需 vLLM Ascend typed loader/operator 合同。PyPI 发布仍是仓库验收后的 release/账户步骤。",
+      "objects": [
+        "quantized weights",
+        "quantization artifact",
+        "quantization artifacts",
+        "quantization metadata",
+        "量化权重",
+        "量化产物",
+        "量化元数据",
+        "W4A8",
+        "W8A8"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {},
+      "aliases": [
+        "Ascend Model Quantization Toolkit",
+        "ascend-quant-toolkit"
+      ],
+      "stageIds": [
+        "startup"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/2",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/16",
+            "identityValue": "ascend-quant-toolkit",
+            "valueSha256": "bc13bc1a76e645c4501649b6f55e00235a5643f2e9aefa784100360a7ea6882a"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "quantized weights",
+            "quantization artifact",
+            "quantization artifacts",
+            "quantization metadata",
+            "量化权重",
+            "量化产物",
+            "量化元数据",
+            "W4A8",
+            "W8A8"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "mixed precision",
+            "mixed scheme",
+            "混合精度",
+            "shard manifest",
+            "分片清单",
+            "shard validation",
+            "产物校验",
+            "typed loader",
+            "operator contract"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "problem",
+          "kind": "problem",
+          "label": "候选材料中的问题或约束线索",
+          "terms": [
+            "missing shard",
+            "incomplete shard",
+            "分片缺失",
+            "元数据不一致"
+          ],
+          "basisFields": [
+            "problem",
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Ascend Model Quantization Toolkit",
+            "ascend-quant-toolkit"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "startup",
+            "模型准备"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "problem+object",
+          "all": [
+            "problem",
+            "object"
+          ]
+        },
+        {
+          "id": "problem+mechanism",
+          "all": [
+            "problem",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:betterscale",
+      "componentId": "betterscale",
+      "displayName": "BetterScale 执行与状态调度",
+      "problem": "多卡异步推理需要同时管理执行容量和常驻状态；驻留状态写回也是解码及混合形状执行中的一项组件开销。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "面向昇腾的多卡推理执行优化。B1 r6 冻结组合使用其异步执行与状态管理路径，配置为 E24/R36。 冻结 R10 使用其状态管理路径。 已接受 Token 状态写回融合的 R10 试验记录见同名独立 MOD 条目。",
+      "objects": [
+        "resident state",
+        "state slot",
+        "state slots",
+        "驻留状态",
+        "状态槽",
+        "execution capacity",
+        "执行容量",
+        "execution slots",
+        "执行席位"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {},
+      "aliases": [
+        "BetterScale Execution and State Scheduling",
+        "betterscale",
+        "BetterScale"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/3",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/69",
+            "identityValue": "betterscale",
+            "valueSha256": "f6225b2d9f82912f4f3306a6c68d8a0ddd4d205497ddd26b0f167db78ccc269b"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "resident state",
+            "state slot",
+            "state slots",
+            "驻留状态",
+            "状态槽",
+            "execution capacity",
+            "执行容量",
+            "execution slots",
+            "执行席位"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "async execution",
+            "asynchronous execution",
+            "异步执行",
+            "state writeback",
+            "state write-back",
+            "状态写回",
+            "tiled writeback",
+            "分块",
+            "state management",
+            "状态管理"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "BetterScale Execution and State Scheduling",
+            "betterscale",
+            "BetterScale"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:bidkv",
+      "componentId": "bidkv",
+      "displayName": "BidKV 缓存抢占策略",
+      "problem": "KV 缓存容量受限时，需要选择可抢占的请求，并在策略无法安全决策时回退。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "BidKV 使用已合并的 vLLM-HUST preemption-policy API v1 与有界安全弃权。最新 Qwen3.5-35B-A3B TP4 KV-pressure 实验保留两轮 C12 正向配对、真实策略选择、负向调参试验与退出诊断，并与旧 TP2/SWE 和 Qwen3.8 观察严格分开。",
+      "objects": [
+        "KV cache",
+        "KV blocks",
+        "KV缓存",
+        "KV 缓存",
+        "KV块",
+        "KV 块",
+        "preemption policy",
+        "抢占策略"
+      ],
+      "interfaces": [
+        "preemption-policy API v1"
+      ],
+      "interfaceDisclosure": "named_in_public_facts",
+      "applicability": {
+        "status": "verified",
+        "host": "vLLM-HUST (setting-specific pinned runtimes)",
+        "versions": [
+          "BidKV 0.2.1 measured @ a0cba97",
+          "Manifest 0.3 @ 6f1fc75",
+          "Qwen3.5 evidence merged @ edb7f09",
+          "Qwen3.8 qualified runtime tree 199e0bd"
+        ],
+        "platforms": [
+          "Ascend NPU · TP4 · FULL_AND_PIECEWISE",
+          "Ascend NPU · TP4 · FULL_DECODE_ONLY"
+        ],
+        "models": [
+          "Qwen3.5-35B-A3B — TP4 C12 KV-pressure measured; tested-cell benefit",
+          "Qwen3.8-27B — artifact functional qualified; effectiveness matrix incomplete",
+          "Qwen3-0.6B — vLLM/vLLM-Ascend 0.23 lane",
+          "Qwen2.5-3B — vLLM/vLLM-Ascend 0.23 lane"
+        ],
+        "requirements_zh": "Qwen3.5 结果使用 Core f18cf803、Ascend 249ac12 加已记录构建补丁、FULL_AND_PIECEWISE graph、C12 与每 NPU 512 MiB KV。不得与 TP2/SWE 五点观察或旧 Qwen3.8 矩阵合并。功能兼容、逐单元效果与当前实例 runtime-effective 状态是不同事实。",
+        "requirements_en": "The Qwen3.5 result used Core f18cf803, Ascend 249ac12 plus the recorded build patch, FULL_AND_PIECEWISE graph, C12 and 512 MiB KV/NPU. Do not pool it with the TP2/SWE five-point observation or the older Qwen3.8 matrix. Functional compatibility, per-cell effectiveness, and live runtime-effective state are separate facts."
+      },
+      "aliases": [
+        "BidKV Cache Preemption",
+        "bidkv",
+        "BidKV"
+      ],
+      "stageIds": [
+        "scheduling",
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/4",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/12",
+            "identityValue": "bidkv",
+            "valueSha256": "3538672086e70b2a2c4e43928cdafd248b5ec55c2cc5176e7955097ec68ece2a"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "KV cache",
+            "KV blocks",
+            "KV缓存",
+            "KV 缓存",
+            "KV块",
+            "KV 块",
+            "preemption policy",
+            "抢占策略"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "preemption",
+            "preempt",
+            "抢占",
+            "victim selection",
+            "safe abstention",
+            "安全弃权",
+            "policy fallback",
+            "策略回退"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "problem",
+          "kind": "problem",
+          "label": "候选材料中的问题或约束线索",
+          "terms": [
+            "KV pressure",
+            "cache pressure",
+            "缓存受压",
+            "KV-pressure",
+            "capacity pressure"
+          ],
+          "basisFields": [
+            "problem",
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "interface",
+          "kind": "interface",
+          "label": "公开接口或配置名称",
+          "terms": [
+            "preemption-policy API v1"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "BidKV Cache Preemption",
+            "bidkv",
+            "BidKV"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "scheduling",
+            "请求调度",
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "interface+object",
+          "all": [
+            "interface",
+            "object"
+          ]
+        },
+        {
+          "id": "interface+mechanism",
+          "all": [
+            "interface",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "problem+object",
+          "all": [
+            "problem",
+            "object"
+          ]
+        },
+        {
+          "id": "problem+mechanism",
+          "all": [
+            "problem",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:capacity-tuning",
+      "componentId": "capacity-tuning",
+      "displayName": "执行与常驻席位调优",
+      "problem": "执行席位与状态常驻席位是两类容量，允许同时执行的请求数与可保留的请求状态数需要分别配置。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "冻结 r8 采用 36 个执行席位与 54 个常驻席位，调节并发执行和状态驻留容量。 随冻结 B1 r8 引擎交付。",
+      "objects": [
+        "execution slots",
+        "execution capacity",
+        "执行席位",
+        "执行容量",
+        "resident slots",
+        "常驻席位",
+        "驻留容量",
+        "resident state",
+        "resident states"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {},
+      "aliases": [
+        "Execution and Resident Capacity Tuning",
+        "capacity-tuning"
+      ],
+      "stageIds": [
+        "scheduling",
+        "prefill",
+        "decode"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/5",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/63",
+            "identityValue": "capacity-tuning",
+            "valueSha256": "687fbecb0461f8ccf155b05c5dfaf8500f1bda5bf2343cffecb1b6d78c2bf289"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "execution slots",
+            "execution capacity",
+            "执行席位",
+            "执行容量",
+            "resident slots",
+            "常驻席位",
+            "驻留容量",
+            "resident state",
+            "resident states"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "capacity tuning",
+            "capacity configuration",
+            "容量调优",
+            "容量配置",
+            "concurrency limit",
+            "并发上限",
+            "residency",
+            "state residency",
+            "状态驻留"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Execution and Resident Capacity Tuning",
+            "capacity-tuning"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "scheduling",
+            "请求调度",
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:core-attention-boundary",
+      "componentId": "core-attention-boundary",
+      "displayName": "核心注意力计算边界调优",
+      "problem": "公开资料说明了 Core 注意力边界搜索及激活观测，尚未明确其针对的原有性能瓶颈。",
+      "problemBasis": "source_insufficient",
+      "mechanism": "默认关闭的 Core 注意力边界搜索组件，现作为公开 preview 发布。本地 canonical Qwen3.5 TP2+EP C1/C2/C4/C8/C16 ON/OFF 归档使用已核对的 workload 和 tokenizer，并记录了启动激活及 runtime-effective 事件；这些事件尚未隔离到每个正式窗口，因此不宣称性能因果归因。实测 MOD revision 已通过 tag op02-measured-8b5ebb1 公开固定。",
+      "objects": [
+        "attention boundary",
+        "attention boundaries",
+        "注意力边界",
+        "注意力计算边界",
+        "attention execution",
+        "注意力执行"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "vLLM 0.23.0+empty + vLLM-Ascend 0.23.0.post1",
+        "versions": [
+          "vllm-hust-core-attention-boundary 0.1.0.dev0 @ 8b5ebb1382bc3624b5250ccec53d5554b6c86003",
+          "Extension Manager 0.2.0.dev0 @ 52e96021c8017938b133ddba895795a13f707568"
+        ],
+        "platforms": [
+          "Ascend 910B2 · TP2+EP · FULL_DECODE_ONLY"
+        ],
+        "models": [
+          "Qwen3.5-35B-A3B · local C1/C2/C4/C8/C16 protocol observations"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "安装到已核对的 vLLM/vLLM-Ascend 0.23 环境，并保持组件默认关闭。canonical workload、tokenizer、公开源码版本和正式原始数据已经公开。runtime-effective 证据尚未隔离到每个正式窗口，benchmark 客户端源码关联仍待补齐，不宣称性能因果归因。",
+        "requirements_en": "Install into the reviewed vLLM/vLLM-Ascend 0.23 deployment and keep the component default-off. The canonical workload and tokenizer identities, public source revision and public raw formal artifacts are available. Runtime-effective evidence is not isolated to each formal window, benchmark-client source linkage remains pending, and no causal performance attribution is claimed."
+      },
+      "aliases": [
+        "Core Attention Boundary Optimization",
+        "core-attention-boundary",
+        "Core Attention Boundary"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/6",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/49",
+            "identityValue": "core-attention-boundary",
+            "valueSha256": "066ffd8d8487eeae5ba5c01379dbe8843aa082b943a96ff8141b9c87b90a1b58"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "attention boundary",
+            "attention boundaries",
+            "注意力边界",
+            "注意力计算边界",
+            "attention execution",
+            "注意力执行"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "boundary search",
+            "binary search",
+            "boundary tuning",
+            "边界搜索",
+            "边界调优",
+            "边界查找",
+            "二分搜索"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Core Attention Boundary Optimization",
+            "core-attention-boundary",
+            "Core Attention Boundary"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:diffspec",
+      "componentId": "diffspec",
+      "displayName": "DiffSpec 投机解码",
+      "problem": "检索式推测解码需要排除图填充和被拒绝的草稿后缀，并保持多 rank 检索结果与草稿 KV 一致。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "DiffSpec 48b1828 已在 Core 762f85b3 与 Ascend 4e57439e 上实现 committed-query retrieval、graph padding 排除、TP 分数聚合与紧凑 draft KV，当前固定评测组合为 Qwen3.5-35B-A3B / Specforge Eagle3。",
+      "objects": [
+        "draft KV",
+        "draft tokens",
+        "draft suffix",
+        "草稿KV",
+        "草稿 KV",
+        "草稿后缀",
+        "committed query",
+        "committed-query",
+        "Eagle3",
+        "EAGLE"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "vLLM Ascend",
+        "versions": [
+          "Core 762f85b3 + Ascend 4e57439e + DiffSpec 48b1828",
+          "Manifest 0.3 experimental"
+        ],
+        "platforms": [
+          "Ascend 910B2 · TP4 / draft TP4 · BF16 · PIECEWISE graph"
+        ],
+        "models": [
+          "Qwen/Qwen3.5-35B-A3B@59d61f3c — scoped functional regression passed",
+          "jiapingW/Qwen3.5-35B-A3B-Eagle3-Specforge@d07a277e — required draft"
+        ],
+        "requirements_zh": "使用固定 target/draft revision、PP1、关闭 prefix caching 与 async scheduling，并采用 native linear verification 和 PIECEWISE graph。已验证范围为受控图填充下的双请求功能回归；更完整的服务验证及配对性能仍待核验。",
+        "requirements_en": "Use the pinned target/draft revisions with PP1, prefix caching and async scheduling disabled, native linear verification and PIECEWISE graph execution. The verified scope is the two-request regression with controlled graph padding; wider serving and matched performance verification remain pending."
+      },
+      "aliases": [
+        "DiffSpec Speculative Decoding",
+        "diffspec",
+        "DiffSpec"
+      ],
+      "stageIds": [
+        "decode",
+        "speculative"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/7",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/13",
+            "identityValue": "diffspec",
+            "valueSha256": "6e20889d87335d0cc56d28e60096f0b4e9006c44fa3420473757a1d968c9a732"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "draft KV",
+            "draft tokens",
+            "draft suffix",
+            "草稿KV",
+            "草稿 KV",
+            "草稿后缀",
+            "committed query",
+            "committed-query",
+            "Eagle3",
+            "EAGLE"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "retrieval",
+            "检索",
+            "graph padding",
+            "图填充",
+            "rejected suffix",
+            "拒绝后缀",
+            "TP score",
+            "分数聚合",
+            "lookahead",
+            "前瞻",
+            "prefix caching",
+            "前缀缓存"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "DiffSpec Speculative Decoding",
+            "diffspec",
+            "DiffSpec"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "decode",
+            "解码",
+            "循环生成",
+            "speculative decoding",
+            "推测解码",
+            "投机解码"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:dla",
+      "componentId": "dla",
+      "displayName": "DLA 输出长度感知准入",
+      "problem": "已知输出预算的请求在进入执行前，需要接受与该预算相关的准入检查。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "输出长度感知的请求准入与抢占研究。已测版本使用已知输出预算，观测到准入检查，延后和抢占均未触发。",
+      "objects": [
+        "output length",
+        "output budget",
+        "输出长度",
+        "输出预算",
+        "max_tokens",
+        "max tokens",
+        "output lengths",
+        "output budgets"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {},
+      "aliases": [
+        "DLA Output-Length-Aware Admission",
+        "dla",
+        "DLA"
+      ],
+      "stageIds": [
+        "scheduling"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/8",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/74",
+            "identityValue": "dla",
+            "valueSha256": "7d9b35e105de6357c746f80a9e3f7a1b9ccf04d2acf88ce4e26e6b9cb0edd89d"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "output length",
+            "output budget",
+            "输出长度",
+            "输出预算",
+            "max_tokens",
+            "max tokens",
+            "output lengths",
+            "output budgets"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "admission",
+            "准入",
+            "preemption",
+            "抢占",
+            "length aware",
+            "length-aware",
+            "长度感知",
+            "defer",
+            "延后"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "DLA Output-Length-Aware Admission",
+            "dla",
+            "DLA"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "scheduling",
+            "请求调度"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:gdn-state-codec",
+      "componentId": "gdn-state-codec",
+      "displayName": "GDN 状态压缩与恢复",
+      "problem": "Qwen 门控增量层在推理中保留循环状态，压缩这些状态时必须保证能够正确恢复。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "面向 Qwen 门控增量层的可选 Ascend 循环状态编解码器，仅通过 vLLM-HUST Extension Manager 0.3 bundle 启动。规范 MOD ID 为 org.vllm-hust.gdn-state-codec；默认关闭，尚未通过性能资格验收。",
+      "objects": [
+        "GDN",
+        "gated delta",
+        "gated-delta",
+        "门控增量",
+        "recurrent state",
+        "循环状态",
+        "recurrent states"
+      ],
+      "interfaces": [
+        "org.vllm-hust.gdn-state-codec"
+      ],
+      "interfaceDisclosure": "named_in_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "vLLM 0.23 + vLLM Ascend 0.23, managed by vLLM-HUST Extension Manager",
+        "versions": [
+          "GDN State Codec 0.2.0.dev1 @ 0de7f0c",
+          "ECPA Manifest 0.3 experimental @ Extension Manager 075dbcb",
+          "runtime ID org.vllm-hust.gdn-state-codec"
+        ],
+        "platforms": [
+          "2 × Ascend 910B2 · TP2 · eager"
+        ],
+        "models": [
+          "Qwen3.5-35B-A3B · activation passed; tested AgentX cells not beneficial",
+          "Qwen3.8 GDN family · mechanism only, no performance qualification"
+        ],
+        "requirements_zh": "必须通过 ECPA 0.3 Extension Manager bundle 安装和启动，不得再经 StateAxis 打补丁或拉起。默认关闭。精确输出、并发优雅回退、图模式、显存容量收益及其他模型家族均未验收；历史 v68 与 p16/r1 观察只对原提交有效，不由 0.2.0 继承。",
+        "requirements_en": "Install and launch through the ECPA 0.3 Extension Manager bundle; do not patch or start it through StateAxis. Keep disabled by default. Exact output, graceful multi-request fallback, graph mode, memory-capacity benefit, and other model families are not qualified. Historical v68 and p16/r1 observations are commit-bounded and are not inherited by 0.2.0."
+      },
+      "aliases": [
+        "GDN State Compression",
+        "gdn-state-codec"
+      ],
+      "stageIds": [
+        "decode",
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/9",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/44",
+            "identityValue": "gdn-state-codec",
+            "valueSha256": "518a90051e9b3c950d9e8d8fabbb806c4778850f12bd7c15e7b01a32761a68f0"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "GDN",
+            "gated delta",
+            "gated-delta",
+            "门控增量",
+            "recurrent state",
+            "循环状态",
+            "recurrent states"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "state codec",
+            "状态编解码",
+            "state compression",
+            "状态压缩",
+            "encode",
+            "decode state",
+            "restore state",
+            "状态恢复"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "interface",
+          "kind": "interface",
+          "label": "公开接口或配置名称",
+          "terms": [
+            "org.vllm-hust.gdn-state-codec"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "GDN State Compression",
+            "gdn-state-codec"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "decode",
+            "解码",
+            "循环生成",
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "interface+object",
+          "all": [
+            "interface",
+            "object"
+          ]
+        },
+        {
+          "id": "interface+mechanism",
+          "all": [
+            "interface",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:graph-coverage",
+      "componentId": "graph-coverage",
+      "displayName": "计算图捕获范围配置",
+      "problem": "图捕获规格与实际 query-token 批次不匹配时，需要调整捕获尺寸，同时考虑新增的图内存和启动开销。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "配置型 MOD：扩展 vLLM 原生图捕获尺寸，覆盖实际 query-token 批次；启动引擎前显式应用经过检查的 LLM 参数。",
+      "objects": [
+        "capture sizes",
+        "capture size",
+        "graph sizes",
+        "graph size",
+        "捕获尺寸",
+        "捕获规格",
+        "query-token batch",
+        "query token batch",
+        "query-token批次"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "vLLM + vLLM-Ascend",
+        "versions": [
+          "MOD 0.1.0 @ 40e9ce1e52185ffc7b1bab09d99e09e11d3a1851",
+          "vLLM 0fc695fc / vLLM-Ascend f4a08bdd; TorchNPU 2.10.0.post4"
+        ],
+        "platforms": [
+          "Ascend 910B2 · TP1 · graph"
+        ],
+        "models": [
+          "Qwen3-0.6B · FP16, bounded mixed-request workload"
+        ],
+        "python": [
+          ">=3.10; CPU CI on 3.10/3.12"
+        ],
+        "requirements_zh": "使用原生配置，默认不生效；构造 LLM 前显式传入 enabled=True，恢复原参数并重启即可回滚。适配预算 32/128、max_num_seqs=4、开启 chunked prefill、关闭 prefix caching；无需 Extension Manager 激活。",
+        "requirements_en": "Stock configuration recipe, default inert. Pass enabled=True before LLM construction; restore original kwargs and restart to roll back. Qualified budgets 32/128, max_num_seqs=4, chunked prefill on and prefix caching off. No Extension Manager activation."
+      },
+      "aliases": [
+        "Graph Capture Coverage Configuration",
+        "graph-coverage"
+      ],
+      "stageIds": [
+        "startup",
+        "prefill",
+        "decode"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/10",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/56",
+            "identityValue": "graph-coverage",
+            "valueSha256": "ea2883be14e261460fb8e5f5ec1d1981ef7b18ad1a3b3db9563dbbeb4a7f2c70"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "capture sizes",
+            "capture size",
+            "graph sizes",
+            "graph size",
+            "捕获尺寸",
+            "捕获规格",
+            "query-token batch",
+            "query token batch",
+            "query-token批次"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "graph capture",
+            "cudagraph capture",
+            "ACL graph capture",
+            "图捕获",
+            "padding",
+            "填充",
+            "capture coverage",
+            "覆盖范围",
+            "compilation config"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "problem",
+          "kind": "problem",
+          "label": "候选材料中的问题或约束线索",
+          "terms": [
+            "shape mismatch",
+            "尺寸不匹配",
+            "shape coverage",
+            "形状覆盖"
+          ],
+          "basisFields": [
+            "problem",
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Graph Capture Coverage Configuration",
+            "graph-coverage"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "startup",
+            "模型准备",
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "problem+object",
+          "all": [
+            "problem",
+            "object"
+          ]
+        },
+        {
+          "id": "problem+mechanism",
+          "all": [
+            "problem",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:guarded-progress-async",
+      "componentId": "guarded-progress-async",
+      "displayName": "受保护的异步进度复制",
+      "problem": "异步 H2D 进度复制期间，源状态的所有权和生命周期必须有效，复制操作需要相应检查。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "r8 使用受保护的异步 H2D 进度复制，由 CorrectedWorker 检查状态拥有权与源生命周期。 随冻结 B1 r8 引擎交付。",
+      "objects": [
+        "progress copy",
+        "progress transfer",
+        "进度复制",
+        "进度拷贝",
+        "source state",
+        "源状态",
+        "CorrectedWorker"
+      ],
+      "interfaces": [
+        "CorrectedWorker"
+      ],
+      "interfaceDisclosure": "named_in_public_facts",
+      "applicability": {},
+      "aliases": [
+        "Guarded Asynchronous Progress Copy",
+        "guarded-progress-async"
+      ],
+      "stageIds": [
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/11",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/62",
+            "identityValue": "guarded-progress-async",
+            "valueSha256": "3ac17444682e60dfc0bdd05cae59cc26708f320ef36d20c6605393a7826dabbe"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "progress copy",
+            "progress transfer",
+            "进度复制",
+            "进度拷贝",
+            "source state",
+            "源状态",
+            "CorrectedWorker"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "async H2D",
+            "asynchronous H2D",
+            "异步H2D",
+            "异步 H2D",
+            "source lifetime",
+            "源生命周期",
+            "ownership check",
+            "ownership",
+            "拥有权",
+            "所有权"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "interface",
+          "kind": "interface",
+          "label": "公开接口或配置名称",
+          "terms": [
+            "CorrectedWorker"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Guarded Asynchronous Progress Copy",
+            "guarded-progress-async"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "interface+object",
+          "all": [
+            "interface",
+            "object"
+          ]
+        },
+        {
+          "id": "interface+mechanism",
+          "all": [
+            "interface",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:hust-joint-packed",
+      "componentId": "hust-joint-packed",
+      "displayName": "锁页主机状态合并",
+      "problem": "每个 rank 的主机状态预算为 4 GiB，锁页状态分配需要在该预算内按对象和数据类型组织。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "B1 r6 冻结组合包含 hust-joint-packed 1.0，在每 rank 4 GiB 主机状态预算内，按对象及 dtype 合并锁页状态分配。验证范围为整套引擎。",
+      "objects": [
+        "host state",
+        "host buffer",
+        "host buffers",
+        "主机状态",
+        "主机缓冲",
+        "pinned state",
+        "锁页状态",
+        "pinned memory",
+        "锁页内存"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {},
+      "aliases": [
+        "Packed Pinned-Host State",
+        "hust-joint-packed"
+      ],
+      "stageIds": [
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/12",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/60",
+            "identityValue": "hust-joint-packed",
+            "valueSha256": "657e6a878f62e125c96f41152c3cbef5d7de3ba451f732470fbfb41781a0af00"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "host state",
+            "host buffer",
+            "host buffers",
+            "主机状态",
+            "主机缓冲",
+            "pinned state",
+            "锁页状态",
+            "pinned memory",
+            "锁页内存"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "packed allocation",
+            "allocation packing",
+            "合并分配",
+            "合并锁页",
+            "per rank",
+            "per-rank",
+            "每rank",
+            "每 rank",
+            "HugeTLB",
+            "huge pages",
+            "大页",
+            "dtype grouping",
+            "按dtype"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Packed Pinned-Host State",
+            "hust-joint-packed"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:hust-m01-correction",
+      "componentId": "hust-m01-correction",
+      "displayName": "请求状态校正",
+      "problem": "公开资料仅登记了请求状态校正和活动快照校验，尚未说明具体的状态异常及触发条件。",
+      "problemBasis": "source_insufficient",
+      "mechanism": "B1 r6 冻结组合包含 hust-m01-correction 1.0，由 CorrectedWorker 执行请求状态校正与活动快照校验。验证范围为整套引擎。",
+      "objects": [
+        "request state",
+        "请求状态",
+        "active snapshot",
+        "活动快照",
+        "CorrectedWorker"
+      ],
+      "interfaces": [
+        "CorrectedWorker"
+      ],
+      "interfaceDisclosure": "named_in_public_facts",
+      "applicability": {},
+      "aliases": [
+        "Request State Correction",
+        "hust-m01-correction"
+      ],
+      "stageIds": [
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/13",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/59",
+            "identityValue": "hust-m01-correction",
+            "valueSha256": "d9fe4df3789048184ff3e50fee40dba9a121ab3effbb9bcfb66b566179f6ffa4"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "request state",
+            "请求状态",
+            "active snapshot",
+            "活动快照",
+            "CorrectedWorker"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "state correction",
+            "状态校正",
+            "snapshot validation",
+            "snapshot check",
+            "快照校验",
+            "state consistency",
+            "状态一致性"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "interface",
+          "kind": "interface",
+          "label": "公开接口或配置名称",
+          "terms": [
+            "CorrectedWorker"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Request State Correction",
+            "hust-m01-correction"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "interface+object",
+          "all": [
+            "interface",
+            "object"
+          ]
+        },
+        {
+          "id": "interface+mechanism",
+          "all": [
+            "interface",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:intern-s2",
+      "componentId": "intern-s2",
+      "displayName": "Intern-S2（书生）模型适配",
+      "problem": "Intern-S2 接入 R9 昇腾引擎需要专用 worker、词表检查和请求准入支持。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "在 R9 引擎中接入 Intern-S2 专用 worker、词表检查和昇腾准入，随引擎交付。",
+      "objects": [
+        "Intern-S2",
+        "Intern S2",
+        "InternS2",
+        "书生"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {},
+      "aliases": [
+        "Intern-S2 Model Adapter",
+        "intern-s2"
+      ],
+      "stageIds": [
+        "startup",
+        "prefill",
+        "decode"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/14",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/65",
+            "identityValue": "intern-s2",
+            "valueSha256": "e06a6d903375829d181caebc70ace43f0e1d411d7e351bd7814e2a98917e0ee9"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "Intern-S2",
+            "Intern S2",
+            "InternS2",
+            "书生"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "vocabulary",
+            "词表",
+            "admission",
+            "准入",
+            "Ascend adapter",
+            "昇腾适配",
+            "model support",
+            "模型支持"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Intern-S2 Model Adapter",
+            "intern-s2"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "startup",
+            "模型准备",
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:kv-materialization-arrival-control",
+      "componentId": "kv-materialization-arrival-control",
+      "displayName": "KV 物化与重算",
+      "problem": "请求到达时的 KV 复用条件不同，调度器需要区分完整复用、块对齐的部分复用与重新计算。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "面向请求到达时刻完整复用、块对齐部分复用与重计算的 KV 物化 MOD。统一 Qwen3.5 插件制品已执行真实 scheduler 决策；独立的 Qwen2.5-7B-Instruct M2 controller 研究仍保留为负向机制边界。B1 r6 冻结组合使用 vllm-kv-materialization 0.1.0 的逐请求重算策略。",
+      "objects": [
+        "KV reuse",
+        "KV复用",
+        "KV 复用",
+        "KV materialization",
+        "KV物化",
+        "KV 物化",
+        "cached prefix",
+        "缓存前缀",
+        "cache hit",
+        "缓存命中",
+        "KV connector",
+        "cached prefixes",
+        "cache hits"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {
+        "status": "verified",
+        "host": "vLLM-HUST",
+        "versions": [
+          "Measured plugin artifact 53a6b113",
+          "Plugin 0.1.0 research carrier"
+        ],
+        "platforms": [
+          "Ascend 910B2 · TP2 · FULL_AND_PIECEWISE graph",
+          "Qwen2.5-7B-Instruct · M2 controller research path"
+        ],
+        "models": [
+          "Qwen3.5-35B-A3B — unified BF16 five-point observation",
+          "Qwen2.5-7B-Instruct — M2 controller negative boundary"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "必须分开 Qwen3.5 统一观察与 Qwen2.5-7B-Instruct M2 controller 研究。Qwen3.5 运行时执行了 recompute、partial-reuse 与 full-reuse 决策；M2 controller 方向则依据预注册负向结果停止。",
+        "requirements_en": "Keep the Qwen3.5 unified observation and Qwen2.5-7B-Instruct M2 controller study separate. The Qwen3.5 runtime exercised recompute, partial-reuse and full-reuse decisions; the M2 controller direction stopped after its preregistered negative result."
+      },
+      "aliases": [
+        "KV Materialization and Recomputation",
+        "kv-materialization-arrival-control"
+      ],
+      "stageIds": [
+        "scheduling",
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/15",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/39",
+            "identityValue": "kv-materialization-arrival-control",
+            "valueSha256": "666ef1d849e0c274ec2ba6666bf63a99d2046cc08064db1baff3d97322d5b6dd"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "KV reuse",
+            "KV复用",
+            "KV 复用",
+            "KV materialization",
+            "KV物化",
+            "KV 物化",
+            "cached prefix",
+            "缓存前缀",
+            "cache hit",
+            "缓存命中",
+            "KV connector",
+            "cached prefixes",
+            "cache hits"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "recompute",
+            "recomputation",
+            "重算",
+            "重计算",
+            "partial reuse",
+            "partial-reuse",
+            "部分复用",
+            "full reuse",
+            "完整复用",
+            "cache-aware admission",
+            "缓存感知准入",
+            "CPU tier",
+            "peek"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "problem",
+          "kind": "problem",
+          "label": "候选材料中的问题或约束线索",
+          "terms": [
+            "load versus recompute",
+            "加载与重算",
+            "cache pressure",
+            "缓存受压"
+          ],
+          "basisFields": [
+            "problem",
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "KV Materialization and Recomputation",
+            "kv-materialization-arrival-control"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "scheduling",
+            "请求调度",
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "problem+object",
+          "all": [
+            "problem",
+            "object"
+          ]
+        },
+        {
+          "id": "problem+mechanism",
+          "all": [
+            "problem",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:kv-transfer-observability-migration",
+      "componentId": "kv-transfer-observability-migration",
+      "displayName": "KV 传输追踪",
+      "problem": "KV 传输、重新入队、准入和首次计算的回执需要按同一身份关联，并排除不完整、重复或复用身份的恢复链。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "Manifest 0.3 KV 传输 observer：记录有界 Worker 回执，并以 v2 身份串联重新入队、准入和首次计算的恢复链。校验器会拒绝不完整、重复或复用身份的链路；插件不拥有 KV 数据，也不接管服务生命周期。",
+      "objects": [
+        "KV transfer",
+        "KV传输",
+        "KV 传输",
+        "KV connector",
+        "recovery chain",
+        "恢复链",
+        "Worker receipt",
+        "worker回执"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "vLLM-HUST main @ 5a820400 with KV observer v1 plus optional v2 correlation",
+        "versions": [
+          "Plugin 0.2.0.dev0 @ 05fcf5cd",
+          "Host contract @ 5a820400",
+          "ECPA Manifest 0.3 / Manager 0.2.0.dev0"
+        ],
+        "platforms": [
+          "CPU packaging, current-host callback and lifecycle evidence; NPU qualification incomplete"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "在已合入的宿主契约上可完成激活和关联恢复校验。发布资格仍需合入 Ascend 调用点，并补齐 descriptor 顺序、多 rank、V2 runner、设备正确性与资源释放、开销和性能证据。",
+        "requirements_en": "Activation and correlated recovery validation are available on the merged host contract. Release qualification still requires merged Ascend call sites, descriptor ordering, multi-rank and V2-runner coverage, device correctness/resource release, overhead, and performance evidence."
+      },
+      "aliases": [
+        "KV Transfer Tracing",
+        "kv-transfer-observability-migration"
+      ],
+      "stageIds": [
+        "observability",
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/16",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/30",
+            "identityValue": "kv-transfer-observability-migration",
+            "valueSha256": "5dc517b33cf5b3af9e9a8a64af554a896785af47116b6cb5de5df4aa45094da7"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "KV transfer",
+            "KV传输",
+            "KV 传输",
+            "KV connector",
+            "recovery chain",
+            "恢复链",
+            "Worker receipt",
+            "worker回执"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "observer",
+            "可观测",
+            "transfer event",
+            "传输事件",
+            "requeue",
+            "重新入队",
+            "first compute",
+            "首次计算",
+            "identity correlation",
+            "身份关联",
+            "trace",
+            "追踪"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "KV Transfer Tracing",
+            "kv-transfer-observability-migration"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "observability",
+            "可观测",
+            "profiling",
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:kvcompress-ascend",
+      "componentId": "kvcompress-ascend",
+      "displayName": "昇腾 KV 缓存压缩",
+      "problem": "已测 Qwen3.5 配置同时使用混合缓存分组、前缀缓存、异步调度和 MTP2，KV 状态压缩需要与这些机制保持兼容。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "vLLM Ascend KV 状态转换与压缩 provider。已测 Qwen3.5 制品支持混合缓存分组、APC、异步调度与 MTP2；当前 main 还加入了面向 graph replay 的方法无关逐层物理状态与 query observation 支持。",
+      "objects": [
+        "KV state",
+        "KV状态",
+        "KV 状态",
+        "hybrid cache",
+        "混合缓存",
+        "query observation",
+        "query观测",
+        "query 观测",
+        "KV states",
+        "hybrid caches",
+        "query observations"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {
+        "status": "verified",
+        "host": "vLLM-HUST + vLLM-Ascend-HUST",
+        "versions": [
+          "vLLM-HUST 0.25.1+frontier.unified",
+          "vLLM-Ascend-HUST 0.25.1rc1",
+          "Measured KVCompress artifact 2ca0f933",
+          "Manifest 0.3 @ 784bb0d",
+          "Current compatibility head d5507c2 (per-layer MTP graph replay; no performance transfer)"
+        ],
+        "platforms": [
+          "Ascend 910B2 · TP2 · FULL_AND_PIECEWISE graph"
+        ],
+        "models": [
+          "Qwen3.5-35B-A3B — unified BF16 setting verified"
+        ],
+        "python": [
+          ">=3.10,<3.15"
+        ],
+        "requirements_zh": "-3.55% 观察固定属于实测制品 2ca0f933，不构成当前 main d5507c2 的性能结论。实测设定通过 ECPA 启动，使用 TP2、align 混合 KV 分组、APC、异步调度和原生 MTP2；运行时生效需同时观测缓存绑定与压缩提交。",
+        "requirements_en": "The -3.55% observation is pinned to measured artifact 2ca0f933 and is not a performance claim for current main d5507c2. The measured setting used ECPA, TP2, aligned hybrid KV groups, APC, asynchronous scheduling and native MTP2. Runtime effectiveness requires cache-binding and compression-commit evidence."
+      },
+      "aliases": [
+        "Ascend KV Cache Compression",
+        "kvcompress-ascend",
+        "KVCompress"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode",
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/17",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/17",
+            "identityValue": "kvcompress-ascend",
+            "valueSha256": "35be6cfb0c272306f1b4375c7c3dbfa54b7e7e53f2d7d24723105b9336f64b4d"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "KV state",
+            "KV状态",
+            "KV 状态",
+            "hybrid cache",
+            "混合缓存",
+            "query observation",
+            "query观测",
+            "query 观测",
+            "KV states",
+            "hybrid caches",
+            "query observations"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "compression",
+            "compress",
+            "压缩",
+            "state transform",
+            "状态转换",
+            "per-layer physical",
+            "逐层物理",
+            "cache binding",
+            "缓存绑定",
+            "graph replay",
+            "图回放"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Ascend KV Cache Compression",
+            "kvcompress-ascend",
+            "KVCompress"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成",
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:latchmoe",
+      "componentId": "latchmoe",
+      "displayName": "LatchMoE 专家权重卸载",
+      "problem": "MoE 专家权重占用设备内存，卸载权重后仍需保证专家执行时能够取得对应权重。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "MoE 专家权重卸载。功能验证限于昇腾单卡 TP1 PIECEWISE，历史 TP4 吞吐对照有回退。",
+      "objects": [
+        "expert weights",
+        "expert weight",
+        "专家权重",
+        "MoE weights",
+        "MoE expert",
+        "MoE专家",
+        "专家参数"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {},
+      "aliases": [
+        "LatchMoE Expert-Weight Offload",
+        "latchmoe",
+        "LatchMoE"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/18",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/71",
+            "identityValue": "latchmoe",
+            "valueSha256": "10a87e4dbb8bf7f2e4384eebfe4d539d7aecec6b48adda7ab7f3174b82025395"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "expert weights",
+            "expert weight",
+            "专家权重",
+            "MoE weights",
+            "MoE expert",
+            "MoE专家",
+            "专家参数"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "offload",
+            "offloading",
+            "卸载",
+            "prefetch",
+            "预取",
+            "host memory",
+            "主机内存"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "LatchMoE Expert-Weight Offload",
+            "latchmoe",
+            "LatchMoE"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:llm-serving-cost-pricing-model",
+      "componentId": "llm-serving-cost-pricing-model",
+      "displayName": "推理服务成本估算",
+      "problem": "推理服务的成本与定价需要单独核算，这类分析由离线工具完成。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "已打包为显式 Manifest 0.3 离线 CLI 的服务成本/定价分析脚手架。0.1.1 移除了误导性的进程内加载标记与 serving launcher，因此 ECPA 按设计保持 inspect-only。",
+      "objects": [
+        "serving cost",
+        "inference cost",
+        "service cost",
+        "推理成本",
+        "服务成本",
+        "pricing",
+        "定价"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {
+        "status": "inspect_only",
+        "host": "Offline user CLI; no in-process serving carrier",
+        "versions": [
+          "Package 0.1.1",
+          "ECPA 0.3 offline boundary 1559df80e40172299231f7cee381f41738720ce2"
+        ],
+        "platforms": [
+          "CPU analysis and packaging tests"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "ECPA 按设计拒绝运行时启用。shared-workload 与定价分析仍是用户自有离线工具；安装或执行 CLI 不代表 vLLM 运行生效。",
+        "requirements_en": "ECPA rejects runtime enablement by design. Shared-workload and pricing analysis remain user-owned offline tools; installation or CLI execution is not vLLM runtime effectiveness."
+      },
+      "aliases": [
+        "Inference Service Cost Estimation",
+        "llm-serving-cost-pricing-model"
+      ],
+      "stageIds": [
+        "startup",
+        "observability"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/19",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/37",
+            "identityValue": "llm-serving-cost-pricing-model",
+            "valueSha256": "69d48b1e47d5762481fcb4e841968a509cabdfca4c0c3ed047cbe715a485d183"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "serving cost",
+            "inference cost",
+            "service cost",
+            "推理成本",
+            "服务成本",
+            "pricing",
+            "定价"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "cost model",
+            "成本模型",
+            "cost estimation",
+            "成本估算",
+            "cost analysis",
+            "成本分析",
+            "price model",
+            "pricing model",
+            "定价模型",
+            "offline CLI",
+            "离线CLI",
+            "离线 CLI"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Inference Service Cost Estimation",
+            "llm-serving-cost-pricing-model"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "startup",
+            "模型准备",
+            "observability",
+            "可观测",
+            "profiling"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:memory-tracker",
+      "componentId": "memory-tracker",
+      "displayName": "昇腾计算图显存跟踪器",
+      "problem": "定位昇腾计算图捕获的显存占用，需要记录捕获期间的分配事件并查看对应时间线。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "采集昇腾计算图捕获的显存分配并导出 Perfetto 轨迹。实测覆盖单张 910B2 和有限捕获规格。",
+      "objects": [
+        "graph memory",
+        "图内存",
+        "图显存",
+        "memory allocation",
+        "显存分配",
+        "graph capture",
+        "图捕获"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {},
+      "aliases": [
+        "Ascend Graph Memory Tracker",
+        "memory-tracker"
+      ],
+      "stageIds": [
+        "observability"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/20",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/79",
+            "identityValue": "memory-tracker",
+            "valueSha256": "c0f9124e90b3dcd0c1c9a7aca84d8b5f082920e417292684af4d0558ca757cd8"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "graph memory",
+            "图内存",
+            "图显存",
+            "memory allocation",
+            "显存分配",
+            "graph capture",
+            "图捕获"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "allocation trace",
+            "分配跟踪",
+            "allocation event",
+            "分配事件",
+            "Perfetto",
+            "memory tracker",
+            "memory tracking",
+            "显存跟踪",
+            "memory snapshot",
+            "内存快照"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Ascend Graph Memory Tracker",
+            "memory-tracker"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "observability",
+            "可观测",
+            "profiling"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:muxpd",
+      "componentId": "muxpd",
+      "displayName": "MuxPD 分离预填充与解码",
+      "problem": "完整 prompt 的预填充与已有请求的逐 token 解码都需要执行资源，两类工作需要协调推进。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "实验性 alpha：完整 prompt 的 prefill 按模型层推进，独立 decode runner 持续生成。以默认关闭的 ECPA 包安装，包含 scheduler、worker 与准入策略三个类载体；要求固定 Ascend 软件栈。",
+      "objects": [
+        "prefill",
+        "预填充",
+        "decode runner",
+        "解码runner",
+        "解码 runner",
+        "完整prompt",
+        "完整 prompt",
+        "full prompt"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {
+        "status": "verified",
+        "host": "ECPA 0.3 class-carrier projection on pinned HUST V1 scheduler / Ascend NPUModelRunner; functional scope only",
+        "versions": [
+          "MuxPD 0.2.0a1 / 658b4d0b4e8982bd281499005500ac4c3e0100f5",
+          "Core d0f22d2bda562156e4dbf433ce645e1769b4f804 / Ascend 03766ac696fde5ab1980d80ca0b8543d3580c989",
+          "Manager 0.3.1.dev1: 894c109/ac0fb620 directly tested; b7dc139/b78dd617 linked by all 42 runtime-package file bytes",
+          "Torch 2.10.0+cpu / torch-npu 2.10.0.post4"
+        ],
+        "platforms": [
+          "Single-node Ascend 910B2, TP4+EP; DP1/PP1; raw-P q4 + isolated P/D groups + decode FULL graph"
+        ],
+        "models": [
+          "Qwen3.5-35B-A3B BF16 only; weight sizes/mtimes recorded, full weights not hashed"
+        ],
+        "python": [
+          "3.12"
+        ],
+        "requirements_zh": "使用文档指定的 wheel 校验和及精确 native 源码/import 检查。显式 enable 与 serve 分离，effective 要求三个模块均产生成功输出回执；disable 后须排空、停止旧服务并启动新原生进程。BF16 greedy 输出存在变化（Issue #23），HTTP/非空检查不是语义 oracle。最终 Manager 包与实机包通过全部运行时文件字节建立关联，分发元数据不同；不声明通用兼容、全套 CI 全过或性能收益。",
+        "requirements_en": "Use the documented wheel hashes and exact native source/import checks. Explicit enablement and serve are separate; effective requires all three modules to report successful outputs. Disable applies to a drained, stopped service and a fresh native launch. BF16 greedy outputs vary (Issue #23); HTTP/nonempty checks are not a semantic oracle. The final Manager archive differs from the hardware archive only in verified distribution metadata, not runtime files. No universal compatibility, all-CI-pass or performance claim."
+      },
+      "aliases": [
+        "MuxPD",
+        "muxpd"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/21",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/50",
+            "identityValue": "muxpd",
+            "valueSha256": "758d630b954b09313feec2f9bda1360ae463ac042ba2dcf8ceb1d2b9c0e52af1"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "decode runner",
+            "解码runner",
+            "解码 runner",
+            "完整prompt",
+            "完整 prompt",
+            "full prompt"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "layerwise",
+            "layer-wise",
+            "逐层",
+            "按层",
+            "independent decode",
+            "独立解码",
+            "prefill decode overlap",
+            "prefill/decode overlap",
+            "预填充解码重叠",
+            "P/D disaggregation",
+            "PD disaggregation",
+            "prefill decode disaggregation",
+            "预填充分离",
+            "disaggregated serving"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "MuxPD",
+            "muxpd"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:pegaflow-vllm-connectors",
+      "componentId": "pegaflow-vllm-connectors",
+      "displayName": "PegaFlow KV 传输",
+      "problem": "宿主使用外部 PegaFlow 服务保存和加载 KV 时，需要昇腾设备与宿主接口适配，并处理外部服务不可用的情况。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "本组件把 vLLM-HUST 接入由外部运维者管理的 PegaFlow 服务，并提供 KV save/load 的昇腾/NPU 与 ECPA 适配。Manifest 0.3 将 Host Provider 打包进 runtime 持有的 Bundle，外部服务不可用时执行 fail-closed；它不负责启动、扩缩或修复 PegaFlow 服务，也不接管已存数据的生命周期。组件当前处于孵化阶段，仅在 Ascend 910B2、Qwen3.5-35B-A3B BF16 的固定配置上形成性能证据，尚不能外推到其他模型、设备或拓扑。",
+      "objects": [
+        "KV save",
+        "KV load",
+        "KV保存",
+        "KV 保存",
+        "KV加载",
+        "KV 加载",
+        "KV transfer",
+        "KV传输",
+        "KV connector",
+        "KV offload",
+        "KV卸载",
+        "external KV",
+        "外部KV"
+      ],
+      "interfaces": [
+        "PegaKVConnector"
+      ],
+      "interfaceDisclosure": "named_in_public_facts",
+      "applicability": {
+        "status": "verified",
+        "host": "vLLM-HUST 0.25.1 reference runtime + vLLM-Ascend-HUST",
+        "versions": [
+          "PegaFlow 0.23.3 @ cd64ecc (performance evidence)",
+          "ECPA Bundle 0.3 @ 14ca1d4 (packaging and fail-closed lifecycle)",
+          "Extension Provider 0.2.0.dev0"
+        ],
+        "platforms": [
+          "Ascend 910B2 · Qwen3.5-35B-A3B · TP2/PP1 · FULL_AND_PIECEWISE"
+        ],
+        "models": [
+          "Qwen3.5-35B-A3B — unified BF16 setting verified"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "PegaFlow 仍是由外部运维者管理的服务；实测 profile 要求 30 GiB pinned pool、PegaKVConnector read_write、APC、异步调度、Mamba align 与原生 MTP2。容量规划、故障恢复和数据留存仍由外部服务承担，结果不得外推到固定模型、设备与并行拓扑之外。",
+        "requirements_en": "PegaFlow remains an external operator-owned service. The measured profile requires a 30 GiB pinned pool, PegaKVConnector read_write mode, APC, async scheduling, Mamba align, and native MTP2. Capacity planning, fault recovery, and stored-data retention remain external responsibilities; results must not be generalized beyond the pinned model, device, and parallel topology."
+      },
+      "aliases": [
+        "PegaFlow KV Transfer",
+        "pegaflow-vllm-connectors",
+        "PegaFlow"
+      ],
+      "stageIds": [
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/22",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/10",
+            "identityValue": "pegaflow-vllm-connectors",
+            "valueSha256": "d1c5e033f091c734443023753130bdf154457dccff2a4839c6300db93e936f1d"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "KV save",
+            "KV load",
+            "KV保存",
+            "KV 保存",
+            "KV加载",
+            "KV 加载",
+            "KV transfer",
+            "KV传输",
+            "KV connector",
+            "KV offload",
+            "KV卸载",
+            "external KV",
+            "外部KV"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "connector",
+            "连接器",
+            "save/load",
+            "save and load",
+            "保存和加载",
+            "host provider",
+            "NPU adapter",
+            "昇腾适配",
+            "pinned pool",
+            "锁页池",
+            "external service",
+            "外部服务"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "interface",
+          "kind": "interface",
+          "label": "公开接口或配置名称",
+          "terms": [
+            "PegaKVConnector"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "PegaFlow KV Transfer",
+            "pegaflow-vllm-connectors",
+            "PegaFlow"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "interface+object",
+          "all": [
+            "interface",
+            "object"
+          ]
+        },
+        {
+          "id": "interface+mechanism",
+          "all": [
+            "interface",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:pipeline-microbatch-migration",
+      "componentId": "pipeline-microbatch-migration",
+      "displayName": "流水线微批处理",
+      "problem": "流水并行微批次跨越调度器、执行器、通信、KV 和 worker，批次准入与各环节的执行状态需要协调。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "校准式流水并行 microbatch 调度的原负责人研究载体，跨越 scheduler、executor、通信、KV、worker 与评测边界。",
+      "objects": [
+        "pipeline parallel",
+        "pipeline parallelism",
+        "流水并行",
+        "pipeline batch",
+        "流水批次",
+        "PP2"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {
+        "status": "verified",
+        "host": "vLLM reference scheduler policy",
+        "versions": [
+          "Pipeline a15a229",
+          "vLLM 0.25.1 experimental backport · protocol 1.1"
+        ],
+        "platforms": [
+          "Ascend 910B2 · Qwen3.5-35B-A3B · TP2/PP2"
+        ],
+        "models": [
+          "Qwen3.5-35B-A3B — matched four-chip TP2/PP2 five-point observation"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "ECPA 已启动实测所用的 APC、MTP2、异步调度、Mamba align 与 FULL_AND_PIECEWISE 组合；公开曲线使用匹配的四卡 TP2/PP2 Native 对照。",
+        "requirements_en": "ECPA launched the measured APC, MTP2, asynchronous scheduling, Mamba align, and FULL_AND_PIECEWISE configuration. The published curve uses the matched four-chip TP2/PP2 Native control."
+      },
+      "aliases": [
+        "Pipeline Microbatch",
+        "pipeline-microbatch-migration"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/23",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/33",
+            "identityValue": "pipeline-microbatch-migration",
+            "valueSha256": "560c736806f27fe6de1c308205ea207f802a07f28df05cf98e2eb2edd8ebafea"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "pipeline parallel",
+            "pipeline parallelism",
+            "流水并行",
+            "pipeline batch",
+            "流水批次",
+            "PP2"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "microbatch",
+            "micro batch",
+            "micro-batch",
+            "微批",
+            "pipeline scheduling",
+            "流水调度",
+            "batch admission",
+            "批次准入",
+            "calibrated scheduling",
+            "校准调度"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Pipeline Microbatch",
+            "pipeline-microbatch-migration"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:prefill-admission",
+      "componentId": "prefill-admission",
+      "displayName": "短请求预填充准入",
+      "problem": "单个长请求的预填充占满单步 token 预算时，短请求无法在该步进入执行。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "配置型 MOD：使用原生单请求 long-prefill 阈值，让短请求及时进入执行，同时保留全局 step token 预算和图捕获配置。",
+      "objects": [
+        "long prefill",
+        "长预填充",
+        "长请求",
+        "short request",
+        "短请求",
+        "prefill budget",
+        "预填充预算",
+        "short requests",
+        "long requests"
+      ],
+      "interfaces": [
+        "long_prefill_token_threshold"
+      ],
+      "interfaceDisclosure": "named_in_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "vLLM + vLLM-Ascend",
+        "versions": [
+          "MOD 0.1.0 @ 28544ba9638f4b901b08924195c4c4eeb60eef3e",
+          "vLLM 0fc695fc / vLLM-Ascend f4a08bdd; TorchNPU 2.10.0.post4"
+        ],
+        "platforms": [
+          "Ascend 910B2 · TP1 · graph"
+        ],
+        "models": [
+          "Qwen3-0.6B · FP16, bounded mixed-request workload"
+        ],
+        "python": [
+          ">=3.10; CPU CI on 3.10/3.12"
+        ],
+        "requirements_zh": "使用原生配置，默认不生效；构造 LLM 前显式设置 long_prefill_token_threshold=224，保留预算 256 与捕获尺寸 [1,2,4,...,256]。max_num_seqs=4、开启 chunked prefill、关闭 prefix caching；恢复原参数即可回滚。",
+        "requirements_en": "Stock configuration recipe, default inert. Explicitly apply long_prefill_token_threshold 224 before LLM construction; preserve budget 256 and capture sizes [1,2,4,...,256]. max_num_seqs=4, chunked prefill on, prefix caching off. Restore original kwargs to roll back."
+      },
+      "aliases": [
+        "Short-Request Prefill Admission",
+        "prefill-admission"
+      ],
+      "stageIds": [
+        "scheduling",
+        "prefill"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/24",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/57",
+            "identityValue": "prefill-admission",
+            "valueSha256": "2f09062f929d6dd0a10b2ffb0c3916badca7dc04a208f29155c92eec2395dba2"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "long prefill",
+            "长预填充",
+            "长请求",
+            "short request",
+            "短请求",
+            "prefill budget",
+            "预填充预算",
+            "short requests",
+            "long requests"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "admission",
+            "准入",
+            "token budget",
+            "token预算",
+            "token 预算",
+            "prefill threshold",
+            "long-prefill threshold",
+            "预填充阈值",
+            "chunked prefill",
+            "分块预填充"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "problem",
+          "kind": "problem",
+          "label": "候选材料中的问题或约束线索",
+          "terms": [
+            "占满预算",
+            "monopolize"
+          ],
+          "basisFields": [
+            "problem",
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "interface",
+          "kind": "interface",
+          "label": "公开接口或配置名称",
+          "terms": [
+            "long_prefill_token_threshold"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Short-Request Prefill Admission",
+            "prefill-admission"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "scheduling",
+            "请求调度",
+            "prefill",
+            "预填充",
+            "输入处理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "interface+object",
+          "all": [
+            "interface",
+            "object"
+          ]
+        },
+        {
+          "id": "interface+mechanism",
+          "all": [
+            "interface",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "problem+object",
+          "all": [
+            "problem",
+            "object"
+          ]
+        },
+        {
+          "id": "problem+mechanism",
+          "all": [
+            "problem",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:prefix-router-migration",
+      "componentId": "prefix-router-migration",
+      "displayName": "Prefix Router 前缀感知路由",
+      "problem": "前缀缓存分布在不同后端，单纯随机路由不能保证请求命中已有缓存。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "可独立安装的外部前缀与生命周期感知 Router，提供有界 backend 连接池、请求负载核算、权威 KV 事件恢复、OpenAI 兼容转发以及健康、就绪和指标接口。 R10 3072 修订版 · CPU 回环验证通过合成 KV 事件驱动选路。默认和可信模式拒绝旧事件协议；冻结驻留缓存缺少对应的实际事件，未进行双副本性能测试。",
+      "objects": [
+        "prefix cache",
+        "prefix caching",
+        "前缀缓存",
+        "KV events",
+        "KV事件",
+        "KV 事件",
+        "session affinity",
+        "会话亲和"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "External router over vLLM-HUST request fingerprint and KV events",
+        "versions": [
+          "Router merge 8115ed5",
+          "vLLM-HUST >=0.23.1,<0.24 functional carrier"
+        ],
+        "platforms": [
+          "Ascend 910B2 · two TP2+EP replicas measured"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "Router 需作为独立服务运维，并与 worker 对齐 tokenizer、block size、hash algorithm、宿主版本及 PYTHONHASHSEED。已发布测量对比 Prefix ON 与随机路由，而非无代理 Native 服务。",
+        "requirements_en": "Operate the router as a separate service and keep tokenizer, block size, hash algorithm, host version and PYTHONHASHSEED aligned with workers. The published measurements compare Prefix ON with random routing, not with a no-proxy native server."
+      },
+      "aliases": [
+        "Prefix-Aware Request Router",
+        "prefix-router-migration",
+        "Prefix Router"
+      ],
+      "stageIds": [
+        "scheduling",
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/25",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/18",
+            "identityValue": "prefix-router-migration",
+            "valueSha256": "418c1e21f760536be81ec21cce671aa582c17a1b7acfe90559837efb4c1b6c88"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "prefix cache",
+            "prefix caching",
+            "前缀缓存",
+            "KV events",
+            "KV事件",
+            "KV 事件",
+            "session affinity",
+            "会话亲和"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "routing",
+            "router",
+            "路由",
+            "backend affinity",
+            "后端亲和",
+            "session affinity",
+            "会话亲和",
+            "load accounting",
+            "负载核算",
+            "prefix aware",
+            "prefix-aware"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Prefix-Aware Request Router",
+            "prefix-router-migration",
+            "Prefix Router"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "scheduling",
+            "请求调度",
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:pyramidkv-ascend-migration",
+      "componentId": "pyramidkv-ascend-migration",
+      "displayName": "PyramidKV 缓存压缩",
+      "problem": "KV 缓存占用与保留信息量存在取舍，减少各层的 KV 保留量时还需控制回答质量损失。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "共享昇腾 KV 压缩适配器的可激活 PyramidKV external method，在 fail-closed 的 Qwen3.5 能力矩阵下提供 query-window 打分和逐层非均匀 KV 保留。",
+      "objects": [
+        "KV retention",
+        "KV保留",
+        "KV 保留",
+        "query window",
+        "query-window",
+        "查询窗口",
+        "layer KV",
+        "逐层KV",
+        "逐层 KV"
+      ],
+      "interfaces": [
+        "max_capacity_prompt"
+      ],
+      "interfaceDisclosure": "named_in_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "vLLM-HUST + vLLM-Ascend-HUST through KVCompress method API v1",
+        "versions": [
+          "PyramidKV merge 565077b",
+          "KVCompress >=0.9,<0.10 candidate wheel"
+        ],
+        "platforms": [
+          "Ascend 910B2 · Qwen3.5-35B-A3B BF16 · TP2"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "要求固定的 CANN 9.1 / vLLM 0.23.0 源码栈、KVCompress graph-slot 回移修复 19f3221，以及 TP2、APC、MTP2、async、chunked prefill、FULL_AND_PIECEWISE、Mamba align。通过质量门槛的配置为 max_capacity_prompt=1368、beta=2、threshold=4096；默认 512/beta=20 未通过质量门槛。公开包发布和五数据集验收仍待完成；该实测配置不属于官方性能基线。",
+        "requirements_en": "Requires the pinned CANN 9.1 / vLLM 0.23.0 source stack, KVCompress graph-slot backport 19f3221, TP2, APC, MTP2, async, chunked-prefill, FULL_AND_PIECEWISE and Mamba-align. The evaluated profile uses max_capacity_prompt=1368, beta=2 and threshold=4096; default 512/beta=20 failed the quality gate. Public package availability and five-dataset qualification remain open; the measured profile is not the official performance baseline."
+      },
+      "aliases": [
+        "PyramidKV Cache Compression",
+        "pyramidkv-ascend-migration",
+        "PyramidKV"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode",
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/26",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/21",
+            "identityValue": "pyramidkv-ascend-migration",
+            "valueSha256": "b84de1a6b9f95a23fcb5b1aa2bedc1039f763dbd787bc4abd90b8cba005b5a1d"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "KV retention",
+            "KV保留",
+            "KV 保留",
+            "query window",
+            "query-window",
+            "查询窗口",
+            "layer KV",
+            "逐层KV",
+            "逐层 KV"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "nonuniform",
+            "non-uniform",
+            "非均匀",
+            "scoring",
+            "打分",
+            "compression",
+            "压缩",
+            "token selection",
+            "token选择",
+            "layer allocation",
+            "逐层分配"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "interface",
+          "kind": "interface",
+          "label": "公开接口或配置名称",
+          "terms": [
+            "max_capacity_prompt"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "PyramidKV Cache Compression",
+            "pyramidkv-ascend-migration",
+            "PyramidKV"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成",
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "interface+object",
+          "all": [
+            "interface",
+            "object"
+          ]
+        },
+        {
+          "id": "interface+mechanism",
+          "all": [
+            "interface",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:quantized-kv-cache-migration",
+      "componentId": "quantized-kv-cache-migration",
+      "displayName": "KV 缓存量化",
+      "problem": "长上下文需要保存更多 KV 张量；降低缓存表示精度时，还需要兼顾分页解码开销与宿主的 INT8 接入条件。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "面向昇腾的动态 per-channel INT8 KV Cache 运行时插件；KIVI 与其他 packed 格式仍属于后续迁移范围。 R10 3072 修订版 · 910B2 组件试验。按 Qwen3.5 每 rank 的注意力几何，4K、16K、32K 共六格的动态 INT8 单层 KV 张量约减半，分页解码算子慢约 21% 至 23%。冻结 CLI 缺少插件的 int8 入口，整模未启用。",
+      "objects": [
+        "KV cache",
+        "KV缓存",
+        "KV 缓存",
+        "key value cache",
+        "paged decode",
+        "分页解码",
+        "KV tensor",
+        "KV张量",
+        "KV 张量",
+        "KV caches",
+        "KV tensors",
+        "key value caches",
+        "paged decoding"
+      ],
+      "interfaces": [
+        "--kv-cache-dtype int8"
+      ],
+      "interfaceDisclosure": "named_in_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "vLLM Ascend HUST",
+        "versions": [
+          "Plugin 0.2.0.dev0 @ ae7b44b",
+          "Core 8a6655cf62 + Ascend f4f49832"
+        ],
+        "platforms": [
+          "Ascend 910B single card · Qwen2.5-14B · 8K"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "启用需传入 --kv-cache-dtype int8；TP2、Qwen3.5 hybrid cache、APC、MTP2、异步调度及当前 Qwen3.5 图模式设定仍未验收。",
+        "requirements_en": "Activation requires --kv-cache-dtype int8. TP2, Qwen3.5 hybrid cache, APC, MTP2, asynchronous scheduling, and the current Qwen3.5 graph-mode setting remain unqualified."
+      },
+      "aliases": [
+        "Quantized KV Cache",
+        "quantized-kv-cache-migration"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode",
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/27",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/26",
+            "identityValue": "quantized-kv-cache-migration",
+            "valueSha256": "bdd7683b43ada10e9c8c377a515a183e669b1f9fd754bffdf1f500a26fd0adcb"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "KV cache",
+            "KV缓存",
+            "KV 缓存",
+            "key value cache",
+            "paged decode",
+            "分页解码",
+            "KV tensor",
+            "KV张量",
+            "KV 张量",
+            "KV caches",
+            "KV tensors",
+            "key value caches",
+            "paged decoding"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "INT8",
+            "per-channel",
+            "per channel",
+            "逐通道",
+            "quantization",
+            "quantized",
+            "量化",
+            "low-bit",
+            "low bit",
+            "3-bit",
+            "3 bit",
+            "4-bit",
+            "2-bit",
+            "packed format",
+            "打包格式"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "interface",
+          "kind": "interface",
+          "label": "公开接口或配置名称",
+          "terms": [
+            "--kv-cache-dtype int8"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Quantized KV Cache",
+            "quantized-kv-cache-migration"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成",
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "interface+object",
+          "all": [
+            "interface",
+            "object"
+          ]
+        },
+        {
+          "id": "interface+mechanism",
+          "all": [
+            "interface",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:request-lifecycle-profiler",
+      "componentId": "request-lifecycle-profiler",
+      "displayName": "请求生命周期因果分析器",
+      "problem": "请求完成、抢占与 KV 回收属于不同生命周期事件，需要把真实回调关联到具体请求，才能核对运行过程。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "默认关闭的请求级生命周期追踪与因果归因 MOD。0.1.1 版已注册原生 vLLM-HUST EventBus v1 sink，并且只在真实 finish、preemption 或 KV-reclaim 回调后报告进程自有运行证据。",
+      "objects": [
+        "request lifecycle",
+        "请求生命周期",
+        "request event",
+        "请求事件",
+        "KV reclaim",
+        "KV回收",
+        "KV 回收",
+        "preemption event",
+        "抢占事件"
+      ],
+      "interfaces": [
+        "EventBus v1"
+      ],
+      "interfaceDisclosure": "named_in_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "vLLM-HUST >=0.23,<0.24 with request-lifecycle-events API 1.0",
+        "versions": [
+          "Plugin 0.1.1",
+          "ECPA 0.3 native carrier 7c6155b75840ee046a9547489628ca31df773334"
+        ],
+        "platforms": [
+          "CPU packaging, current-host contract, callback evidence and lifecycle; NPU qualification incomplete"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "ECPA enable/plan/render/run 与进程自有回调证据已在固定 CPU host 上验证。仍需原生当前版 NPU 执行、盲测 custody/reveal、反事实验证与性能证据。",
+        "requirements_en": "ECPA enable/plan/render/run and process-owned callback evidence are verified on the pinned CPU host. Native-current NPU execution, blind custody/reveal evaluation, counterfactual validation and performance remain required."
+      },
+      "aliases": [
+        "Request Lifecycle Causal Profiler",
+        "request-lifecycle-profiler"
+      ],
+      "stageIds": [
+        "observability"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/28",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/35",
+            "identityValue": "request-lifecycle-profiler",
+            "valueSha256": "04f45cd9f16b9ad91a24dd87a264e6a2db643a4947836b4ac84b033b11862c67"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "request lifecycle",
+            "请求生命周期",
+            "request event",
+            "请求事件",
+            "KV reclaim",
+            "KV回收",
+            "KV 回收",
+            "preemption event",
+            "抢占事件"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "EventBus",
+            "event bus",
+            "事件总线",
+            "callback",
+            "回调",
+            "causal attribution",
+            "因果归因",
+            "lifecycle tracing",
+            "生命周期追踪",
+            "finish event",
+            "完成事件"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "interface",
+          "kind": "interface",
+          "label": "公开接口或配置名称",
+          "terms": [
+            "EventBus v1"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Request Lifecycle Causal Profiler",
+            "request-lifecycle-profiler"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "observability",
+            "可观测",
+            "profiling"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "interface+object",
+          "all": [
+            "interface",
+            "object"
+          ]
+        },
+        {
+          "id": "interface+mechanism",
+          "all": [
+            "interface",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:sealed-serving-warmup",
+      "componentId": "sealed-serving-warmup",
+      "displayName": "服务预热与编译封锁",
+      "problem": "未预热的形状可能在正式请求阶段触发 Torch 或 Triton 编译，服务宣告就绪前需要完成规定形状的预热。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "在服务就绪前完成规定形状的预热，并在正式请求中拦截未预热的 Torch/Triton 编译。 随冻结 B1 r8 引擎交付。",
+      "objects": [
+        "Torch",
+        "Triton",
+        "JIT",
+        "compilation",
+        "编译",
+        "unwarmed shape",
+        "未预热形状"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {},
+      "aliases": [
+        "Serving Warmup and Compilation Sealing",
+        "sealed-serving-warmup"
+      ],
+      "stageIds": [
+        "startup"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/29",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/61",
+            "identityValue": "sealed-serving-warmup",
+            "valueSha256": "3a444bc6ff6d6176615195430716346abec54946c899b02308bc6b8e8e6d3cd8"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "Torch",
+            "Triton",
+            "JIT",
+            "compilation",
+            "编译",
+            "unwarmed shape",
+            "未预热形状"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "warmup",
+            "warm-up",
+            "warm up",
+            "预热",
+            "compile guard",
+            "编译拦截",
+            "compilation seal",
+            "编译封锁",
+            "readiness",
+            "就绪"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Serving Warmup and Compilation Sealing",
+            "sealed-serving-warmup"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "startup",
+            "模型准备"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:short-prefill-tail",
+      "componentId": "short-prefill-tail",
+      "displayName": "短预填充尾段优先调度",
+      "problem": "公开资料仅说明优先执行符合资格的 1–256 token 预填充尾段，尚未单列其针对的原有调度问题。",
+      "problemBasis": "source_insufficient",
+      "mechanism": "r8 优先执行满足资格条件的 1–256 token 预填充尾段。 随冻结 B1 r8 引擎交付。",
+      "objects": [
+        "prefill tail",
+        "预填充尾段",
+        "prefill remainder",
+        "预填充剩余",
+        "short prefill",
+        "短预填充",
+        "remaining prefill",
+        "prefill剩余"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {},
+      "aliases": [
+        "Short Prefill Tail Scheduling",
+        "short-prefill-tail"
+      ],
+      "stageIds": [
+        "prefill"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/30",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/64",
+            "identityValue": "short-prefill-tail",
+            "valueSha256": "0ac5d08ebc4161fd52ae0e108fc0d85ca1a96edd796cc6f4a67a9abbac7be580"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "prefill tail",
+            "预填充尾段",
+            "prefill remainder",
+            "预填充剩余",
+            "short prefill",
+            "短预填充",
+            "remaining prefill",
+            "prefill剩余"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "priority",
+            "优先",
+            "eligible",
+            "eligibility",
+            "资格",
+            "tail scheduling",
+            "尾段调度",
+            "1–256",
+            "1-256"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Short Prefill Tail Scheduling",
+            "short-prefill-tail"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:simllm-migration",
+      "componentId": "simllm-migration",
+      "displayName": "SimLLM 近似前缀复用",
+      "problem": "任务相似不等于推理状态完全相同，近似复用 KV 时还需要恢复混合状态并检查输出质量。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "面向 vLLM Ascend、默认关闭且可独立安装的任务相似度 KV 复用 MOD；提供任务匹配、受限 KV snapshot、worker 侧复用和 Qwen3.5 hybrid 状态恢复，无需修改宿主源码。",
+      "objects": [
+        "task similarity",
+        "任务相似",
+        "approximate prefix",
+        "近似前缀",
+        "approximate KV",
+        "近似KV",
+        "近似 KV",
+        "KV snapshot",
+        "KV快照",
+        "KV 快照",
+        "hybrid state",
+        "混合状态"
+      ],
+      "interfaces": [
+        "VLLM_ASCEND_SIMLLM_ENABLED=1"
+      ],
+      "interfaceDisclosure": "named_in_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "vLLM Ascend HUST NPUModelRunner",
+        "versions": [
+          "Plugin 0.1.0.dev0",
+          "Manifest 0.3 @ d12428f",
+          "Merge 1110fe5"
+        ],
+        "platforms": [
+          "Ascend 910B3 · Qwen3.5-35B-A3B W8A8 · TP1/TP2 measured"
+        ],
+        "models": [
+          "Qwen3.5-35B-A3B W8A8 — fixed-card one-output-token similarity replay"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "需通过 Extension Manager 显式启用并设置 VLLM_ASCEND_SIMLLM_ENABLED=1，同时匹配已测宿主内部接口、block size、cache 与 prefill 配置。近似复用依赖特定负载，长生成性能尚未验证。",
+        "requirements_en": "Enable explicitly through Extension Manager with VLLM_ASCEND_SIMLLM_ENABLED=1 and use the tested host internals, block size, cache, and prefill settings. Approximate reuse is workload-specific; long-generation performance remains unqualified."
+      },
+      "aliases": [
+        "SimLLM Approximate Prefix Reuse",
+        "simllm-migration",
+        "SimLLM"
+      ],
+      "stageIds": [
+        "prefill",
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/31",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/27",
+            "identityValue": "simllm-migration",
+            "valueSha256": "c39f7fcca6a596299a2234b404ec8fbafc983d8102b2a1a0eebc04a0b8846497"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "task similarity",
+            "任务相似",
+            "approximate prefix",
+            "近似前缀",
+            "approximate KV",
+            "近似KV",
+            "近似 KV",
+            "KV snapshot",
+            "KV快照",
+            "KV 快照",
+            "hybrid state",
+            "混合状态"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "reuse",
+            "复用",
+            "similarity matching",
+            "相似度匹配",
+            "state restore",
+            "state restoration",
+            "状态恢复",
+            "worker reuse",
+            "worker侧复用"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "interface",
+          "kind": "interface",
+          "label": "公开接口或配置名称",
+          "terms": [
+            "VLLM_ASCEND_SIMLLM_ENABLED=1"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "SimLLM Approximate Prefix Reuse",
+            "simllm-migration",
+            "SimLLM"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理",
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "interface+object",
+          "all": [
+            "interface",
+            "object"
+          ]
+        },
+        {
+          "id": "interface+mechanism",
+          "all": [
+            "interface",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:slicegpt-migration",
+      "componentId": "slicegpt-migration",
+      "displayName": "SliceGPT 模型剪枝",
+      "problem": "剪枝后的权重产物需要明确版本和格式，并通过宿主兼容检查，才能交给运行时加载。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "已打包的 SliceGPT 转换 Toolkit 与默认关闭的 ECPA Runtime 产物加载器，支持 Llama 和 Qwen2/Qwen2.5，并提供版本化产物格式、兼容检查、回滚文档和 clean-wheel 生命周期测试。",
+      "objects": [
+        "pruned weights",
+        "pruned model",
+        "剪枝权重",
+        "剪枝模型",
+        "converted artifact",
+        "转换产物"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "Offline Toolkit + default-off ECPA runtime loader",
+        "versions": [
+          "Merge fc157ab",
+          "Manifest 0.3"
+        ],
+        "platforms": [
+          "Offline conversion validated; CUDA/NPU serving pending"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "需使用版本化转换产物并通过宿主兼容检查；真实设备模型加载、推理正确性、回滚和性能仍需验收。",
+        "requirements_en": "Use the versioned converted artifact and pass host compatibility checks. Real-device model loading, inference correctness, rollback and performance still require qualification."
+      },
+      "aliases": [
+        "SliceGPT Model Pruning",
+        "slicegpt-migration",
+        "SliceGPT"
+      ],
+      "stageIds": [
+        "startup"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/32",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/22",
+            "identityValue": "slicegpt-migration",
+            "valueSha256": "41065ecfcdd5f58df2bb51e77f0cd317b935b7eb4f9621382aeaab0a1aafbea3"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "pruned weights",
+            "pruned model",
+            "剪枝权重",
+            "剪枝模型",
+            "converted artifact",
+            "转换产物"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "SliceGPT",
+            "model pruning",
+            "模型剪枝",
+            "artifact loader",
+            "产物加载",
+            "compatibility check",
+            "兼容检查",
+            "versioned format",
+            "版本化格式"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "SliceGPT Model Pruning",
+            "slicegpt-migration",
+            "SliceGPT"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "startup",
+            "模型准备"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:state-page-copy",
+      "componentId": "state-page-copy",
+      "displayName": "State FA 状态页复制适配",
+      "problem": "多种模型 worker 共用引擎状态存储时，状态页复制路径需要与各 worker 的状态处理保持一致。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "为 R9 的 Qwen 和 Intern-S2 worker 适配共用的引擎自有状态存储与 State FA 页复制路径，随引擎交付。",
+      "objects": [
+        "state page",
+        "状态页",
+        "State FA",
+        "engine state storage",
+        "引擎状态存储",
+        "worker state",
+        "worker状态"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {},
+      "aliases": [
+        "State FA Page-Copy Adapter",
+        "state-page-copy"
+      ],
+      "stageIds": [
+        "state_management"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/33",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/66",
+            "identityValue": "state-page-copy",
+            "valueSha256": "a5835a4caf392fb1552e5f36e2250ae34afc72b54c2aa72cf41ce7a93b9d9886"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "state page",
+            "状态页",
+            "State FA",
+            "engine state storage",
+            "引擎状态存储",
+            "worker state",
+            "worker状态"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "page copy",
+            "page-copy",
+            "页复制",
+            "state copy",
+            "状态复制",
+            "shared storage",
+            "共用存储",
+            "copy adapter",
+            "复制适配"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "State FA Page-Copy Adapter",
+            "state-page-copy"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "state management",
+            "状态管理",
+            "KV management",
+            "KV管理"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:traceloom",
+      "componentId": "traceloom",
+      "displayName": "TraceLoom 推理时间线分析",
+      "problem": "定位推理阶段的执行过程，需要把 profiler 时间线中的事件与调度步骤对应起来。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "推理时间线分析工具，可把 profiler 事件关联到调度步骤。已有昇腾上的分析功能验证。",
+      "objects": [
+        "profiler events",
+        "profiler event",
+        "profiler事件",
+        "profiler 事件",
+        "inference timeline",
+        "推理时间线",
+        "scheduler step",
+        "调度步骤"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {},
+      "aliases": [
+        "TraceLoom Inference Timeline Analysis",
+        "traceloom",
+        "TraceLoom"
+      ],
+      "stageIds": [
+        "observability"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/34",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/70",
+            "identityValue": "traceloom",
+            "valueSha256": "8bbc5fa5bd65547d93cba1e962d65f44c4874ce18f9a5cbad2f571fb70222883"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "profiler events",
+            "profiler event",
+            "profiler事件",
+            "profiler 事件",
+            "inference timeline",
+            "推理时间线",
+            "scheduler step",
+            "调度步骤"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "event correlation",
+            "事件关联",
+            "timeline analysis",
+            "时间线分析",
+            "trace analysis",
+            "轨迹分析",
+            "step correlation",
+            "步骤关联",
+            "profiling",
+            "性能剖析"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "TraceLoom Inference Timeline Analysis",
+            "traceloom",
+            "TraceLoom"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "observability",
+            "可观测",
+            "profiling"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:unified-communication-migration",
+      "componentId": "unified-communication-migration",
+      "displayName": "统一通信",
+      "problem": "不同设备的集合通信需要统一调用接口，同时复用宿主持有的通信器和进程组，避免两套通信生命周期并存。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "设备中立统一通信 MOD。当前 vLLM-HUST 宿主合同在既有 device communicator 之上委派集合通信；昇腾适配复用宿主拥有的 HCCL process group，不创建第二套通信生命周期。",
+      "objects": [
+        "collective communication",
+        "集合通信",
+        "device communicator",
+        "设备通信器",
+        "process group",
+        "进程组",
+        "HCCL",
+        "NCCL"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {
+        "status": "experimental",
+        "host": "vLLM-HUST GroupCoordinator host contract; vLLM Ascend HCCL adapter",
+        "versions": [
+          "vllm-hust merge 8ec6ac0",
+          "vllm-ascend-hust PR #71",
+          "Extension 0.1.0.dev0",
+          "Manifest 0.2-experimental"
+        ],
+        "platforms": [
+          "Device-neutral host contract",
+          "Ascend HCCL adapter; multi-device validation pending"
+        ],
+        "python": [
+          ">=3.10"
+        ],
+        "requirements_zh": "宿主接入已实现并保留原生回退。在多卡 HCCL/NCCL 正确性、故障与回滚验收记录完成前，独立扩展仍保持 import-only。",
+        "requirements_en": "The host integration is implemented and native fallback remains available. Keep the standalone extension import-only until multi-device HCCL/NCCL correctness, failure, and rollback validation is recorded."
+      },
+      "aliases": [
+        "Unified Communication",
+        "unified-communication-migration"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/35",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/28",
+            "identityValue": "unified-communication-migration",
+            "valueSha256": "2c86e331b79f272f67d4e34a18b8f64dd358097c31a8c824f7e72f1b9d6b601e"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "collective communication",
+            "集合通信",
+            "device communicator",
+            "设备通信器",
+            "process group",
+            "进程组",
+            "HCCL",
+            "NCCL"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "unified communication",
+            "统一通信",
+            "delegate",
+            "delegation",
+            "委派",
+            "reuse communicator",
+            "复用通信器",
+            "host owned",
+            "宿主持有",
+            "all-reduce",
+            "all_reduce",
+            "all-gather",
+            "all_gather"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Unified Communication",
+            "unified-communication-migration"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:vllm-hust-extension-manager",
+      "componentId": "vllm-hust-extension-manager",
+      "displayName": "扩展发现与启用管理",
+      "problem": "MOD 安装完成不等于能够在当前宿主生效，启用前还需核对发现、兼容性、配置和受管运行条件。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "Provider-neutral 的发现、兼容性、配置、状态、plan、render、check 与受监管运行层。ECPA 0.3.0 在双 Python CI、clean-wheel 验收及一次带进程观测证据的原生昇腾生命周期通过后，以固定 GitHub Release 制品发布；这不代表所有 MOD、Provider 或性能结论都自动升级为稳定支持。",
+      "objects": [
+        "extension",
+        "extensions",
+        "扩展",
+        "plugin",
+        "plugins",
+        "插件",
+        "MOD manifest",
+        "扩展清单"
+      ],
+      "interfaces": [],
+      "interfaceDisclosure": "no_specific_api_name_in_frozen_public_facts",
+      "applicability": {},
+      "aliases": [
+        "Extension Manager",
+        "vllm-hust-extension-manager",
+        "ECPA"
+      ],
+      "stageIds": [
+        "startup",
+        "service_support"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/36",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/1",
+            "identityValue": "vllm-hust-extension-manager",
+            "valueSha256": "eb763b3d2403836943df66fae8bc819a7d61fa79cec9c843087a022c1e88a3e3"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "extension",
+            "extensions",
+            "扩展",
+            "plugin",
+            "plugins",
+            "插件",
+            "MOD manifest",
+            "扩展清单"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "discovery",
+            "发现",
+            "compatibility check",
+            "兼容检查",
+            "activation",
+            "启用",
+            "managed run",
+            "受管运行",
+            "provider registration",
+            "provider注册",
+            "plugin registration",
+            "插件注册",
+            "entry point",
+            "entry_points"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "Extension Manager",
+            "vllm-hust-extension-manager",
+            "ECPA"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "startup",
+            "模型准备",
+            "service support",
+            "服务支撑"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    },
+    {
+      "modId": "mod:vllm-hust:vllm-hust-opset",
+      "componentId": "vllm-hust-opset",
+      "displayName": "OPset 算子优化集",
+      "problem": "Persistent MatMul 的冗余清零与分开执行的 Linear、SwiGLU 会增加算子工作；优化范围限于已验证的 batch-invariant Graph/Triton 路径。",
+      "problemBasis": "editorial_summary",
+      "mechanism": "可按优化项独立启用的 Ascend 算子优化包，包含 Persistent MatMul 冗余清零消除与 Graph Linear–SwiGLU 融合；仅影响已验证的 batch-invariant Graph/Triton 路径。",
+      "objects": [
+        "Persistent MatMul",
+        "persistent linear",
+        "Linear SwiGLU",
+        "Linear–SwiGLU",
+        "SwiGLU",
+        "persistent matrix multiplication"
+      ],
+      "interfaces": [
+        "VLLM_BATCH_INVARIANT=1"
+      ],
+      "interfaceDisclosure": "named_in_public_facts",
+      "applicability": {
+        "status": "verified",
+        "host": "vLLM-HUST + vllm-ascend-hust",
+        "versions": [
+          "vllm-hust-opset 0.3.2; Manifest 0.3 @ e6f8050; fixed source commits in repository compatibility/verified-line.json"
+        ],
+        "platforms": [
+          "Ascend 910B2 · CANN 9.1.0-beta.3 · Graph + VLLM_BATCH_INVARIANT=1"
+        ],
+        "models": [
+          "Qwen2.5-7B-Instruct — matched Graph validation"
+        ],
+        "python": [
+          "3.11"
+        ],
+        "requirements_zh": "按仓库固定的兼容配置安装，启用前运行 vllm-hust-opset 和 vllm-hust-ext extension check。Linear–SwiGLU 融合内核只覆盖 M ≤ 128，较大 M 回退；普通 ACLNN MatMul、其他 linear 内核和其他运行时版本不在本次验收范围。",
+        "requirements_en": "Use the repository's pinned compatibility profile and run vllm-hust-opset plus vllm-hust-ext extension check before enabling. The linear-SwiGLU fused kernel covers M <= 128; larger M falls back. Ordinary ACLNN MatMul, unrelated linear kernels, and other runtime versions are not qualified."
+      },
+      "aliases": [
+        "OPset",
+        "vllm-hust-opset"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "source": {
+        "sourceFile": "public/group-research/versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+        "jsonPointer": "/payload/mods/37",
+        "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+        "officialSourceRefs": [
+          {
+            "sourceSnapshotId": "public:data__ecosystem.json@b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+            "locator": "/components/45",
+            "identityValue": "vllm-hust-opset",
+            "valueSha256": "e3d02c3ef016c549a1f9e93809e3ffaab00100955cfb1c90b7b1cdddf24ee116"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "object",
+          "kind": "object",
+          "label": "候选材料中的处理对象",
+          "terms": [
+            "Persistent MatMul",
+            "persistent linear",
+            "Linear SwiGLU",
+            "Linear–SwiGLU",
+            "SwiGLU",
+            "persistent matrix multiplication"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "mechanism",
+          "kind": "mechanism",
+          "label": "候选材料中的处理机制",
+          "terms": [
+            "fusion",
+            "fused",
+            "融合",
+            "zeroing",
+            "清零",
+            "batch invariant",
+            "batch-invariant",
+            "冗余清零"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "interface",
+          "kind": "interface",
+          "label": "公开接口或配置名称",
+          "terms": [
+            "VLLM_BATCH_INVARIANT=1"
+          ],
+          "basisFields": [
+            "mechanism",
+            "applicability"
+          ]
+        },
+        {
+          "id": "alias",
+          "kind": "alias",
+          "label": "专有名称或别名",
+          "terms": [
+            "OPset",
+            "vllm-hust-opset"
+          ],
+          "basisFields": [
+            "aliases"
+          ]
+        },
+        {
+          "id": "stage-context",
+          "kind": "context",
+          "label": "环节辅助词（不参与准入规则）",
+          "terms": [
+            "prefill",
+            "预填充",
+            "输入处理",
+            "decode",
+            "解码",
+            "循环生成"
+          ],
+          "basisFields": [
+            "stageIds"
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "interface+object",
+          "all": [
+            "interface",
+            "object"
+          ]
+        },
+        {
+          "id": "interface+mechanism",
+          "all": [
+            "interface",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "alias+object",
+          "all": [
+            "alias",
+            "object"
+          ]
+        },
+        {
+          "id": "alias+mechanism",
+          "all": [
+            "alias",
+            "mechanism"
+          ]
+        },
+        {
+          "id": "object+mechanism",
+          "all": [
+            "object",
+            "mechanism"
+          ]
+        }
+      ]
+    }
+  ]
+}

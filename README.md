@@ -213,3 +213,49 @@ ACL Graph 的问题路线、证据判断与研究反馈由 [`topics/aclgraph/sur
 ## 已知范围
 
 本版支持统计首页、阅读与归档、下载、显式导入日报和研究查询。浏览器 UI 检查与上游交接说明见上游仓库的 `docs/website-preview.md`。
+
+## 组内 MOD 与社区进展对照
+
+导航“组内 MOD”（/#/group-mods）读取独立的冻结数据，不依赖日报目录加载成功。可按环节、类型、名称/问题/维护者/PR 编号、对照状态筛选；目录优先展示有据关联，直接露出具体仓库、PR 编号、准确中文释义和机制差异，再进入完整对照。技术专题及首页环节提供回链，全站搜索包含 MOD。
+
+首份数据取材于 2026-11-26 的官网公开发布链：website 1a4dd5a8959627bb4d74f14fb51599a32314e2a9，benchmark publication 5b536e91f2e864bc0235832bd6c58ed8cd771d5e，visibility policy 9574380a21e9d62eb157da16be755692ce60b24a。主统计为 38 个 MOD（27 运行时、1 连接器、10 工具）；4 项外部参照、11 项待核查、29 项当前目录中的排除项不计入。方案本地审计另保留 1 项旧目录退役条目，不将它补回当前公共目录。
+
+资格按公开投影中的 component.id、正式 MOD kind、implemented/implemented_restricted 生命周期、组内归属判定；性能标签不能覆盖生命周期。仅名称相似不构成有依据关系，维护者不自动等于项目负责人。8 条有依据的方法/边界对照、2 条候选，覆盖 7 个 MOD（其中 6 个有依据对照）；其余 31 个明确标为尚未完成社区方法对照。当前为 6 个后续研究假设和 1 个附属验证待办，均未运行实验，迁移收益均未验证。
+
+主界面围绕具体 MOD—PR 对照：直接显示双方进展、关联依据、同维度机制差异、固定版本代码位置及对组内研究的意义。候选线索收在次要位置，不计有据对照。后续研究以 purpose=research 记录，必须有 supported 的具体 PR 和完整推理依据；purpose=verification 可独立于 PR，放入附属验证待办。Core 窗口级生效核查不再关联 #21191。
+
+版本与记录收进来源与口径；旧 /group-mods/changes 和 view=history 链接继续有合理落点。导入、文字和研究假设修订不当作已完成的技术进展。环节占比仍按所看版本的全部 MOD—环节关联次数计算，同一 MOD 可跨多个环节。
+
+维护输入在 data/group-research/curation.json 与 sources.lock.json。原始来源及论文全文保留在本地资料区，不整包提交。显式导入需要两组本地来源：
+
+- --source-dir：官网公开投影文件，包括 data__ecosystem.json、data__mod-taxonomy.json、data__plugin-workshop-metadata.json、data__benchmark-source-manifest.json，以及前后两份 deployment-provenance.json / deployment-provenance-after.json。
+- --evidence-dir：锁文件所列相对路径的公开 PR/论文核查原件。脚本核对原件哈希、PR 身份/版本和引用字段；不会联网下载。
+
+```bash
+npm run import:group-mods -- --source-dir /path/to/public-projection --evidence-dir /path/to/local-evidence
+npm run check:group-mods
+npm test
+VITE_BASE_PATH=/auto-research-report-website/ npm run build
+```
+
+首次生成仅建立 baseline_created，事件用 toSnapshotRef=self 避免内容哈希自引用。内容冻结在 public/group-research/versions/<payload-sha256>/bundle.json，index.json 最后原子切换。重复输入复用当前版本；更新已有数据时必须显式传入 --previous 指向当前 bundle，防止误建另一条基线。开发、测试、构建只校验现有数据，不采集、不调用模型、不建立周期任务。
+
+更新先完整核对三段发布锁、公开文件哈希和社区版本，再按稳定身份比较。PR head/body 与合并状态分开记录；观察时间、stars 或未引用字段变化不冒充技术进展。受影响关系及问题标“需复核”，旧判断保留在旧快照。变更已有对照判断时，在 curation.reviews 追加记录，提供 entityId、actor、action（retain/revise/withdraw）、previousReviewId、recordedAt、rationale 和与新 currentAgainst 规范化内容对应的 SHA-256 fingerprint；新引用也须对应所复核版本。resolved/contradicted 问题须有结论、来源和记录者，程序不因 PR 合并自动关闭问题。
+
+快照可由 snapshot 参数固定读取，下载与当前所看版本一致。需要回退时应成套恢复同版本 index 和 bundle，先执行 check:group-mods；不单独更换正文或指针。明确撤回公开范围时，受影响旧正文移至 --audit-dir（默认仓库外部发布面之外的 .qa/group-research-withdrawn），公共索引保留撤回提示并停止提供原文件；已撤回内容不得通过历史回退恢复公开。
+
+npm test 同时运行 Node 导入/变更测试和现有 Vitest 前端测试。Node 夹具在临时目录模拟第二次版本、失败和撤回；这些模拟记录不会进入公共数据。当前站点没有为本功能运行 MOD 性能实验。
+
+
+### MOD 社区材料的离线整理
+
+普通启动、测试和构建只读取已生成数据。材料索引和 MOD 候选初筛由显式离线命令执行：
+
+```bash
+npm run build:community-corpus -- --out .qa/mod-community/corpus-v1
+npm run screen:mod-prs -- --corpus .qa/mod-community/corpus-v1 --out .qa/mod-community/screening-v1
+```
+
+索引使用 catalog 指定的当前日报与 `data/group-research/corpus-sources.json` 锁定的在用专题；日报主条目、正文引用和专题补充保留各自身份。完整语料、输入哈希、候选及命中依据留在 `.qa`，不由浏览 MOD 的页面加载。`retrieval-profiles.json` 的规则只产生待核查线索；正式比较仍须双边来源审阅后写入 curation，再按既有导入流程生成新快照。
+
+公开快照仅增加材料范围摘要、每个 MOD 在该版本上的初筛与部分核查进度，以及编辑指定的核心 PR。初筛、原文核查、关系判断和实验验证分别记录；未召回或尚未核查不表示社区没有相关工作。旧快照继续可读，内容寻址文件不原地改写。

@@ -1,0 +1,843 @@
+{
+  "schemaVersion": 1,
+  "currentSnapshotId": "a4645920954e135dac253f68226f1959b1ce602c94925e66167b7ad685635f88",
+  "snapshots": [
+    {
+      "snapshotId": "ad788d001bf10095918b67fbdade5f3cb2a822029c5c4458493fefcf430c900e",
+      "previousSnapshotId": null,
+      "bundlePath": "versions/ad788d001bf10095918b67fbdade5f3cb2a822029c5c4458493fefcf430c900e/bundle.json",
+      "bundleSha256": "a87b17f49dd7311dbc4e32d18f6542e60f78cd229d126d9714374d57f54146d5",
+      "asOf": "2026-11-26",
+      "isBaseline": true,
+      "counts": {
+        "mods": 38,
+        "supportedMods": 6,
+        "relations": 10,
+        "questions": 7,
+        "reviewNeeded": 0
+      }
+    },
+    {
+      "snapshotId": "25232c302768c2f14940cae128a4a359b265c8d92e67efd02209cbdb61354ed6",
+      "previousSnapshotId": "ad788d001bf10095918b67fbdade5f3cb2a822029c5c4458493fefcf430c900e",
+      "bundlePath": "versions/25232c302768c2f14940cae128a4a359b265c8d92e67efd02209cbdb61354ed6/bundle.json",
+      "bundleSha256": "cbbd0066cecaead682b40a6439d2f21c689cd2848fff7ced7eba5de7a9fc9a57",
+      "asOf": "2026-11-26",
+      "isBaseline": false,
+      "counts": {
+        "mods": 38,
+        "supportedMods": 6,
+        "relations": 10,
+        "questions": 7,
+        "reviewNeeded": 0
+      }
+    },
+    {
+      "snapshotId": "92528f8a4ecffb5676e1b323cb4043bd1e2b0115be104753d763fa6ecea808e2",
+      "previousSnapshotId": "25232c302768c2f14940cae128a4a359b265c8d92e67efd02209cbdb61354ed6",
+      "bundlePath": "versions/92528f8a4ecffb5676e1b323cb4043bd1e2b0115be104753d763fa6ecea808e2/bundle.json",
+      "bundleSha256": "891847ddf81db7b324ff27b2d3d501761101d04319b1697a7b556332f25586ba",
+      "asOf": "2026-11-26",
+      "isBaseline": false,
+      "counts": {
+        "mods": 38,
+        "supportedMods": 6,
+        "relations": 10,
+        "questions": 7,
+        "reviewNeeded": 0
+      }
+    },
+    {
+      "snapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+      "previousSnapshotId": "92528f8a4ecffb5676e1b323cb4043bd1e2b0115be104753d763fa6ecea808e2",
+      "bundlePath": "versions/eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe/bundle.json",
+      "bundleSha256": "8fedc9a0f47d39a7f969b24dd8552a9bdc36b70e2d03df2c558dda2c3c157d16",
+      "asOf": "2026-11-26",
+      "isBaseline": false,
+      "counts": {
+        "mods": 38,
+        "supportedMods": 6,
+        "relations": 10,
+        "questions": 7,
+        "reviewNeeded": 0
+      }
+    },
+    {
+      "snapshotId": "990980583841839bbad8d84d1626f03fe4468c9029574063702624023d30f67a",
+      "previousSnapshotId": "eb1466b4b8faeb66445f6ea51a4520564d898e44cf16225f13ef85d0d02dfcfe",
+      "bundlePath": "versions/990980583841839bbad8d84d1626f03fe4468c9029574063702624023d30f67a/bundle.json",
+      "bundleSha256": "fe30f8f3b05580022883787eae5b0875ee5843c71bc64686d6309a90aadc5fd1",
+      "asOf": "2026-11-26",
+      "isBaseline": false,
+      "counts": {
+        "mods": 38,
+        "supportedMods": 8,
+        "relations": 14,
+        "questions": 9,
+        "reviewNeeded": 0
+      }
+    },
+    {
+      "snapshotId": "a4645920954e135dac253f68226f1959b1ce602c94925e66167b7ad685635f88",
+      "previousSnapshotId": "990980583841839bbad8d84d1626f03fe4468c9029574063702624023d30f67a",
+      "bundlePath": "versions/a4645920954e135dac253f68226f1959b1ce602c94925e66167b7ad685635f88/bundle.json",
+      "bundleSha256": "86490de0611302f180a76bed60e6381a446f50cc85ff22b5aec04450ebe94c43",
+      "asOf": "2026-11-26",
+      "isBaseline": false,
+      "counts": {
+        "mods": 38,
+        "supportedMods": 8,
+        "relations": 14,
+        "questions": 9,
+        "reviewNeeded": 0
+      }
+    }
+  ],
+  "modSearchIndex": [
+    {
+      "componentId": "adm",
+      "displayName": "昇腾分布式元数据",
+      "aliases": [
+        "Ascend Distributed Metadata",
+        "ADM"
+      ],
+      "problemSummary": "多卡 DP 调度需要跨 rank 同步元数据，合并通信时仍须保持原生 token 向量和图模式结果一致。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "匡明轩"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "ascend-attention-boundary",
+      "displayName": "昇腾注意力计算边界调优",
+      "aliases": [
+        "Ascend Attention Boundary Optimization"
+      ],
+      "problemSummary": "公开资料说明了昇腾注意力边界组件及并发对照实验，尚未明确其针对的原有性能瓶颈。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "曹哲"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [
+        "aclgraph"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "ascend-quant-toolkit",
+      "displayName": "昇腾模型量化工具",
+      "aliases": [
+        "Ascend Model Quantization Toolkit"
+      ],
+      "problemSummary": "混合精度量化产物包含不同精度配置和权重分片，部署前需要校验元数据与分片完整性，并匹配宿主加载器和算子的接口要求。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "王鸿坤"
+      ],
+      "stageIds": [
+        "startup"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现并登记"
+    },
+    {
+      "componentId": "betterscale",
+      "displayName": "BetterScale 执行与状态调度",
+      "aliases": [
+        "BetterScale Execution and State Scheduling"
+      ],
+      "problemSummary": "多卡异步推理需要同时管理执行容量和常驻状态；驻留状态写回也是解码及混合形状执行中的一项组件开销。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "田景远"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现并登记"
+    },
+    {
+      "componentId": "bidkv",
+      "displayName": "BidKV 缓存抢占策略",
+      "aliases": [
+        "BidKV Cache Preemption"
+      ],
+      "problemSummary": "KV 缓存容量受限时，需要选择可抢占的请求，并在策略无法安全决策时回退。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "王明琪",
+        "陈彦博"
+      ],
+      "stageIds": [
+        "scheduling"
+      ],
+      "topicIds": [
+        "kv-cache"
+      ],
+      "eligibilityLabel": "已实现并登记"
+    },
+    {
+      "componentId": "capacity-tuning",
+      "displayName": "执行与常驻席位调优",
+      "aliases": [
+        "Execution and Resident Capacity Tuning"
+      ],
+      "problemSummary": "执行席位与状态常驻席位是两类容量，允许同时执行的请求数与可保留的请求状态数需要分别配置。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "张书豪"
+      ],
+      "stageIds": [
+        "scheduling",
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "core-attention-boundary",
+      "displayName": "核心注意力计算边界调优",
+      "aliases": [
+        "Core Attention Boundary Optimization"
+      ],
+      "problemSummary": "公开资料说明了 Core 注意力边界搜索及激活观测，尚未明确其针对的原有性能瓶颈。",
+      "relatedWorks": [
+        "github:vllm-project/vllm-ascend#21191",
+        "[Performance][Attention] Reuse device query boundaries to avoid redundant H2D",
+        "复用设备端 query 边界，移除冗余 H2D 拷贝"
+      ],
+      "maintainerNames": [
+        "曹哲"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [
+        "aclgraph"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "diffspec",
+      "displayName": "DiffSpec 投机解码",
+      "aliases": [
+        "DiffSpec Speculative Decoding"
+      ],
+      "problemSummary": "检索式推测解码需要排除图填充和被拒绝的草稿后缀，并保持多 rank 检索结果与草稿 KV 一致。",
+      "relatedWorks": [
+        "github:vllm-project/vllm#61589",
+        "[Core][Spec Decode] Lookahead block hashes for EAGLE prefix caching",
+        "用前瞻 token 块哈希支持 EAGLE 前缀缓存"
+      ],
+      "maintainerNames": [
+        "杜忠承"
+      ],
+      "stageIds": [
+        "decode",
+        "speculative"
+      ],
+      "topicIds": [
+        "speculative-decoding"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "dla",
+      "displayName": "DLA 输出长度感知准入",
+      "aliases": [
+        "DLA Output-Length-Aware Admission"
+      ],
+      "problemSummary": "已知输出预算的请求在进入执行前，需要接受与该预算相关的准入检查。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "谢汉龙"
+      ],
+      "stageIds": [
+        "scheduling"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "gdn-state-codec",
+      "displayName": "GDN 状态压缩与恢复",
+      "aliases": [
+        "GDN State Compression"
+      ],
+      "problemSummary": "Qwen 门控增量层在推理中保留循环状态，压缩这些状态时必须保证能够正确恢复。",
+      "relatedWorks": [
+        "github:vllm-project/vllm#69401",
+        "[Perf][GDN] Write only the used FlashInfer prefill checkpoint states",
+        "只写入实际使用的 FlashInfer GDN 预填充检查点"
+      ],
+      "maintainerNames": [
+        "张书豪"
+      ],
+      "stageIds": [
+        "decode"
+      ],
+      "topicIds": [
+        "kv-cache"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "graph-coverage",
+      "displayName": "计算图捕获范围配置",
+      "aliases": [
+        "Graph Capture Coverage Configuration"
+      ],
+      "problemSummary": "图捕获规格与实际 query-token 批次不匹配时，需要调整捕获尺寸，同时考虑新增的图内存和启动开销。",
+      "relatedWorks": [
+        "github:vllm-project/vllm#67489",
+        "[Bugfix] Fix OOM from unused FA3 MLA split-KV buffer on decode batches above CUDA graph sizes",
+        "避免图捕获范围外 MLA 解码批次分配未使用的 split-KV 缓冲"
+      ],
+      "maintainerNames": [
+        "张书豪"
+      ],
+      "stageIds": [
+        "startup",
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [
+        "aclgraph"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "guarded-progress-async",
+      "displayName": "受保护的异步进度复制",
+      "aliases": [
+        "Guarded Asynchronous Progress Copy"
+      ],
+      "problemSummary": "异步 H2D 进度复制期间，源状态的所有权和生命周期必须有效，复制操作需要相应检查。",
+      "relatedWorks": [
+        "github:vllm-project/vllm#66052",
+        "[Bugfix][DSA] Stage ShardQ indexer indices in fresh host memory each step",
+        "每步使用独立主机内存暂存 ShardQ 索引"
+      ],
+      "maintainerNames": [
+        "张书豪"
+      ],
+      "stageIds": [],
+      "topicIds": [],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "hust-joint-packed",
+      "displayName": "锁页主机状态合并",
+      "aliases": [
+        "Packed Pinned-Host State"
+      ],
+      "problemSummary": "每个 rank 的主机状态预算为 4 GiB，锁页状态分配需要在该预算内按对象和数据类型组织。",
+      "relatedWorks": [
+        "github:vllm-project/vllm#60130",
+        "[KV Offload] SimpleCPUOffload: one host buffer per rank, opt-in HugeTLB pages",
+        "SimpleCPUOffload 按 rank 统一主机映射，并可选 HugeTLB 大页"
+      ],
+      "maintainerNames": [
+        "张书豪"
+      ],
+      "stageIds": [],
+      "topicIds": [
+        "kv-cache"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "hust-m01-correction",
+      "displayName": "请求状态校正",
+      "aliases": [
+        "Request State Correction"
+      ],
+      "problemSummary": "公开资料仅登记了请求状态校正和活动快照校验，尚未说明具体的状态异常及触发条件。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "张书豪"
+      ],
+      "stageIds": [],
+      "topicIds": [
+        "kv-cache"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "intern-s2",
+      "displayName": "Intern-S2（书生）模型适配",
+      "aliases": [
+        "Intern-S2 Model Adapter"
+      ],
+      "problemSummary": "Intern-S2 接入 R9 昇腾引擎需要专用 worker、词表检查和请求准入支持。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "张书豪"
+      ],
+      "stageIds": [
+        "startup",
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "kv-materialization-arrival-control",
+      "displayName": "KV 物化与重算",
+      "aliases": [
+        "KV Materialization and Recomputation"
+      ],
+      "problemSummary": "请求到达时的 KV 复用条件不同，调度器需要区分完整复用、块对齐的部分复用与重新计算。",
+      "relatedWorks": [
+        "github:vllm-project/vllm#54625",
+        "[Core] Add cache-aware admission ordering",
+        "增加基于驻留前缀的缓存感知准入排序",
+        "github:vllm-project/vllm#66558",
+        "[Core] Count KV connector hits in cache-aware admission",
+        "将 KV 连接器命中计入缓存感知准入",
+        "paper:arxiv:2604.25080",
+        "CacheFlow：联合规划重算与 KV 加载"
+      ],
+      "maintainerNames": [
+        "何维"
+      ],
+      "stageIds": [
+        "scheduling"
+      ],
+      "topicIds": [
+        "kv-cache"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "kv-transfer-observability-migration",
+      "displayName": "KV 传输追踪",
+      "aliases": [
+        "KV Transfer Tracing"
+      ],
+      "problemSummary": "KV 传输、重新入队、准入和首次计算的回执需要按同一身份关联，并排除不完整、重复或复用身份的恢复链。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "谢汉龙",
+        "刘世峰"
+      ],
+      "stageIds": [],
+      "topicIds": [
+        "kv-cache"
+      ],
+      "eligibilityLabel": "已实现并登记"
+    },
+    {
+      "componentId": "kvcompress-ascend",
+      "displayName": "昇腾 KV 缓存压缩",
+      "aliases": [
+        "Ascend KV Cache Compression"
+      ],
+      "problemSummary": "已测 Qwen3.5 配置同时使用混合缓存分组、前缀缓存、异步调度和 MTP2，KV 状态压缩需要与这些机制保持兼容。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "张家万",
+        "韦若皓",
+        "刘思辰"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [
+        "kv-cache"
+      ],
+      "eligibilityLabel": "已实现并登记"
+    },
+    {
+      "componentId": "latchmoe",
+      "displayName": "LatchMoE 专家权重卸载",
+      "aliases": [
+        "LatchMoE Expert-Weight Offload"
+      ],
+      "problemSummary": "MoE 专家权重占用设备内存，卸载权重后仍需保证专家执行时能够取得对应权重。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "李昶吾",
+        "陈德斌"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "llm-serving-cost-pricing-model",
+      "displayName": "推理服务成本估算",
+      "aliases": [
+        "Inference Service Cost Estimation"
+      ],
+      "problemSummary": "推理服务的成本与定价需要单独核算，这类分析由离线工具完成。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "张书豪"
+      ],
+      "stageIds": [],
+      "topicIds": [],
+      "eligibilityLabel": "已实现并登记"
+    },
+    {
+      "componentId": "memory-tracker",
+      "displayName": "昇腾计算图显存跟踪器",
+      "aliases": [
+        "Ascend Graph Memory Tracker"
+      ],
+      "problemSummary": "定位昇腾计算图捕获的显存占用，需要记录捕获期间的分配事件并查看对应时间线。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "田景远"
+      ],
+      "stageIds": [],
+      "topicIds": [
+        "aclgraph"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "muxpd",
+      "displayName": "MuxPD 分离预填充与解码",
+      "aliases": [
+        "MuxPD"
+      ],
+      "problemSummary": "完整 prompt 的预填充与已有请求的逐 token 解码都需要执行资源，两类工作需要协调推进。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "毛瀚云"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "pegaflow-vllm-connectors",
+      "displayName": "PegaFlow KV 传输",
+      "aliases": [
+        "PegaFlow KV Transfer"
+      ],
+      "problemSummary": "宿主使用外部 PegaFlow 服务保存和加载 KV 时，需要昇腾设备与宿主接口适配，并处理外部服务不可用的情况。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "陈彦博",
+        "张盛翔"
+      ],
+      "stageIds": [],
+      "topicIds": [
+        "kv-cache"
+      ],
+      "eligibilityLabel": "已实现并登记"
+    },
+    {
+      "componentId": "pipeline-microbatch-migration",
+      "displayName": "流水线微批处理",
+      "aliases": [
+        "Pipeline Microbatch"
+      ],
+      "problemSummary": "流水并行微批次跨越调度器、执行器、通信、KV 和 worker，批次准入与各环节的执行状态需要协调。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "徐晨曦"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现并登记"
+    },
+    {
+      "componentId": "prefill-admission",
+      "displayName": "短请求预填充准入",
+      "aliases": [
+        "Short-Request Prefill Admission"
+      ],
+      "problemSummary": "单个长请求的预填充占满单步 token 预算时，短请求无法在该步进入执行。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "张书豪"
+      ],
+      "stageIds": [
+        "scheduling",
+        "prefill"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "prefix-router-migration",
+      "displayName": "Prefix Router 前缀感知路由",
+      "aliases": [
+        "Prefix-Aware Request Router"
+      ],
+      "problemSummary": "前缀缓存分布在不同后端，单纯随机路由不能保证请求命中已有缓存。",
+      "relatedWorks": [
+        "github:vllm-project/vllm-ascend#19708",
+        "[Feature][Proxy] Add opt-in prefill session affinity",
+        "为 Prefill 代理增加可选的会话亲和路由",
+        "paper:arxiv:2502.04677",
+        "k-LPM：在前缀复用与请求等待间折中"
+      ],
+      "maintainerNames": [
+        "郑凌峰",
+        "王杰",
+        "郑榆锦"
+      ],
+      "stageIds": [
+        "scheduling"
+      ],
+      "topicIds": [
+        "kv-cache"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "pyramidkv-ascend-migration",
+      "displayName": "PyramidKV 缓存压缩",
+      "aliases": [
+        "PyramidKV Cache Compression"
+      ],
+      "problemSummary": "KV 缓存占用与保留信息量存在取舍，减少各层的 KV 保留量时还需控制回答质量损失。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "毛瀚云"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [
+        "kv-cache"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "quantized-kv-cache-migration",
+      "displayName": "KV 缓存量化",
+      "aliases": [
+        "Quantized KV Cache"
+      ],
+      "problemSummary": "长上下文需要保存更多 KV 张量；降低缓存表示精度时，还需要兼顾分页解码开销与宿主的 INT8 接入条件。",
+      "relatedWorks": [
+        "paper:arxiv:2402.02750",
+        "KIVI：分别量化 Key 与 Value",
+        "github:vllm-project/vllm#59774",
+        "[ROCm] Octave KV (`ROCM_OCTAVE`): native 3-bit KV cache backend for AMD GPUs",
+        "为 AMD GPU 增加原生低位 Octave KV 缓存后端"
+      ],
+      "maintainerNames": [
+        "崔钰嘉",
+        "程月甲"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [
+        "kv-cache"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "request-lifecycle-profiler",
+      "displayName": "请求生命周期因果分析器",
+      "aliases": [
+        "Request Lifecycle Causal Profiler"
+      ],
+      "problemSummary": "请求完成、抢占与 KV 回收属于不同生命周期事件，需要把真实回调关联到具体请求，才能核对运行过程。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "刘世峰"
+      ],
+      "stageIds": [],
+      "topicIds": [],
+      "eligibilityLabel": "已实现并登记"
+    },
+    {
+      "componentId": "sealed-serving-warmup",
+      "displayName": "服务预热与编译封锁",
+      "aliases": [
+        "Serving Warmup and Compilation Sealing"
+      ],
+      "problemSummary": "未预热的形状可能在正式请求阶段触发 Torch 或 Triton 编译，服务宣告就绪前需要完成规定形状的预热。",
+      "relatedWorks": [
+        "github:vllm-project/vllm-ascend#19976",
+        "[Refactor][Triton] triton warmup jit",
+        "将 Triton 预热迁移到声明式 JIT 预热框架"
+      ],
+      "maintainerNames": [
+        "张书豪"
+      ],
+      "stageIds": [
+        "startup"
+      ],
+      "topicIds": [
+        "aclgraph"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "short-prefill-tail",
+      "displayName": "短预填充尾段优先调度",
+      "aliases": [
+        "Short Prefill Tail Scheduling"
+      ],
+      "problemSummary": "公开资料仅说明优先执行符合资格的 1–256 token 预填充尾段，尚未单列其针对的原有调度问题。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "张书豪"
+      ],
+      "stageIds": [
+        "prefill"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "simllm-migration",
+      "displayName": "SimLLM 近似前缀复用",
+      "aliases": [
+        "SimLLM Approximate Prefix Reuse"
+      ],
+      "problemSummary": "任务相似不等于推理状态完全相同，近似复用 KV 时还需要恢复混合状态并检查输出质量。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "谷昌伟"
+      ],
+      "stageIds": [
+        "prefill"
+      ],
+      "topicIds": [
+        "kv-cache"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "slicegpt-migration",
+      "displayName": "SliceGPT 模型剪枝",
+      "aliases": [
+        "SliceGPT Model Pruning"
+      ],
+      "problemSummary": "剪枝后的权重产物需要明确版本和格式，并通过宿主兼容检查，才能交给运行时加载。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "王晨"
+      ],
+      "stageIds": [
+        "startup"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "state-page-copy",
+      "displayName": "State FA 状态页复制适配",
+      "aliases": [
+        "State FA Page-Copy Adapter"
+      ],
+      "problemSummary": "多种模型 worker 共用引擎状态存储时，状态页复制路径需要与各 worker 的状态处理保持一致。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "张书豪"
+      ],
+      "stageIds": [],
+      "topicIds": [
+        "kv-cache"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "traceloom",
+      "displayName": "TraceLoom 推理时间线分析",
+      "aliases": [
+        "TraceLoom Inference Timeline Analysis"
+      ],
+      "problemSummary": "定位推理阶段的执行过程，需要把 profiler 时间线中的事件与调度步骤对应起来。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "田景远"
+      ],
+      "stageIds": [],
+      "topicIds": [],
+      "eligibilityLabel": "已实现并登记"
+    },
+    {
+      "componentId": "unified-communication-migration",
+      "displayName": "统一通信",
+      "aliases": [
+        "Unified Communication"
+      ],
+      "problemSummary": "不同设备的集合通信需要统一调用接口，同时复用宿主持有的通信器和进程组，避免两套通信生命周期并存。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "马川湖"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现，条件受限"
+    },
+    {
+      "componentId": "vllm-hust-extension-manager",
+      "displayName": "扩展发现与启用管理",
+      "aliases": [
+        "Extension Manager"
+      ],
+      "problemSummary": "MOD 安装完成不等于能够在当前宿主生效，启用前还需核对发现、兼容性、配置和受管运行条件。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "张书豪"
+      ],
+      "stageIds": [
+        "startup"
+      ],
+      "topicIds": [],
+      "eligibilityLabel": "已实现并登记"
+    },
+    {
+      "componentId": "vllm-hust-opset",
+      "displayName": "OPset 算子优化集",
+      "aliases": [
+        "OPset"
+      ],
+      "problemSummary": "Persistent MatMul 的冗余清零与分开执行的 Linear、SwiGLU 会增加算子工作；优化范围限于已验证的 batch-invariant Graph/Triton 路径。",
+      "relatedWorks": [],
+      "maintainerNames": [
+        "周升晖"
+      ],
+      "stageIds": [
+        "prefill",
+        "decode"
+      ],
+      "topicIds": [
+        "aclgraph"
+      ],
+      "eligibilityLabel": "已实现，条件受限"
+    }
+  ]
+}

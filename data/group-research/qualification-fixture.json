@@ -1,0 +1,1758 @@
+{
+  "notice": "仅抽取公开资格字段，用于冻结来源回归；不是完整原始资料。",
+  "records": [
+    {
+      "component": {
+        "id": "vllm-hust-runtime",
+        "artifact_type": "runtime_core",
+        "ownership": "core_owned",
+        "repository_relationship": "upstream_sync_fork"
+      },
+      "taxonomy": null
+    },
+    {
+      "component": {
+        "id": "vllm-hust-extension-manager",
+        "artifact_type": "tool",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "tool_mod",
+        "capability": "startup_deployment",
+        "phases": [
+          "service_startup",
+          "service_lifecycle"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "integration_tested"
+      }
+    },
+    {
+      "component": {
+        "id": "vllm-production-stack",
+        "artifact_type": "external_system",
+        "ownership": "hust_maintained_external_integration",
+        "repository_relationship": "upstream_sync_fork"
+      },
+      "taxonomy": null
+    },
+    {
+      "component": {
+        "id": "vllm-ascend-hust",
+        "artifact_type": "platform_profile",
+        "ownership": "hust_maintained_external_integration",
+        "repository_relationship": "upstream_sync_fork"
+      },
+      "taxonomy": null
+    },
+    {
+      "component": {
+        "id": "vllm-metal-hust",
+        "artifact_type": "platform_profile",
+        "ownership": "hust_maintained_external_integration",
+        "repository_relationship": "upstream_sync_fork"
+      },
+      "taxonomy": null
+    },
+    {
+      "component": {
+        "id": "triton-ascend-hust",
+        "artifact_type": "external_system",
+        "ownership": "hust_maintained_external_integration",
+        "repository_relationship": "upstream_sync_fork"
+      },
+      "taxonomy": null
+    },
+    {
+      "component": {
+        "id": "sglang-hust",
+        "artifact_type": "runtime_core",
+        "ownership": "hust_maintained_external_integration",
+        "repository_relationship": "upstream_sync_fork"
+      },
+      "taxonomy": null
+    },
+    {
+      "component": {
+        "id": "mooncake",
+        "artifact_type": "external_system",
+        "ownership": "hust_maintained_external_integration",
+        "repository_relationship": "upstream_sync_fork"
+      },
+      "taxonomy": {
+        "kind": "external_system",
+        "capability": "kv_management",
+        "phases": [
+          "state_lifecycle"
+        ],
+        "lifecycle": "external",
+        "evidence": "integration_tested"
+      }
+    },
+    {
+      "component": {
+        "id": "mooncake-vllm-connectors",
+        "artifact_type": "bridge",
+        "ownership": "hust_maintained_external_integration",
+        "repository_relationship": "upstream_owned_component",
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "connector_mod",
+        "capability": "kv_management",
+        "phases": [
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "functionally_validated"
+      }
+    },
+    {
+      "component": {
+        "id": "pegaflow",
+        "artifact_type": "external_system",
+        "ownership": "hust_maintained_external_integration",
+        "repository_relationship": "upstream_adaptation",
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "external_system",
+        "capability": "kv_management",
+        "phases": [
+          "state_lifecycle"
+        ],
+        "lifecycle": "external",
+        "evidence": "integration_tested"
+      }
+    },
+    {
+      "component": {
+        "id": "pegaflow-vllm-connectors",
+        "artifact_type": "bridge",
+        "ownership": "hust_maintained_external_integration",
+        "repository_relationship": "upstream_adaptation",
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "connector_mod",
+        "capability": "kv_management",
+        "phases": [
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "measured_beneficial"
+      }
+    },
+    {
+      "component": {
+        "id": "adm",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "parallel_communication",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "topology_limited"
+      }
+    },
+    {
+      "component": {
+        "id": "bidkv",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "scheduling_routing",
+        "phases": [
+          "request_admission",
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "measured_inconclusive"
+      }
+    },
+    {
+      "component": {
+        "id": "diffspec",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "黄禹",
+            "name_en": "Yu Huang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "decoding",
+        "phases": [
+          "decode"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "functionally_validated"
+      }
+    },
+    {
+      "component": {
+        "id": "vspec",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "王庆刚",
+            "name_en": "Qinggang Wang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "decoding",
+        "phases": [
+          "decode"
+        ],
+        "lifecycle": "qualification_pending",
+        "evidence": "hardware_validation_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "opfuse",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "execution_optimization",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "research",
+        "evidence": "host_integration_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "ascend-quant-toolkit",
+        "artifact_type": "tool",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "项翔",
+            "name_en": "Xiang Xiang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "tool_mod",
+        "capability": "model_preparation",
+        "phases": [
+          "offline_preparation"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "offline_tool"
+      }
+    },
+    {
+      "component": {
+        "id": "kvcompress-ascend",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "万瑶",
+            "name_en": "Yao Wan",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "prefill",
+          "decode",
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "measured_not_beneficial"
+      }
+    },
+    {
+      "component": {
+        "id": "prefix-router-migration",
+        "artifact_type": "external_system",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "刘海坤",
+            "name_en": "Haikun Liu",
+            "relationship": "internal"
+          },
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "scheduling_routing",
+        "phases": [
+          "request_admission",
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "measured_beneficial"
+      }
+    },
+    {
+      "component": {
+        "id": "kv-tiering-migration",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "赵进",
+            "name_en": "Jin Zhao",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "state_lifecycle"
+        ],
+        "lifecycle": "qualification_pending",
+        "evidence": "runtime_effective_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "knorm-migration",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "万瑶",
+            "name_en": "Yao Wan",
+            "relationship": "internal"
+          },
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "prefill",
+          "decode",
+          "state_lifecycle"
+        ],
+        "lifecycle": "qualification_pending",
+        "evidence": "hardware_validation_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "pyramidkv-ascend-migration",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "罗瑞坤",
+            "name_en": "Ruikun Luo",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "prefill",
+          "decode",
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "functionally_validated"
+      }
+    },
+    {
+      "component": {
+        "id": "slicegpt-migration",
+        "artifact_type": "tool",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "万瑶",
+            "name_en": "Yao Wan",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "tool_mod",
+        "capability": "model_preparation",
+        "phases": [
+          "offline_preparation",
+          "service_startup"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "hardware_validation_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "ride-control-plane",
+        "artifact_type": "external_system",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "control_plane",
+        "capability": "lifecycle_control",
+        "phases": [
+          "service_lifecycle"
+        ],
+        "lifecycle": "external",
+        "evidence": "external_lifecycle"
+      }
+    },
+    {
+      "component": {
+        "id": "vllm-local-control-host",
+        "artifact_type": "bridge",
+        "ownership": "core_owned",
+        "repository_relationship": "organization_native_component",
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "control_plane",
+        "capability": "lifecycle_control",
+        "phases": [
+          "service_lifecycle"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "bridge_component"
+      }
+    },
+    {
+      "component": {
+        "id": "ride-runtime-bridge",
+        "artifact_type": "bridge",
+        "ownership": "core_owned",
+        "repository_relationship": "organization_native_component",
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "control_plane",
+        "capability": "lifecycle_control",
+        "phases": [
+          "service_lifecycle"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "bridge_component"
+      }
+    },
+    {
+      "component": {
+        "id": "quantized-kv-cache-migration",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "姚鹏程",
+            "name_en": "Pengcheng Yao",
+            "relationship": "internal"
+          },
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "prefill",
+          "decode",
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "functionally_validated"
+      }
+    },
+    {
+      "component": {
+        "id": "simllm-migration",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "罗瑞坤",
+            "name_en": "Ruikun Luo",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "prefill",
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "measured_not_beneficial"
+      }
+    },
+    {
+      "component": {
+        "id": "unified-communication-migration",
+        "artifact_type": "bridge",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "王雄",
+            "name_en": "Xiong Wang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "parallel_communication",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "host_integrated_hardware_validation_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "split-batch-full-graph-migration",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "郑龙",
+            "name_en": "Long Zheng",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "execution_optimization",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "pending",
+        "evidence": "activation_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "kv-transfer-observability-migration",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "tool_mod",
+        "capability": "observability_evaluation",
+        "phases": [
+          "observability",
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "runtime_effective_functional"
+      }
+    },
+    {
+      "component": {
+        "id": "layered-prefill-migration",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": false,
+        "advisors": [
+          {
+            "name_zh": "王雄",
+            "name_en": "Xiong Wang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "retired",
+        "capability": "prefill_optimization",
+        "phases": [
+          "prefill"
+        ],
+        "lifecycle": "retired",
+        "evidence": "no_activation_entry"
+      }
+    },
+    {
+      "component": {
+        "id": "activation-sparsity-migration",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": false,
+        "advisors": [
+          {
+            "name_zh": "万瑶",
+            "name_en": "Yao Wan",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "retired",
+        "capability": "operators_attention",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "retired",
+        "evidence": "operator_integration_missing"
+      }
+    },
+    {
+      "component": {
+        "id": "pipeline-microbatch-migration",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "Chen Xinyu",
+            "name_en": "Chen Xinyu",
+            "affiliation_zh": "香港科技大学（广州）",
+            "affiliation_en": "HKUST (Guangzhou)",
+            "relationship": "external_contributor"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "execution_optimization",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "measured_inconclusive"
+      }
+    },
+    {
+      "component": {
+        "id": "qos-scheduler-migration",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": false,
+        "advisors": [
+          {
+            "name_zh": "王雄",
+            "name_en": "Xiong Wang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "retired",
+        "capability": "scheduling_routing",
+        "phases": [
+          "request_admission"
+        ],
+        "lifecycle": "retired",
+        "evidence": "host_integration_missing"
+      }
+    },
+    {
+      "component": {
+        "id": "request-lifecycle-profiler",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "tool_mod",
+        "capability": "observability_evaluation",
+        "phases": [
+          "observability"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "runtime_effective_functional"
+      }
+    },
+    {
+      "component": {
+        "id": "quality-bounded-inference",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "control_plane",
+        "capability": "policy_research",
+        "phases": [
+          "request_admission"
+        ],
+        "lifecycle": "research",
+        "evidence": "functional_only"
+      }
+    },
+    {
+      "component": {
+        "id": "llm-serving-cost-pricing-model",
+        "artifact_type": "tool",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "tool_mod",
+        "capability": "observability_evaluation",
+        "phases": [
+          "offline_preparation",
+          "observability"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "offline_tool"
+      }
+    },
+    {
+      "component": {
+        "id": "clm-lifecycle",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "control_plane",
+        "capability": "lifecycle_control",
+        "phases": [
+          "service_lifecycle",
+          "observability"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "functional_only"
+      }
+    },
+    {
+      "component": {
+        "id": "kv-materialization-arrival-control",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "scheduling_routing",
+        "phases": [
+          "request_admission",
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "specialized_workload"
+      }
+    },
+    {
+      "component": {
+        "id": "vllm-hust-benchmark",
+        "artifact_type": "tool",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native"
+      },
+      "taxonomy": null
+    },
+    {
+      "component": {
+        "id": "vllm-hust-docs",
+        "artifact_type": "tool",
+        "ownership": "core_owned",
+        "repository_relationship": "organization_native"
+      },
+      "taxonomy": null
+    },
+    {
+      "component": {
+        "id": "vllm-hust-website",
+        "artifact_type": "application",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native"
+      },
+      "taxonomy": null
+    },
+    {
+      "component": {
+        "id": "ascend-attention-boundary",
+        "artifact_type": "runtime_component",
+        "ownership": "external_contributor_maintained",
+        "repository_relationship": "external_subsystem",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "operators_attention",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "runtime_effective_no_causal_attribution"
+      }
+    },
+    {
+      "component": {
+        "id": "gdn-state-codec",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "state_compression",
+        "phases": [
+          "decode",
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "measured_inconclusive"
+      }
+    },
+    {
+      "component": {
+        "id": "vllm-hust-opset",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "operators_attention",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "measured_beneficial"
+      }
+    },
+    {
+      "component": {
+        "id": "instance-controller",
+        "artifact_type": "external_system",
+        "ownership": "community_integration",
+        "repository_relationship": "external_reference",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "control_plane",
+        "capability": "lifecycle_control",
+        "phases": [
+          "service_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "functionally_validated"
+      }
+    },
+    {
+      "component": {
+        "id": "kv-controller",
+        "artifact_type": "external_system",
+        "ownership": "community_integration",
+        "repository_relationship": "external_reference",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "control_plane",
+        "capability": "kv_management",
+        "phases": [
+          "prefill",
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "measured_mixed"
+      }
+    },
+    {
+      "component": {
+        "id": "request-throttling-controller",
+        "artifact_type": "bridge",
+        "ownership": "organization_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "control_plane",
+        "capability": "scheduling_routing",
+        "phases": [
+          "request_admission"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "measured_beneficial"
+      }
+    },
+    {
+      "component": {
+        "id": "core-attention-boundary",
+        "artifact_type": "runtime_component",
+        "ownership": "external_contributor_maintained",
+        "repository_relationship": "external_subsystem",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "operators_attention",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "runtime_effective_no_causal_attribution"
+      }
+    },
+    {
+      "component": {
+        "id": "muxpd",
+        "artifact_type": "runtime_component",
+        "ownership": "organization_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "罗瑞坤",
+            "name_en": "Ruikun Luo",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "execution_optimization",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "functionally_validated"
+      }
+    },
+    {
+      "component": {
+        "id": "gdn-optimizations",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "execution_optimization",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "qualification_pending",
+        "evidence": "retest_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "runtime-micro-optimizations",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "execution_optimization",
+        "phases": [
+          "request_admission",
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "qualification_pending",
+        "evidence": "retest_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "ascend-attention-optimizations",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "operators_attention",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "qualification_pending",
+        "evidence": "retest_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "hybrid-spec",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "decoding",
+        "phases": [
+          "decode"
+        ],
+        "lifecycle": "pending",
+        "evidence": "activation_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "prefill-microflow",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "prefill_optimization",
+        "phases": [
+          "prefill"
+        ],
+        "lifecycle": "qualification_pending",
+        "evidence": "measured_mixed"
+      }
+    },
+    {
+      "component": {
+        "id": "graph-coverage",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "tool_mod",
+        "capability": "execution_optimization",
+        "phases": [
+          "service_startup",
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "measured_beneficial"
+      }
+    },
+    {
+      "component": {
+        "id": "prefill-admission",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "tool_mod",
+        "capability": "scheduling_routing",
+        "phases": [
+          "request_admission",
+          "prefill"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "measured_beneficial"
+      }
+    },
+    {
+      "component": {
+        "id": "sglang-prepared-dispatch",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "execution_optimization",
+        "phases": [
+          "decode"
+        ],
+        "lifecycle": "qualification_pending",
+        "evidence": "hardware_validation_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "hust-m01-correction",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "integration_tested"
+      }
+    },
+    {
+      "component": {
+        "id": "hust-joint-packed",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "integration_tested"
+      }
+    },
+    {
+      "component": {
+        "id": "sealed-serving-warmup",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native_component",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "startup_deployment",
+        "phases": [
+          "service_startup"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "integration_tested"
+      }
+    },
+    {
+      "component": {
+        "id": "guarded-progress-async",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native_component",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "parallel_communication",
+        "phases": [
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "integration_tested"
+      }
+    },
+    {
+      "component": {
+        "id": "capacity-tuning",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native_component",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "scheduling_routing",
+        "phases": [
+          "request_admission",
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "integration_tested"
+      }
+    },
+    {
+      "component": {
+        "id": "short-prefill-tail",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native_component",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "prefill_optimization",
+        "phases": [
+          "prefill"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "integration_tested"
+      }
+    },
+    {
+      "component": {
+        "id": "intern-s2",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native_component",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "startup_deployment",
+        "phases": [
+          "service_startup",
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "integration_tested"
+      }
+    },
+    {
+      "component": {
+        "id": "state-page-copy",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native_component",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "integration_tested"
+      }
+    },
+    {
+      "component": {
+        "id": "greedy-bf16-native",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "sampling",
+        "phases": [
+          "decode"
+        ],
+        "lifecycle": "qualification_pending",
+        "evidence": "measured_inconclusive"
+      }
+    },
+    {
+      "component": {
+        "id": "accepted-state-fusion",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "decode",
+          "state_lifecycle"
+        ],
+        "lifecycle": "qualification_pending",
+        "evidence": "measured"
+      }
+    },
+    {
+      "component": {
+        "id": "betterscale",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "execution_optimization",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "measured_beneficial"
+      }
+    },
+    {
+      "component": {
+        "id": "traceloom",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "tool_mod",
+        "capability": "observability_evaluation",
+        "phases": [
+          "observability"
+        ],
+        "lifecycle": "implemented",
+        "evidence": "no_performance_claim"
+      }
+    },
+    {
+      "component": {
+        "id": "latchmoe",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "operators_attention",
+        "phases": [
+          "prefill",
+          "decode"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "qualified_restricted"
+      }
+    },
+    {
+      "component": {
+        "id": "tricard-clm-lifecycle",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "control_plane",
+        "capability": "lifecycle_control",
+        "phases": [
+          "service_lifecycle",
+          "observability"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "bridge_component"
+      }
+    },
+    {
+      "component": {
+        "id": "ascend-adaptive-quantized-kv",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "prefill",
+          "decode",
+          "state_lifecycle"
+        ],
+        "lifecycle": "pending",
+        "evidence": "activation_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "dla",
+        "artifact_type": "runtime_component",
+        "ownership": "hust_owned_subsystem",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "scheduling_routing",
+        "phases": [
+          "request_admission"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "measured_inconclusive"
+      }
+    },
+    {
+      "component": {
+        "id": "stateaxis-automatic-prefix-cache",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "external_reference",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "prefill",
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "runtime_effective_no_benefit_demonstrated"
+      }
+    },
+    {
+      "component": {
+        "id": "stateaxis-async-kv-transfer",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "external_reference",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "state_lifecycle"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "historical_scoped_positive_current_unqualified"
+      }
+    },
+    {
+      "component": {
+        "id": "stateaxis-pipelined-weight-loading",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "external_reference",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "startup_deployment",
+        "phases": [
+          "service_startup"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "startup_diagnostic_formal_ecpa_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "cuda-mtp",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": []
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "decoding",
+        "phases": [
+          "decode"
+        ],
+        "lifecycle": "qualification_pending",
+        "evidence": "hardware_validation_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "memory-tracker",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "tool_mod",
+        "capability": "observability_evaluation",
+        "phases": [
+          "observability"
+        ],
+        "lifecycle": "implemented_restricted",
+        "evidence": "no_performance_claim"
+      }
+    },
+    {
+      "component": {
+        "id": "ascend-mapped-kv-offload",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "runtime_mod",
+        "capability": "kv_management",
+        "phases": [
+          "state_lifecycle"
+        ],
+        "lifecycle": "pending",
+        "evidence": "activation_pending"
+      }
+    },
+    {
+      "component": {
+        "id": "scheduler-policy-lab",
+        "artifact_type": "runtime_component",
+        "ownership": "original_contributor_maintained",
+        "repository_relationship": "organization_native",
+        "public_surface": true,
+        "advisors": [
+          {
+            "name_zh": "张书豪",
+            "name_en": "Shuhao Zhang",
+            "relationship": "internal"
+          }
+        ]
+      },
+      "taxonomy": {
+        "kind": "tool_mod",
+        "capability": "scheduling_routing",
+        "phases": [
+          "request_admission"
+        ],
+        "lifecycle": "research",
+        "evidence": "host_integration_pending"
+      }
+    }
+  ]
+}

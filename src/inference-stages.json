@@ -1,0 +1,10 @@
+{
+  "startup": "模型准备",
+  "scheduling": "请求调度",
+  "prefill": "输入处理",
+  "pd_transfer": "P/D 缓存交接",
+  "decode": "循环生成",
+  "speculative": "推测解码",
+  "output_return": "输出返回",
+  "resource_reclaim": "资源回收与缓存保留"
+}

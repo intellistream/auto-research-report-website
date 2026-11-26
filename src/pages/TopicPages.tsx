@@ -1,6 +1,7 @@
 import { BookOpen } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import "./topics.css";
+import RelatedGroupMods from "../features/group-mods/RelatedGroupMods";
 import TopicResearchReport, { TopicReportCard } from "./TopicResearchReport";
 import type { ResearchReport } from "./topic-report";
 import TopicAcademicPaper, { AcademicPaperCard } from "./TopicAcademicPaper";
@@ -47,7 +48,7 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
   const [query] = useSearchParams();
   const view = query.get("view");
 
-  if (topicId === "kv-cache") return <div className="topic-page"><KvCacheTopic /></div>;
+  if (topicId === "kv-cache") return <div className="topic-page"><RelatedGroupMods topicId="kv-cache" /><KvCacheTopic /></div>;
   const validIndex = index && [1, 2].includes(index.schemaVersion) && Array.isArray(index.topics);
   if (topicId && error) return <div className="overview-status-card error" role="alert">暂无可用的专题索引。<Link to="/reports">查看日报档案</Link></div>;
   if (topicId && !index) return <div className="overview-status-card" role="status">正在加载专题…</div>;
@@ -67,6 +68,7 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
 
   return (
     <div className="topic-page">
+      {topic && <RelatedGroupMods topicId={topic.id} />}
       {topic ? (
         topic.id === "aclgraph" ? (
           <AclGraphTopic topic={topic} />

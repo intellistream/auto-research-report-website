@@ -1,0 +1,649 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "ruleVersion",
+    "payload",
+    "payloadSha256"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "ruleVersion": {
+      "const": "group-mod-eligibility/1"
+    },
+    "payloadSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "payload": {
+      "type": "object",
+      "required": [
+        "asOf",
+        "sourceChain",
+        "previousSnapshotId",
+        "sourceSnapshots",
+        "mods",
+        "audit",
+        "relations",
+        "questions",
+        "coverage",
+        "reviews",
+        "changes",
+        "stages",
+        "scopeNotice"
+      ],
+      "properties": {
+        "asOf": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "previousSnapshotId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceSnapshots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "canonicalWorkId",
+              "kind",
+              "url",
+              "version",
+              "contentSha256",
+              "reviewScope"
+            ]
+          }
+        },
+        "mods": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "componentId",
+              "displayName",
+              "kind",
+              "lifecycle",
+              "facts",
+              "sourceRefs",
+              "eligibility",
+              "fieldHashes"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "runtime_mod",
+                  "connector_mod",
+                  "tool_mod"
+                ]
+              },
+              "lifecycle": {
+                "enum": [
+                  "implemented",
+                  "implemented_restricted"
+                ]
+              },
+              "eligibility": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "const": "included"
+                  }
+                },
+                "required": [
+                  "decision"
+                ]
+              },
+              "facts": {
+                "type": "object",
+                "required": [
+                  "summary",
+                  "effect",
+                  "compatibility"
+                ],
+                "properties": {
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "effect": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "compatibility": {
+                    "type": "object"
+                  }
+                }
+              },
+              "stages": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "stageMapping": {
+                "type": "object",
+                "required": [
+                  "version",
+                  "status",
+                  "basis",
+                  "unmappedReason",
+                  "sourcePhases",
+                  "sourceRefs"
+                ],
+                "properties": {
+                  "version": {
+                    "const": "mod-eight-stages/1"
+                  },
+                  "status": {
+                    "enum": [
+                      "mapped",
+                      "unmapped"
+                    ]
+                  },
+                  "basis": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "unmappedReason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "sourcePhases": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sourceRefs": {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "sourceId",
+                        "jsonPointer",
+                        "identityValue",
+                        "valueSha256"
+                      ],
+                      "properties": {
+                        "valueSha256": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "modId",
+              "reviewStatus",
+              "sourceSnapshotId",
+              "modEvidence",
+              "communityEvidence",
+              "reviewNeeded",
+              "reviewedAgainst",
+              "applicability",
+              "performanceTransfer",
+              "commonProblem",
+              "modApproach",
+              "communityApproach",
+              "differences",
+              "reusableCapability",
+              "forbiddenInference",
+              "assessedOn",
+              "conclusionScope"
+            ],
+            "properties": {
+              "reviewStatus": {
+                "enum": [
+                  "supported",
+                  "candidate",
+                  "unsupported",
+                  "withdrawn"
+                ]
+              },
+              "reviewNeeded": {
+                "type": "boolean"
+              },
+              "modEvidence": {
+                "type": "array",
+                "minItems": 1
+              },
+              "communityEvidence": {
+                "type": "array",
+                "minItems": 1
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "modId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "commonProblem": {
+                "type": "string",
+                "minLength": 1
+              },
+              "modApproach": {
+                "type": "string",
+                "minLength": 1
+              },
+              "communityApproach": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reusableCapability": {
+                "type": "string",
+                "minLength": 1
+              },
+              "forbiddenInference": {
+                "type": "string",
+                "minLength": 1
+              },
+              "assessedOn": {
+                "type": "string",
+                "minLength": 1
+              },
+              "conclusionScope": {
+                "type": "string",
+                "minLength": 1
+              },
+              "differences": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "applicability": {
+                "type": "object",
+                "required": [
+                  "state",
+                  "checks"
+                ],
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "comparable",
+                      "partially_comparable",
+                      "incompatible",
+                      "unknown"
+                    ]
+                  },
+                  "checks": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "dimension",
+                        "mod",
+                        "community",
+                        "result"
+                      ],
+                      "properties": {
+                        "result": {
+                          "enum": [
+                            "matched",
+                            "different",
+                            "incompatible",
+                            "unknown",
+                            "not_applicable"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "modIds",
+              "relationIds",
+              "status",
+              "experimentStatus",
+              "minimumValidation",
+              "reviewNeeded",
+              "resolution",
+              "title",
+              "kind",
+              "basis",
+              "hypothesis"
+            ],
+            "properties": {
+              "experimentStatus": {
+                "enum": [
+                  "not_run",
+                  "planned",
+                  "running",
+                  "completed",
+                  "failed",
+                  "unknown"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "proposed",
+                  "validating",
+                  "resolved",
+                  "contradicted",
+                  "retired"
+                ]
+              },
+              "modIds": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "relationIds": {
+                "type": "array",
+                "minItems": 0,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "minimumValidation": {
+                "type": "object",
+                "required": [
+                  "prerequisites",
+                  "baselines",
+                  "controls",
+                  "metrics",
+                  "failureCriterion"
+                ],
+                "properties": {
+                  "prerequisites": {
+                    "type": "string"
+                  },
+                  "baselines": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "controls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "metrics": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "failureCriterion": {
+                    "type": "string"
+                  }
+                }
+              },
+              "purpose": {
+                "enum": [
+                  "research",
+                  "verification"
+                ]
+              },
+              "researchContext": {
+                "type": "object",
+                "required": [
+                  "modProgress",
+                  "communityProgress",
+                  "difference",
+                  "significance"
+                ],
+                "properties": {
+                  "modProgress": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "communityProgress": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "difference": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "significance": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "verificationTasks": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "required": [
+                    "purpose"
+                  ],
+                  "properties": {
+                    "purpose": {
+                      "const": "verification"
+                    }
+                  }
+                },
+                "then": {},
+                "else": {
+                  "properties": {
+                    "relationIds": {
+                      "minItems": 1
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "purpose"
+                  ],
+                  "properties": {
+                    "purpose": {
+                      "const": "research"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "researchContext",
+                    "hypothesis"
+                  ],
+                  "properties": {
+                    "hypothesis": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "audit": {
+          "type": "array"
+        },
+        "coverage": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "primaryRelationId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "screening": {
+                "type": "object",
+                "required": [
+                  "corpusId",
+                  "status",
+                  "candidateCount",
+                  "reviewedCount",
+                  "pendingCount",
+                  "note"
+                ],
+                "properties": {
+                  "corpusId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "status": {
+                    "const": "screened"
+                  },
+                  "candidateCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "reviewedCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "pendingCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "reviews": {
+          "type": "array"
+        },
+        "changes": {
+          "type": "array"
+        },
+        "stages": {
+          "type": "object"
+        },
+        "scopeNotice": {
+          "type": "string"
+        },
+        "corpusSummary": {
+          "type": "object",
+          "required": [
+            "corpusId",
+            "generatedAt",
+            "periodStart",
+            "periodEnd",
+            "counts",
+            "inputCount",
+            "note"
+          ],
+          "properties": {
+            "corpusId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "generatedAt": {
+              "type": "string",
+              "minLength": 1
+            },
+            "periodStart": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "periodEnd": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "inputCount": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "counts": {
+              "type": "object"
+            },
+            "note": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "stageMappingVersion": {
+          "const": "mod-eight-stages/1"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stageMappingVersion"
+            ]
+          },
+          "then": {
+            "properties": {
+              "mods": {
+                "items": {
+                  "required": [
+                    "stages",
+                    "stageMapping"
+                  ],
+                  "properties": {
+                    "stages": {
+                      "items": {
+                        "enum": [
+                          "startup",
+                          "scheduling",
+                          "prefill",
+                          "pd_transfer",
+                          "decode",
+                          "speculative",
+                          "output_return",
+                          "resource_reclaim"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

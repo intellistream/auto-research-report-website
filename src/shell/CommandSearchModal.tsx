@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ArrowUpRight, BookOpen, CalendarDays, Compass, GitPullRequest, Layers, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useModSearchIndex } from "../features/group-mods/search";
+import { searchMods } from "../features/group-mods/selectors";
 import type { FlowIndex } from "../pages/chapter-intros";
 import type { TopicIndex } from "../pages/TopicPages";
 import { uniquePRs } from "../pages/ReportTrends";
@@ -19,11 +21,11 @@ const stageCatalog = [
 
 const stageLabels: Record<string, string> = Object.fromEntries(stageCatalog.map((s) => [s.key, s.label]));
 
-type SearchCategory = "all" | "pr" | "report" | "topic";
+type SearchCategory = "all" | "pr" | "report" | "topic" | "mod";
 
 type SearchResultItem = {
   id: string;
-  kind: "topic" | "stage" | "report" | "pr";
+  kind: "topic" | "stage" | "report" | "pr" | "mod";
   title: string;
   subtitle: string;
   badge?: string;
@@ -42,6 +44,10 @@ export default function CommandSearchModal({
   days: string[];
   catalog?: Catalog;
 }) {
+  const fallbackCatalog = useJson<Catalog>(open && !catalog ? "catalog.json" : undefined);
+  const resolvedCatalog = catalog || fallbackCatalog?.data;
+  const resolvedDays = days.length ? days : Object.keys(resolvedCatalog?.days || {}).sort().reverse();
+  const modIndex = useModSearchIndex(open);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<SearchCategory>("all");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -140,11 +146,17 @@ export default function CommandSearchModal({
       }
     }
 
+    if (category === "all" || category === "mod") {
+      for (const m of searchMods(modIndex.data?.modSearchIndex || [], query).slice(0, category === "mod" ? 40 : 5)) {
+        list.push({id:"mod-"+m.componentId,kind:"mod",title:m.displayName,subtitle:m.problemSummary,badge:m.eligibilityLabel,badgeTone:"topic",to:"/group-mods/"+m.componentId});
+      }
+    }
+
     // 2. Daily Reports
     if (category === "all" || category === "report") {
-      const matchedDays = days.filter((d) => !needle || d.includes(needle) || "日报 研报".includes(needle));
+      const matchedDays = resolvedDays.filter((d) => !needle || d.includes(needle) || "日报 研报".includes(needle));
       for (const day of matchedDays.slice(0, category === "report" ? 25 : needle ? 6 : 4)) {
-        const rec = catalog?.days[day];
+        const rec = resolvedCatalog?.days[day];
         const ver = rec?.versions.find((v) => v.sha256 === rec.current);
         const counts = ver?.counts;
         list.push({
@@ -191,7 +203,7 @@ export default function CommandSearchModal({
     }
 
     return list;
-  }, [catalog, category, days, deduplicatedPRs, query, topicResult?.data]);
+  }, [resolvedCatalog, category, resolvedDays, deduplicatedPRs, query, topicResult?.data, modIndex.data]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -240,7 +252,7 @@ export default function CommandSearchModal({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="搜索 PR 标题、#编号（如 #21519）、日期、推理环节或技术专题…"
+            placeholder="搜索 PR、日期、专题、MOD 名称或维护者…"
             aria-label="全局搜索关键词"
             autoComplete="off"
           />
@@ -259,8 +271,9 @@ export default function CommandSearchModal({
             [
               ["all", "全部"],
               ["pr", `工程 PR (${deduplicatedPRs.length || "…"})`],
-              ["report", `日报期次 (${days.length})`],
+              ["report", `日报期次 (${resolvedDays.length})`],
               ["topic", "专题与推理环节"],
+              ["mod", "组内 MOD"],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -276,6 +289,7 @@ export default function CommandSearchModal({
           ))}
         </div>
 
+        {category === "mod" && modIndex.error && <p className="cmd-empty" role="alert">{modIndex.error}；其他检索仍可使用。</p>}
         <div className="cmd-results" ref={listRef} role="listbox" aria-label="搜索结果">
           {!flowResult?.data && category === "pr" ? (
             <p className="cmd-empty">正在载入全量 PR 索引…</p>

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "sourceChain": {
+    "officialRepository": "vLLM-HUST/vllm-hust-website",
+    "presentationCommit": "1a4dd5a8959627bb4d74f14fb51599a32314e2a9",
+    "publicationRepository": "vLLM-HUST/vllm-hust-benchmark",
+    "publicationCommit": "5b536e91f2e864bc0235832bd6c58ed8cd771d5e",
+    "visibilityPolicyCommit": "9574380a21e9d62eb157da16be755692ce60b24a",
+    "servedProjectionHashes": {
+      "data/ecosystem.json": "b0753c90fffe008a1e327cbff95e247e533f5a0f451e3cf957f88bea72e8dc48",
+      "data/mod-taxonomy.json": "8a29c179de16e8667c3cdce5e3b5bbee05cd880b2e7b708ac39a7646ca8d8e76",
+      "data/plugin-workshop-metadata.json": "97f7a59f5d5fcfca75b3a5d1273a092dc174259be59bf7d9195066d894a69418"
+    },
+    "deploymentProvenanceBeforeAfterEqual": true
+  },
+  "evidenceFiles": {
+    "github:vllm-project/vllm#66558": {
+      "localPath": "社区PR快照/vllm-66558.json",
+      "sha256": "8985081dc6beb26afb0e1d12d48f036fa8b0c41d778860f50c30bcbe990f4fe2",
+      "url": "https://github.com/vllm-project/vllm/pull/66558"
+    },
+    "github:vllm-project/vllm-ascend#19708": {
+      "localPath": "社区PR快照/vllm-ascend-19708.json",
+      "sha256": "f08a9e79719cfa360e1022cb2f26b3ea1b14770133a1ba56794f1737083721df",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19708"
+    },
+    "github:vllm-project/vllm#59774": {
+      "localPath": "社区PR快照/vllm-59774.json",
+      "sha256": "8087ef091c1d9d0c00b98772dc423cfb11e90ca1aa7a256d38ad51050f80fac1",
+      "url": "https://github.com/vllm-project/vllm/pull/59774"
+    },
+    "github:vllm-project/vllm#61589": {
+      "localPath": "社区PR快照/vllm-61589.json",
+      "sha256": "9b670f8a287bb703c1fb51ef8021bfacc884309ac0067193bdc0f8d1cebf4fee",
+      "url": "https://github.com/vllm-project/vllm/pull/61589"
+    },
+    "github:vllm-project/vllm-ascend#21191": {
+      "localPath": "社区PR快照/vllm-ascend-21191.json",
+      "sha256": "615bc76cb2a83e0891307815b526b8bb75557076e24b13512dccddea5fd4f7fa",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/21191"
+    },
+    "github:vllm-project/vllm#60130": {
+      "localPath": "社区PR快照/vllm-60130.json",
+      "sha256": "a3afec872b9d375ade17786fb38e0620453ce12609b71df5c1bdc2371c4d16b9",
+      "url": "https://github.com/vllm-project/vllm/pull/60130"
+    },
+    "github:vllm-project/vllm-ascend#19976": {
+      "localPath": "社区PR快照/vllm-ascend-19976.json",
+      "sha256": "3aa4cbcab80ee83da67a92c04f1dcc98d3d1fb0337e63adee86d51441016ca59",
+      "url": "https://github.com/vllm-project/vllm-ascend/pull/19976"
+    },
+    "paper:arxiv:2402.02750v2": {
+      "localPath": "论文原文/2402.02750v2.html",
+      "sha256": "3619073693a06959b42a36830f846c7b9325c71e7124ab19ceb83791e2be58c7",
+      "url": "https://arxiv.org/html/2402.02750v2"
+    },
+    "paper:arxiv:2604.25080v2": {
+      "localPath": "论文原文/2604.25080v2.html",
+      "sha256": "e90ad9223c2e5953b322c08fc4ec0bec97112d4d6d77bb5fff02fcacb23cf21f",
+      "url": "https://arxiv.org/html/2604.25080v2"
+    },
+    "paper:arxiv:2502.04677v3": {
+      "localPath": "论文原文/2502.04677v3.html",
+      "sha256": "4182f6a11c0db60fb2b2886f9d4bfd9f3c674542d1b1fe1e1918be80cdc41f02",
+      "url": "https://arxiv.org/html/2502.04677v3"
+    },
+    "github:vllm-project/vllm#54625": {
+      "localPath": "社区PR扩展复核/vllm-54625.json",
+      "sha256": "887c26e337f469980fe024a267e5eeee10b43c946261f53f096a47ff11cde814",
+      "url": "https://github.com/vllm-project/vllm/pull/54625"
+    },
+    "github:vllm-project/vllm#66052": {
+      "localPath": "社区PR扩展复核/vllm-66052.json",
+      "sha256": "0c128dfc86d23982d4ee1f87c95b4effde153b454a5c3598b1d5081fb5e20339",
+      "url": "https://github.com/vllm-project/vllm/pull/66052"
+    },
+    "github:vllm-project/vllm#69401": {
+      "localPath": "社区PR扩展复核/vllm-69401.json",
+      "sha256": "cd2c145bd6a0b887d812fc8fbd30271b99dcadff17d3f2aa10a99d899c6c4c04",
+      "url": "https://github.com/vllm-project/vllm/pull/69401"
+    },
+    "github:vllm-project/vllm#67489": {
+      "localPath": "社区PR扩展复核/vllm-67489.json",
+      "sha256": "3c61c065c1d3da58efa6dc3cd34a570b02bb2334b4979308502bed06cde7359f",
+      "url": "https://github.com/vllm-project/vllm/pull/67489"
+    }
+  }
+}
