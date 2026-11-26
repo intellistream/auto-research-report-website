@@ -2,7 +2,7 @@ import type { Bundle, Mod, ModSearch, Question, Relation, Source } from "./types
 import { inferenceStageNames, modStageView, isInferenceStage, legacyStageLabels, hasLegacyStage } from "./stages";
 
 export const kindLabels:Record<string,string>={runtime_mod:"运行时 MOD",connector_mod:"连接器 MOD",tool_mod:"工具 MOD"};
-export const relationLabels:Record<string,string>={supported:"有依据的方法／边界对照",candidate:"候选待核查",unsupported:"已否定该关系",withdrawn:"已撤回该关系"};
+export const relationLabels:Record<string,string>={supported:"关联依据已核查",candidate:"候选待核查",unsupported:"已否定该关系",withdrawn:"已撤回该关系"};
 export const relationStateLabels:Record<string,string>={supported:"有依据对照",candidate:"候选待核查",unassessed:"尚未形成对照",review_needed:"需复核",rejected:"已否定或撤回"};
 export const questionKinds:Record<string,string>={evidence_gap:"证据缺口",validation_question:"条件验证",research_candidate:"研究候选"};
 export const normalize=(s:string)=>s.normalize("NFKC").trim().toLocaleLowerCase();

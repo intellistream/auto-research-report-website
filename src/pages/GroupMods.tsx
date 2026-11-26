@@ -3,7 +3,7 @@ import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Boxes, GitBranch, Search } from "lucide-react";
 import { useGroupData,groupAsset } from "../features/group-mods/data";
 import { filterMods,groupHref,invalidFilters,kindLabels,questionKinds,isResearchQuestion,relationStateLabels,resetModFilters } from "../features/group-mods/selectors";
-import { Badge,ComparisonCollection,Empty,External,History,ModCard,Profile,QuestionCollection,StageMappingSources } from "../features/group-mods/components";
+import { Badge,ComparisonCollection,Empty,External,History,ModCard,ModIntroduction,Profile,QuestionCollection,StageMappingSources } from "../features/group-mods/components";
 import type { Bundle,GroupIndex } from "../features/group-mods/types";
 import { inferenceStageNames, isInferenceStage, legacyStageLabels, modStageView } from "../features/group-mods/stages";
 import { StageDistribution } from "../features/group-mods/StageDistribution";
@@ -48,7 +48,7 @@ export function GroupModContent({bundle,index}:{bundle:Bundle;index:GroupIndex})
  function globalHref(path:string){return "/group-mods"+path+(linkQuery.size?"?"+linkQuery.toString():"");}
  return <div className="gm-page">
   <header className="gm-hero"><div><span className="gm-eyebrow"><Boxes size={16} aria-hidden/>GROUP RESEARCH</span><h1>{mod?mod.displayName:segment==="questions"?"后续研究问题":["changes","sources"].includes(segment)?"来源与纳入口径":"MOD 与社区 PR 对照"}</h1>
-   <p>{mod?(mod.facts.problem||mod.facts.summary):"从组内 MOD 出发，比较具体社区 PR 的问题、方法和适用条件，并查看后续研究问题。"}</p>
+   {!mod&&<p>先了解组内 MOD 做了什么、针对什么问题，再阅读社区 PR 的日报解读、具体比较与后续研究问题。</p>}
    <div className="gm-hero-meta"><span>取材截至 {p.asOf}</span><span>资料版本 {bundle.payloadSha256.slice(0,8)}</span><Link to={globalHref("/sources")}>来源与版本</Link></div></div>
    {["sources","changes"].includes(segment)&&<div className="gm-version"><label htmlFor="gm-snapshot">查看版本</label><select id="gm-snapshot" value={bundle.payloadSha256} onChange={e=>update("snapshot",e.target.value)}>{index.snapshots.map(s=><option key={s.snapshotId} value={s.snapshotId} disabled={s.withdrawn}>{s.asOf+" · "+s.snapshotId.slice(0,8)+(s.withdrawn?"（正文已撤回）":s.isBaseline?" · 初始":"")}</option>)}</select>
     {row?.bundlePath&&<a href={groupAsset(row.bundlePath)} download={"group-mods-"+bundle.payloadSha256.slice(0,8)+".json"}>下载所看版本 JSON</a>}</div>}
@@ -58,12 +58,12 @@ export function GroupModContent({bundle,index}:{bundle:Bundle;index:GroupIndex})
    <Link className="gm-back" to={directoryHref}>返回 MOD 目录与筛选</Link>
    <div className="gm-card-top"><Badge>{kindLabels[mod.kind]}</Badge><Badge tone={mod.lifecycle==="implemented_restricted"?"warn":""}>{mod.lifecycle==="implemented_restricted"?"已实现，条件受限":"已实现并登记"}</Badge></div>
    <nav className="gm-tabs" aria-label="MOD 详情"><Link aria-current={view==="compare"?"page":undefined} to={groupHref(mod.componentId,query,{view:"compare",question:null})}>社区对照</Link><Link aria-current={view==="questions"?"page":undefined} to={groupHref(mod.componentId,query,{view:"questions",relation:null})}>后续研究问题</Link><Link aria-current={["overview","history"].includes(view)?"page":undefined} to={groupHref(mod.componentId,query,{view:"overview",relation:null,question:null})}>MOD 概况与来源</Link></nav>
+   {["compare","questions"].includes(view)&&<ModIntroduction mod={mod} query={query}/>}
    {view==="overview"?<Profile mod={mod} bundle={bundle}/>:view==="compare"?<>
-    <p className="gm-muted">“有依据”针对所述方法或边界关系；迁移收益仍需单独验证。</p>
     <ComparisonCollection bundle={bundle} modId={mod.id} query={query} selectedRelation={selectedRelation}/>
-    <section className="gm-mod-questions" aria-labelledby="gm-mod-questions-title"><h2 id="gm-mod-questions-title">后续研究问题</h2><QuestionCollection questions={modQuestions} bundle={bundle} query={query} selectedQuestion={selectedQuestion} showAll/></section>
+    <section className="gm-mod-questions" aria-labelledby="gm-mod-questions-title"><h2 id="gm-mod-questions-title">后续研究问题</h2><QuestionCollection questions={modQuestions} bundle={bundle} query={query} selectedQuestion={selectedQuestion} showAll showModContext={false}/></section>
     <TopicContexts bundle={bundle} modId={mod.id}/>
-   </>:view==="questions"?<QuestionCollection questions={modQuestions} bundle={bundle} query={query} selectedQuestion={selectedQuestion}/>:<><p className="gm-muted">版本与判断修订记录；不把资料导入和文字调整当作技术进展。</p><History bundle={bundle} modId={mod.id}/></>}
+   </>:view==="questions"?<QuestionCollection questions={modQuestions} bundle={bundle} query={query} selectedQuestion={selectedQuestion} showModContext={false}/>:<><p className="gm-muted">版本与判断修订记录；不把资料导入和文字调整当作技术进展。</p><History bundle={bundle} modId={mod.id}/></>}
   </div>:segment==="questions"?<>
    <div className="gm-filters"><label>MOD<select value={query.get("mod")||""} onChange={e=>update("mod",e.target.value)}><option value="">全部 MOD</option>{p.mods.map(m=><option key={m.id} value={m.componentId}>{m.displayName}</option>)}</select></label>
     <label>问题类型<select value={query.get("kind")||""} onChange={e=>update("kind",e.target.value)}><option value="">全部类型</option>{Object.entries(questionKinds).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
@@ -82,7 +82,7 @@ export function GroupModContent({bundle,index}:{bundle:Bundle;index:GroupIndex})
     <button type="button" onClick={()=>setQuery(resetModFilters(query))}>重置筛选</button></div>
    {invalidFilters(bundle,query).length>0&&<p className="gm-notice">已忽略无效筛选：{invalidFilters(bundle,query).join("、")}</p>}
    <p className="gm-result" role="status">{filtered.length} / {p.mods.length} 个 MOD{selectedStage&&" · "+(isInferenceStage(selectedStage)?inferenceStageNames[selectedStage as keyof typeof inferenceStageNames]:legacyStageLabels[selectedStage]?"旧辅助分类："+legacyStageLabels[selectedStage]:"全部环节")}</p>
-   <p className="gm-muted">有据社区对照优先显示。问题与约束据公开资料归纳；候选与尚未评估的项目分别保留，不硬配 PR。</p>
+   <p className="gm-muted">有据社区对照优先显示。简介与问题据公开资料整理；日报入口对应卡片所列社区 PR，候选与尚未形成对照的项目分别说明。</p>
    {filtered.length?<div className="gm-grid">{filtered.map(m=><ModCard key={m.id} mod={m} bundle={bundle} query={query}/>)}</div>:<Empty>当前筛选未收录对应已实现 MOD；这不代表该方向无人研究。</Empty>}
   </>}
  </div>;
