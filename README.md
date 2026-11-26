@@ -122,6 +122,8 @@ python scripts/import-docx.py "/path/to/daily-reports.zip" --web-only --output p
 
 已展示工程条目（含 needs_review）按上游章节填图一次，论文不填图。临时位置沿用 location_basis 并标明仍待分类核验。条目位置、正文交付、人工核查及发布状态分别显示。原始报告文件不被重写。
 
+逐项来源核验可通过 `scripts/review-report-entries.py` 追加修订版本。审核决定必须绑定原报告的 `source_version`，逐项提供 `day`、`number`、`workId`、`status`（`passed` / `corrected` / `unverified`）、具体 `reason` 和包含原 PR 的 `source_urls`；正文修改放在 `changes` 中。先不带 `--publish` 检查，再用 `--reviewer Codex --reviewed-at <带时区时间> --publish` 保存。分类修改还须通过 `--figures` 提供已经核对的新流程图。旧报告和原始链接保留，新页面显示各项结论与核对依据，证据不足的条目继续标记待核对。
+
 导出数据不包含模型提示词、完整归档、密钥或原始异常。本仓库是 public 仓库，提交进 `public/data/` 的内容会公开可见。
 
 ## 部署

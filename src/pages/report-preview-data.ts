@@ -2,11 +2,16 @@ import { useEffect, useState } from "react";
 
 type Part = { text: string; url?: string };
 export type Counts = { upstream: number; ascend: number; papers: number };
+export type SourceReview = {
+  reviewer: string; reviewedAt: string; status: "passed" | "corrected" | "unverified";
+  summary: string; sources: string[]; headSha?: string;
+};
 type Block =
   | { kind: "paragraph"; parts: Part[]; chapterIntro?: boolean }
   | { kind: "group"; title: string }
   | { kind: "entry"; number: string; title: string; workId?: string; paragraphs: Part[][];
-      needsReview?: boolean; provisionalLocation?: boolean; titlePending?: boolean; brief?: boolean };
+      needsReview?: boolean; provisionalLocation?: boolean; titlePending?: boolean; brief?: boolean;
+      sourceReview?: SourceReview };
 export const pipelineStatuses = {
   completed_program_checks: "程序检查通过",
   complete_with_pending: "含待核对条目",
@@ -22,6 +27,8 @@ export type Report = {
   originalName?: string;
   pipelineStatus?: keyof typeof pipelineStatuses;
   publicationStatus?: "preview" | "reviewed";
+  sourceReview?: { parentVersion: string; reviewer: string; reviewedAt: string;
+    counts: Partial<Record<SourceReview["status"], number>> };
   counts: Counts;
   warnings: string[];
   sections: { key: string; title: string; figure?: string; intro?: string; blocks: Block[] }[];

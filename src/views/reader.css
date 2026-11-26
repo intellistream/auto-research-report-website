@@ -633,6 +633,25 @@
   gap: 10px;
 }
 
+.reader-source-review {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--ink-secondary);
+  font-size: 12.5px;
+}
+
+.reader-source-review summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.reader-source-review p {
+  margin: 8px 0;
+  line-height: 1.65;
+}
+
 .entry-anatomy-row {
   display: grid;
   grid-template-columns: 46px minmax(0, 1fr);
