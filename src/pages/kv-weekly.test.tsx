@@ -106,10 +106,10 @@ describe("weekly navigation, legacy links and research decisions", () => {
     for (const key of ["q","repo","edition"]) expect(next.has(key)).toBe(false);
     expect(paperViewQuery(next).has("week")).toBe(false);
   });
-  it("puts research questions first and keeps the same section order in both weeks", () => {
+  it("moves from weekly focus to detailed progress and problem tracking in both weeks", () => {
     for (const report of weeklyReports) {
       const html=render("view=report&week=" + report.week);
-      const headings=["kv-weekly-questions-title", "kv-weekly-progress-title", "kv-weekly-events-title", "kv-weekly-sources-title"];
+      const headings=["kv-weekly-focus-title", "kv-weekly-progress-title", "kv-weekly-questions-title", "kv-weekly-events-title", "kv-weekly-sources-title"];
       const positions=headings.map(id => html.indexOf('id="' + id + '"'));
       expect(positions.every(position=>position>=0)).toBe(true);
       expect(positions).toEqual([...positions].sort((a,b)=>a-b));
@@ -117,6 +117,29 @@ describe("weekly navigation, legacy links and research decisions", () => {
       for (const field of ["场景与瓶颈", "证据与已有工作", "剩余空间", "可检验假设", "怎样做最小验证", "潜在价值", "实现成本", "最大不确定性", "实验状态"]) expect(html).toContain(field);
     }
   });
+  it("keeps every focus jump in the selected week with a unique detailed target", () => {
+    for (const report of weeklyReports) {
+      const html = render("view=report&week=" + report.week + "&q=stale&edition=unknown&kv-tokens=16384&kv-requests=7");
+      const focus = html.slice(html.indexOf('id="kv-weekly-focus-title"'), html.indexOf('id="kv-weekly-progress-title"'));
+      const hrefs = [...focus.matchAll(/href="([^"]+)"/g)].map(match => match[1].replaceAll("&amp;", "&"));
+      expect(hrefs).toHaveLength(report.progress.length);
+      expect(new Set(report.progress.map(item => item.id)).size).toBe(report.progress.length);
+      for (const href of hrefs) {
+        const query = new URL(href, "http://localhost").searchParams;
+        expect(query.get("week")).toBe(report.week);
+        expect(query.get("view")).toBe("report");
+        expect(query.get("kv-tokens")).toBe("16384");
+        expect(query.get("kv-requests")).toBe("7");
+        expect(query.has("q")).toBe(false);
+        expect(query.has("edition")).toBe(false);
+        const part = query.get("part")!;
+        expect(report.progress.some(item => part === "kv-weekly-progress-" + item.id)).toBe(true);
+        expect(html.split('id="' + part + '"').length - 1).toBe(1);
+        expect(render(query.toString())).toContain('id="' + part + '" tabindex="-1"');
+      }
+    }
+  });
+
   it("tracks a changed judgment under a stable question identity without inventing experiments", () => {
     const before=weeklyReports[0].questions[0], after=latestWeeklyReport.questions[0];
     expect(before.id).toBe(after.id);

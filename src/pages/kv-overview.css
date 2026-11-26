@@ -22,8 +22,6 @@
 .kv-overview dd { margin:0; overflow-wrap:anywhere; }
 .kv-overview-comparison { display:inline-block; margin-top:.3rem; font-size:.9375rem; }
 .kv-overview-validation { border-top:2px solid var(--border-accent); padding-top:1.5rem; }
-.kv-overview .kv-overview-status { display:inline-block; color:var(--brand-primary); background:var(--brand-soft); border-radius:.3rem; padding:.15rem .6rem; font-size:.875rem; margin:0 0 .75rem; }
-.kv-overview-decision { font-weight:650; }
 .kv-overview .kv-overview-boundary { color:var(--ink-secondary); }
 @media(max-width:590px) {
   .kv-overview dl > div { grid-template-columns:minmax(0,1fr); gap:.3rem; }

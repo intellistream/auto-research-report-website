@@ -7,17 +7,21 @@ export type WeeklySource = {
   url: string; version: string; checkedAt: string; scope: string; readingSearch?: string;
 };
 export type WeeklyQuestion = {
-  id: string; title: string; classification: string; experimentStatus: string;
+  id: string; title: string; problemTitle: string; weeklyInsight: string; classification: string; experimentStatus: string;
   basis: string; change: string; scene: string; bottleneck: string;
   evidence: { sourceIds: string[]; finding: string; boundary: string }[];
   gap: string; hypothesis: string; minimum: { label: string; body: string }[];
   value: string; cost: string; uncertainty: string;
   relatedWork: { checkedAt: string; coverage: string; pending: string };
 };
+export type WeeklyProgress = {
+  id: string; title: string; body: string; problem: string; mechanism: string;
+  evidence: string; implication: string; next: string; sourceIds: string[];
+};
 export type WeeklyReport = {
   week: string; title: string; status: "retrospective" | "partial";
   compiledAt: string; materialThrough: string; note: string; summary: string;
-  questions: WeeklyQuestion[]; progress: { title: string; body: string; sourceIds: string[] }[];
+  questions: WeeklyQuestion[]; progress: WeeklyProgress[];
 };
 export type WeeklyRevision = {
   id: string; workId: string; kind: "mechanism" | "test-only" | "unclassified";
