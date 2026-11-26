@@ -146,8 +146,8 @@ describe("academic manuscript branch", () => {
     expect(references).toHaveLength(57);
     expect(new Set(references).size).toBe(57);
     expect(references.slice(0, 24)).toEqual([
-      51, 52, 53, 54, 55, 56, 68, 69, 59, 61, 11, 63, 57, 58,
-      62, 64, 65, 66, 67, 60, 70, 71, 31, 30,
+      51, 52, 54, 56, 68, 69, 59, 61, 11, 63, 55, 57, 58,
+      62, 64, 65, 66, 67, 53, 60, 70, 71, 31, 30,
     ]);
     expect(references.slice(24)).toEqual([
       8, 9, 10, 4, 5, 6, 7, 16, 17, 14, 15, 18,
