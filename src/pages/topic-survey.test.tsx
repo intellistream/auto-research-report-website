@@ -30,12 +30,12 @@ describe("continuous survey presentation", () => {
     const map = html.slice(html.indexOf('<figure class="acl-taxonomy">'), html.indexOf("</figure>"));
     expect(survey.paperVersion).toBe("62dba962fda5240ee8b37bdac3d8c877245daabcdab03265e7ef7ead46d0fd86");
     expect(survey.reportVersion).toBe("6dd5554a521e6faeb3477353dd6258a54089733402109dec9c3555eb67ba1d66");
-    expect(source.scenarios).toHaveLength(6);
+    expect(source.scenarios).toHaveLength(4);
     const scenarioWorks = source.scenarios.flatMap((scenario) => scenario.works);
     expect(scenarioWorks).toHaveLength(24);
-    expect(source.scenarios.map((scenario) => scenario.works.length)).toEqual([6, 5, 5, 2, 3, 3]);
-    expect(source.scenarios.map((scenario) => scenario.paperAnchor)).toEqual([
-      "section-3-1", "section-3-2", "section-3-3", "section-3-1", "section-3-4", "section-3-4",
+    expect(source.scenarios.map((scenario) => scenario.works.length)).toEqual([8, 6, 5, 5]);
+    expect(source.scenarios.map((scenario) => scenario.paperSections)).toEqual([
+      ["3.1", "3.4"], ["3.1", "3.2", "3.3"], ["3.3"], ["3.2", "3.4"],
     ]);
     expect(survey.routes).toHaveLength(4);
     expect(survey.routes.map((route) => route.id)).toEqual(["capture", "replay-state", "scheduling", "lifecycle"]);
@@ -64,10 +64,10 @@ describe("continuous survey presentation", () => {
     expect(map.match(/<table class="acl-taxonomy-table"/g)).toHaveLength(2);
     expect(map).toContain("ACLGraph 综述研究版图总览");
     expect(map).toContain("从负载变化追踪执行图的适配需求");
-    expect(map).toContain("视角一：推理负载的动态性与图适配（6 类变化 · 24 项相关工作）");
+    expect(map).toContain("视角一：推理负载变化与图适配需求（4 个研究方向 · 24 项相关工作）");
     expect(map).toContain("视角二：通用执行图系统核心机制版图（第 4 章 · 4 大机制 · 33 项代表工作）");
     expect(map.indexOf('id="acl-taxonomy-scenarios-heading"')).toBeLessThan(map.indexOf('id="acl-taxonomy-mechanisms-heading"'));
-    for (const heading of ["变化维度与典型负载", "动态性来源", "对执行图的影响", "图适配思路", "相关工作及研究对象",
+    for (const heading of ["研究方向与典型负载", "动态性来源", "对执行图的影响", "图适配需求", "代表工作及研究对象",
       "核心系统机制（正文章节）", "细粒度机制分组（10 组）", "代表系统工作（33 项，点击编号直达参考文献）"]) {
       expect(map).toContain(heading);
     }
@@ -75,12 +75,15 @@ describe("continuous survey presentation", () => {
       "section-4-3", "section-4-4", "section-4-5", "section-4-6",
     ]);
     expect(map.match(/scope="rowgroup"/g)).toHaveLength(4);
-    expect(map.match(/scope="row"/g)).toHaveLength(16);
+    expect(map.match(/scope="row"/g)).toHaveLength(14);
     expect(map.match(/class="acl-taxonomy-citation"/g)).toHaveLength(57);
     for (const scenario of source.scenarios) {
-      for (const text of [scenario.title, scenario.workload, scenario.dynamicity, scenario.impact, scenario.strategy]) expect(map).toContain(text);
-      for (const work of scenario.works) expect(map).toContain(work.context);
-      expect(map).toContain(`#${scenario.paperAnchor}"`);
+      for (const text of [scenario.title, scenario.workload, scenario.dynamicity, scenario.impact, scenario.requirement, scenario.boundary]) expect(map).toContain(text);
+      for (const work of scenario.works) {
+        expect(map).toContain(work.context);
+        expect(map).toContain(work.role);
+      }
+      for (const section of scenario.paperSections) expect(map).toContain(`#section-${section.replaceAll(".", "-")}"`);
     }
     for (const route of survey.routes) {
       expect(map).toContain(`#${route.paperAnchor}"`);
@@ -110,16 +113,18 @@ describe("continuous survey presentation", () => {
     const withFirst = (changes: Record<string, unknown>) => source.scenarios.map((item, index) => index ? item : { ...item, ...changes });
     const invalid: unknown[] = [undefined, null, {}, [], [null, ...source.scenarios.slice(1)],
       withFirst({ title: " " }), withFirst({ workload: undefined }), withFirst({ dynamicity: undefined }),
-      withFirst({ impact: null }), withFirst({ strategy: null }),
-      withFirst({ paperAnchor: "javascript:alert(1)" }), withFirst({ paperAnchor: "section-3-2" }),
-      withFirst({ paperAnchor: "section-3-1#ref-1" }), withFirst({ paperSection: "4.3" }),
+      withFirst({ impact: null }), withFirst({ requirement: null }), withFirst({ boundary: " " }),
+      withFirst({ paperSections: ["javascript:alert(1)"] }), withFirst({ paperSections: [] }),
+      withFirst({ paperSections: ["3.1#ref-1"] }), withFirst({ paperSections: ["4.3"] }),
+      withFirst({ paperSections: ["3.1", "3.1"] }), withFirst({ paperSections: null }),
       withFirst({ works: undefined }), withFirst({ works: [] }),
       withFirst({ id: source.scenarios[1].id }),
     ];
     for (const reference of [0, -1, 1.5, 75, "51", true, null, undefined, NaN, Infinity, source.scenarios[0].works[1].reference]) {
       invalid.push(withFirst({ works: source.scenarios[0].works.map((work, index) => index ? work : { ...work, reference }) }));
     }
-    for (const work of [null, {}, { label: " ", reference: 51 }, { label: "Orca", reference: 51, context: " " }]) {
+    for (const work of [null, {}, { label: " ", reference: 51 }, { label: "Orca", reference: 51, context: " " },
+      { ...source.scenarios[0].works[0], role: "unknown" }, { ...source.scenarios[0].works[0], role: undefined }]) {
       invalid.push(withFirst({ works: [work, ...source.scenarios[0].works.slice(1)] }));
     }
     for (const scenarios of invalid) {
