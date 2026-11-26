@@ -26,7 +26,7 @@ function render(path: string, topic = nextTopic) {
 describe("academic manuscript branch", () => {
   it("uses one topic title and navigation for the three sections", () => {
     const html = render("/topics/aclgraph");
-    expect(html).toContain("图回放省去了哪部分工作？");
+    expect(html).toContain("图重放省去了哪部分工作？");
     expect(html).toContain("view=paper");
     expect(html).toContain("view=report");
     expect(html).not.toContain("view=evidence");
