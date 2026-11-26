@@ -1,6 +1,36 @@
 import { useState } from "react";
 import "./aclgraph-guide.css";
 
+function CapturePreparation() {
+  return (
+    <figure className="acl-capture-context" aria-labelledby="acl-capture-caption">
+      <figcaption id="acl-capture-caption">图重放的准备与使用</figcaption>
+      <div className="acl-capture-lifecycle">
+        <div className="acl-capture-phase">
+          <h3>首次准备 · 捕获</h3>
+          <div className="acl-captured-graph">
+            <div className="acl-captured-graph-title"><strong>图 G</strong><span>✓ 已捕获</span></div>
+            <div className="acl-captured-operators">
+              <span>加法<code>s = a + b</code></span>
+              <span className="acl-dependency-arrow" aria-label="加法的结果 s 供乘法使用"><small>s</small>→</span>
+              <span>乘法<code>y = s × c</code></span>
+            </div>
+            <p>记录算子与依赖</p>
+          </div>
+        </div>
+        <span className="acl-capture-next" aria-hidden="true">→</span>
+        <div className="acl-reuse-phase">
+          <h3>后续运行 · 复用同一图 G</h3>
+          <div className="acl-replay-rounds">
+            <div className="acl-replay-round"><span>本轮输入</span><span aria-hidden="true">→</span><strong>重放 G</strong><span aria-hidden="true">→</span><span>本轮结果</span></div>
+            <div className="acl-replay-round"><span>下轮输入</span><span aria-hidden="true">→</span><strong>重放 G</strong><span aria-hidden="true">→</span><span>下轮结果</span></div>
+          </div>
+        </div>
+      </div>
+    </figure>
+  );
+}
+
 function TimeBlock({ start, end, label, waiting = false }: {
   start: number; end: number; label: string; waiting?: boolean;
 }) {
@@ -20,14 +50,14 @@ function ExecutionDiagram({ replay = false, longAdd }: { replay?: boolean; longA
       <div className="acl-execution-row">
         <span className="acl-device-label">CPU 提交</span>
         <div className="acl-time-track acl-host-track">
-          {replay ? <TimeBlock start={0} end={addStart} label="重放" /> : <>
-            <TimeBlock start={0} end={addStart} label="加法" />
-            <TimeBlock start={addStart} end={multiplyQueued} label="乘法" />
+          {replay ? <TimeBlock start={0} end={addStart} label="启动图 G" /> : <>
+            <TimeBlock start={0} end={addStart} label="下发加法" />
+            <TimeBlock start={addStart} end={multiplyQueued} label="下发乘法" />
           </>}
         </div>
       </div>
       <div className="acl-execution-row">
-        <span className="acl-device-label">NPU 执行</span>
+        <span className="acl-device-label">NPU 执行<small>同一执行流</small></span>
         <div className="acl-time-track acl-device-track">
           <TimeBlock start={addStart} end={addEnd} label="加法" />
           {addEnd < multiplyStart && <TimeBlock start={addEnd} end={multiplyStart} label="等下发" waiting />}
@@ -83,9 +113,8 @@ export default function AclGraphGuide() {
         <h2 id="acl-step-title">图重放省去了哪部分工作？</h2>
         <p className="acl-guide-lead">
           先算 <strong>s = a + b</strong>，再算 <strong>y = s × c</strong>。
-          <br /><strong>直接提交时</strong>，CPU 提交完加法就能提交乘法。NPU 要等 s 就绪且乘法已入队，才能做乘法。
-          <br /><strong>图重放时</strong>，CPU 只需启动一次已捕获的图。NPU 算出 s 就能接着做乘法，无需再等 CPU 单独下发。
         </p>
+        <CapturePreparation />
         <div className="acl-timeline-controls">
           <div role="group" aria-label="比较加法执行耗时">
             <button type="button" aria-pressed={!longAdd} onClick={() => setLongAdd(false)}>加法耗时短</button>
