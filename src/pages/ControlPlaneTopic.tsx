@@ -1,3 +1,4 @@
+import DynamoReadingList from "./DynamoReadingList";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -69,6 +70,7 @@ export default function ControlPlaneTopic({ topic }: { topic: Topic }) {
       <p>112 个 program 各三轮。直连和默认限流层均完成 336 个请求，耗时分别为 654.91、678.96 秒。两臂前缀命中增量均为零，业务日志未观测到暂停或恢复。这个固定顺序配对可以衡量本次转发与调度的整体效果：整批耗时从 654.91 秒增至 678.96 秒（+3.67%），未观察到业务 program 的 pause/resume，无法单独评定跨副本恢复策略。<a href={benchmark + "controller-35b-two-devbox-20261125"}>逐请求证据与分层图 ↗</a></p>
       <h3>待验证：最佳恢复位置会反转吗？</h3><p>固定 P 的输入和工具返回时刻，让 A 持有相同的热前缀，B 保持冷缓存。只改变 A 上已有的 decode 流数，每一档分别让 P 去 A 和 B。先核验两端实际 cached tokens，再比较 P 的首次有效输出延迟与老流的 P99 chunk 间隔。若最佳目的地始终相同，该条件下固定路由就足够。</p>
     </section><section className="topic-card"><h2>日报中的工程证据</h2><EvidenceList entries={topic.entries} labels={topic.labels} /></section></>}
+    {(!view || view === "guide") && <DynamoReadingList />}
     <footer className="acl-topic-card-sections"><Link to={path}>三个板块总览</Link><Link to="?view=systems">论文与实现</Link><Link to="?view=evidence">实测与工程证据</Link></footer>
   </article>;
 }

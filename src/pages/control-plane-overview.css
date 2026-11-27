@@ -77,3 +77,9 @@
 .cp-event-flow span { display:block; margin-top:.5rem; font-size:.9rem; color:#d0e5dc; }
 .cp-event-flow li + li::before { content:"→"; position:absolute; left:-1.2rem; color:#79dec0; }
 @media(max-width:760px){ .cp-event-flow { flex-direction:column; } .cp-event-flow li { flex:auto; } .cp-event-flow li + li::before { content:"↓"; left:1rem; top:-1.4rem; } }
+
+.cp-readings ul { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,17rem),1fr)); gap:1.25rem; list-style:none; margin:.6rem 0 1.5rem; padding:0; }
+.cp-readings li { border-inline-start:3px solid #78a999; padding-inline-start:.85rem; }
+.cp-readings li a { font-weight:650; }
+.cp-readings li small { display:block; margin:.25rem 0; }
+.cp-readings li p { margin:0; }
