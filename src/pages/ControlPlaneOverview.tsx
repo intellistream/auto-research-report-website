@@ -26,7 +26,7 @@ function Analysis({ direction }: { direction: keyof typeof analysis }) {
       <p>{question.mechanism}</p>
       <p>{question.evidence}</p>
       <div className="cp-experiment"><h4>怎样验证</h4><p>{question.test}</p></div>
-      <div className="acl-topic-card-sections">{question.sources.map(([label, href]) =>
+      <div className="topic-section-links">{question.sources.map(([label, href]) =>
         <a key={href} href={href}>{label} ↗</a>)}</div>
     </section>)}</div>;
 }

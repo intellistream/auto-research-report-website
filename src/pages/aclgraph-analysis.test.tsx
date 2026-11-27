@@ -230,14 +230,14 @@ describe("two-tab ACL topic rendering", () => {
   });
 
   it("provides only guide and analysis quick links on the ACL directory card", () => {
-    const direct = ssr(<AclGraphTopicCard topic={topic} />);
+    const direct = ssr(<AclGraphTopicCard />);
     const directory = ssr(<Routes><Route path="/topics" element={<TopicPages index={index} />} /></Routes>, "/topics");
     const card = [...directory.matchAll(/<li class="topic-directory-card">[\s\S]*?<\/li>/g)]
       .find(([html]) => html.includes('href="/topics/aclgraph"'))![0];
     for (const html of [direct, card]) {
       expect(html).toContain('href="/topics/aclgraph"');
       expect(html).toContain('href="/topics/aclgraph?view=analysis"');
-      const links = html.match(/class="acl-topic-card-sections">([\s\S]*?)<\/div>/)![1];
+      const links = html.match(/class="topic-section-links">([\s\S]*?)<\/div>/)![1];
       expect(links.match(/<a\b/g)).toHaveLength(2);
       expect(links).toContain("导引</a>");
       expect(links).toContain("专题剖析</a>");

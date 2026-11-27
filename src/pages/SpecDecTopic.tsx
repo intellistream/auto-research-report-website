@@ -22,8 +22,7 @@ export function SpecDecTopicCard({ topic }: { topic: Topic }) {
       description="候选生成、并行验证、状态正确性与动态 Serving 的系统优化。"
       path={path}
       summary={`${topic.entries.length} 条社区 PR 线索`}
-      vllmCount={topic.counts.byRepository.vllm ?? 0}
-      ascendCount={topic.counts.byRepository["vllm-ascend"] ?? 0}
+      repositories={topic.counts.byRepository}
       sections={sections}
     />
   );

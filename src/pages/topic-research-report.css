@@ -26,90 +26,6 @@
   color: var(--ink-secondary);
 }
 
-.survey-directory-card {
-  display: flex;
-  flex-direction: column;
-  padding: 1.45rem !important;
-}
-
-.survey-card-top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
-}
-
-.survey-card-top .topic-meta {
-  font-size: 0.76rem;
-}
-
-.survey-directory-card h2 {
-  font-size: 1.25rem;
-  line-height: 1.5;
-}
-
-.survey-directory-card h2 a {
-  display: inline;
-  color: var(--ink-primary) !important;
-  text-decoration: none !important;
-}
-
-.survey-directory-card h2 a:hover {
-  color: var(--brand-primary) !important;
-}
-
-.survey-directory-card h2 svg {
-  vertical-align: middle;
-  color: var(--brand-primary);
-}
-
-.survey-card-abstract {
-  color: var(--ink-secondary);
-  font-size: 0.86rem;
-  line-height: 1.85 !important;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
-  overflow: hidden;
-}
-
-.survey-card-question {
-  margin: 0.75rem 0 1rem;
-  padding: 0.8rem 0 0;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.survey-card-question > span {
-  color: var(--brand-primary);
-  font-size: 0.7rem;
-  font-weight: 700;
-}
-
-.survey-card-question p {
-  margin: 0.4rem 0 0;
-  font-size: 0.82rem;
-  line-height: 1.75;
-}
-
-.survey-card-bottom {
-  margin-top: auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.8rem;
-}
-
-.survey-read-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 0.8rem;
-  font-weight: 650;
-}
-
 .survey-heading {
   margin: 1.4rem 0 1.8rem;
 }
@@ -128,21 +44,6 @@
   letter-spacing: -0.02em;
   font-weight: 800;
   line-height: 1.4;
-}
-
-.survey-status {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  flex-shrink: 0;
-  color: var(--brand-primary);
-  font-size: 0.72rem;
-  font-weight: 700;
-  background: var(--brand-soft);
-  border: 1px solid var(--border-accent);
-  border-radius: var(--radius-pill);
-  padding: 0.22rem 0.65rem;
-  white-space: nowrap;
 }
 
 .survey-deck {
