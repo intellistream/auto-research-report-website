@@ -50,3 +50,7 @@
 .cp-arch-line { fill:none; stroke:#9ae8bf; stroke-width:2; }
 .cp-arch-link { cursor:pointer; color:#eafff5; }
 .cp-arch-link:hover .cp-arch-node, .cp-arch-link:focus-visible .cp-arch-node { fill:#285d4f; stroke:#a6efc5; stroke-width:3; }
+
+.cp-measured { margin-block:1.25rem; }
+.cp-measured > h4 { font-size:1.1rem; }
+.cp-measured .cp-batch-chart h4 { color:inherit; }

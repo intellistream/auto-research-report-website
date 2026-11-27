@@ -1,0 +1,328 @@
+{
+  "model": "Qwen2.5-0.5B-Instruct BF16 TP1",
+  "hardware": "2 x RTX A6000, separate nodes",
+  "source_sha256": "55f9b4ce8c159d17ca64710d05cedeb22f245f81f0c059be35f4a141ddcec603",
+  "metric": "paired resume TTFT in ms",
+  "result": [
+    {
+      "size": 512,
+      "pairs": 6,
+      "qualified": 5,
+      "wins": 0,
+      "pull_ttft": 112.695,
+      "cold_ttft": 51.28,
+      "delta_ttft": 60.813,
+      "pull_e2e": 124.379,
+      "cold_e2e": 61.41,
+      "first_pair_delta_ttft": 69.785,
+      "details": [
+        {
+          "index": 0,
+          "matched_tokens": true,
+          "hit": 512.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 120.93890458345413,
+          "cold_ttft": 51.154257729649544,
+          "delta_ttft": 69.78464685380459,
+          "pull_e2e": 132.21146911382675,
+          "cold_e2e": 61.2819641828537
+        },
+        {
+          "index": 1,
+          "matched_tokens": true,
+          "hit": 512.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 112.7959880977869,
+          "cold_ttft": 52.35656350851059,
+          "delta_ttft": 60.439424589276314,
+          "pull_e2e": 124.79783594608307,
+          "cold_e2e": 62.94326111674309
+        },
+        {
+          "index": 2,
+          "matched_tokens": true,
+          "hit": 512.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 110.50610058009624,
+          "cold_ttft": 51.02896690368652,
+          "delta_ttft": 59.47713367640972,
+          "pull_e2e": 121.57833576202393,
+          "cold_e2e": 61.53716333210468
+        },
+        {
+          "index": 3,
+          "matched_tokens": true,
+          "hit": 512.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 112.59319819509983,
+          "cold_ttft": 51.40640027821064,
+          "delta_ttft": 61.18679791688919,
+          "pull_e2e": 123.9605974406004,
+          "cold_e2e": 59.9819365888834
+        },
+        {
+          "index": 4,
+          "matched_tokens": false,
+          "hit": 512.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 113.66184055805206,
+          "cold_ttft": 50.56875757873058,
+          "delta_ttft": 63.09308297932148,
+          "pull_e2e": 124.89891983568668,
+          "cold_e2e": 60.701848939061165
+        },
+        {
+          "index": 5,
+          "matched_tokens": true,
+          "hit": 512.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 111.13397963345051,
+          "cold_ttft": 51.967380568385124,
+          "delta_ttft": 59.166599065065384,
+          "pull_e2e": 121.8111664056778,
+          "cold_e2e": 62.04305402934551
+        }
+      ]
+    },
+    {
+      "size": 2048,
+      "pairs": 6,
+      "qualified": 6,
+      "wins": 0,
+      "pull_ttft": 290.709,
+      "cold_ttft": 74.146,
+      "delta_ttft": 217.002,
+      "pull_e2e": 296.415,
+      "cold_e2e": 78.183,
+      "first_pair_delta_ttft": 217.588,
+      "details": [
+        {
+          "index": 0,
+          "matched_tokens": true,
+          "hit": 2048.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 292.9542250931263,
+          "cold_ttft": 75.36607049405575,
+          "delta_ttft": 217.58815459907055,
+          "pull_e2e": 297.88384586572647,
+          "cold_e2e": 79.9184050410986
+        },
+        {
+          "index": 1,
+          "matched_tokens": true,
+          "hit": 2048.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 288.3396092802286,
+          "cold_ttft": 74.56849701702595,
+          "delta_ttft": 213.77111226320267,
+          "pull_e2e": 294.3920139223337,
+          "cold_e2e": 78.61061207950115
+        },
+        {
+          "index": 2,
+          "matched_tokens": true,
+          "hit": 2048.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 292.0842282474041,
+          "cold_ttft": 75.00525377690792,
+          "delta_ttft": 217.07897447049618,
+          "pull_e2e": 297.70203307271004,
+          "cold_e2e": 79.26612719893456
+        },
+        {
+          "index": 3,
+          "matched_tokens": true,
+          "hit": 2048.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 289.703156799078,
+          "cold_ttft": 72.82356359064579,
+          "delta_ttft": 216.8795932084322,
+          "pull_e2e": 295.83882354199886,
+          "cold_e2e": 77.11594738066196
+        },
+        {
+          "index": 4,
+          "matched_tokens": true,
+          "hit": 2048.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 291.7156908661127,
+          "cold_ttft": 73.72325100004673,
+          "delta_ttft": 217.99243986606598,
+          "pull_e2e": 296.9911228865385,
+          "cold_e2e": 77.7552630752325
+        },
+        {
+          "index": 5,
+          "matched_tokens": true,
+          "hit": 2048.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 289.2209868878126,
+          "cold_ttft": 72.29521311819553,
+          "delta_ttft": 216.92577376961708,
+          "pull_e2e": 295.5249361693859,
+          "cold_e2e": 76.27315819263458
+        }
+      ]
+    },
+    {
+      "size": 8192,
+      "pairs": 6,
+      "qualified": 6,
+      "wins": 0,
+      "pull_ttft": 1001.457,
+      "cold_ttft": 189.549,
+      "delta_ttft": 812.846,
+      "pull_e2e": 1010.59,
+      "cold_e2e": 199.042,
+      "first_pair_delta_ttft": 890.969,
+      "details": [
+        {
+          "index": 0,
+          "matched_tokens": true,
+          "hit": 8192.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 1081.5418604761362,
+          "cold_ttft": 190.57335890829563,
+          "delta_ttft": 890.9685015678406,
+          "pull_e2e": 1176.390616223216,
+          "cold_e2e": 199.58112947642803
+        },
+        {
+          "index": 1,
+          "matched_tokens": true,
+          "hit": 8192.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 1001.7519369721413,
+          "cold_ttft": 189.44942764937878,
+          "delta_ttft": 812.3025093227625,
+          "pull_e2e": 1010.7450876384974,
+          "cold_e2e": 198.65265488624573
+        },
+        {
+          "index": 2,
+          "matched_tokens": true,
+          "hit": 8192.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 1001.1622328311205,
+          "cold_ttft": 187.7730693668127,
+          "delta_ttft": 813.3891634643078,
+          "pull_e2e": 1010.4339811950922,
+          "cold_e2e": 197.37987406551838
+        },
+        {
+          "index": 3,
+          "matched_tokens": true,
+          "hit": 8192.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 999.7792784124613,
+          "cold_ttft": 191.96148961782455,
+          "delta_ttft": 807.8177887946367,
+          "pull_e2e": 1009.3642342835665,
+          "cold_e2e": 202.6966754347086
+        },
+        {
+          "index": 4,
+          "matched_tokens": true,
+          "hit": 8192.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 996.729725971818,
+          "cold_ttft": 188.644926995039,
+          "delta_ttft": 808.084798976779,
+          "pull_e2e": 1006.6125206649303,
+          "cold_e2e": 198.46793450415134
+        },
+        {
+          "index": 5,
+          "matched_tokens": true,
+          "hit": 8192.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 1004.4087283313274,
+          "cold_ttft": 189.64872136712074,
+          "delta_ttft": 814.7600069642067,
+          "pull_e2e": 1013.1087303161621,
+          "cold_e2e": 199.4319837540388
+        }
+      ]
+    },
+    {
+      "size": 16384,
+      "pairs": 6,
+      "qualified": 6,
+      "wins": 0,
+      "pull_ttft": 1952.241,
+      "cold_ttft": 427.004,
+      "delta_ttft": 1523.618,
+      "pull_e2e": 1960.87,
+      "cold_e2e": 436.382,
+      "first_pair_delta_ttft": 1514.164,
+      "details": [
+        {
+          "index": 0,
+          "matched_tokens": true,
+          "hit": 16384.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 1941.2960670888424,
+          "cold_ttft": 427.1321166306734,
+          "delta_ttft": 1514.163950458169,
+          "pull_e2e": 1948.4244622290134,
+          "cold_e2e": 436.1786060035229
+        },
+        {
+          "index": 1,
+          "matched_tokens": true,
+          "hit": 16384.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 1953.2992970198393,
+          "cold_ttft": 426.15339159965515,
+          "delta_ttft": 1527.1459054201841,
+          "pull_e2e": 1961.2900521606207,
+          "cold_e2e": 435.92394702136517
+        },
+        {
+          "index": 2,
+          "matched_tokens": true,
+          "hit": 16384.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 1953.2558806240559,
+          "cold_ttft": 426.00955814123154,
+          "delta_ttft": 1527.2463224828243,
+          "pull_e2e": 1961.8225768208504,
+          "cold_e2e": 435.0779056549072
+        },
+        {
+          "index": 3,
+          "matched_tokens": true,
+          "hit": 16384.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 1951.7338667064905,
+          "cold_ttft": 430.37022091448307,
+          "delta_ttft": 1521.3636457920074,
+          "pull_e2e": 1963.4932205080986,
+          "cold_e2e": 439.56475891172886
+        },
+        {
+          "index": 4,
+          "matched_tokens": true,
+          "hit": 16384.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 1948.0689782649279,
+          "cold_ttft": 427.8921615332365,
+          "delta_ttft": 1520.1768167316914,
+          "pull_e2e": 1956.7831512540579,
+          "cold_e2e": 437.1539633721113
+        },
+        {
+          "index": 5,
+          "matched_tokens": true,
+          "hit": 16384.0,
+          "cold_hit": 0.0,
+          "pull_ttft": 1952.7480099350214,
+          "cold_ttft": 426.8754217773676,
+          "delta_ttft": 1525.8725881576538,
+          "pull_e2e": 1960.4503568261862,
+          "cold_e2e": 436.5857504308224
+        }
+      ]
+    }
+  ]
+}

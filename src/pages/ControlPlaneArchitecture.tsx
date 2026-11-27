@@ -45,6 +45,6 @@ export default function ControlPlaneArchitecture() {
       <path d="M907 407h48V50h-46" fill="none" stroke="#fac783" strokeWidth="2" strokeDasharray="6 4" markerEnd="url(#arch-back)"/>
       <text x="976" y="255" transform="rotate(-90 976 255)" textAnchor="middle" className="cp-feedback-text">队列 · KV · 副本状态 · 动作回执</text>
     </svg></div>
-    <small>点击控制器进入专题。请求限流已有配对实测；KV 重配置与实例池优化展示设计及所需接口。</small>
+    <small>点击控制器进入专题。三个专题分别附有请求限流、KV 回载与副本扩缩的真机回执。</small>
   </div></figure>;
 }
