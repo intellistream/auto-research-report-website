@@ -277,6 +277,7 @@ it("opens the control-plane topic from the directory and resolves each evidence 
   expect(renderTopic("/topics", item)).toContain(path);
   const overview = renderTopic(path, item);
   expect(overview.match(/<figure\b/g)).toHaveLength(3);
+  expect(overview).toMatch(/问题是什么？.*为什么重要？.*我们怎么做？/s);
   expect(overview.match(/怎样验证/g)).toHaveLength(7);
   for (const [id, title] of [["scheduling", "分布式请求调度"], ["kv", "分布式 KV 优化"], ["instances", "分布式多实例优化"]]) {
     const section = renderTopic(path + "?view=" + id, item);

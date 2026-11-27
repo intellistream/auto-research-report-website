@@ -5,6 +5,8 @@ import ControlPlaneTimeline from "./ControlPlaneTimeline";
 import "./control-plane-overview.css";
 import { analysis } from "./control-plane-analysis";
 
+const reportBase = "https://github.com/vLLM-HUST/vllm-hust-benchmark/tree/ac1d5ed516112c019c1acb63481154aabb90409c/reports/";
+
 export const directions = [
   ["scheduling", "分布式请求调度"],
   ["kv", "分布式 KV 优化"],
@@ -25,22 +27,26 @@ function Analysis({ direction }: { direction: keyof typeof analysis }) {
 
 export default function ControlPlaneOverview({ selected }: { selected?: string }) {
   return <div className="cp-overview">
-    {!selected && <><ControlPlaneLoop /><ControlPlaneResume /><ControlPlaneEngine /></>}
-    {!selected && <aside className="cp-intro">
-      <h2>从一次工具返回读懂三个板块</h2>
-      <p>设一个 agent 已完成第一轮生成，正在等测试工具返回。此时模型没有为它生成 token，历史前缀仍可能留在实例 A。等工具返回，客户端会把历史和新的工具结果一起发来。这一刻有三个控制对象和执行位置不同的决定。</p>
-      <ol>
-        <li><strong>按请求决定去向。</strong>在转发前比较 A 的排队和 B 的重算成本。客户端关心从工具返回到看到下一步输出经过多久。</li>
-        <li><strong>按请求和模型层调整 KV 驻留。</strong>固定请求已在 B 执行。随着上下文增长，决定哪些层留在设备、哪些卸载到主机，以及何时预取。</li>
-        <li><strong>按负载变化调整实例池。</strong>若队列持续增长，才涉及增配副本或调节 prefill/decode 容量。扩容的收益要从新副本实际接到流量时算起。</li>
-      </ol>
-      <p>下文的机制图标出决策和执行位置。已有 RIDE 实测集中在请求限流；跨实例 KV 传输、在线迁移与自动扩缩分别引用对应系统的实现和论文。</p>
-    </aside>}
-    {(!selected || selected === "scheduling") && <section className="topic-card">
+    {(!selected || selected === "scheduling") && <section className="topic-card cp-story">
       <h2>分布式请求调度</h2>
-      <p>请求控制器决定哪些 program 可以放行、何时恢复、送往哪台实例。locality 描述回原实例可复用多少工作；capacity 取决于排队、prefill/decode 负载以及能容纳的活跃工作集。连续放行可能让 program 反复驱逐彼此的前缀，造成 KV thrashing。应联看驱逐后的重算量、等待时间和完成步数。</p>
-      <ControlPlaneTimeline direction="scheduling" />
-      <Analysis direction="scheduling" />
+      <section><h3>问题是什么？多轮请求何时放行，交给哪台实例？</h3>
+        <p>一个 agent 调完工具，带着更长的历史返回。A 保留了它的前缀，却正在排队；B 有计算余量，但需要重算历史。即使全集群仍有空间，单台实例也可能装不下这个 program。控制器要在“送 A、送 B、继续等”之间作决定。</p>
+      </section>
+      <section><h3>为什么重要？一次放行会改变其他 program 的后续成本。</h3>
+        <p>并发放得太多，活跃前缀可能反复被驱逐并重算；收得太紧，又会让本可前进的 program 等待。固定设备预算下，我们关心整批多久完成、每分钟完成多少步，以及收益是否以长等待为代价。</p>
+        <div className="cp-measurements">
+          <div><strong>1514.55 → 713.45 秒</strong><p>35B 单实例，C48、约 40k 初始上下文、三轮完整批次。直连与收紧预算相比，实算 prefill 从 585 万降至 236 万 tokens。默认预算耗时 1492.48 秒。</p><a href={reportBase + "controller-35b-c48-budget-20261126"}>三臂配对原件 ↗</a></div>
+          <div><strong>654.91 → 678.96 秒</strong><p>35B 双 devbox，112 个 program 各三轮。默认限流比直连慢 3.67%，两臂前缀命中增量均为零，日志未见暂停或恢复。该工况没有验证跨实例恢复收益。</p><a href={reportBase + "controller-35b-two-devbox-20261125"}>双实例配对原件 ↗</a></div>
+        </div>
+        <p>两组工况各自配对、每臂一次。另一次单实例 600 秒窗口中，收紧预算后完成步数从 50 增至 221，但只有 18/48 个 program 完成首轮；窗口步数和整批完成时间应分别报告。</p>
+      </section>
+      <section><h3>我们怎么做？按 program 记账，在请求边界选址、等待和恢复。</h3>
+        <p>现有控制器跟踪每台健康实例的预算。新 program 在能容纳它的实例中优先选择已用预算较少者；需要等待的请求留在队列。调度检查时，只有单台剩余预算容得下整个上下文和预留量，P 才能恢复。图一演示待验证的吞吐预测策略，图二回放当前代码的恢复规则，图三展示放行可能引起的引擎内代价。</p>
+        <ControlPlaneLoop /><ControlPlaneResume /><ControlPlaneEngine />
+        <details><summary>相关工作、适用边界与可证伪实验</summary>
+          <ControlPlaneTimeline direction="scheduling" /><Analysis direction="scheduling" />
+        </details>
+      </section>
     </section>}
     {(!selected || selected === "kv") && <section className="topic-card">
       <h2>分布式 KV 优化</h2>
