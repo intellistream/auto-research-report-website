@@ -51,10 +51,10 @@ export default function ControlPlaneTopic({ topic }: { topic: Topic }) {
     </section>}
     {view === "evidence" && <><section className="topic-card"><h2>同一个 35B 模型，两种不同的对照</h2>
       <h3>一个 TP2 热实例：收紧预算后，整批吞吐提高</h3>
-      <p>Qwen3.5-35B-A3B BF16，48 个 program，三轮，首轮约 40k tokens。直接访问模型、默认限流层、限流层预算收紧到 327,680 tokens，整批分别耗时 1514.55、1492.48、713.45 秒。每臂输出均为 36,046 tokens，候选相对直连加速 2.12×。引擎物理 KV 容量保持 1,869,824 tokens。此次改变的是限流层放行额度。</p>
-      <p>独立的 600 秒窗口内，直连完成 50 步，收紧预算组完成 221 步，但后者仅有 18/48 个 program 完成首轮。高步数吞吐与新 program 等待可以同时发生。每臂一次。<a href={benchmark + "controller-35b-c48-budget-20261126"}>三臂报告与原件 ↗</a></p>
+      <p>Qwen3.5-35B-A3B BF16，48 个 program，三轮，首轮约 40k tokens。直接访问模型、默认限流层、限流层预算收紧到 327,680 tokens，整批分别耗时 1514.55、1492.48、713.45 秒。每臂输出均为 36,046 tokens，候选相对直连加速 2.12×。引擎物理 KV 容量保持 1,869,824 tokens。输入 token 的缓存复用率分别为 0%、3.92%、59.59%，实算 prefill 从直连的 5,849,715 tokens 降到收紧预算后的 2,364,019 tokens。这组回放固定续轮历史，改变的是限流层放行额度。</p>
+      <p>另取 16 轮负载，各组续接自身输出。前 600 秒内，直连完成 50 步，收紧预算组完成 221 步，但后者仅有 18/48 个 program 完成首轮。高步数吞吐与新 program 等待可以同时发生。每臂一次。<a href={benchmark + "controller-35b-c48-budget-20261126"}>三臂报告与原件 ↗</a></p>
       <h3>两个 devbox、每台一个 TP2：默认限流层慢了 3.67%</h3>
-      <p>112 个 program 各三轮。直连和默认限流层均完成 336 个请求，耗时分别为 654.91、678.96 秒。两臂前缀命中增量均为零，业务日志未观测到暂停或恢复。这个固定顺序配对可以衡量本次转发与调度的整体效果，无法单独评定跨副本恢复策略。<a href={benchmark + "controller-35b-two-devbox-20261125"}>逐请求证据与分层图 ↗</a></p>
+      <p>112 个 program 各三轮。直连和默认限流层均完成 336 个请求，耗时分别为 654.91、678.96 秒。两臂前缀命中增量均为零，业务日志未观测到暂停或恢复。这个固定顺序配对可以衡量本次转发与调度的整体效果：整批耗时从 654.91 秒增至 678.96 秒（+3.67%），未观察到业务 program 的 pause/resume，无法单独评定跨副本恢复策略。<a href={benchmark + "controller-35b-two-devbox-20261125"}>逐请求证据与分层图 ↗</a></p>
       <h3>待验证：最佳恢复位置会反转吗？</h3><p>固定 P 的输入和工具返回时刻，让 A 持有相同的热前缀，B 保持冷缓存。只改变 A 上已有的 decode 流数，每一档分别让 P 去 A 和 B。先核验两端实际 cached tokens，再比较 P 的首次有效输出延迟与老流的 P99 chunk 间隔。若最佳目的地始终相同，该条件下固定路由就足够。</p>
     </section><section className="topic-card"><h2>日报中的工程证据</h2><EvidenceList entries={topic.entries} labels={topic.labels} /></section></>}
   </article>;
