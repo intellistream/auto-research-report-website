@@ -12,3 +12,11 @@
   .cp-flow, .cp-states { grid-template-columns: 1fr; }
   .cp-arrow { justify-self: center; transform: rotate(90deg); }
 }
+
+.cp-questions > section { border-top: 1px solid #c6d9df; padding-block: 1rem; margin-top: 1rem; }
+.cp-questions h3 { margin: 0 0 .5rem; }
+.cp-questions p { max-width: 80ch; line-height: 1.8; }
+.cp-experiment { border-inline-start: 3px solid #49929b; padding-inline-start: .85rem; margin-block: .85rem; }
+.cp-experiment h4, .cp-experiment p { margin: .2rem 0; }
+.cp-intro { padding: 1rem clamp(1rem, 3vw, 2rem); border-inline-start: 3px solid #49929b; }
+.cp-intro li { margin-block: .5rem; line-height: 1.7; }
