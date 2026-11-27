@@ -11,7 +11,7 @@ type Direction = "scheduling" | "kv" | "instances";
 
 const topics = {
   scheduling: { question: "续轮回到热实例，还是发往空闲实例？", choices: ["原实例短队列", "原实例长队列"], note: "固定请求、缓存位置及两个实例的计算速度，比较从工具返回到首 token 的时间。" },
-  kv: { question: "远端取回 KV，什么时候比本地重算快？", choices: ["传输带宽高", "传输带宽低"], note: "固定命中前缀长度和计算速度。示意按整段 KV 到达后开始计算，未模拟分块传输与计算重叠。" },
+  kv: { question: "请求留在同一实例，何时值得重配 KV？", choices: ["剩余 1 个 decode 步", "剩余 4 个 decode 步"], note: "固定请求、实例和显存上限。示意模型假设重配置花 4 格，每步暴露在关键路径上的预取等待从 2 格降为 1 格，计算仍占 2 格。格数为教学假设。" },
   instances: { question: "新增副本赶得上这一批请求吗？", choices: ["短突发 · 1 个请求", "长积压 · 5 个请求"], note: "同一批请求在起点到齐，每个请求占一台实例 4 格。A 已热，B 加载和就绪需要 8 格。完成时间以最后一个请求返回为准。" },
 };
 
@@ -24,11 +24,20 @@ function example(direction: Direction, alternate: boolean): Example {
     ], takeaway: alternate ? "A 要排队 12 格，超过 B 重算历史的 8 格。这时把续轮发给 B，首 token 早 4 格到达。" : "A 只等 4 格就能续算，B 却要用 8 格重算历史。回到 A，首 token 早 4 格到达。" };
   }
   if (direction === "kv") {
-    const transfer = alternate ? 16 : 4;
-    return { panels: [
-      { title: "在 B 重算历史", end: 16, lanes: [["传输", []], ["推理", [[0, 12, "重算历史"], [12, 16, "续算"]]]] },
-      { title: "从 A 取回 KV", end: transfer + 4, lanes: [["传输", [[0, transfer, "取 KV"]]], ["推理", [[0, transfer, "等 KV", true], [transfer, transfer + 4, "续算"]]]] },
-    ], takeaway: alternate ? "传输占了 16 格，已经超过本地重算的 12 格。即使前缀全部命中，本地重算也能早 4 格开始续算。" : "传输只占 4 格，替代了 12 格的历史重算。两侧的续算一样长，取回 KV 让首 token 提前 8 格。" };
+    const steps = alternate ? 4 : 1;
+    function plan(change: boolean): Panel {
+      const copies: Block[] = change ? [[0, 4, "重配"]] : [];
+      const compute: Block[] = [];
+      let time = change ? 4 : 0;
+      for (let step = 0; step < steps; step++) {
+        const ready = time + (change ? 1 : 2);
+        copies.push([time, ready, "取"]);
+        compute.push([ready, ready + 2, "算"]);
+        time = ready + 2;
+      }
+      return { title: change ? "更新驻留计划" : "沿用驻留计划", end: time, lanes: [["搬运", copies], ["计算", compute]] };
+    }
+    return { panels: [plan(false), plan(true)], takeaway: alternate ? "四步各少等 1 格，刚好抵消重配花费的 4 格。两条路径同时结束；继续沿用新计划才有净收益。" : "只剩一步时，搬动 KV 花了 4 格，只少等 1 格。新计划晚 3 格结束。" };
   }
   const requests: Block[] = Array.from({ length: alternate ? 5 : 1 }, (_, i) => [i * 4, (i + 1) * 4, String(i + 1)]);
   const onA: Block[] = alternate ? [...requests.slice(0, 3), [12, 16, "5"]] : requests;
@@ -51,7 +60,7 @@ export default function ControlPlaneTimeline({ direction }: { direction: Directi
     <p className="acl-timeline-scale">教学示意 · 两图同一刻度，时间向右 <ArrowRight size={14} aria-hidden/><span>1 格为 1 个相对时间单位</span></p>
     <div className="acl-execution-grid">{panels.map(({ title, end, lanes }, i) =>
       <div key={title} className={"acl-execution" + (i ? " acl-execution-replay" : "")}>
-        <div className="cp-panel-title"><strong>{title}</strong><small>{direction === "instances" ? "整批完成" : "首 token"} · {end} 格</small></div>
+        <div className="cp-panel-title"><strong>{title}</strong><small>{direction === "instances" ? "整批完成" : direction === "kv" ? "解码结束" : "首 token"} · {end} 格</small></div>
         {lanes.map(([label, blocks]) => <div key={label} className="acl-execution-row"><span className="acl-device-label">{label}</span><div className="acl-time-track acl-device-track">{blocks.map(([start, stop, text, waiting]) =>
           <TimeBlock key={start} start={start} end={stop} waiting={waiting} label={text + " · 第 " + start + " 至 " + stop + " 格"}>{text}</TimeBlock>)}</div></div>)}
       </div>)}</div>
