@@ -276,13 +276,13 @@ it("opens the control-plane topic from the directory and resolves each evidence 
   const path = "/topics/" + item.id;
   expect(renderTopic("/topics", item)).toContain(path);
   const overview = renderTopic(path, item);
-  expect(overview.match(/<figure\b/g)).toHaveLength(4);
+  expect(overview.match(/<figure\b/g)).toHaveLength(6);
   expect(overview).toMatch(/问题是什么？.*为什么重要？.*我们怎么做？/s);
   expect(overview.match(/怎样验证/g)).toHaveLength(7);
   for (const [id, title] of [["scheduling", "分布式请求调度"], ["kv", "分布式 KV 优化"], ["instances", "分布式多实例优化"]]) {
     const section = renderTopic(path + "?view=" + id, item);
     expect(section).toContain("<h2>" + title + "</h2>");
-    expect(section.match(/<figure\b/g)).toHaveLength(id === "scheduling" ? 2 : 1);
+    expect(section.match(/<figure\b/g)).toHaveLength(id === "scheduling" ? 2 : id === "kv" ? 3 : 1);
   }
   expect(renderTopic(path + "?view=kv", item)).toContain("https://arxiv.org/pdf/2601.10729");
   expect(renderTopic(path + "?view=systems", item)).toContain("Llumnix");

@@ -44,3 +44,4 @@
 .cp-batch-track i { display:block; height:100%; background:#94e4bc; border-radius:3px; }
 .cp-batch-track .baseline { background:#9ab7c9; }
 .cp-batch-row b { font-variant-numeric:tabular-nums; text-align:right; }
+.acl-guide .acl-time-track.cp-eight { grid-template-columns:repeat(8,minmax(0,1fr)); background-size:300% 100%; }

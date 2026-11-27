@@ -1,3 +1,4 @@
+import { KvResidenceFigure, KvOverlapFigure } from "./ControlPlaneKvFigures";
 import { Link } from "react-router-dom";
 import ControlPlaneThrashing from "./ControlPlaneThrashing";
 import ControlPlaneBatchChart from "./ControlPlaneBatchChart";
@@ -51,11 +52,24 @@ export default function ControlPlaneOverview({ selected }: { selected?: string }
         </details>
       </section>
     </section>}
-    {(!selected || selected === "kv") && <section className="topic-card">
+    {(!selected || selected === "kv") && <section className="topic-card cp-story cp-kv-story">
       <h2>分布式 KV 优化</h2>
-      <p>这一层改变 KV 的物理驻留配置。先固定请求集合、目标实例和显存预算，再考察 decode 期间哪些层驻留设备，哪些层需要从主机预取。引擎负责落实计划。扩展到独立副本时，还要处理远端块的位置、所有权和传输。</p>
-      <ControlPlaneTimeline direction="kv" />
-      <Analysis direction="kv" />
+      <p>把路由固定下来：请求 P、Q 始终在同一引擎实例执行，设备显存预算也固定。这里研究引擎如何随 decode 进度改变每个请求、每个模型层的 KV 驻留位置。</p>
+      <section><h3>有什么问题？请求留在原地，原驻留计划却会失效。</h3>
+        <p>每生成一个 token，各层都要为它追加 KV。即使并发数一直是二，早期放得下的工作集也会逐渐超过设备预算。切换下面三个时刻，看同一份逻辑 KV 如何在设备与主机间重新分布。</p>
+        <KvResidenceFigure />
+      </section>
+      <section><h3>为什么重要？KV 赶不上计算，下一层就要停下来等。</h3>
+        <p>上一层计算可以掩盖下一层的预取。当前缀增长、搬运时间超过可重叠的计算窗口，多出来的时间会直接推迟 token 生成。反复出现这种空档，会抬高 TPOT，也可能让用户可见的 token 间隔 TBT 超出目标。</p>
+        <KvOverlapFigure />
+      </section>
+      <section><h3>我们怎么做？观测传输与计算，判断何时更新驻留。</h3>
+        <p>参考 OrbitFlow：引擎采样 decode 耗时，模型预测与实测偏离或当前放置将失效时，规划器在显存约束下用整数规划选择每个请求各层的驻留方案，引擎据此卸载、预取。论文的多卡验证包括单节点 TP2、TP4。<a href="https://arxiv.org/pdf/2601.10729">OrbitFlow 原文与图 12 ↗</a></p>
+        <p>若旧计划已超预算，先恢复可行性。若新旧方案都可行，我们用下面的教学模型说明选择条件：预计剩余步数 × 每步可省的关键路径等待，大于一次重配置成本时，切换才有净收益。实际还需满足逐 token 延迟目标。</p>
+        <ControlPlaneTimeline direction="kv" />
+        <details><summary>研究依据、工程接口与适用边界</summary>
+          <p>三图为机制示意。回本判据用于说明取舍；OrbitFlow 的求解目标包含延迟 SLO。这一设计在 RIDE 上的执行与收益仍待引擎接入验证。</p><Analysis direction="kv" /></details>
+      </section>
     </section>}
     {(!selected || selected === "instances") && <section className="topic-card">
       <h2>分布式多实例优化</h2>
