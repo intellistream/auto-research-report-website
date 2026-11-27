@@ -1,3 +1,4 @@
+import ControlPlaneMethodFigures from "./ControlPlaneMethodFigures";
 import { KvMeasurements, PoolMeasurements } from "./ControlPlaneMeasurements";
 import { PoolPressure, PoolFirstRequest, PoolScaleIn } from "./InstancePoolFigures";
 import { KvResidenceFigure, KvOverlapFigure } from "./ControlPlaneKvFigures";
@@ -35,11 +36,12 @@ export function ControlPlaneMethods({ selected }: { selected: typeof directions[
   return <div className="cp-overview">
     {selected === "scheduling" && <section className="topic-card cp-story">
       <h2>分布式请求调度 · 方案与基线</h2>
+      <ControlPlaneMethodFigures direction={selected} />
       <section><h3>对照基线</h3><p>固定实例亲和与最短队列分别优先保留历史、减少等待。比较两者时固定请求和容量，记录每轮实际重算的 tokens、排队时间及 program 完成时间。</p></section>
       <section><h3>研究路线：在哪个时刻调度？</h3>
         <p>到达时，Dynamo 把前缀重叠与实例负载一起用于选址。两轮之间，ThunderAgent 可以暂缓整个 program，减少多个长前缀争抢容量。执行开始后，Llumnix 还能迁移在途请求，但需要搬动已经产生的状态。</p>
         <Analysis direction="scheduling" />
-        <details><summary>工程案例 · RIDE 请求限流与 35B 配对回放</summary>
+        <section><h3>工程案例 · RIDE 请求限流与 35B 配对回放</h3>
         <p>RIDE 请求限流控制器跟踪每台引擎的可用预算，在请求边界决定何时放行、送往哪里。余量不足时暂缓下一轮，预算释放后再恢复，让活跃 program 有机会复用前缀。</p>
         <ControlPlaneLoop />
         <ControlPlaneBatchChart />
@@ -48,29 +50,31 @@ export function ControlPlaneMethods({ selected }: { selected: typeof directions[
           <p>控制器图中的预测选址是教学模型。下图按现有调度代码回放等待与恢复。默认预算与双实例配对见<Link to="?view=evidence">实测与工程证据</Link>。</p>
           <ControlPlaneResume /><ControlPlaneEngine />
         </details>
-        </details>
+        </section>
       </section>
     </section>}
     {selected === "kv" && <section className="topic-card cp-story cp-kv-story">
       <h2>分布式 KV 优化 · 方案与基线</h2>
+      <ControlPlaneMethodFigures direction={selected} />
       <section><h3>对照基线</h3><p>固定请求和实例，比较静态驻留、按需读取与本地重算。保持输入和显存预算一致，分别计量首 token 等待和后续 token 间隔。</p></section>
       <section><h3>研究路线：按层调整驻留，还是跨实例共享前缀？</h3>
         <p>Mooncake 将分散在多个节点的存储组织成共享 KV 缓存，研究怎样避免重复 prefill。OrbitFlow 关注同一实例内部，研究生成期间哪些层应留在设备上。其方法是：引擎采样 decode 耗时，模型预测与实测偏离或当前放置将失效时，规划器在显存约束下用整数规划选择每个请求各层的驻留方案，引擎据此卸载、预取。论文的多卡验证包括单节点 TP2、TP4。<a href="https://arxiv.org/pdf/2601.10729v2">OrbitFlow 原文与图 11 ↗</a></p>
         <p>若旧计划已超预算，先恢复可行性。若新旧方案都可行，问题页的示意图用一个简化条件估算多久能够回本：预计剩余步数 × 每步可省的关键路径等待，大于一次重配置成本时，切换才有净收益。实际还需满足逐 token 延迟目标。</p>
 
         <Analysis direction="kv" />
-        <details><summary>工程案例 · 主机回载与跨节点拉取实测</summary><KvMeasurements /></details>
+        <section><h3>工程案例 · 主机回载与跨节点拉取实测</h3><KvMeasurements /></section>
         <details><summary>研究依据、工程接口与适用边界</summary>
           <p>三图为机制示意。回本判据用于说明取舍；OrbitFlow 的求解目标包含延迟 SLO。这一设计在 RIDE 上的执行与收益仍待引擎接入验证。</p></details>
       </section>
     </section>}
     {selected === "instances" && <section className="topic-card cp-story cp-pool-story">
       <h2>分布式多实例优化 · 方案与基线</h2>
+      <ControlPlaneMethodFigures direction={selected} />
       <section><h3>对照基线</h3><p>固定两个热副本作为对照，动态副本组重放同一到达轨迹。合并考察首次接单、请求 P95 和设备卡时，避免把额外资源带来的改善计入调度收益。</p></section>
       <section><h3>研究路线：调节副本数、缩短启动，还是迁移在途流？</h3>
         <p>Ray Serve 根据副本负载调节目标数量。ServerlessLLM 利用权重所在位置和分层加载缩短启动时间。Llumnix 允许在实例之间迁移运行中的请求。这三条路线分别影响何时申请容量、容量何时能接单、旧容量何时能释放。低负载持续且剩余池能承接新流量时，把 B 移出新请求路由：短尾流可以自然排空；长尾流可比较迁移代价与提前释放设备的收益。迁移还要求引擎支持状态交接、目标容量充足，并确认输出连续。</p>
         <Analysis direction="instances" />
-        <details><summary>工程案例 · 固定副本与动态副本配对</summary><PoolMeasurements /></details>
+        <section><h3>工程案例 · 固定副本与动态副本配对</h3><PoolMeasurements /></section>
         <details><summary>研究依据与验证方法</summary><p>三张机制图采用教学阈值与时间。上面的真机对照覆盖副本扩缩；自然排空与在线迁移仍缺同输入性能对照。扩缩参考 Ray Serve，运行中迁移参考 Llumnix。验收时将目标、就绪、首个接单、排空和设备释放的回执与请求 P99、流失败率、设备卡时对齐。</p></details>
       </section>
     </section>}
