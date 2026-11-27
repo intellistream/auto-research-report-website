@@ -218,7 +218,7 @@ describe("two-tab ACL topic rendering", () => {
     ["/topics/aclgraph?view=evidence", "analysis", "专题剖析"],
   ])("renders both the direct topic and TopicPages at %s", (path, section, active) => {
     const route = <Routes><Route path="/topics/:topicId" element={<TopicPages index={index} />} /></Routes>;
-    for (const element of [<AclGraphTopic topic={topic} />, route]) {
+    for (const element of [<AclGraphTopic />, route]) {
       const html = ssr(element, path);
       expect(html).toContain("<h1>ACL Graph</h1>");
       expect(html).toContain(`data-testid="aclgraph-${section}"`);

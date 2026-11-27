@@ -71,10 +71,10 @@ describe("KV PR trends: evidence scope and navigation", () => {
   it("supports a dedicated community route and leaves weekly and historical routes available", () => {
     expect(kvTopicView(new URLSearchParams("view=trends"))).toBe("trends");
     const html = render();
-    const primary = html.match(/<nav class="kv-topic-nav kv-primary-nav".*?<\/nav>/)![0];
+    const primary = html.match(/<nav class="topic-detail-nav".*?<\/nav>/)![0];
     expect(primary.match(/<a /g)).toHaveLength(4);
-    expect(primary.match(/<a[^>]*aria-current="page"[^>]*>.*?<\/a>/)?.[0]).toContain("<strong>社区进展</strong>");
-    const secondary = html.match(/<nav class="kv-subnav" aria-label="社区进展 板块页面".*?<\/nav>/)![0];
+    expect(primary.match(/<a[^>]*aria-current="page"[^>]*>.*?<\/a>/)?.[0]).toContain(">社区进展</a>");
+    const secondary = html.match(/<nav class="topic-detail-subnav" aria-label="社区进展 板块页面".*?<\/nav>/)![0];
     expect(secondary.match(/<a /g)).toHaveLength(3);
     expect(secondary.match(/<a[^>]*aria-current="page"[^>]*>.*?<\/a>/)?.[0]).toContain(">PR 趋势分析</a>");
     expect(secondary).toContain("view=report");

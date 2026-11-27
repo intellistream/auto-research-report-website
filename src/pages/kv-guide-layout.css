@@ -1,8 +1,4 @@
 /* Reading hierarchy applies only to the KV guide. */
-.kv-topic.kv-topic-is-guide .kv-topic-heading { padding:1rem 1.25rem; }
-.kv-topic.kv-topic-is-guide .kv-topic-heading h1 { font-size:1.8rem; line-height:1.2; }
-.kv-topic.kv-topic-is-guide .kv-topic-kicker { display:none; }
-.kv-topic.kv-topic-is-guide .kv-primary-nav a { padding:.75rem 1rem; }
 .kv-basics.kv-guide .kv-guide-intro { margin:2rem 0 1.5rem; max-width:52rem; }
 .kv-basics.kv-guide .kv-guide-intro h2 { font-size:clamp(1.5rem,3vw,2rem); margin:0 0 .6rem; }
 .kv-basics.kv-guide .kv-guide-intro h2 span { white-space:nowrap; }

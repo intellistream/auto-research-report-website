@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowUpRight, Download } from "lucide-react";
+import { ArrowUpRight, Download } from "lucide-react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
+import TopicDetailLayout from "./TopicDetailLayout";
 import TopicDirectoryCard from "./TopicDirectoryCard";
 import type { Topic } from "./TopicPages";
 import { academicPaperHeadings, academicPaperHrefs, parsePaperSectionParam, revealPaperHeading, revealPendingPaperSection, type AcademicPaper } from "./academic-paper";
@@ -24,7 +25,7 @@ export function AcademicPaperCard({ topic, paper }: { topic: Topic; paper: Acade
   );
 }
 
-export default function TopicAcademicPaper({ topic, paper, embedded = false }: { topic: Topic; paper: AcademicPaper; embedded?: boolean }) {
+export default function TopicAcademicPaper({ topic, paper, embedded = false, reportAvailable = Boolean(topic.report) }: { topic: Topic; paper: AcademicPaper; embedded?: boolean; reportAvailable?: boolean }) {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const targetSection = parsePaperSectionParam(searchParams);
@@ -107,28 +108,22 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
     return revealed;
   }
 
-  if (!hrefs) {
-    return <p role="alert">论文版本元数据无效，无法读取此稿。<Link to="/topics">返回专题目录</Link></p>;
-  }
-  const Title = embedded ? "h2" : "h1";
-
-  return (
+  const FulltextHeading = embedded ? "h3" : "h2";
+  const contents = hrefs ? (
     <div className="academic-paper-page" data-target-section={targetSection ?? undefined}>
-      {!embedded && <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden="true" /> 专题目录</Link>}
       <header className="topic-heading academic-paper-heading">
         <p className="topic-meta">资料截止 <time dateTime={paper.literatureCutoff}>{paper.literatureCutoff}</time></p>
-        <Title>{paper.title}</Title>
+        {embedded && <h2>{paper.title}</h2>}
         <div className="academic-paper-downloads">
           <a href={hrefs.pdf} download={`${topic.id}-${paper.version.slice(0, 12)}.pdf`}><Download size={16} aria-hidden="true" /> 下载同版 PDF</a>
           {hrefs.word && <a href={hrefs.word} download={`${topic.id}-${paper.manuscriptRevision}.docx`}><Download size={16} aria-hidden="true" /> 下载 Word</a>}
           <button type="button" onClick={() => revealPaperHeading(document, "academic-paper-fulltext", window.matchMedia("(prefers-reduced-motion: reduce)").matches)}>跳到完整正文 <span aria-hidden="true">↓</span></button>
-          {!embedded && topic.report && <Link to={{ search: "view=report" }}>查看动态报告</Link>}
         </div>
       </header>
 
       <section className="academic-paper-fulltext" aria-labelledby="academic-paper-fulltext">
         <div className="academic-paper-fulltext-heading">
-          <h3 id="academic-paper-fulltext">完整正文</h3>
+          <FulltextHeading id="academic-paper-fulltext">完整正文</FulltextHeading>
           <a href={hrefs.html} target="_blank" rel="noreferrer">独立打开 HTML 全文 <ArrowUpRight size={14} aria-hidden="true" /></a>
         </div>
         <details className="academic-paper-abstract">
@@ -173,5 +168,19 @@ export default function TopicAcademicPaper({ topic, paper, embedded = false }: {
         </div>
       </section>
     </div>
+  ) : (
+    <p role="alert">论文版本元数据无效，无法读取此稿。{embedded && <Link to="/topics">返回专题目录</Link>}</p>
+  );
+  return embedded ? contents : (
+    <TopicDetailLayout
+      title={hrefs ? paper.title : topic.title}
+      subtitle={topic.description}
+      sections={[
+        { label: "学术综述稿", to: { search: "view=paper" }, current: "page" },
+        ...(reportAvailable ? [{ label: "动态报告", to: { search: "view=report" } }] : []),
+      ]}
+    >
+      {contents}
+    </TopicDetailLayout>
   );
 }

@@ -31,7 +31,7 @@ const paper: ResearchEntry = {
 describe("independent KV research library", () => {
   it("renders the normal KV entry point before any daily catalog or topic index is available", () => {
     const html = render("/topics/kv-cache", "archive unavailable");
-    expect(html).toContain("独立技术专题");
+    expect(html).toContain('class="topic-detail-kicker">技术专题</p>');
     expect(html).toContain('id="kv-basics-process"');
     expect(html).not.toContain("archive unavailable");
     const app = renderToStaticMarkup(
