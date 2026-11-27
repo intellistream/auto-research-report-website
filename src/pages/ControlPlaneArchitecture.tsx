@@ -45,6 +45,11 @@ export default function ControlPlaneArchitecture() {
       <path d="M907 407h48V50h-46" fill="none" stroke="#fac783" strokeWidth="2" strokeDasharray="6 4" markerEnd="url(#arch-back)"/>
       <text x="976" y="255" transform="rotate(-90 976 255)" textAnchor="middle" className="cp-feedback-text">队列 · KV · 副本状态 · 动作回执</text>
     </svg></div>
+    <ol className="cp-event-flow" aria-label="同一轮请求引出的三个决策">
+      <li><strong>P 返回时，A 有热前缀</strong><span>A 正在排队。等它空闲，还是把 P 发往有余量的 B？</span></li>
+      <li><strong>若选 B，历史要先到位</strong><span>B 可以搬来前缀或本地重算。带宽和后续复用次数决定哪条路径更早出 token。</span></li>
+      <li><strong>若积压持续，再考虑 C</strong><span>启动 C 需要时间。首次接单后还剩多少积压，决定多付的设备卡时能换回多少等待时间。</span></li>
+    </ol>
     <small>点选图中的研究方向。图中汇总了文献使用的信号和执行接口；不同系统能看到的状态、能执行的动作各有差异。</small>
   </div></figure>;
 }

@@ -85,7 +85,7 @@ export default function ControlPlaneOverview({ selected }: { selected: typeof di
   return <div className="cp-overview">
     {selected === "scheduling" && <section className="topic-card cp-story">
       <h2>分布式请求调度</h2>
-      <section><h3>开放问题</h3><p>排队多久以后，放弃热前缀更划算？推迟恢复会让哪些 program 等得更久？</p></section>
+      <section><h3>开放问题</h3><p>路由看到的队列可能已变化，上一轮的前缀也可能已被驱逐。用哪些信号能判断等待 A 仍优于改投 B？误判会拖长哪些 program 的尾延迟？</p></section>
       <section><h3>问题是什么？多轮请求何时放行，交给哪台实例？</h3>
         <p>一个 agent 调完工具，带着更长的历史返回。A 保留了它的前缀，却正在排队；B 有计算余量，但需要重算历史。即使全集群仍有空间，单台实例也可能装不下这个 program。控制器要在“送 A、送 B、继续等”之间作决定。</p>
         <ControlPlaneTimeline direction="scheduling" />
@@ -97,7 +97,7 @@ export default function ControlPlaneOverview({ selected }: { selected: typeof di
     </section>}
     {selected === "kv" && <section className="topic-card cp-story cp-kv-story">
       <h2>分布式 KV 优化</h2>
-      <section><h3>开放问题</h3><p>剩余生成步数和可用带宽都在变化，什么时候改 KV 驻留才能回本？</p><ControlPlaneTimeline direction="kv" /></section>
+      <section><h3>开放问题</h3><p>剩余生成长度未知，带宽也在波动。引擎能否仅凭最近几步的计算与传输时间，提前判断重配置能回本？估错时哪些流先超出 token 间隔目标？</p><ControlPlaneTimeline direction="kv" /></section>
       <p>把路由固定下来：请求 P、Q 始终在同一引擎实例执行，设备显存预算也固定。这里研究引擎如何随 decode 进度改变每个请求、每个模型层的 KV 驻留位置。</p>
       <section><h3>有什么问题？请求留在原地，原驻留计划却会失效。</h3>
         <p>每生成一个 token，各层都要为它追加 KV。即使并发数一直是二，早期放得下的工作集也会逐渐超过设备预算。切换下面三个时刻，看同一份逻辑 KV 如何在设备与主机间重新分布。</p>
@@ -110,7 +110,7 @@ export default function ControlPlaneOverview({ selected }: { selected: typeof di
     </section>}
     {selected === "instances" && <section className="topic-card cp-story cp-pool-story">
       <h2>分布式多实例优化</h2>
-      <section><h3>开放问题</h3><p>新副本能赶上波峰吗？低谷出现后，等长请求排空要多占多久的设备？</p><PoolScaleIn /></section>
+      <section><h3>开放问题</h3><p>队列观测有延迟，启动耗时也会变化。怎样判断新副本首次接单时仍有积压？低谷里最后一条流还要跑多久，值得为它保留设备吗？</p><PoolScaleIn /></section>
       <section><h3>有什么问题？队列在涨，什么时候值得启动第二台实例？</h3>
         <p>初始只有 A 接流量。短尖峰可能在新实例就绪前消退；持续积压才可能用上新增容量。图中控制器跟踪等待队列并设置持续时间条件，先改变目标副本数，再等待部署回执。</p><PoolPressure /></section>
       <section><h3>为什么重要？目标副本增加，排队的请求还要等。</h3>
