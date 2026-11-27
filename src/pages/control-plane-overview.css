@@ -57,3 +57,5 @@
 .cp-measured { margin-block:1.25rem; }
 .cp-measured > h4 { font-size:1.1rem; }
 .cp-measured .cp-batch-chart h4 { color:inherit; }
+
+.acl-topic .cp-architecture, .cp-overview figure.acl-guide { margin-inline: 0; }

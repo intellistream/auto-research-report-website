@@ -282,10 +282,13 @@ it("opens the control-plane topic from the directory and resolves each evidence 
   expect(overview.match(/class="cp-arch-link"/g)).toHaveLength(3);
   expect(overview).not.toContain("RIDE");
   const sections = ["scheduling", "kv", "instances"].map(id => renderTopic(path + "?view=" + id, item));
-  const combined = sections.join("");
+  const combined = ["scheduling", "kv", "instances"].map(id => renderTopic(path + "?view=" + id + "&page=methods", item)).join("");
   expect(combined.match(/怎样验证/g)).toHaveLength(7);
   for (const section of sections) {
-    expect(section).toMatch(/研究路线.*开放问题.*<details><summary>工程案例/s);
+    expect(section).toContain("<h3>开放问题</h3>");
+    expect(section).not.toContain("<summary>工程案例");
+    expect(section).not.toContain("<h3>对照基线</h3>");
+    expect(section).toContain("&amp;page=methods");
   }
   expect(combined).toContain("两组均关闭设备前缀缓存");
   expect(combined).toContain("动态 1–4 副本（观测峰值 3）");
@@ -300,9 +303,9 @@ it("opens the control-plane topic from the directory and resolves each evidence 
   for (const [id, title] of [["scheduling", "分布式请求调度"], ["kv", "分布式 KV 优化"], ["instances", "分布式多实例优化"]]) {
     const section = renderTopic(path + "?view=" + id, item);
     expect(section).toContain("<h2>" + title + "</h2>");
-    expect(section.match(/<figure\b/g)).toHaveLength(id === "scheduling" ? 2 : 3);
+    expect(section.match(/<figure\b/g)).toHaveLength(id === "scheduling" ? 1 : 3);
   }
-  const kv = renderTopic(path + "?view=kv", item);
+  const kv = renderTopic(path + "?view=kv&page=methods", item);
   const systems = renderTopic(path + "?view=systems", item);
   for (const html of [kv, systems]) {
     expect(html).toContain("图 11");
