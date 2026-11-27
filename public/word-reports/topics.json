@@ -3010,10 +3010,10 @@
         "total": 145
       },
       "coverage": {
-        "days": 34,
+        "days": 36,
         "firstDay": "2026-10-22",
-        "lastDay": "2026-11-24",
-        "prs": 904
+        "lastDay": "2026-11-26",
+        "prs": 925
       },
       "description": "跟踪草稿模型、候选 token 生成与验证，以及推测解码的运行时适配。",
       "entries": [
