@@ -1,3 +1,4 @@
+import ControlPlaneDiagram from "./ControlPlaneDiagram";
 import { useState } from "react";
 import { Server } from "lucide-react";
 import "./aclgraph-guide.css";
@@ -34,7 +35,7 @@ export default function ControlPlaneLoop() {
     <div className="cp-map-heading"><div><p className="acl-mini-label">RIDE 请求限流控制器 · 预测选址示意</p><h2>下一组请求交给谁？</h2></div>
       <div className="acl-guide-toggle" role="group" aria-label="选择决策窗口">{history.map((_, i) =>
         <button key={i} type="button" aria-pressed={i === index} onClick={() => setIndex(i)}>第 {i + 1} 分钟</button>)}</div></div>
-    <div className="cp-map-scroll" tabIndex={0} aria-label="双实例控制回路，窄屏可横向滚动">
+    <ControlPlaneDiagram label="双实例控制回路，窄屏可横向滚动">
     <svg className="cp-map" viewBox="0 0 816 370" role="img" aria-label={`第 ${index + 1} 分钟：选择实例 ${row.target}，实际新增完成 ${row.completed} 步`}>
       <defs>{(["observe","action","feedback"] as const).map(kind =>
         <marker key={kind} id={"cp-tip-"+kind} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path className={kind} d="M0 0 10 5 0 10Z"/></marker>)}</defs>
@@ -63,7 +64,7 @@ export default function ControlPlaneLoop() {
       <rect x="246" y="312" width="181" height="31" rx="9" fill="#123c33"/><text x="336" y="332" textAnchor="middle" className="cp-feedback-text">回执 · 完成 {row.completed} 步</text>
       <text x="456" y="325" className="cp-feedback-text">校准 {row.target} 的每槽完成率</text>
       <text x="456" y="348" className="cp-label">{fmt(row.before)} → {fmt(row.after)} 步 / 槽 / 分钟</text>
-    </svg></div>
+    </svg></ControlPlaneDiagram>
     <p className="cp-map-caption" aria-live="polite">{index === 2 ? "A 的空槽更多，B 的预测吞吐更高。前两分钟的执行反馈改变了这次选址。" : `第 ${index+1} 分钟，模型预计 ${row.target} 每分钟可多完成 ${fmt(row.estimates[row.target])} 步，策略将这批请求送往 ${row.target}。`}</p>
     <details><summary>模型假设与策略演进</summary><p>教学数值。固定设备预算，假设两种选址均满足等待 P99 与失败率约束。预测增量等于空闲槽数乘以每槽完成率，回执与原估计等权更新。长期策略演进的设计路径为：记录决策 → 提出候选 → 配对验证 → 晋级或回退。</p>
     <nav className="acl-source-links"><a href={spec}>RIDE 控制器协议 ↗</a><a href={loop}>请求控制器实现 ↗</a></nav></details>

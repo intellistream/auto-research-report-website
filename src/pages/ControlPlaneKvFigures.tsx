@@ -1,3 +1,4 @@
+import ControlPlaneDiagram from "./ControlPlaneDiagram";
 import { useState } from "react";
 import TimeBlock from "./TimeBlock";
 
@@ -11,7 +12,7 @@ export function KvResidenceFigure() {
     <figcaption><strong>同一实例，两个请求，各取两层观察</strong></figcaption>
     <div className="acl-guide-toggle" role="group" aria-label="查看驻留方案">{["早期 decode", "上下文增长", "更新驻留"].map((item,i)=>
       <button type="button" key={item} aria-pressed={stage===i} onClick={()=>setStage(i)}>{item}</button>)}</div>
-    <div className="cp-map-scroll" tabIndex={0} aria-label="设备与主机驻留图，窄屏可横向滚动">
+    <ControlPlaneDiagram label="设备与主机驻留图，窄屏可横向滚动">
     <svg className="cp-map" viewBox="0 0 760 200" role="img" aria-label={`设备驻留需求 ${demand}，预算 9`}>
       <text x="18" y="42" className="cp-title">设备 HBM</text><text x="18" y="111" className="cp-title">主机内存</text>
       {layers.map((label,i)=>{
@@ -23,7 +24,7 @@ export function KvResidenceFigure() {
       <path d="M18 77H725" stroke="#487266"/>
       <text x="18" y="169" className="cp-feedback-text">驻留需求 {demand} / 固定预算 9 块</text>
       <text x="327" y="169">{stage===1?"超出 3 块 · 旧计划无法继续":stage===2?"空出 3 块 · 可预取一层":"旧计划可行"}</text>
-    </svg></div>
+    </svg></ControlPlaneDiagram>
     <small>教学示意。增长阶段画的是旧计划所需空间。设备预算固定为 9 块，P、Q 始终在同一实例执行。</small>
   </div></figure>;
 }

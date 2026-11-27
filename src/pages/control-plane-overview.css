@@ -1,3 +1,7 @@
+.cp-topic figure.acl-guide { margin-inline: 0; }
+.cp-diagram { display: grid; min-width: 0; gap: .5rem; }
+.acl-guide .cp-map-hint { display: flex; align-items: center; gap: .4rem; color: inherit; font-size: .75rem; }
+
 .cp-overview { display: grid; gap: 1rem; }
 .cp-questions > section { border-top: 1px solid #c6d9df; padding-block: 1rem; margin-top: 1rem; }
 .cp-questions h3 { margin: 0 0 .5rem; }

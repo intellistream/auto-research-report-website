@@ -333,6 +333,12 @@
   background: var(--bg-muted);
 }
 
+@media (max-width: 768px) {
+  .research-assistant {
+    --assistant-logo-size: 56px;
+  }
+}
+
 @media (max-width: 520px) {
   .research-assistant {
     --assistant-prompt-width: 420px;

@@ -1,3 +1,4 @@
+import ControlPlaneDiagram from "./ControlPlaneDiagram";
 import { useHref } from "react-router-dom";
 import { Boxes, Database, GitBranch, Server } from "lucide-react";
 
@@ -28,7 +29,7 @@ function Branch({ item, x }: { item: typeof controllers[number]; x: number }) {
 export default function ControlPlaneArchitecture() {
   return <figure className="acl-guide cp-architecture"><div className="acl-guide-overview">
     <figcaption><h2>RIDE 如何管控一个分布式推理实例池？</h2></figcaption>
-    <div className="cp-map-scroll" tabIndex={0} aria-label="分层架构图，窄屏可横向滚动"><svg className="cp-map cp-arch-map" viewBox="0 0 1030 484" aria-labelledby="cp-arch-title" role="group">
+    <ControlPlaneDiagram label="分层架构图，窄屏可横向滚动"><svg className="cp-map cp-arch-map" viewBox="0 0 1030 484" aria-labelledby="cp-arch-title" role="group">
       <title id="cp-arch-title">RIDE 承载三个控制器，各经执行接口作用于共享实例池，观测与回执返回控制面。点击控制器可查看细节。</title>
       <defs><marker id="arch-down" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#9ae8bf"/></marker>
       <marker id="arch-back" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#fac783"/></marker></defs>
@@ -44,7 +45,7 @@ export default function ControlPlaneArchitecture() {
       <text x="613" y="426">···</text>
       <path d="M907 407h48V50h-46" fill="none" stroke="#fac783" strokeWidth="2" strokeDasharray="6 4" markerEnd="url(#arch-back)"/>
       <text x="976" y="255" transform="rotate(-90 976 255)" textAnchor="middle" className="cp-feedback-text">队列 · KV · 副本状态 · 动作回执</text>
-    </svg></div>
+    </svg></ControlPlaneDiagram>
     <small>点击控制器进入专题。已附真机配对回执：请求限流、主机 KV 回载与远端拉取、副本扩缩；待验证：逐层动态 KV 驻留引擎接入与缩容在线迁移对照。</small>
   </div></figure>;
 }
