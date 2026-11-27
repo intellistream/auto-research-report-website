@@ -1,6 +1,7 @@
 {
   "hardware": "Ascend 910B2",
   "model": "Qwen3-0.6B",
+  "device_prefix_caching_enabled_both_arms": false,
   "scope": "one repeated request per arm",
   "arms": {
     "stock": {

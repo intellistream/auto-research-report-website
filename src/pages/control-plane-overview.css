@@ -57,3 +57,29 @@
 .cp-measured { margin-block:1.25rem; }
 .cp-measured > h4 { font-size:1.1rem; }
 .cp-measured .cp-batch-chart h4 { color:inherit; }
+
+.acl-topic .cp-architecture, .cp-overview figure.acl-guide { margin-inline: 0; }
+
+.cp-question-group { margin-block: 1rem 2rem; }
+.cp-question-group > .acl-topic-card-sections { margin-top: .75rem; }
+
+.cp-method-plate { margin:1rem 0 1.75rem; padding:clamp(1rem,3vw,2rem); border-radius:16px; background:#12392f; color:#eefaf3; }
+.cp-method-plate figcaption { font-weight:700; font-size:clamp(1.1rem,2vw,1.55rem); margin-bottom:1.25rem; }
+.cp-method-panels { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }
+.cp-method-panel { padding:1rem; background:#194338; border:1px solid #486b60; border-radius:10px; }
+.cp-method-panel svg { width:100%; display:block; margin:.75rem 0; }
+.cp-method-panel small,.cp-method-key { color:#d0e5dc; line-height:1.55; }
+.cp-method-key { margin-top:1rem; font-size:.85rem; }
+@media(max-width:760px){ .cp-method-panels {grid-template-columns:minmax(0,1fr);} .cp-method-panel svg { max-height:145px; } }
+
+.cp-event-flow { display:flex; flex-wrap:wrap; list-style:none; gap:1.4rem; padding:0; margin:1rem 0; color:#eafff5; }
+.cp-event-flow li { flex:1 1 145px; position:relative; padding:.8rem; background:#204a3e; border-top:2px solid #79dec0; border-radius:4px; }
+.cp-event-flow span { display:block; margin-top:.5rem; font-size:.9rem; color:#d0e5dc; }
+.cp-event-flow li + li::before { content:"→"; position:absolute; left:-1.2rem; color:#79dec0; }
+@media(max-width:760px){ .cp-event-flow { flex-direction:column; } .cp-event-flow li { flex:auto; } .cp-event-flow li + li::before { content:"↓"; left:1rem; top:-1.4rem; } }
+
+.cp-readings ul { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,17rem),1fr)); gap:1.25rem; list-style:none; margin:.6rem 0 1.5rem; padding:0; }
+.cp-readings li { border-inline-start:3px solid #78a999; padding-inline-start:.85rem; }
+.cp-readings li a { font-weight:650; }
+.cp-readings li small { display:block; margin:.25rem 0; }
+.cp-readings li p { margin:0; }

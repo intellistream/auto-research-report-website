@@ -75,7 +75,7 @@ export function computeCommandSearchResults({ query, category, topics, days, cat
       {
         id: "distributed-inference-control-plane",
         title: "分布式推理控制面",
-        description: "分布式请求调度、分布式 KV 优化、分布式多实例优化。",
+        description: "当多轮请求返回、上下文增长或流量突变时，推理服务应该等多久、搬哪些缓存、保留多少副本？",
       },
     ];
     for (const t of searchTopics) {

@@ -278,29 +278,43 @@ it("opens the control-plane topic from the directory and resolves each evidence 
   const path = "/topics/" + item.id;
   expect(renderTopic("/topics", item)).toContain(path);
   const overview = renderTopic(path, item);
-  expect(overview.match(/<figure\b/g)).toHaveLength(9);
-  expect(overview).toMatch(/问题是什么？.*为什么重要？.*我们怎么做？/s);
+  expect(overview).toContain("三个开放问题");
   expect(overview.match(/class="cp-arch-link"/g)).toHaveLength(3);
-  expect(overview.match(/怎样验证/g)).toHaveLength(7);
-  expect(overview).toContain("已附真机配对回执");
-  expect(overview).toContain("待验证：逐层动态 KV 驻留引擎接入与缩容在线迁移对照");
-  expect(overview).toContain("动态 1–4 副本（观测峰值 3）");
-  expect(overview).toContain("此前 200 秒和 400 秒周期的正弦负载中，新副本都在峰后接单，平均延迟均上升。");
-  expect(overview).toContain("整批加速 2.12×</strong><span>固定历史回放 · 每配置一次 · 完成时间（秒）");
+  expect(overview).not.toContain("RIDE");
+  const sections = ["scheduling", "kv", "instances"].map(id => renderTopic(path + "?view=" + id, item));
+  for (const section of sections) {
+    const questions = section.match(/<div class="cp-overview">[\s\S]*?<\/section><\/div>/)?.[0];
+    expect(questions).toBeTruthy();
+    expect(overview).toContain(questions);
+  }
+  expect(overview.match(/方案、基线与案例/g)).toHaveLength(3);
+  expect(overview).not.toContain("<summary>工程案例");
+  const combined = ["scheduling", "kv", "instances"].map(id => renderTopic(path + "?view=" + id + "&page=methods", item)).join("");
+  expect(combined.match(/怎样验证/g)).toHaveLength(7);
+  for (const section of sections) {
+    expect(section).toContain("<h3>开放问题</h3>");
+    expect(section).not.toContain("<summary>工程案例");
+    expect(section).not.toContain("<h3>对照基线</h3>");
+    expect(section).toContain("&amp;page=methods");
+  }
+  expect(combined).toContain("两组均关闭设备前缀缓存");
+  expect(combined).toContain("动态 1–4 副本（观测峰值 3）");
+  expect(combined).toContain("此前 200 秒和 400 秒周期的正弦负载中，新副本都在峰后接单，平均延迟均上升。");
+  expect(combined).toContain("整批加速 2.12×</strong><span>固定历史回放 · 每配置一次 · 完成时间（秒）");
   for (const figure of [<KvOverlapFigure />, <PoolScaleIn />]) {
     expect(renderToStaticMarkup(figure)).toContain("<small>教学示意。");
   }
   for (const file of ["kv-reload.json", "kv-fetch-vs-recompute.json", "ascend-scaling.json"]) {
-    expect(overview).toContain(`href="${import.meta.env.BASE_URL}evidence/control-plane/${file}"`);
+    expect(combined).toContain(`href="${import.meta.env.BASE_URL}evidence/control-plane/${file}"`);
   }
   for (const [id, title] of [["scheduling", "分布式请求调度"], ["kv", "分布式 KV 优化"], ["instances", "分布式多实例优化"]]) {
     const section = renderTopic(path + "?view=" + id, item);
     expect(section).toContain("<h2>" + title + "</h2>");
-    expect(section.match(/<figure\b/g)).toHaveLength(id === "scheduling" ? 2 : 3);
+    expect(section.match(/<figure\b/g)).toHaveLength(id === "scheduling" ? 1 : 3);
   }
-  const kv = renderTopic(path + "?view=kv", item);
+  const kv = renderTopic(path + "?view=kv&page=methods", item);
   const systems = renderTopic(path + "?view=systems", item);
-  for (const html of [overview, kv, systems]) {
+  for (const html of [kv, systems]) {
     expect(html).toContain("图 11");
     expect(html).toContain('href="https://arxiv.org/pdf/2601.10729v2"');
     expect(html).not.toContain("图 12");
