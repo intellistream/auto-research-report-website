@@ -11,7 +11,7 @@ function Pair({labels, values, max}: {labels: [string,string]; values: [number,n
 export function KvMeasurements() {
   return <aside className="cp-measured"><h4>真机实测 · 把主机 KV 取回后，续轮能提前多久输出？</h4>
     <div className="cp-batch-chart"><strong>同一 8,192-token 输入，第二次请求的首 token 延迟（ms）</strong>
-    <Pair labels={["原生引擎","LMCache"]} values={[370.70,254.37]} max={400}/>
+    <Pair labels={["原生引擎","主机 KV 回载"]} values={[370.70,254.37]} max={400}/>
     <small>Ascend 910B2 · Qwen3-0.6B · 每臂一次重复请求，均生成相同的 8 个 token。</small></div>
     <p>从客户端发送到收到首个生成 token，耗时下降 31.38%。引擎日志记录 5 ms 回载 8,192 tokens，外部前缀命中计数增加 8,191。5 ms 是引擎搬运时间，254.37 ms 覆盖完整首 token 路径。这组数据验证了主机 KV 回载；动态逐层重配置的 TPOT 和 TBT 收益仍待配对测量。 <a href={import.meta.env.BASE_URL+"evidence/control-plane/kv-reload.json"}>配对时间戳、输入摘要与回执 ↗</a></p>
     <details><summary>什么时候搬运更贵？跨节点按需拉取的 24 对测量</summary>
