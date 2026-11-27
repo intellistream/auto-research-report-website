@@ -11,6 +11,7 @@ import { ACLGRAPH_PROBLEMS, getAclGraphAnalysisStats, type AclGraphProblem } fro
 
 const aclGraphDescription = "导引 · 专题剖析：理解图捕获与重放，按核心问题拆解 Research Gap、论文方法与社区 PR。";
 const topicKeywords: Record<string, string> = {
+  "distributed-inference-control-plane": "distributed inference control plane RIDE ThunderAgent MORI Dynamo Llumnix Ray 分布式推理控制面 放行 恢复 路由 排空",
   "kv-cache": "kv cache 缓存 分页 复用 布局 容量 传输",
   "speculative-decoding": "speculative decoding 推测解码 草稿 验证 EAGLE MTP DFlash",
 };

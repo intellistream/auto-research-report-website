@@ -270,3 +270,25 @@ describe("frozen ACLGraph contract", () => {
     expect(revealTopicPart({ getElementById: () => null } as unknown as Document, "missing")).toBe(false);
   });
 });
+
+it("opens the control-plane topic from the directory and resolves each evidence view", () => {
+  const item = actualIndex.topics.find(row => row.id === "distributed-inference-control-plane") as unknown as Topic;
+  const path = "/topics/" + item.id;
+  expect(renderTopic("/topics", item)).toContain(path);
+  const overview = renderTopic(path, item);
+  expect(overview.match(/<figure\b/g)).toHaveLength(9);
+  expect(overview).toMatch(/问题是什么？.*为什么重要？.*我们怎么做？/s);
+  expect(overview.match(/class="cp-arch-link"/g)).toHaveLength(3);
+  expect(overview.match(/怎样验证/g)).toHaveLength(7);
+  for (const [id, title] of [["scheduling", "分布式请求调度"], ["kv", "分布式 KV 优化"], ["instances", "分布式多实例优化"]]) {
+    const section = renderTopic(path + "?view=" + id, item);
+    expect(section).toContain("<h2>" + title + "</h2>");
+    expect(section.match(/<figure\b/g)).toHaveLength(id === "scheduling" ? 2 : 3);
+  }
+  expect(renderTopic(path + "?view=kv", item)).toContain("https://arxiv.org/pdf/2601.10729");
+  expect(renderTopic(path + "?view=systems", item)).toContain("Llumnix");
+  const evidence = renderTopic(path + "?view=evidence", item);
+  expect(evidence).toContain("controller-35b-two-devbox-20261125");
+  expect(evidence).toContain("713.45");
+  for (const entry of item.entries) expect(evidence).toContain(entry.url);
+});

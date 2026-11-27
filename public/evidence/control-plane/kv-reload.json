@@ -1,0 +1,53 @@
+{
+  "hardware": "Ascend 910B2",
+  "model": "Qwen3-0.6B",
+  "scope": "one repeated request per arm",
+  "arms": {
+    "stock": {
+      "sent": 10719796.227479186,
+      "first_token": 10719796.598175876,
+      "prompt_sha256": "28faf53690a41dd6e203a6352e4b28a0f0eb98a4f55d686628440bdabeb4c57b",
+      "output_ids": [
+        24,
+        24,
+        24,
+        24,
+        24,
+        24,
+        24,
+        24
+      ],
+      "usage": {
+        "prompt_tokens": 8192,
+        "total_tokens": 8200,
+        "completion_tokens": 8
+      },
+      "ttft_ms": 370.69668993353844,
+      "source_sha256": "18845875a1fc43ce647e128e79fa099d4de43ff70ffaeb28b2ce7a6e39fae6d7"
+    },
+    "lmcache": {
+      "sent": 10719900.785917124,
+      "first_token": 10719901.040282339,
+      "prompt_sha256": "28faf53690a41dd6e203a6352e4b28a0f0eb98a4f55d686628440bdabeb4c57b",
+      "output_ids": [
+        24,
+        24,
+        24,
+        24,
+        24,
+        24,
+        24,
+        24
+      ],
+      "usage": {
+        "prompt_tokens": 8192,
+        "total_tokens": 8200,
+        "completion_tokens": 8
+      },
+      "ttft_ms": 254.36521507799625,
+      "source_sha256": "8c25718867536fdf9b716090a1870b217f42c1720388466ea049ca6b6aaf3bc2"
+    }
+  },
+  "engine_log": "Retrieved 8192 tokens in 0.005 seconds",
+  "external_prefix_hits_delta": 8191
+}
