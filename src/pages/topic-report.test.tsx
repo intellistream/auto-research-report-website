@@ -282,6 +282,13 @@ it("opens the control-plane topic from the directory and resolves each evidence 
   expect(overview.match(/class="cp-arch-link"/g)).toHaveLength(3);
   expect(overview).not.toContain("RIDE");
   const sections = ["scheduling", "kv", "instances"].map(id => renderTopic(path + "?view=" + id, item));
+  for (const section of sections) {
+    const questions = section.match(/<div class="cp-overview">[\s\S]*?<\/section><\/div>/)?.[0];
+    expect(questions).toBeTruthy();
+    expect(overview).toContain(questions);
+  }
+  expect(overview.match(/方案、基线与案例/g)).toHaveLength(3);
+  expect(overview).not.toContain("<summary>工程案例");
   const combined = ["scheduling", "kv", "instances"].map(id => renderTopic(path + "?view=" + id + "&page=methods", item)).join("");
   expect(combined.match(/怎样验证/g)).toHaveLength(7);
   for (const section of sections) {

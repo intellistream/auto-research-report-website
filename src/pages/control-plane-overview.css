@@ -59,3 +59,6 @@
 .cp-measured .cp-batch-chart h4 { color:inherit; }
 
 .acl-topic .cp-architecture, .cp-overview figure.acl-guide { margin-inline: 0; }
+
+.cp-question-group { margin-block: 1rem 2rem; }
+.cp-question-group > .acl-topic-card-sections { margin-top: .75rem; }
