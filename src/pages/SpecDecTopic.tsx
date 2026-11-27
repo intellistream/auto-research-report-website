@@ -1,5 +1,6 @@
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
+import TopicDirectoryCard from "./TopicDirectoryCard";
 import { Link, useSearchParams } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import SpecDecGuide from "./SpecDecGuide";
@@ -15,14 +16,17 @@ const sections = [
 ] as const;
 
 export function SpecDecTopicCard({ topic }: { topic: Topic }) {
-  return <li className="topic-card survey-directory-card">
-    <div className="survey-card-top"><span className="survey-status">技术专题</span></div>
-    <h2><Link to={path}>Speculative Decoding <ArrowUpRight size={16} aria-hidden="true" /></Link></h2>
-    <p>候选生成、并行验证、状态正确性与动态 Serving 的系统优化。</p>
-    <div className="acl-topic-card-sections">{sections.map(({ id, label, search }) =>
-      <Link key={id} to={{ pathname: path, search }}>{label}</Link>)}</div>
-    <p className="topic-meta">{topic.entries.length} 条社区 PR 线索</p>
-  </li>;
+  return (
+    <TopicDirectoryCard
+      title="Speculative Decoding"
+      description="候选生成、并行验证、状态正确性与动态 Serving 的系统优化。"
+      path={path}
+      summary={`${topic.entries.length} 条社区 PR 线索`}
+      vllmCount={topic.counts.byRepository.vllm ?? 0}
+      ascendCount={topic.counts.byRepository["vllm-ascend"] ?? 0}
+      sections={sections}
+    />
+  );
 }
 
 export default function SpecDecTopic({ topic }: { topic: Topic }) {

@@ -1,5 +1,6 @@
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
+import TopicDirectoryCard from "./TopicDirectoryCard";
 import { Link, useSearchParams } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import { EvidenceList } from "./TopicEvidence";
@@ -21,12 +22,17 @@ const systems = [
 ];
 
 export function ControlPlaneCard({ topic }: { topic: Topic }) {
-  return <li className="topic-card survey-directory-card">
-    <h2><Link to={path}>{topic.title} <ArrowUpRight size={16} aria-hidden /></Link></h2>
-    <p>{topic.description}</p>
-    <div className="acl-topic-card-sections">{directions.map(([id, label]) =>
-      <Link key={id} to={{ pathname: path, search: "view=" + id }}>{label}</Link>)}</div>
-  </li>;
+  return (
+    <TopicDirectoryCard
+      title={topic.title}
+      description={topic.description}
+      path={path}
+      summary={`${topic.counts.total} 条工程 PR`}
+      vllmCount={topic.counts.byRepository.vllm ?? 0}
+      ascendCount={topic.counts.byRepository["vllm-ascend"] ?? 0}
+      sections={directions.map(([id, label]) => ({ id, label, search: `view=${id}` }))}
+    />
+  );
 }
 
 export default function ControlPlaneTopic({ topic }: { topic: Topic }) {

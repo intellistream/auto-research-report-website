@@ -99,8 +99,11 @@
   padding: 0;
 }
 
-.topic-directory {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+@media (min-width: 60rem) {
+  .topic-directory {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+  }
 }
 
 .topic-card {

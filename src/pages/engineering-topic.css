@@ -45,6 +45,10 @@
   line-height: 1.72;
 }
 
+.topic-directory-detail {
+  margin: 0 0 1rem;
+}
+
 .eng-dir-bar-wrap {
   margin-top: auto;
   padding-top: 0.85rem;
