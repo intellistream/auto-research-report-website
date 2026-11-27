@@ -16,7 +16,7 @@ function simulate() {
   const rate = { A: 1, B: 1 };
   return windows.map(({ a, b, completed }) => {
     const estimates = { A: a * rate.A, B: b * rate.B };
-    const target = estimates.A >= estimates.B ? "A" : "B";
+    const target: keyof typeof estimates = estimates.A >= estimates.B ? "A" : "B";
     const slots = target === "A" ? a : b;
     const before = rate[target];
     rate[target] = (before + completed / slots) / 2;
