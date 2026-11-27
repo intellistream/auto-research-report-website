@@ -45,8 +45,7 @@ export function KvCacheTopicCard() {
       path="/topics/kv-cache"
       summary={`${communityEntries.length} 条工程 PR`}
       detail={`${papers.length} 篇论文`}
-      vllmCount={vllmCount}
-      ascendCount={ascendCount}
+      repositories={{ vllm: vllmCount, "vllm-ascend": ascendCount }}
       sections={sections.map(section => ({ ...section, search: `view=${section.id}` }))}
     />
   );

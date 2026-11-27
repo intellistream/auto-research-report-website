@@ -90,30 +90,6 @@
   text-align: center;
 }
 
-.acl-topic-card-sections {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  margin-top: 1rem;
-  font-size: 0.82rem;
-}
-
-.acl-topic-card-sections a {
-  padding: 5px 11px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-pill);
-  background: var(--bg-subtle);
-  color: var(--ink-primary) !important;
-  font-weight: 650;
-  text-decoration: none !important;
-}
-
-.acl-topic-card-sections a:hover {
-  border-color: var(--border-accent);
-  background: var(--brand-soft);
-  color: var(--brand-primary) !important;
-}
-
 .acl-topic .topic-heading h2,
 .acl-topic .survey-title-row h2 {
   margin: 0.3rem 0;

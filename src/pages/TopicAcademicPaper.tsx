@@ -1,23 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowUpRight, Download } from "lucide-react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
+import TopicDirectoryCard from "./TopicDirectoryCard";
 import type { Topic } from "./TopicPages";
 import { academicPaperHeadings, academicPaperHrefs, parsePaperSectionParam, revealPaperHeading, revealPendingPaperSection, type AcademicPaper } from "./academic-paper";
 import "./topic-academic-paper.css";
 
 export function AcademicPaperCard({ topic, paper }: { topic: Topic; paper: AcademicPaper }) {
-  if (!academicPaperHrefs(topic.id, paper)) return <li className="topic-card"><h2>{topic.title}</h2><p>论文版本元数据无效，等待修正。</p></li>;
-  const route = `/topics/${topic.id}`;
-  return <li className="topic-card survey-directory-card">
-    <div className="survey-card-top">
-      <span className="survey-status">学术综述稿</span>
-      <time className="topic-meta" dateTime={paper.literatureCutoff}>{paper.literatureCutoff}</time>
-    </div>
-    <h2><Link to={route}>{paper.title} <ArrowUpRight size={16} /></Link></h2>
-    <p className="survey-card-abstract">{paper.abstract}</p>
-    <div className="survey-card-question"><span>关键词</span><p>{paper.keywords.join("；")}</p></div>
-    <div className="survey-card-bottom"><Link to={route} className="survey-read-link">阅读论文全文 <ArrowUpRight size={14} /></Link></div>
-  </li>;
+  if (!academicPaperHrefs(topic.id, paper)) {
+    return <TopicDirectoryCard title={topic.title} status="学术综述稿" description="论文版本元数据无效，等待修正。" />;
+  }
+  return (
+    <TopicDirectoryCard
+      title={paper.title}
+      description={paper.abstract}
+      path={`/topics/${topic.id}`}
+      status="学术综述稿"
+      summary={<time dateTime={paper.literatureCutoff}>{paper.literatureCutoff}</time>}
+      detail={`关键词：${paper.keywords.join("；")}`}
+      repositories={topic.counts.byRepository}
+      sections={[{ label: "阅读论文全文" }]}
+    />
+  );
 }
 
 export default function TopicAcademicPaper({ topic, paper, embedded = false }: { topic: Topic; paper: AcademicPaper; embedded?: boolean }) {

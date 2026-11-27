@@ -42,7 +42,7 @@ export function resolveAclGraphSearch(query: URLSearchParams, problems: readonly
   return { section, problemId, cardId, normalizedParams, needsNormalize: normalizedParams.toString() !== query.toString() };
 }
 
-export function AclGraphTopicCard(_props: { topic?: Topic }) {
+export function AclGraphTopicCard() {
   const stats = getAclGraphAnalysisStats();
   return (
     <TopicDirectoryCard
@@ -52,8 +52,7 @@ export function AclGraphTopicCard(_props: { topic?: Topic }) {
       status="技术专题 · 问题驱动剖析"
       summary={`${stats.problems} 大核心问题 · ${stats.prs} 条工程 PR`}
       detail={`${stats.papers} 篇论文 · ${stats.fulltextPapers} 篇全文精读`}
-      vllmCount={stats.upstreamPrs}
-      ascendCount={stats.ascendPrs}
+      repositories={{ vllm: stats.upstreamPrs, "vllm-ascend": stats.ascendPrs }}
       sections={sections}
     />
   );

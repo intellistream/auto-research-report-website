@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Download, FileText, GitPullRequest, Sparkles } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import TopicDirectoryCard from "./TopicDirectoryCard";
 import type { Topic } from "./TopicPages";
 import { safeTopicSource, loadFrozenVersion, revealTopicPart, reportOverview, sectionLead, type EvidenceDetail, type FrozenVersion, type Reference, type ResearchReport } from "./topic-report";
 import { EvidenceList, EvidenceTimeline } from "./TopicEvidence";
@@ -250,7 +251,22 @@ function ReportUpdateOverview({ report, topic }: { report: ResearchReport; topic
 }
 
 export function TopicReportCard({ topic, report }: { topic: Topic; report: ResearchReport }) {
-  return <li className="topic-card survey-directory-card"><div className="survey-card-top"><span className="survey-status">动态综述</span><time className="topic-meta" dateTime={report.asOf}>{report.asOf}</time></div><h2><Link to={`/topics/${topic.id}`}>{report.title} <ArrowUpRight size={17} /></Link></h2><p className="survey-card-abstract">{report.abstract}</p><div className="survey-card-question"><span>核心研究问题</span><p>{report.researchQuestions[0]}</p></div><div className="survey-card-bottom"><div className="topic-meta"><span>{report.references.filter((ref) => ref.kind === "paper").length} 篇论文</span><span>{report.gaps.length} 个研究方向</span><span>修订 {report.revision}</span></div><Link to={`/topics/${topic.id}`} className="survey-read-link">阅读报告<ArrowRight size={14} /></Link></div></li>;
+  const papers = report.references.filter(ref => ref.kind === "paper").length;
+  return (
+    <TopicDirectoryCard
+      title={report.title}
+      description={report.abstract}
+      path={`/topics/${topic.id}`}
+      status="动态综述"
+      summary={<time dateTime={report.asOf}>{report.asOf}</time>}
+      detail={<>
+        {papers} 篇论文 · {report.gaps.length} 个研究方向 · 修订 {report.revision}
+        {report.researchQuestions[0] && <span>核心研究问题：{report.researchQuestions[0]}</span>}
+      </>}
+      repositories={topic.counts.byRepository}
+      sections={[{ label: "阅读报告" }]}
+    />
+  );
 }
 
 export default function TopicResearchReport({ topic, report, embedded = false }: { topic: Topic; report: ResearchReport; embedded?: boolean }) {

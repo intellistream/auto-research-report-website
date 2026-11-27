@@ -113,7 +113,7 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
               row.id === "distributed-inference-control-plane" ? (
                 <ControlPlaneCard key={row.id} topic={row} />
               ) : row.id === "aclgraph" ? (
-                <AclGraphTopicCard key={row.id} topic={row} />
+                <AclGraphTopicCard key={row.id} />
               ) : row.id === "speculative-decoding" ? (
                 <SpecDecTopicCard key={row.id} topic={row} />
               ) : row.academicPaper ? (

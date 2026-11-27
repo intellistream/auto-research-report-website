@@ -17,6 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
+import TopicDirectoryCard from "./TopicDirectoryCard";
 import type { Entry, Topic } from "./TopicPages";
 import "./engineering-topic.css";
 
@@ -464,51 +465,20 @@ function SpeculativeVisualGuide() {
 }
 
 export function EngineeringTopicCard({ topic }: { topic: Topic }) {
-  const vllmCount = topic.counts.byRepository.vllm ?? 0;
-  const ascendCount = topic.counts.byRepository["vllm-ascend"] ?? 0;
-  const total = Math.max(1, topic.counts.total);
-  const labelEntries = Object.entries(topic.labels);
-  const path = `/topics/${topic.id}`;
-
   return (
-    <li className="topic-directory-card">
-      <div className="survey-card-top">
-        <span className="survey-status">技术专题</span>
-        <span className="topic-meta">
-          {topic.counts.total} 条工程证据 · 截至 {topic.coverage.lastDay}
-        </span>
-      </div>
-
-      <h2>
-        <Link to={path}>
-          {topic.title} <ArrowUpRight size={16} aria-hidden="true" />
-        </Link>
-      </h2>
-
-      <p className="eng-dir-desc">{topic.description}</p>
-
-      <div className="eng-dir-bar-wrap">
-        <div className="eng-dir-ratio-bar" aria-hidden="true">
-          {vllmCount > 0 && <span className="bar-vllm" style={{ width: `${(100 * vllmCount) / total}%` }} />}
-          {ascendCount > 0 && <span className="bar-ascend" style={{ width: `${(100 * ascendCount) / total}%` }} />}
-        </div>
-        <div className="eng-dir-counts">
-          <span>
-            <i className="dot-vllm" /> vLLM <strong>{vllmCount}</strong>
-          </span>
-          <span>
-            <i className="dot-ascend" /> vLLM Ascend <strong>{ascendCount}</strong>
-          </span>
-          <span>{labelEntries.length} 个子方向</span>
-        </div>
-      </div>
-
-      <div className="acl-topic-card-sections">
-        <Link to={path}>原理导引</Link>
-        <Link to={{ pathname: path, search: "focus=routes" }}>技术路线</Link>
-        <Link to={{ pathname: path, search: "focus=evidence" }}>工程证据</Link>
-      </div>
-    </li>
+    <TopicDirectoryCard
+      title={topic.title}
+      description={topic.description}
+      path={`/topics/${topic.id}`}
+      summary={<>{topic.counts.total} 条工程证据 · 截至 <time dateTime={topic.coverage.lastDay}>{topic.coverage.lastDay}</time></>}
+      detail={`${Object.keys(topic.labels).length} 个子方向`}
+      repositories={topic.counts.byRepository}
+      sections={[
+        { label: "原理导引" },
+        { label: "技术路线", search: "focus=routes" },
+        { label: "工程证据", search: "focus=evidence" },
+      ]}
+    />
   );
 }
 
