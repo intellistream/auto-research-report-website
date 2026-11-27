@@ -6912,7 +6912,7 @@
     {
       "id": "distributed-inference-control-plane",
       "title": "分布式推理控制面",
-      "description": "请求放行与恢复、副本路由、KV 状态交接，以及实例扩缩、排空和故障恢复。",
+      "description": "分布式请求调度、分布式 KV 优化、分布式多实例优化。",
       "entries": [
         {
           "day": "2026-11-14",

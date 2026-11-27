@@ -3,9 +3,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import { EvidenceList } from "./TopicEvidence";
 import "./aclgraph-topic.css";
+import ControlPlaneOverview, { directions } from "./ControlPlaneOverview";
 
 const path = "/topics/distributed-inference-control-plane";
-const tabs = [["guide", "请求路径"], ["systems", "论文与实现"], ["evidence", "实测与工程证据"]] as const;
+
 const benchmark = "https://github.com/vLLM-HUST/vllm-hust-benchmark/tree/ac1d5ed516112c019c1acb63481154aabb90409c/reports/";
 const systems = [
   ["Ray Serve", "实例生命周期", "控制器协调部署与副本状态；路由和模型执行在独立组件中进行。扩容时要等模型就绪，缩容时要处理在途请求。观察已就绪副本数比仅看目标副本数更接近真实服务能力。", "https://docs.ray.io/en/latest/serve/architecture.html"],
@@ -20,32 +21,22 @@ export function ControlPlaneCard({ topic }: { topic: Topic }) {
   return <li className="topic-card survey-directory-card">
     <h2><Link to={path}>{topic.title} <ArrowUpRight size={16} aria-hidden /></Link></h2>
     <p>{topic.description}</p>
-    <div className="acl-topic-card-sections">{tabs.map(([id, label]) =>
+    <div className="acl-topic-card-sections">{directions.map(([id, label]) =>
       <Link key={id} to={{ pathname: path, search: "view=" + id }}>{label}</Link>)}</div>
   </li>;
 }
 
 export default function ControlPlaneTopic({ topic }: { topic: Topic }) {
   const [query] = useSearchParams();
-  const view = tabs.find(([id]) => id === query.get("view"))?.[0] ?? "guide";
+  const view = query.get("view");
+  const selected = directions.find(([id]) => id === view)?.[0];
   return <article className="acl-topic">
     <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden /> 专题目录</Link>
     <header className="acl-topic-header"><h1>{topic.title}</h1>
-      <p className="acl-topic-subtitle">一个 agent 从工具调用返回，原副本保有它的长前缀，却正在为其他用户生成输出。另一个副本空闲，但要重新 prefill。控制面如何选择？</p></header>
-    <nav className="acl-topic-nav" aria-label="分布式推理控制面专题分区">{tabs.map(([id, label]) =>
+      <p className="acl-topic-subtitle">多实例推理服务有三个管控对象：请求在哪台实例执行，KV 在实例间如何复用，以及实例池怎样随负载调整。</p></header>
+    <nav className="acl-topic-nav" aria-label="分布式推理控制面专题分区">{directions.map(([id, label]) =>
       <Link key={id} to={{ pathname: path, search: "view=" + id }} aria-current={view === id ? "page" : undefined}>{label}</Link>)}</nav>
-    {view === "guide" && <section className="topic-card">
-      <h2>沿一次多轮请求看控制面</h2>
-      <p>客户端提交 program P 的下一轮 → RIDE 下的限流层决定等待或放行、选择模型实例 → 实例执行 prefill 和 decode → 客户端接收输出并调用工具 → P 携带历史返回。管理路径上的 RIDE 与 Ray 负责组织服务生命周期，模型实例持有实际 KV 块。<a href="https://github.com/vLLM-HUST/ride">RIDE 项目</a></p>
-      <h3>观察：还有空间，是否也有算力？</h3>
-      <p>在每个副本并排观察 KV 容量、命中前缀长度、等待中的 prefill 和活跃 decode。两台实例即使具有相同的剩余 token 预算，也可能分别在等显存、等计算。还需记录指标的采样时间，避免根据过期的空闲读数连续放行。</p>
-      <h3>决策：等待、回到原副本，还是重新放置？</h3>
-      <p>原副本的排队时间可能抵消一次前缀命中。冷副本能立即开始，却需要补算历史。比较从“工具结果就绪”到“下一步有效输出”的耗时，并记录既有用户的输出间隔；按请求数平分无法回答这两个问题。</p>
-      <h3>执行：谁能落实决定？</h3>
-      <p>限流层可以在转发前等待、选择健康端点，并在 program 结束时释放关联。执行中迁移还需要引擎交出 KV 和解码进度。对外转发已经开始的流若在途中断开，控制面还要识别已交付的输出，避免重试产生重复结果。</p>
-      <h3>生命周期：什么时候可以移除一个副本？</h3>
-      <p>副本从发现、加载模型、就绪到接流量需要不同的回执。计划缩容时先停止接收新请求，再排空已有请求并核对 program 的去向；异常退出时还要区分可重建的请求、已流出的响应和丢失的缓存。<Link to="?view=evidence">查看排空与断连的社区记录</Link></p>
-    </section>}
+    {view !== "systems" && view !== "evidence" && <ControlPlaneOverview selected={selected} />}
     {view === "systems" && <section className="topic-card"><h2>调度对象、执行位置与代价</h2>
       {systems.map(([name, scope, text, source]) => <section key={name}><h3>{name} · {scope}</h3><p>{text} <a href={source}>原文与机制说明 ↗</a></p></section>)}
     </section>}
@@ -57,5 +48,6 @@ export default function ControlPlaneTopic({ topic }: { topic: Topic }) {
       <p>112 个 program 各三轮。直连和默认限流层均完成 336 个请求，耗时分别为 654.91、678.96 秒。两臂前缀命中增量均为零，业务日志未观测到暂停或恢复。这个固定顺序配对可以衡量本次转发与调度的整体效果：整批耗时从 654.91 秒增至 678.96 秒（+3.67%），未观察到业务 program 的 pause/resume，无法单独评定跨副本恢复策略。<a href={benchmark + "controller-35b-two-devbox-20261125"}>逐请求证据与分层图 ↗</a></p>
       <h3>待验证：最佳恢复位置会反转吗？</h3><p>固定 P 的输入和工具返回时刻，让 A 持有相同的热前缀，B 保持冷缓存。只改变 A 上已有的 decode 流数，每一档分别让 P 去 A 和 B。先核验两端实际 cached tokens，再比较 P 的首次有效输出延迟与老流的 P99 chunk 间隔。若最佳目的地始终相同，该条件下固定路由就足够。</p>
     </section><section className="topic-card"><h2>日报中的工程证据</h2><EvidenceList entries={topic.entries} labels={topic.labels} /></section></>}
+    <footer className="acl-topic-card-sections"><Link to={path}>三个板块总览</Link><Link to="?view=systems">论文与实现</Link><Link to="?view=evidence">实测与工程证据</Link></footer>
   </article>;
 }
