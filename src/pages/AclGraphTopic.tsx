@@ -3,47 +3,69 @@ import { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import AclGraphGuide from "./AclGraphGuide";
-import AclGraphDynamicReport from "./AclGraphDynamicReport";
-import TopicAcademicPaper from "./TopicAcademicPaper";
-import TopicResearchReport from "./TopicResearchReport";
+import AclGraphAnalysis from "./AclGraphAnalysis";
+import { ACLGRAPH_PROBLEMS, findAclGraphCardById, getAclGraphAnalysisStats, type AclGraphProblem } from "./aclgraph-analysis";
 import "./aclgraph-topic.css";
 
 const title = "ACL Graph";
 const subtitle = "昇腾推理图执行：捕获、重放与动态状态";
 const path = "/topics/aclgraph";
+const description = "从导引理解捕获、重放与动态状态，再在专题剖析中按核心问题辨析 Research Gap、论文方法与社区 PR。";
 const sections = [
   { id: "guide", label: "导引", search: "" },
-  { id: "paper", label: "综述", search: "view=paper" },
-  { id: "report", label: "动态报告", search: "view=report" },
+  { id: "analysis", label: "专题剖析", search: "view=analysis" },
 ] as const;
 
-export function AclGraphTopicCard({ topic }: { topic?: Topic }) {
-  const ascendCount = topic?.counts.byRepository["vllm-ascend"] ?? topic?.counts.total ?? 11;
+export function resolveAclGraphSearch(query: URLSearchParams, problems: readonly AclGraphProblem[] = ACLGRAPH_PROBLEMS) {
+  const view = query.get("view");
+  const part = query.get("part");
+  const section = view === "analysis" || view === "report" || view === "evidence"
+    || (view === null && (query.has("read") || Boolean(part?.startsWith("survey-"))))
+    ? "analysis" : "guide";
+  const normalizedParams = new URLSearchParams();
+  for (const [key, value] of query) {
+    if (/^utm_/i.test(key)) normalizedParams.append(key, value);
+  }
+  let problemId: string | undefined;
+  let cardId: string | undefined;
+  if (section === "analysis") {
+    normalizedParams.set("view", "analysis");
+    const rawCard = query.get("card");
+    const entry = rawCard ? findAclGraphCardById(rawCard, problems) : undefined;
+    const rawProblem = query.get("problem");
+    problemId = entry?.problem.id ?? (problems.some(problem => problem.id === rawProblem) ? rawProblem ?? undefined : undefined);
+    cardId = entry?.card.id;
+    if (problemId) normalizedParams.set("problem", problemId);
+    if (cardId) normalizedParams.set("card", cardId);
+  }
+  return { section, problemId, cardId, normalizedParams, needsNormalize: normalizedParams.toString() !== query.toString() };
+}
+
+export function AclGraphTopicCard(_props: { topic?: Topic }) {
+  const stats = getAclGraphAnalysisStats();
   return (
     <li className="topic-directory-card">
       <div className="survey-card-top">
-        <span className="survey-status">技术专题 · 旗舰综述</span>
-        {topic && (
-          <span className="topic-meta">
-            {topic.counts.total} 条工程证据 · 截至 {topic.coverage.lastDay}
-          </span>
-        )}
+        <span className="survey-status">技术专题 · 问题驱动剖析</span>
+        <span className="topic-meta">{stats.problems} 大核心问题 · {stats.prs} 条工程 PR</span>
       </div>
       <h2>
         <Link to={path}>
           {title} <ArrowUpRight size={16} aria-hidden="true" />
         </Link>
       </h2>
-      <p className="eng-dir-desc">{topic?.description || subtitle}</p>
+      <p className="eng-dir-desc">{description}</p>
+      <p className="topic-meta">{stats.papers} 篇论文 · {stats.fulltextPapers} 篇全文精读</p>
       <div className="eng-dir-bar-wrap">
         <div className="eng-dir-ratio-bar" aria-hidden="true">
-          <span className="bar-ascend" style={{ width: "100%" }} />
+          <span className="bar-vllm" style={{ width: `${stats.prs ? 100 * stats.upstreamPrs / stats.prs : 0}%` }} />
+          <span className="bar-ascend" style={{ width: `${stats.prs ? 100 * stats.ascendPrs / stats.prs : 0}%` }} />
         </div>
         <div className="eng-dir-counts">
           <span>
-            <i className="dot-ascend" /> vLLM Ascend <strong>{ascendCount}</strong>
+            <i className="dot-vllm" /> vLLM <strong>{stats.upstreamPrs}</strong>
           </span>
-          <span>含综述稿与动态报告</span>
+          <span><i className="dot-ascend" /> vLLM Ascend <strong>{stats.ascendPrs}</strong></span>
         </div>
       </div>
       <div className="acl-topic-card-sections">
@@ -57,25 +79,17 @@ export function AclGraphTopicCard({ topic }: { topic?: Topic }) {
   );
 }
 
-export default function AclGraphTopic({ topic }: { topic: Topic }) {
+export default function AclGraphTopic(_props: { topic: Topic }) {
   const [query, setQuery] = useSearchParams();
-  const view = query.get("view");
-  const part = query.get("part");
-  const legacyEvidence = view === "evidence";
-  // Some shared report links predate the view parameter.
-  const reportView = legacyEvidence || view === "report" || (!view && (query.has("read") || part?.startsWith("survey-")));
-  const section = view === "paper" ? "paper" : reportView ? "report" : "guide";
-  const targetPaperSection = section === "paper" && Boolean(query.get("section")?.trim());
+  const resolved = resolveAclGraphSearch(query);
+  const section = resolved.section;
+  const hasAnalysisTarget = Boolean(resolved.problemId || resolved.cardId);
   useEffect(() => {
-    if (!targetPaperSection) window.scrollTo(0, 0);
-  }, [section, targetPaperSection]);
+    if (typeof window !== "undefined" && !hasAnalysisTarget) window.scrollTo(0, 0);
+  }, [section, hasAnalysisTarget]);
   useEffect(() => {
-    if (!legacyEvidence) return;
-    const next = new URLSearchParams(query);
-    next.set("view", "report");
-    next.set("part", part === "survey-appendix" ? part : "survey-pr-trends");
-    setQuery(next, { replace: true });
-  }, [legacyEvidence, part, query, setQuery]);
+    if (resolved.needsNormalize) setQuery(resolved.normalizedParams, { replace: true });
+  }, [resolved.needsNormalize, resolved.normalizedParams, setQuery]);
 
   return <div className="acl-topic">
     <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden="true" /> 专题目录</Link>
@@ -89,19 +103,6 @@ export default function AclGraphTopic({ topic }: { topic: Topic }) {
         <Link key={id} to={{ pathname: path, search }} aria-current={section === id ? "page" : undefined}>{label}</Link>)}
     </nav>
     {section === "guide" && <AclGraphGuide />}
-    {section === "paper" && (topic.academicPaper
-      ? <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} embedded />
-      : <p>综述准备中。</p>)}
-    {section === "report" && (() => {
-      const showLegacyReport = query.get("legacy") === "1" || legacyEvidence || query.has("read") || Boolean(part?.startsWith("survey-"));
-      if (!showLegacyReport) return <AclGraphDynamicReport topic={topic} />;
-      return topic.report ? <>
-        <aside className="acl-legacy-banner" aria-label="历史报告视图">
-          <span>当前正在查看历史冻结版静态工程报告（Rev {topic.report.revision}）</span>
-          <Link to={{ pathname: path, search: "view=report" }}>返回新版《社区 PR 趋势雷达》→</Link>
-        </aside>
-        <TopicResearchReport key={topic.report.version} topic={topic} report={topic.report} embedded />
-      </> : <p>动态报告准备中。</p>;
-    })()}
+    {section === "analysis" && <AclGraphAnalysis />}
   </div>;
 }

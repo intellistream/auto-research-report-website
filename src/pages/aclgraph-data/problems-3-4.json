@@ -1,0 +1,1162 @@
+[
+  {
+    "id": "p3",
+    "index": 3,
+    "slug": "multi-opt-resource-contention",
+    "title": "图内多优化叠加时的资源争用与组合负优化",
+    "shortTitle": "多优化组合与资源争用",
+    "priorityBadge": "P1 · 组合性能",
+    "gap": {
+      "background": "在通信参与者、布局与顺序均合法固定，而多流、融合及推测优化叠加的本地执行场景下，多项优化会有因资源争用导致组合性能反转的问题。GPU 线程块争抢执行单元、寄存器与共享内存，昇腾 NPU 的 Cube/Vector 非对称核也会因矩阵计算、注意力与打包需求失衡而受限。HBM 带宽及工作区竞争还会影响局部耗时与 KV 容量。图与即时执行的组合边界（如 #63483 的切分步骤回退）也纳入本题；跨卡参与、通信排序和推进由 P4 讨论。",
+      "existingLimitations": "虽然当前现有的工作中，本题八卡 NanoFlow、POD-Attention、Opara、AutoGraph，以及 vLLM-Ascend #19716、#19909 和 vLLM #63483、#66812，已从拆批流水、共驻留、发射排序、图调度联优、资源上限与专家融合角度缓解这一问题，但是因为局部干扰近似、固定计划以及图回退和 KV 容量混杂，尚未形成固定 HBM 与 KV 预算下对组合反转及昇腾 Cube/Vector 争用的可靠预测，仍然没有彻底解决。本题八卡之外，外部比较基线 Bullet（ASPLOS 2026，arXiv:2504.19516）、Drift（arXiv:2504.14489v2，后续 v3 更名为 MuxWise）与 SET（Euro-Par 2026，arXiv:2606.05495v1） 分别提供资源分配或事件调度参照。",
+      "researchOpportunity": "因此我们从合法固定通信协议下的本地资源争用与多优化组合成本建模方向出发，有机会在明确的负载与后端约束下缓解此问题，并检验收益能否覆盖新增成本。显式表达消费截止点、资源需求与图或即时执行边界，固定软件、精度、有效输入及 HBM 和 KV 预算，枚举两至三条算子链的全部组合。对照串行、最佳静态计划、有限图族及 Bullet、Drift 式调度，在未参与建模与调参的留出测试负载上检验消费者等待、尾延迟与计划误差，计入切换和驻留成本；通信参与者和顺序保持合法，若小表或静态计划已足够，则撤回独立立题。",
+      "keyTakeaway": "研究价值取决于能否在固定资源预算下预测并改善组合反转，并以净服务收益超越最佳静态计划与有限图族。"
+    },
+    "papers": [
+      {
+        "id": "paper-zhu2025nanoflow",
+        "kind": "paper",
+        "paperId": "zhu2025nanoflow",
+        "arxivId": "2408.12757",
+        "title": "NanoFlow: Towards Optimal Large Language Model Serving Throughput",
+        "url": "https://www.usenix.org/conference/osdi25/presentation/zhu-kan",
+        "authors": [
+          "Kan Zhu",
+          "Yufei Gao",
+          "Yilong Zhao",
+          "Liangyu Zhao",
+          "Gefei Zuo",
+          "Yile Gu",
+          "Dedong Xie",
+          "Tian Tang",
+          "Qinyu Xu",
+          "Zihao Ye",
+          "Keisuke Kamahori",
+          "Chien-Yu Lin",
+          "Ziren Wang",
+          "Stephanie Wang",
+          "Arvind Krishnamurthy",
+          "Baris Kasikci"
+        ],
+        "venueOrYear": "OSDI 2025",
+        "venueName": "OSDI",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "通过细粒度拆批与干扰感知的流水搜索重叠计算、访存和通信，并以单独拆批反而降速的消融揭示资源协同的必要性。",
+        "problem": {
+          "scenario": "请求充足、混合预填充与解码的大模型服务；张量并行使同一设备交替承担矩阵计算、注意力访存和集体通信。",
+          "existingGap": "串行执行使不同资源轮流闲置；直接拆小批量又削弱权重复用，朴素并发还会争抢执行单元、缓存和带宽，需要联合选择拆批粒度、执行顺序与资源份额。",
+          "impact": "访存和通信造成计算流水空泡，拆批则增加权重读取；只有重叠收益超过拆批与争用成本，整体吞吐才会提高。"
+        },
+        "method": {
+          "keyIdea": "以细粒度拆批创造跨资源重叠机会，再依据并发干扰联合安排流水与资源份额，使利用率收益覆盖拆批成本。",
+          "designPoints": [
+            {
+              "title": "细粒度拆批（Nano-batching）",
+              "challengeAddressed": "单个大批量的算子依赖限制计算、访存和通信重叠。",
+              "mechanism": "将输入拆为独立纳米批，在满足数据依赖的前提下并行推进瓶颈资源不同的操作，并控制拆分数量以保留批处理效率。"
+            },
+            {
+              "title": "干扰感知流水搜索（Interference-aware Pipeline Search）",
+              "challengeAddressed": "流水结构、内核选择与资源份额相互影响，直接联合搜索代价过大。",
+              "mechanism": "先在无干扰近似下搜索拆分数量、大小和执行顺序，再固定流水结构优化资源份额与内核选择；通过并发剖析，以矩阵计算降速代理资源占用并修正耗时估计。"
+            },
+            {
+              "title": "异步流水执行（Asynchronous Pipeline Execution）",
+              "challengeAddressed": "重叠计划需维持依赖，主机组批也可能使设备等待。",
+              "mechanism": "按搜索计划将操作分派到多条流，以事件维持依赖；下一轮组批与当前设备执行重叠，优先保留未完成解码，再用预填充分块补齐预选词元批量。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "离线端到端吞吐：在 8 张 A100 80 GB 运行 LLaMA-2-70B 时，固定输入输出长度下平均分别为 vLLM 的 2.62×、DeepSpeed-FastGen 的 2.78×、TensorRT-LLM 的 1.73×；数据集采样长度下分别为 4.18×、3.45×、1.91×。图 9 消融单独考察输入 512、输出 1024 词元的配置，共用异步请求调度与内核：未拆批顺序执行、仅拆批顺序执行、启用重叠且不卸载 KV Cache 的吞吐依次为 1048→952→1277 tokens/s/GPU；相对 1048，仅拆批下降 9.16%，重叠方案提高 21.85%。正文另报告 13.2%的拆批损失和 1.17 倍的重叠加速；此处两项百分比严格按图 9 所列配置计算。",
+          "experimentalConditions": "8 张 A100 80 GB SXM 经 NVLink 互联；主模型 LLaMA-2-70B，半精度、8 路张量并行、密集词元批量 2048。固定输入/输出长度为 512/512、1024/512、512/1024，消融另含 512/0；采用 Splitwise 完整轨迹，以及 LMSYS-Chat-1M 和 ShareGPT 各随机抽样 50000 条请求。基线为 vLLM、DeepSpeed-FastGen 和 TensorRT-LLM；在线测试采用 5 分钟轨迹与指数到达间隔。",
+          "limitations": "面向请求充足、整体计算受限的大批量负载，低请求率时延迟可能略高。归一化延迟为请求端到端延迟除以输出词元数后再求均值，包含预填充，区别于解码词间延迟。约 10 分钟只对应第一阶段寻找实用可行流水，最优方案搜索可能耗时数小时至数天；模型或输入输出长度显著变化需重新搜索。资源模型用矩阵计算降速作代理，并以成对干扰近似三类操作并发。异步组批多计算一个解码词元，论文在平均输出超过 100 词元的典型负载下估计额外开销低于 1%。",
+          "engineeringApplicability": "GPU 实测支持跨算子重叠；迁往昇腾需重建核间干扰模型并验证通信与图捕获约束，论文无昇腾实测。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-nanoflow-1",
+            "section": "§6.2 离线吞吐（Figure 7，PDF p.13）",
+            "quoteExcerpt": "When input and output lengths are drawn from the datasets, NanoFlow has on average 4.18× higher throughput than vLLM, 3.45× higher than DeepSpeed-FastGen and 1.91× higher than TensorRT-LLM.",
+            "metrics": [
+              "固定长度：2.62× / 2.78× / 1.73×",
+              "采样长度：4.18× / 3.45× / 1.91×"
+            ],
+            "sourceUrl": "https://www.usenix.org/conference/osdi25/presentation/zhu-kan"
+          },
+          {
+            "refId": "ev-nanoflow-2",
+            "section": "§6.4 拆批与重叠消融（Figure 9，PDF pp.13–14）",
+            "quoteExcerpt": "splitting into nano-batches alone reduces performance by 13.2%.",
+            "metrics": [
+              "输入 512，输出 1024",
+              "1048→952→1277 tokens/s/GPU",
+              "相对 1048：−9.16% / +21.85%",
+              "正文概括：13.2% / 1.17×"
+            ],
+            "sourceUrl": "https://www.usenix.org/conference/osdi25/presentation/zhu-kan"
+          },
+          {
+            "refId": "ev-nanoflow-3",
+            "section": "§4.1.2 第一阶段流水结构搜索（PDF p.10）",
+            "quoteExcerpt": "pipeline can be found in approximately 10 minutes by prioritizing searching a feasible solution instead of finding a provably-optimal solution.",
+            "metrics": [
+              "可行流水：约 10 分钟",
+              "最优搜索：数小时至数天"
+            ],
+            "sourceUrl": "https://www.usenix.org/conference/osdi25/presentation/zhu-kan"
+          }
+        ]
+      },
+      {
+        "id": "paper-kamath2025pod",
+        "kind": "paper",
+        "paperId": "kamath2025pod",
+        "arxivId": "2410.18038",
+        "title": "POD-Attention: Unlocking Full Prefill-Decode Overlap for Faster LLM Inference",
+        "url": "https://doi.org/10.1145/3676641.3715996",
+        "authors": [
+          "Aditya K Kamath",
+          "Ramya Prabhu",
+          "Jayashree Mohan",
+          "Simon Peter",
+          "Ramachandran Ramjee",
+          "Ashish Panwar"
+        ],
+        "venueOrYear": "ASPLOS 2025",
+        "venueName": "ASPLOS",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "将预填充与解码注意力融合进同一内核，通过感知多处理器的线程块调度实现资源互补，缓解普通多流难以保证共驻留的问题。",
+        "problem": {
+          "scenario": "长上下文推理采用混合批处理，同一批同时包含计算密集的预填充注意力与带宽密集的解码注意力。",
+          "existingGap": "普通多流及预先绑定操作的线程块调度不能保证两类工作在同一流式多处理器共驻留；线程束或线程级融合又受到拖尾和同步屏障约束。",
+          "impact": "在 Yi-6B、16K 上下文、512 词元分块实验中，A100 具有 108 个流式多处理器，解码批量由 54 增至 55，线程块数从 216 增至 220，仅增加 4 块就使串行解码耗时上升超过 25%。多流可缓解尾波空闲，但局部共驻留及其资源竞争仍需显式处理。"
+        },
+        "method": {
+          "keyIdea": "让线程块到达实际多处理器后再绑定预填充或解码，以局部共驻留将两类任务的互补资源需求转化为有效重叠。",
+          "designPoints": [
+            {
+              "title": "线程块级融合（CTA-parallel Fusion）",
+              "challengeAddressed": "细粒度融合容易让一类工作的拖尾或屏障阻碍另一类工作。",
+              "mechanism": "在同一注意力内核中用独立线程块执行预填充和解码，使各块分别结束并被后续工作替换，将同步屏障影响限制在块内。"
+            },
+            {
+              "title": "动态操作绑定（SM-aware CTA Scheduling）",
+              "challengeAddressed": "硬件分派不可控，预先指定操作难以确保局部资源互补。",
+              "mechanism": "线程块读取所在多处理器标识，通过局部原子计数和分配策略选择操作，再领取相应工作编号；一类任务耗尽后切换到另一类，以适应实际分派和批内比例。"
+            },
+            {
+              "title": "互补资源约束（Resource Complementarity）",
+              "challengeAddressed": "共驻留后，两类操作仍可能争抢计算单元、共享内存与带宽。",
+              "mechanism": "限制解码的冗余计算及预填充切分带来的重复访存，并按工作比例调整驻留线程块与共享内存布局，降低融合后的同类资源争用。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "在 16K 上下文的离线服务评估中，单张 A100 80 GB 上的 Yi-6B 吞吐从 Sarathi 的 17.9 增至 21.9 请求/分钟，约提高 22%；两张 A100 80 GB、2 路张量并行的 Llama-3-8B 从 30.3 增至 36.1 请求/分钟，约提高 19%，相对原始 vLLM 的 32.3 约提高 12%。这些数值为服务吞吐，区别于注意力内核微基准加速。",
+          "experimentalConditions": "Yi-6B 使用 1 张 A100 80 GB，Llama-2-7B 和 Llama-3-8B 各使用 2 张 A100 80 GB 及 2 路张量并行。离线上下文 16K，三模型分别运行 1K、2K、2K 条请求，预填充分块分别为 512、1K、1K 词元，输出分别为 2K、256、1K 词元；服务基线为原始 vLLM 与 Sarathi-Serve。在线另用内部企业与 arXiv 摘要负载，各 2048 条请求，上下文 4K 至 32K。",
+          "limitations": "适用于注意力占比较大且预填充与解码均充足的混合批，单侧占优时重叠空间缩小。分块预填充会重复读取历史 KV Cache，块大小同时影响吞吐、首词元与词间延迟。该工作处理给定混合批内的注意力融合，NanoFlow 处理拆批后的跨算子流水，二者优化粒度与负载条件不同。评估集中于 A100，其他架构需重新适配资源分配。",
+          "engineeringApplicability": "GPU 实测支持混合批注意力融合；昇腾移植需重做核内调度与片上资源划分，论文无昇腾实测。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-pod-1",
+            "section": "§3 并发执行案例（PDF pp.4–5）",
+            "quoteExcerpt": "streams alone guarantees neither concurrency nor SM-level co-location of different operations",
+            "metrics": [
+              "108 个多处理器",
+              "216→220 个线程块",
+              "解码耗时上升超过 25%"
+            ],
+            "sourceUrl": "https://doi.org/10.1145/3676641.3715996"
+          },
+          {
+            "refId": "ev-pod-2",
+            "section": "§4.1 多处理器感知的线程块调度（Figure 8，PDF p.6）",
+            "quoteExcerpt": "SM-aware CTA scheduling co-locates prefill and decode CTAs through “runtime operation binding”.",
+            "metrics": [
+              "示例分配比例：50:50"
+            ],
+            "sourceUrl": "https://doi.org/10.1145/3676641.3715996"
+          },
+          {
+            "refId": "ev-pod-3",
+            "section": "§5.2 离线推理吞吐（Figure 12，PDF p.9）",
+            "quoteExcerpt": "22%, 20% and 19% higher than Sarathi, and 27%, 13% and 12% higher than vLLM, for the three models.",
+            "metrics": [
+              "Yi-6B：17.9→21.9 请求/分钟",
+              "Llama-3-8B：30.3→36.1 请求/分钟",
+              "vLLM 对应基线：32.3 请求/分钟"
+            ],
+            "sourceUrl": "https://doi.org/10.1145/3676641.3715996"
+          }
+        ]
+      },
+      {
+        "id": "paper-chen2025opara",
+        "kind": "paper",
+        "paperId": "chen2025opara",
+        "arxivId": "2312.10351",
+        "title": "Opara: Exploiting Operator Parallelism for Expediting DNN Inference on GPUs",
+        "url": "https://doi.org/10.1109/TC.2024.3475589",
+        "authors": [
+          "Aodong Chen",
+          "Fei Xu",
+          "Li Han",
+          "Yuan Dong",
+          "Li Chen",
+          "Zhi Zhou",
+          "Fangming Liu"
+        ],
+        "venueOrYear": "IEEE TC 2025",
+        "venueName": "IEEE TC",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "针对多流图回放中发射顺序引发的阻塞与干扰，依据算子资源需求交错调度计算和访存工作，再捕获为可重复执行的并行图。",
+        "problem": {
+          "scenario": "单张 GPU 执行包含独立分支的神经网络推理，通过多流与图回放降低串行执行和逐算子提交开销。",
+          "existingGap": "仅按拓扑就绪顺序发射忽略线程、共享内存和寄存器需求；先发射的重资源内核不可抢占，可能阻塞后续算子，同类瓶颈算子并发又会互相干扰。",
+          "impact": "图捕获后仍可能出现资源碎片与设备空闲，发射顺序会改变推理延迟；降低提交开销与缓解设备争用是两个需要协同处理的目标。"
+        },
+        "method": {
+          "keyIdea": "将算子并行度与资源互补共同纳入发射顺序选择，再捕获所得多流计划，兼顾阻塞、争用与提交开销。",
+          "designPoints": [
+            {
+              "title": "依赖感知流分配（Dependency-aware Stream Allocation）",
+              "challengeAddressed": "独立分支需要并行，但跨流依赖会增加同步开销。",
+              "mechanism": "根据图依赖贪心分配执行流，尽量让后继复用前驱所在流，并将可并行分支放入不同流，在暴露并行性的同时减少跨流同步。"
+            },
+            {
+              "title": "资源感知交错发射（Resource- and Interference-aware Launching）",
+              "challengeAddressed": "重资源算子先发射可能阻塞后续工作，同类瓶颈操作并发又会加剧争用。",
+              "mechanism": "剖析单线程块的资源需求，将就绪算子分入计算与访存列表；交替从非空列表中优先选择资源需求较小者，并在依赖满足后加入新就绪算子。"
+            },
+            {
+              "title": "多流计划捕获（Multi-stream Graph Capture）",
+              "challengeAddressed": "优化后的调度计划需要复用，逐算子提交仍有主机开销。",
+              "mechanism": "依照流分配和发射计划提交算子，插入维持数据依赖的同步事件，再捕获为多流执行图，使后续回放保留已选调度。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "批量为 1 的六模型评估分别使用 RTX 2080 SUPER 8 GB 与 A100-PCIe 40 GB，相对默认顺序 CUDA Graph 最高加速 1.68 倍，相对 Nimble 最高 1.29 倍，两者均为跨模型最大值。RTX 上的 Inception-v3 相对顺序图的吞吐优势随批量从 1 增至 32，由 1.41 倍收窄至 1.09 倍，显示单算子资源占用增大后并行空间缩小。",
+          "experimentalConditions": "使用单张 RTX 2080 SUPER 8 GB 测试 GoogLeNet、Inception-v3 与 DeepFM，使用单张 A100-PCIe 40 GB 测试 NASNet、T5 与 BERT。主比较批量为 1，Inception-v3 补测批量 1 至 32；基线包括关闭图回放的顺序执行、默认顺序 CUDA Graph、ONNX Runtime、Rammer-minus 与 Nimble。",
+          "limitations": "评估限于单设备推理，大批量下单算子占用更多资源，图内并行收益收窄且峰值显存可能增加。BERT 可并行算子类型较单一，相对 Nimble 收益有限。资源优先发射是启发式，未建立完整的干扰预测模型。Rammer-minus 只重实现广度优先的波前调度，结论仅覆盖该实现。大规模自回归服务中的动态批次、KV 预算和多卡通信尚未纳入评估。",
+          "engineeringApplicability": "GPU 实测支持资源感知的多流图编排；昇腾需重测核资源需求、事件依赖与 ACL Graph 捕获行为，论文无昇腾实测。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-opara-1",
+            "section": "§2.3 算子发射顺序的性能影响（PDF p.3）",
+            "quoteExcerpt": "Such GPU blocking can severely waste the available GPU resources.",
+            "metrics": [
+              "发射顺序影响：最高 29%"
+            ],
+            "sourceUrl": "https://doi.org/10.1109/TC.2024.3475589"
+          },
+          {
+            "refId": "ev-opara-2",
+            "section": "§3.4 多流计划捕获（PDF p.5）",
+            "quoteExcerpt": "then it launches the operators of the DNN model to these streams according to the operator launch order specified by the Operator Launcher.",
+            "metrics": [],
+            "sourceUrl": "https://doi.org/10.1109/TC.2024.3475589"
+          },
+          {
+            "refId": "ev-opara-3",
+            "section": "§5.1–§5.2 实验配置与有效性（PDF pp.5–7）",
+            "quoteExcerpt": "we implement Rammer’s BFS-based operator scheduling algorithm (i.e., Wavefront) into PyTorch 2.0, denoted as Rammer−.",
+            "metrics": [
+              "相对顺序图：最高 1.68×",
+              "相对 Nimble：最高 1.29×",
+              "批量 1→32：1.41×→1.09×"
+            ],
+            "sourceUrl": "https://doi.org/10.1109/TC.2024.3475589"
+          }
+        ]
+      },
+      {
+        "id": "paper-zhao2023autograph",
+        "kind": "paper",
+        "paperId": "zhao2023autograph",
+        "title": "AutoGraph: Optimizing DNN Computation Graph for Parallel GPU Kernel Execution",
+        "url": "https://doi.org/10.1609/aaai.v37i9.26343",
+        "authors": [
+          "Yuxuan Zhao",
+          "Qi Sun",
+          "Zhuolun He",
+          "Yang Bai",
+          "Bei Yu"
+        ],
+        "venueOrYear": "AAAI 2023",
+        "venueName": "AAAI",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "联合优化图替换与多流调度，以混合关键路径代价筛选候选，再用设备图回放实测纠偏，避免局部融合破坏并行结构而组合降速。",
+        "problem": {
+          "scenario": "固定输入形状、含并行分支的神经网络在单张 GPU 上推理，图改写结果通过多流 CUDA Graph 执行。",
+          "existingGap": "图替换按独立算子耗时求和选择融合，多流调度随后才接收优化结果；融合可能增加冗余计算、延长关键路径并破坏分支并行，静态代价缺少实际执行反馈。",
+          "impact": "图改写与并行调度叠加后可能慢于单独调度，预测耗时与实际端到端推理延迟背离，局部优化收益无法直接相加。"
+        },
+        "method": {
+          "keyIdea": "以并行执行代价和设备实测共同约束图替换，保留有价值的分支并行，使局部融合服从整体延迟目标。",
+          "designPoints": [
+            {
+              "title": "混合关键路径代价（Mixed Critical Path Cost）",
+              "challengeAddressed": "总算子耗时忽略并行，单看关键路径又无法区分其他分支的工作量。",
+              "mechanism": "加权结合关键路径时长与全图算子时长，使候选筛选同时考虑串行瓶颈和剩余工作量，抑制破坏并行结构的过度融合。"
+            },
+            {
+              "title": "分区动态规划与回溯（Partitioned Dynamic Programming and Backtracking）",
+              "challengeAddressed": "等价图替换空间巨大，不同划分序列会重复求解相同子问题。",
+              "mechanism": "优先选择损失替换机会较少的切分，并枚举适度合并；在子图内回溯应用等价替换，利用动态规划缓存重叠子问题，比较覆盖全图的优化分区序列。"
+            },
+            {
+              "title": "设备多流验证（On-board Multi-stream Verification）",
+              "challengeAddressed": "代理代价难以精确描述实际资源争用和并行执行时延。",
+              "mechanism": "采用最大匹配分配执行流并插入依赖同步；对少量优选候选捕获多流执行图，在目标设备上测量端到端推理延迟，再据此筛选后续搜索与部署计划。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "七模型评估中，论文概括相对 IOS/Nimble 加速 1.06–1.26×、相对 TASO+Nimble 加速 1.04–3.47×；表 2 的 RNNTC-SRU 与 TASO+Nimble 同为 0.387 ms，属于持平例外，IOS 也未提供循环模型与 BERT 结果。组合负优化的典型案例是 NasNet-Mobile：在 RTX 2080Ti、输入 1×3×224×224 时，Nimble 耗时 2.320 ms，叠加 TASO 后升至 6.540 ms，延迟退化为原来的 2.82 倍；AutoGraph 降至 1.883 ms，相对二者分别加速 1.23 倍和 3.47 倍。",
+          "experimentalConditions": "单张 RTX 2080Ti 搭配 Xeon Silver 4114；七模型为 Inception-v3、ResNet-50、ResNeXt-50、NasNet-A、NasNet-Mobile、RNNTC-SRU 和 BERT。Inception-v3 输入 1×3×299×299，其余四种卷积模型为 1×3×224×224，循环模型为[1×10,1024]，BERT 为[16×64,1024]。基线为 JIT、TASO+JIT、IOS、Nimble、TASO+Nimble；NasNet-Mobile 另测批量 1、4、8、16、32。",
+          "limitations": "优化绑定模型、固定形状与目标 GPU，形状改变需重新准备代价和执行计划。离线图搜索、候选捕获与设备计时需单独计入准备成本，表 2 仅报告模型推理延迟。混合代价与有限候选筛选不保证全局最优；动态自回归服务中的 KV 压力、多请求干扰与昇腾非对称核争用仍超出所测范围。",
+          "engineeringApplicability": "GPU 实测支持图改写与调度联优；用于昇腾需重建算子代价和多流图计时流程，论文无昇腾实测。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-autograph-1",
+            "section": "§Cost-based Graph Optimization 混合关键路径代价（PDF pp.4–5）",
+            "quoteExcerpt": "Thus, we consider both the critical path cost and the total cost.",
+            "metrics": [],
+            "sourceUrl": "https://doi.org/10.1609/aaai.v37i9.26343"
+          },
+          {
+            "refId": "ev-autograph-2",
+            "section": "§Experiments 模型推理时延（Table 2，PDF p.6）",
+            "quoteExcerpt": "method achieves speedup ranging from 1.04× to 3.47× on the benchmark models.",
+            "metrics": [
+              "IOS/Nimble：1.06–1.26×",
+              "TASO+Nimble：1.04–3.47×",
+              "RNNTC-SRU：0.387 ms，持平"
+            ],
+            "sourceUrl": "https://doi.org/10.1609/aaai.v37i9.26343"
+          },
+          {
+            "refId": "ev-autograph-3",
+            "section": "§Case Studies for Graph Optimizations 图改写案例（Table 2，PDF p.6）",
+            "quoteExcerpt": "TASO applies all the three substitutions for each cell in the network and transforms the multi-branch structures into a single link with large kernels.",
+            "metrics": [
+              "NasNet-Mobile：2.320→6.540→1.883 ms",
+              "叠加 TASO：延迟变为 2.82 倍",
+              "联合优化：相对组合基线 3.47×"
+            ],
+            "sourceUrl": "https://doi.org/10.1609/aaai.v37i9.26343"
+          }
+        ]
+      }
+    ],
+    "prs": [
+      {
+        "id": "pr-vllm-ascend-19716",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm-ascend#19716",
+        "repository": "vllm-project/vllm-ascend",
+        "number": 19716,
+        "title": "[Performance] Overlap Engram WKV projections with MoE dispatch",
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/19716",
+        "state": "open",
+        "vllmStatus": "open_pr",
+        "ascendApplicability": "ascend_pr_available",
+        "displayTitle": "WKV 与专家分发重叠的争用代价",
+        "ascendEvidence": "依据冻结综述及一手 PR 抽查记录；本地未保存完整作者正文，以下测量为记录中的作者报告，未经独立复现。冻结记录将提案限定于昇腾完整图、序列并行和张量并行度大于 1 的路径，功能默认关闭；服务对照受基线波动影响。",
+        "hardwareDependency": "依赖昇腾 NPU、完整图执行、序列并行及张量并行度大于 1；指定冻结材料未给出可核验的完整设备、模型和负载配置。",
+        "summaryLine": "在完整执行图内提前启动 WKV 投影并重叠专家分发，首组服务对照呈正向变化，但投影因争用变慢且后续基线波动明显。",
+        "problem": "Engram 的 WKV 投影与专家分发存在可重叠工作，但辅助流提前执行并不增加可用计算或带宽资源。投影可能因争用变慢，服务首组正向变化也可能被基线和调度波动掩盖。",
+        "optimization": "在完整 ACL Graph 中用辅助流提前执行 WKV 投影，与专家分发重叠，尝试隐藏消费者等待；功能默认关闭，适用配置限于序列并行及张量并行度大于 1。冻结材料不足以确认完整实现及所有兼容组合。",
+        "effectsAndLimits": {
+          "resultSummary": "冻结综述记载首组服务对照呈正向变化，随后相同源码基线明显波动；局部 WKV 投影耗时由约 328 增至 443 µs，说明投影本身变慢。所列冻结证据没有可追溯的成对吞吐、尾延迟明细或测试通过数，不能据此声称稳定加速。",
+          "experimentalConditions": "冻结记录限定昇腾完整图、序列并行及张量并行度大于 1；局部投影计时与服务对照分别评价。所列冻结证据未保存可核验的设备数、量化、KV 预算、请求轨迹、预热和重复次数，不能补写具体配置。",
+          "limitations": "本地未归档完整作者 PR 正文，证据依赖冻结综述的一手 PR 抽查，未独立复现或核验完整补丁。首组服务改善与局部投影变慢并存，相同源码基线及调度波动使稳定净收益和因果份额仍不确定；不能外推其他设备或生产负载。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-pr-19716-1",
+            "section": "冻结综述一手 PR 抽查 · 服务对照与基线波动",
+            "quoteExcerpt": "证据摘要：综述记录首轮服务表现有改善，后续同源码结果波动，尚不能据此确认稳定收益。",
+            "metrics": [
+              "服务对照：仅记录首组正向变化与后续基线波动，未保存可核验的成对吞吐数值。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/19716"
+          },
+          {
+            "refId": "ev-pr-19716-2",
+            "section": "冻结综述一手 PR 抽查 · 设备剖析",
+            "quoteExcerpt": "证据摘要：局部投影并未加快，记录中的耗时由约 328 µs 升至 443 µs；重叠主要意在隐藏等待。",
+            "metrics": [
+              "WKV 投影耗时：约 328→443 µs；非完整服务时延。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/19716"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-ascend-19909",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm-ascend#19909",
+        "repository": "vllm-project/vllm-ascend",
+        "number": 19909,
+        "title": "[Performance] Automatically budget FlashMLA DCP overlap cores",
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/19909",
+        "state": "open",
+        "vllmStatus": "open_pr",
+        "ascendApplicability": "ascend_pr_available",
+        "displayTitle": "按图容量预算 FlashMLA 重叠资源",
+        "ascendEvidence": "依据冻结综述及一手 PR 抽查记录；本地未保存完整作者正文，以下测量为记录中的作者报告，未经独立复现。记录提供指定 950DT 的小形状算子组合微基准及输出验证，真实多卡服务、其他设备与代表性负载仍待验证。",
+        "hardwareDependency": "现有记录限定昇腾 950DT 与 FlashMLA 解码上下文并行的注意力和打包组合；没有可核验的完整核数配置、生产服务拓扑或其他设备结果。",
+        "summaryLine": "按捕获图容量限制小规模打包的并发资源，减少其与 FlashMLA 注意力的争用，微基准降时但尚无多卡服务收益验证。",
+        "problem": "当前块注意力与历史结果打包并行时共享向量计算资源。小规模打包若占满并发资源，可能拖慢注意力主计算；较大打包若受过严限制，其自身耗时又会增长，使统一限核策略出现负收益。",
+        "optimization": "依据捕获容量固定注意力与打包的资源上限，使小规模打包与注意力共享向量资源，并以事件保证就绪；较大形状保留完整并行度。该计划不是逐轮按实际活跃词元动态重算，具体能力查询及回退实现尚不能从所列冻结材料完整核验。",
+        "effectsAndLimits": {
+          "resultSummary": "未提供端到端吞吐/延迟基准。冻结综述在指定 950DT 的 8 词元合成算子组合中记录约 22.91→12.87 µs，较大形状保留完整并行度。记录提及输出验证，但未保存可核验的测试通过数；这些证据不能替代真实多卡服务测量。",
+          "experimentalConditions": "指定昇腾 950DT，小形状证据为 8 词元注意力与打包组合；计量对象是算子组合而非请求端到端时延。所列冻结材料未保存可核验的核数配额、输入步长、采样轮数或每轮图重放次数，不沿用无法追溯的细节。",
+          "limitations": "本地未归档完整作者 PR 正文，证据依赖冻结综述的一手 PR 抽查，未独立复现或核验完整补丁。图容量决定的固定计划可能偏离实际活跃词元需求，资源上限也不能消除其他工作的竞争。合成算子组合与输出验证尚未覆盖真实多卡服务、其他设备族及代表性负载。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-pr-19909-1",
+            "section": "冻结综述一手 PR 抽查 · 资源上限与能力边界",
+            "quoteExcerpt": "证据摘要：记录按已捕获规模制定资源计划，小任务可与注意力共享向量资源，大任务仍采用完整并行度。",
+            "metrics": [
+              "计划选择依据：捕获容量。",
+              "边界：较大形状不削减原有并行规模。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/19909"
+          },
+          {
+            "refId": "ev-pr-19909-2",
+            "section": "冻结综述一手 PR 抽查 · 950DT 微基准",
+            "quoteExcerpt": "证据摘要：指定设备的小形状组合计时约从 22.91 µs 降到 12.87 µs；完整多卡服务及其他设备仍无验证。",
+            "metrics": [
+              "950DT、8 词元算子组合耗时：约 22.91→12.87 µs。",
+              "记录提及输出验证，未保存可核验的测试通过数。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/19909"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-63483",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm#63483",
+        "repository": "vllm-project/vllm",
+        "number": 63483,
+        "title": "[Core][DBO] Dual batch overlap under pure tensor parallelism (split PR of M3.1)",
+        "url": "https://github.com/vllm-project/vllm/pull/63483",
+        "state": "merged",
+        "mergedAt": "2026-11-14T19:22:29Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "unverified",
+        "displayTitle": "双批次重叠与图模式的组合边界",
+        "ascendEvidence": "vLLM 上游已合并，作者报告 AMD MI355X 与 ROCm 验证；所给材料未提供昇腾设备、vLLM-Ascend 或 ACL Graph 适配证据。",
+        "hardwareDependency": "纯张量并行度大于 1，单数据并行副本、无专家并行，采用第二代模型运行架构；实测 AMD MI355X 四路张量并行，触发双微批切分的步骤使用无图逐算子执行。",
+        "summaryLine": "纯张量并行下交替推进两个微批，以计算覆盖全归约通信，但切分步骤退回无图执行，服务收益随并发和负载变化。",
+        "problem": "纯张量并行推理中，全归约通信会使计算等待。双微批可相互填补等待时间，但 ROCm 默认优先级下通信与计算可能共用硬件队列，静态图及融合操作也会限制微批交接。",
+        "optimization": "将超过阈值的步骤拆为两个微批，各自建立通信通道；一个微批全归约时，另一个进行计算，二者共用计算流与工作区。ROCm 侧提高通信流优先级并提前预热矩阵计算资源。切分步骤采用无图执行，停用妨碍交接的全归约与归一化融合；未切分步骤保留原有图及融合路径。",
+        "effectsAndLimits": {
+          "resultSummary": "作者端到端对照中，并发 32 时，P90 单用户速率 75.4→73.7 tokens/s/user、吞吐 44573→44009 tokens/s/GPU，均退化；P90 首词元延迟 1.33→1.11 s 则降低。并发 64 时，单用户速率 23.6→30.8 tokens/s/user，作者报告增加 31%；吞吐 53692→59281 tokens/s/GPU，作者报告增加 10%，P90 首词元延迟 5.23→3.21 s。另一组长提示服务测试中，16K、32K、64K 提示的首词元延迟中位数分别为 468→304、952→582、1930→1545 ms；8 并发、16K 提示吞吐 35.0K→56.4K tokens/s，增加约 61%。另有 85 项功能测试通过，独立于上述服务基准。",
+          "experimentalConditions": "首组使用 MI355X、四路张量并行、M3 的 MXFP4 专家模型，多轮智能体轨迹持续 3600 s，并发 32 和 64 各测一次，预填充与解码切分阈值分别为 8192 和 32768 词元。公开 MiniMax-M3.1-Flash 验证采用 NVFP4 KV Cache，阈值为 16384 和 32768 词元，回放 AgentX 并发 16、32 的前 20 分钟轨迹，采用 DSpark 3 和 7、合成接受长度 2.88 和 4.04，每点一次。长提示单请求延迟取 3 次中位数，批次词元上限 32768；8 并发吞吐未说明重复次数。",
+          "limitations": "切分步骤退出静态图，因此该改动提供跨微批重叠，而非图内双批重叠。首组使用携带改动的 M3 服务分支，每点仅一次且并发 32 已有负收益。公开模型虽无服务错误，每点仍有 1–2 个无内容响应。第一代运行架构不支持该模式，视觉编码位于切分范围之外；不同并发、模型及昇腾后端需分别验证。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-pr-63483-1",
+            "section": "PR 正文 · 图模式组合边界",
+            "quoteExcerpt": "Split steps run without CUDA Graph.",
+            "metrics": [
+              "切分步骤：无图执行",
+              "未切分步骤：保留原图路径"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/63483"
+          },
+          {
+            "refId": "ev-pr-63483-2",
+            "section": "PR 正文 · M3 端到端服务验证",
+            "quoteExcerpt": "证据摘要：MI355X 的四路张量并行服务采用多轮智能体轨迹，每个并发点仅运行一次，不能由单点差距推断稳定收益。",
+            "metrics": [
+              "并发 32 吞吐：44573→44009 tokens/s/GPU",
+              "并发 64 吞吐：53692→59281 tokens/s/GPU",
+              "并发 32/64 首词元延迟：1.33→1.11 / 5.23→3.21 s",
+              "3600 s，每点 1 次"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/63483"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-66812",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm#66812",
+        "repository": "vllm-project/vllm",
+        "number": 66812,
+        "title": "[Kernel][Perf] Run GLM-5.3-Flash FP8 routed experts in SM90 DeepGEMM Mega MoE",
+        "url": "https://github.com/vllm-project/vllm/pull/66812",
+        "state": "merged",
+        "mergedAt": "2026-11-19T20:04:41Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "cuda_specific_needs_port",
+        "displayTitle": "Mega MoE 收益中的计算与 KV 混杂",
+        "ascendEvidence": "vLLM 已合并的 CUDA 后端优化，作者报告 NVIDIA H200 性能与 B300 回归验证；未提供昇腾实现或 ACL Graph 验证，迁移需重做算子、通信及图内内存适配。",
+        "hardwareDependency": "面向 NVIDIA Hopper SM90，实测 H200 四卡或八卡数据并行加专家并行，张量并行度 1、单专家组；GLM-5.3-Flash 使用 128×128 分块 FP8 权重。BF16 路径仍限 SM100，另有 B300 回归验证。",
+        "summaryLine": "在 H200 上融合路由与共享专家并减少图内工作区占用，但更大 KV Cache 混入服务收益，等容量后领先收窄且有退化。",
+        "problem": "GLM-5.3-Flash 的分块 FP8 专家需要适配 H200 融合执行。不同后端同时改变计算通信开销与工作区占用，进而挤占或释放 KV 容量，影响并发、前缀复用和排队；相同显存使用比例下的服务差距因此包含计算与容量两类效应。",
+        "optimization": "在 SM90 上接入直接使用分块 FP8 权重及缩放系数的 Mega MoE 执行路径，将路由专家和共享专家合并执行，并简化专家选择。各专家层复用在图捕获外一次分配的对称缓冲区，缩小图内工作区，为 KV Cache 释放空间；重载权重时原位更新缩放数据，保持捕获地址稳定。",
+        "effectsAndLimits": {
+          "resultSummary": "作者端到端基准的默认内存配置中，四卡每 GPU 的 KV 容量分别为 Mega MoE 31.24、主线 27.68、DeepEP v2 28.14、FlashInfer 26.80 GiB；八卡分别为 Mega MoE 66.44、FlashInfer 60.12、主线 54.05 GiB。四卡固定每引擎 24 GiB KV 后，AgentX 并发 16 的整机输出吞吐为 339.97 tokens/s，相对主线 303.56 增加 12.0%，相对 FlashInfer 307.65 增加 10.5%；并发 64 为 427.15 tokens/s，相对主线 367.40 增加 16.3%，相对 FlashInfer 436.25 退化 2.1%。并发 64 相对主线的领先从早期默认内存的+71%收窄至等 KV 容量的+16.3%，作者将早期差距主要归于更大缓存。早期四卡并发 128 的单用户速率 5.2→4.6 tokens/s/user，作者报告退化 12%并认为处于噪声范围。另有权重重载与图回放功能验证。",
+          "experimentalConditions": "GLM-5.3-Flash FP8，四张 H200 采用四路数据并行及专家并行，八张采用八路数据并行及专家并行；显存使用比例 0.92，关闭多词元预测与专家负载均衡，采用前缀感知路由。随机负载为输入 1k、输出 1k，或输入 8k、输出 256，每点重置前缀缓存；AgentX 每并发级回放 900 s。等容量对照为每引擎 24 GiB、1571260 个 KV 词元、最多 384 个序列，吞吐计整台服务输出。主体性能点各单次，部分低并发点两次；后续随机负载四点各进行两次交错复测取均值，GSM8K 每方案两次。",
+          "limitations": "默认内存结果混合计算改进、工作区节省和 KV 容量收益，等容量下仍有正收益与退化。主体性能点多为单次，早期并发 128 和 256 的客户端噪声约 9%；同方案八卡跨主机复测中，8k 输入、并发 16 和 64 的吞吐分别低 6.6%和 2.2%，其余点差异在 1%以内。主线四卡默认内存配置曾一次内存不足，八卡未复现。当前配方限文本、张量并行度 1 和单专家组；部分 SM90 测试仅在 H200 手动执行，尚无持续集成覆盖。每方案两次的精度评估仍无法排除约 1 个百分点以下的下降。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-pr-66812-1",
+            "section": "PR 正文 · 默认内存配置与共享工作区",
+            "quoteExcerpt": "证据摘要：专家层复用在捕获范围外建立的对称工作区，默认预算下各后端可用于键值状态的容量不同。",
+            "metrics": [
+              "共享缓冲区：约 1.4 GiB。",
+              "四卡每 GPU 的 KV 容量，依次为 Mega MoE、主线、DeepEP v2、FlashInfer：31.24、27.68、28.14、26.80 GiB。",
+              "八卡每 GPU 的 KV 容量，依次为 Mega MoE、FlashInfer、主线：66.44、60.12、54.05 GiB。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/66812"
+          },
+          {
+            "refId": "ev-pr-66812-2",
+            "section": "PR 正文 · 四卡 H200 等 KV 容量对照与归因",
+            "quoteExcerpt": "证据摘要：固定缓存后，较早配置的显著领先明显收窄；并发六十四时仍优于主线，但落后于 FlashInfer。",
+            "metrics": [
+              "等 KV 容量：每引擎 24 GiB。",
+              "并发 64 整机吞吐：Mega MoE 427.15、主线 367.40、FlashInfer 436.25 tokens/s。",
+              "相对主线 +16.3%；相对 FlashInfer −2.1%；早期默认内存相对主线 +71%。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/66812"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "p4",
+    "index": 4,
+    "slug": "distributed-load-comm-conflict",
+    "title": "多卡 / 超节点负载不均与集合通信一致性的冲突",
+    "shortTitle": "多卡负载与通信一致性",
+    "priorityBadge": "P0 · 集群扩展",
+    "gap": {
+      "background": "在多卡与超节点混合专家推理场景下，路由倾斜、空闲参与方再激活及流水阶段图桶差异，会有真实行参与、跨卡负载与通信推进不一致的问题。填充行进入专家分发会制造热点，漏掉集合通信参与方则可能挂起；集合通信与 PP 传输都须维持数据对应、就绪、可见性和完成次序，最慢参与方因而放大全局等待。本题研究跨卡协调与推进，局部资源争用及多优化干扰由 P3 讨论。",
+      "existingLimitations": "虽然当前现有的工作中，本题八卡 FlashOverlap、FlashMoE、MegaScale-Infer、CloudMatrix384，以及 vLLM-Ascend #20242、#22200 和 vLLM #66465、#66799，已从信号重叠、常驻调度、解耦流水、超节点通信以及填充屏蔽、参与补齐和 PP 真实行传输角度缓解这一问题，但是因为这些机制尚未刻画 TP、DP、EP 强通信契约下本地图计划的组合代价，PP 阶段边界的自由不能直接外推至集合通信，仍然没有彻底解决。本题八卡之外，外部比较基线包括 vLLM #63556 的不均衡解码行暂存提案、SGLang #31195 的跨 TP 验证预算广播，以及 Bullet（ASPLOS 2026，arXiv:2504.19516）、Drift（arXiv:2504.14489v2）与 SET（Euro-Par 2026，arXiv:2606.05495v1），均不属于本题附卡。",
+      "researchOpportunity": "因此我们从跨卡逻辑通信契约与本地静态图计划解耦方向出发，有机会在明确的负载与后端约束下缓解此问题，并检验收益能否覆盖新增成本；前提是既有修复后仍有可重复协调损失。按并行类型约束参与者、有效行、分片及完成次序，联合选择有限合法计划。先固定两卡路由轨迹，扫描倾斜、空闲再激活与布局；对照大桶、密桶、暂存、真实行传输、预算广播及最佳静态计划，计入搬运与协调成本，检验输出、最慢卡等待及服务吞吐；普通修复若已消除损失即停止。",
+      "keyTakeaway": "研究空间取决于既有修复后的可重复协调损失，核心是守住逻辑通信契约并释放各卡本地图计划自由。"
+    },
+    "papers": [
+      {
+        "id": "paper-hong2026flashoverlap",
+        "kind": "paper",
+        "paperId": "hong2026flashoverlap",
+        "arxivId": "2504.19519",
+        "title": "Efficient and Adaptable Overlapping for Computation and Communication via Signaling and Reordering",
+        "url": "https://doi.org/10.1145/3767295.3769370",
+        "authors": [
+          "Ke Hong",
+          "Xiuhong Li",
+          "Minxu Liu",
+          "Qiuli Mao",
+          "Tianqi Wu",
+          "Zixiao Huang",
+          "Lufang Chen",
+          "Zhong Wang",
+          "Yichong Zhang",
+          "Zhenhua Zhu",
+          "Guohao Dai",
+          "Yu Wang"
+        ],
+        "venueOrYear": "EuroSys 2026",
+        "venueName": "EuroSys",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "以分组就绪信号和可逆数据重排衔接矩阵乘与集合通信，在维持跨卡数据对应关系的同时，权衡计算效率、通信带宽与重叠粒度。",
+        "problem": {
+          "scenario": "多卡大模型在矩阵乘之后执行归约、分片或专家路由通信，各卡数据就绪进度随形状与负载变化。",
+          "existingGap": "粗粒度拆分损伤矩阵乘效率，深度融合提高适配成本；逐块发送虽可提前通信，却容易因消息过小而浪费带宽。",
+          "impact": "计算与通信难以充分重叠，慢卡和通信碎片共同拉长关键路径；若重排改变逻辑对应关系，还会破坏归约或路由结果。"
+        },
+        "method": {
+          "keyIdea": "用分组就绪信号分离计算完成与通信启动，再将就绪数据重排为连续片段，使重叠粒度同时适应计算波次和通信带宽。",
+          "designPoints": [
+            {
+              "title": "分组完成计数（Group-wise Tile Counting）",
+              "challengeAddressed": "等待完整算子结束会错过重叠窗口，逐块触发通信又会产生过多小消息。",
+              "mechanism": "按矩阵乘波次组织数据块，以组内完成计数触发对应通信，使后续计算与先完成分组的传输并行。"
+            },
+            {
+              "title": "执行序感知重排（Execution-Order-Aware Reordering）",
+              "challengeAddressed": "先完成的数据块在内存中未必连续，改变发送顺序还可能破坏跨卡数据对应关系。",
+              "mechanism": "将同组数据组织为连续区域；归约采用跨卡一致排列，分片与路由保留完整行及目标归属，通信后恢复逻辑顺序。"
+            },
+            {
+              "title": "预测式分组搜索（Predictive Search）",
+              "challengeAddressed": "通信分组同时受到带宽、启动成本和资源争用影响，路由倾斜又会改变慢卡位置。",
+              "mechanism": "依据计算和带宽画像预测候选划分的时延，约束首尾分组并搜索配置；不均衡路由按各卡累计时延的最大值估计推进速度。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "RTX 4090 算子时延相对非重叠执行的加速比为 1.02–1.65×，相对分解基线为 0.98–1.46×，后者包含退化。A800 端到端任务吞吐为原系统的 1.05–1.13×。Ascend 910B 在典型大模型矩阵乘形状、张量并行度 2 和 4 下，相对 TBE 矩阵乘加 HCCL 通信，矩阵乘与全归约总时延最高加速 1.37×。",
+          "experimentalConditions": "GPU 算子实验覆盖 2、4、8 卡 A800 及 RTX 4090，每种通信模式超过 50 种矩阵乘形状；前者采用成对 NVLink，后者采用跨 NUMA 的 PCIe。910B 采用 TBE 矩阵乘加 HCCL 通信作基线。A800 端到端任务包括 Llama3-70B 推理与训练、Mixtral-8x7B 训练及 Step-Video-T2V 生成；前三者分别采用张量并行 8、张量并行 8、专家并行 4 与张量并行 2，视频任务采用张量并行 4。",
+          "limitations": "收益依赖矩阵形状、分组粒度和资源争用。按块、子块、子词元重排时，A800 的均方根归一化平均开销为 7.46%、7.93%、8.45%，RTX 4090 为 8.80%、8.78%、9.63%；矩阵乘按块重排的对应开销为 0.07%、0.35%，按子块或子词元为 0.67%、0.68%。Llama3 与 Mixtral 训练仅采用 8 层和 4 层。910B 证据限于矩阵乘与全归约算子，未覆盖端到端推理服务或 ACL Graph。本卡提取的测量来自 arXiv:2504.19519v2 预印本，正式发表身份沿用锁定元数据。",
+          "engineeringApplicability": "GPU 有算子与端到端实测；昇腾 910B 仅验证矩阵乘与全归约重叠，尚无推理服务或 ACL Graph 实证。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "fo-ascend-operator",
+            "section": "§6.7 昇腾算子重叠（Figure 16，PDF p.14）",
+            "quoteExcerpt": "As depicted in Fig. 16, the proposed design consistently brings acceleration on all tested cases, and achieves up to 1.37× speedup for the total latency of the GEMM+AR operation.",
+            "metrics": [
+              "Ascend 910B；TP=2/4",
+              "矩阵乘与全归约最高加速 1.37×"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2504.19519v2"
+          },
+          {
+            "refId": "fo-gpu-results",
+            "section": "§6.2–§6.3 GPU 算子与端到端结果（Figures 10–12，PDF pp.11–12）",
+            "quoteExcerpt": "RTX 4090 GPUs, FlashOverlap achieves 1.02-1.65× speedup over the non-overlap baseline, and 0.98-1.46× speedup over the decomposition-based method.",
+            "metrics": [
+              "RTX 4090：对非重叠基线 1.02–1.65×",
+              "RTX 4090：对分解基线 0.98–1.46×",
+              "A800 端到端吞吐 1.05–1.13×"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2504.19519v2"
+          },
+          {
+            "refId": "fo-reordering-overhead",
+            "section": "§6.6 重排开销（Table 5，PDF pp.13–14）",
+            "quoteExcerpt": "The pre-communication reorderings are fused into the GEMM epilogue, bringing an average overhead of 0.07%/0.35% with tiles, and 0.67% /0.68% with subtiles and subtokens",
+            "metrics": [
+              "A800 归一化重排开销 7.46%/7.93%/8.45%",
+              "RTX 4090 归一化开销 8.80%/8.78%/9.63%",
+              "矩阵乘块重排开销 0.07%/0.35%",
+              "矩阵乘细粒度重排开销 0.67%/0.68%"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2504.19519v2"
+          }
+        ]
+      },
+      {
+        "id": "paper-aimuyo2025flashmoe",
+        "kind": "paper",
+        "paperId": "aimuyo2025flashmoe",
+        "arxivId": "2506.04667",
+        "title": "FlashMoE: Fast Distributed MoE in a Single Kernel",
+        "url": "https://proceedings.neurips.cc/paper_files/paper/2025/hash/918d938bd209e5b56072777366f8a211-Abstract-Conference.html",
+        "authors": [
+          "Aimuyo, Osayamen Jonathan",
+          "Oh, Byungsoo",
+          "Singh, Rachee"
+        ],
+        "venueOrYear": "NeurIPS 2025",
+        "venueName": "NeurIPS",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "将专家路由、计算与通信组织为设备常驻任务流水线，以数据就绪信号减少整组等待，并通过本地填充避免传输无效词元。",
+        "problem": {
+          "scenario": "单节点多 GPU 的混合专家前向层中，各专家收到的词元数不同，路由、专家计算和结果汇合形成动态依赖。",
+          "existingGap": "主机反复启动短算子，整组同步通信等待所有参与卡；统一容量产生的填充数据还会占用网络。",
+          "impact": "启动与处理速度差异被整组等待放大，快卡空闲且传输负担增加，专家负载不均难以转化为局部独立推进。"
+        },
+        "method": {
+          "keyIdea": "将专家前向层转化为设备常驻任务流水线，以数据到达触发细粒度计算，网络只传输真实词元，容量对齐留在本地完成。",
+          "designPoints": [
+            {
+              "title": "常驻任务调度（Persistent Task Scheduling）",
+              "challengeAddressed": "频繁主机启动和固定阶段边界造成设备空闲，动态路由持续改变可执行任务。",
+              "mechanism": "以常驻内核承载路由、专家计算和结果汇合，将执行单元分为调度、接收与计算角色，向空闲单元派发依赖已满足的数据块任务。"
+            },
+            {
+              "title": "单边完成通知（One-Sided Completion Signaling）",
+              "challengeAddressed": "整组同步把局部数据依赖扩大为所有设备之间的等待。",
+              "mechanism": "设备主动写入对端缓冲并附带完成信号；接收侧确认数据可见后推进任务，将依赖粒度缩小到消息或数据块。"
+            },
+            {
+              "title": "本地原地填充（In-Place Padding）",
+              "challengeAddressed": "专家负载不均需要容量对齐，发送填充浪费带宽，异步收发还可能发生写冲突。",
+              "mechanism": "在对称缓冲中为通信轮次与收发方向保留独立槽位；只发送真实词元，计算块对齐所需的填充在设备本地完成。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "8 张 H100、32 专家、每词元选择 2 个专家时，每卡 4K、8K、16K 词元的单层前向时延为 2.1、3.7、7.0 毫秒，FasterMoE 为 10.3、21.3、45.3 毫秒；8K 时总吞吐为 1770 万 tokens/s，是 FasterMoE 的 5.7 倍。另在 2 张 A100、64 专家的 100 次前向中，平均流多处理器利用率为 93.17%，Megatron 为 59.11%。",
+          "experimentalConditions": "单节点 8 张 H100 80 GB，采用 NVLink；仅测单个混合专家层前向，16 个注意力头，隐藏维与前馈中间维均为 2048，每词元选择 2 个专家，容量因子 1.0。每卡 4K、8K、16K 词元，预热 32 次后统计 32 次；对比 FasterMoE、Megatron-CUTLASS、Megatron-TE 及 Comet。FlashMoE 使用 FP32，基线使用 FP16。利用率另在 2 张 A100、64 专家、每词元选择 2 个专家下统计 100 次。",
+          "limitations": "评估限于单节点、单层前向，不能代表完整模型服务、训练或跨节点性能。FP32 与 FP16 精度不对等，低精度路径尚未充分调优；8 卡结果排除了表现异常的 Comet。对称收发缓冲通常约为原词元缓冲的 4 倍，容量对齐还可能增加占用，设备常驻任务调度也提高了实现复杂度。本卡提取的测量来自 arXiv:2506.04667v3 预印本，正式发表身份沿用锁定元数据。",
+          "engineeringApplicability": "实测限于 H100 与 A100 GPU；常驻调度和单边通知可供昇腾参考，昇腾实现及 ACL Graph 兼容性均未验证。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "fm-local-padding",
+            "section": "§3、§3.2.1 本地填充与缓冲（Figure 6，PDF pp.4–8）",
+            "quoteExcerpt": "In contrast, we propose in-place padding, performing padding directly within the local symmetric tensor buffers and thus eliminating excess network communication.",
+            "metrics": [
+              "对称词元缓冲通常约 4 倍"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2506.04667v3"
+          },
+          {
+            "refId": "fm-forward-and-precision",
+            "section": "§4、§4.1、§4.3 前向性能与精度（Figures 8、10，PDF pp.8–9）",
+            "quoteExcerpt": "evaluate FlashMoE using FP32 precision whereas all baselines use FP16. We do so because (1) of incomplete fp16 tuning (§H) and (2) no baseline supports FP32.",
+            "metrics": [
+              "精度：FP32 对 FP16",
+              "8×H100；32 专家；每词元 2 专家",
+              "4K/8K/16K 前向：2.1/3.7/7.0 毫秒",
+              "FasterMoE：10.3/21.3/45.3 毫秒",
+              "8K 总吞吐 1770 万 tokens/s；5.7 倍"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2506.04667v3"
+          },
+          {
+            "refId": "fm-a100-utilization",
+            "section": "§4.2 A100 利用率（Figure 9，PDF p.9）",
+            "quoteExcerpt": "To quantify GPU efficiency, we measure Streaming Multiprocessor (SM) utilization during the forward pass (Figure 9). FlashMoE achieves 93.17% average SM utilization",
+            "metrics": [
+              "2×A100；64 专家；100 次前向",
+              "平均利用率 93.17%对 59.11%"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2506.04667v3"
+          }
+        ]
+      },
+      {
+        "id": "paper-zhu2025megascaleinfer",
+        "kind": "paper",
+        "paperId": "zhu2025megascaleinfer",
+        "arxivId": "2504.02263",
+        "title": "MegaScale-Infer: Efficient Mixture-of-Experts Model Serving with Disaggregated Expert Parallelism",
+        "url": "https://doi.org/10.1145/3718958.3750506",
+        "authors": [
+          "Ruidong Zhu",
+          "Ziheng Jiang",
+          "Chao Jin",
+          "Peng Wu",
+          "Cesar A. Stuardo",
+          "Dongyang Wang",
+          "Xinlei Zhang",
+          "Huaping Zhou",
+          "Haoran Wei",
+          "Yang Cheng",
+          "Jianzhe Xiao",
+          "Xinyi Zhang",
+          "Lingjun Liu",
+          "Haibin Lin",
+          "Li-Wen Chang",
+          "Jianxi Ye",
+          "Xiao Yu",
+          "Xuanzhe Liu",
+          "Xin Jin",
+          "Xin Liu"
+        ],
+        "venueOrYear": "SIGCOMM 2025",
+        "venueName": "SIGCOMM",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "将注意力与专家分置到不同节点，通过多个注意力副本汇聚专家批次，再以乒乓微批流水和定向传输提高解码资源利用率。",
+        "problem": {
+          "scenario": "多节点混合专家解码中，稀疏路由使每个专家仅处理少量词元，注意力侧却需保存持续增长的 KV Cache。",
+          "existingGap": "整模型共置难以同时满足注意力的内存需求和专家的批量计算需求，拆分部署又引入逐层跨节点传输及两端交替空闲。",
+          "impact": "批量受显存与时延约束，注意力和专家负载失配时，通信等待与流水气泡进一步降低单位资源吞吐。"
+        },
+        "method": {
+          "keyIdea": "分离注意力与专家资源，以多个注意力副本汇聚较大的专家批次，再通过跨微批流水覆盖传输，并按两端耗时匹配资源。",
+          "designPoints": [
+            {
+              "title": "解耦专家并行（Disaggregated Expert Parallelism）",
+              "challengeAddressed": "专家批次过小，整模型共置又限制注意力与专家独立扩展。",
+              "mechanism": "注意力副本分别保留 KV Cache，将请求汇聚到独立专家节点；两侧分别选择并行度与硬件，使内存带宽和矩阵计算需求各自得到匹配。"
+            },
+            {
+              "title": "乒乓微批流水线（Ping-Pong Pipeline Parallelism）",
+              "challengeAddressed": "顺序依赖造成注意力和专家交替空闲，过多微批又会损伤专家计算效率。",
+              "mechanism": "让不同微批在两侧交替推进，联合选择副本数、并行度、批量与微批数，使两端耗时接近，并满足通信覆盖条件和逐词元时延上限。"
+            },
+            {
+              "title": "通信完成排序（Communication Completion Ordering）",
+              "challengeAddressed": "动态多对多传输需要同时保证数据可见、低启动成本与缓冲复用安全。",
+              "mechanism": "由主机发起预注册设备缓冲之间的远程写入，以设备事件、完成队列和共享标志衔接计算流；接收端确认数据可见后放行计算，传输完成前禁止复用缓冲。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "同构 Ampere 集群中，Scaled-MoE 按 GPU 数归一化的纯解码吞吐为 vLLM 的 7.11 倍、TensorRT-LLM 的 1.90 倍；包含预填充的端到端单卡吞吐最高为对比系统的 1.18 倍。H20 执行注意力、L40S 执行专家时，按论文采购成本归一化的纯解码吞吐最高为 H20 上两基线的 3.24 倍、1.86 倍。通信微基准在 8 个发送者、8 个接收者、每对 256 KB 下，相对 NCCL 中位时延降低 68.2%、第 99 百分位时延降低 92.9%，吞吐为 4.2 倍。",
+          "experimentalConditions": "同构集群为 8 节点、每节点 8 张 80 GB Ampere GPU，节点内 NVLink 带宽 400 GB/s，每卡配置 200 Gbps InfiniBand；异构集群采用 H20 与 L40S。模型为 Mixtral-8x22B 141B、DBRX 132B 及 Scaled-MoE 317B，权重、激活和 KV Cache 均为 BF16。生产数据输入与输出中位长度为 571 和 159 词元，以 vLLM 及 TensorRT-LLM 为基线，逐词元时延上限 150 毫秒。",
+          "limitations": "乒乓流水通过不同微批覆盖通信，不降低单个微批的逐词元时延，追求满负载还可能增加时延。收益依赖两端耗时接近，以及注意力节点按预计耗时均衡分批；专家热度或序列长度倾斜会在同步处形成气泡。逐层跨节点传输仍然存在，更小消息和更多专家可能削弱主机发起通信的优势；异构收益还依赖论文采用的采购价格。正式发表身份采用 SIGCOMM 2025 元数据；本卡数值来自 arXiv:2504.02263v4（标题为 Serving Mixture-of-Experts at Scale with Disaggregated Expert Parallelism），未另行核对正式版全文的数值一致性。",
+          "engineeringApplicability": "有 NVIDIA 同构及异构多节点实测；资源解耦和完成排序可供昇腾参考，昇腾部署与 ACL Graph 均未验证。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ms-decode-versus-end-to-end",
+            "section": "§7.2 解码与端到端吞吐（Figure 8，PDF p.12）",
+            "quoteExcerpt": "Consequently, MegaScale-Infer improves the decoding throughput per GPU for Scaled-MoE by 7.11× and 1.90× compared to vLLM and TensorRT-LLM, respectively.",
+            "metrics": [
+              "纯解码单卡吞吐 7.11 倍/1.90 倍",
+              "含预填充端到端单卡吞吐最高 1.18 倍"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2504.02263v4"
+          },
+          {
+            "refId": "ms-heterogeneous-cost",
+            "section": "§7.2 异构部署成本（Figure 9、Table 3，PDF pp.8、13）",
+            "quoteExcerpt": "This results in an improvement of up to 3.24× and 1.86× on the unit cost decoding throughput compared to vLLM and TensorRT-LLM on H20, respectively.",
+            "metrics": [
+              "单位采购成本解码吞吐 3.24 倍/1.86 倍"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2504.02263v4"
+          },
+          {
+            "refId": "ms-m2n-256kb",
+            "section": "§7.3 多对多通信微基准（Figure 11，PDF pp.13–14）",
+            "quoteExcerpt": "serving, such as 256 KB, MegaScale-Infer achieves improvements of 68.2% in median latency, 92.9% in tail latency, and a 4.2× increase in throughput.",
+            "metrics": [
+              "8 发送者×8 接收者；每对 256 KB",
+              "每卡 200 Gbps 网卡",
+              "中位时延降低 68.2%；P99 降低 92.9%",
+              "通信吞吐为 NCCL 的 4.2 倍"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2504.02263v4"
+          }
+        ]
+      },
+      {
+        "id": "paper-zuo2025cloudmatrix384",
+        "kind": "paper",
+        "paperId": "zuo2025cloudmatrix384",
+        "arxivId": "2506.12708",
+        "title": "Serving Large Language Models on Huawei CloudMatrix384",
+        "url": "https://arxiv.org/abs/2506.12708v3",
+        "authors": [
+          "Zuo, Pengfei",
+          "Lin, Huimin",
+          "Deng, Junbo",
+          "Zou, Nan",
+          "Yang, Xingkun",
+          "Diao, Yingyu",
+          "Gao, Weifeng",
+          "Xu, Ke",
+          "Chen, Zhangyu",
+          "Lu, Shirui",
+          "Qiu, Zhao",
+          "Li, Peiyang",
+          "Chang, Xianyu",
+          "Yu, Zhengzhong",
+          "Miao, Fangzheng",
+          "Zheng, Jia",
+          "Li, Ying",
+          "Feng, Yuan",
+          "Wang, Bei",
+          "Zong, Zaijian",
+          "Zhou, Mosong",
+          "Zhou, Wenli",
+          "Chen, Houjiang",
+          "Liao, Xingyu",
+          "Li, Yipeng",
+          "Zhang, Wenxiao",
+          "Zhu, Ping",
+          "Wang, Yinggang",
+          "Xiao, Chuanjie",
+          "Liang, Depeng",
+          "Cao, Dong",
+          "Liu, Juncheng",
+          "Yang, Yongqiang",
+          "Bai, Xiaolong",
+          "Li, Yi",
+          "Xie, Huaguo",
+          "Wu, Huatao",
+          "Yu, Zhibin",
+          "Chen, Lv",
+          "Liu, Hu",
+          "Ding, Yujun",
+          "Zhu, Haipei",
+          "Xia, Jing",
+          "Xiong, Yi",
+          "Yu, Zhou",
+          "Liao, Heng"
+        ],
+        "venueOrYear": "arXiv:2506.12708 (2025)",
+        "venueName": "arXiv",
+        "venueTier": "preprint",
+        "publicationStatus": "preprint",
+        "readDepth": "fulltext",
+        "summaryLine": "利用昇腾超节点的对等互联拆分服务资源池，以静态缓冲、完成信号和非对称双流流水支撑大规模动态专家通信与计算。",
+        "problem": {
+          "scenario": "昇腾超节点上的大规模混合专家服务，需要在数百个专家并行参与方之间传输动态词元，并协调预填充、解码与缓存。",
+          "existingGap": "动态路由改变通信形状和各卡负载，动态分配及主机同步增加开销；沿用 GPU 资源划分也难以匹配矩阵核、向量核与通信需求。",
+          "impact": "快卡可能覆盖慢卡尚未读完的数据，整组等待限制流水重叠，专家负载不均进一步压低吞吐。"
+        },
+        "method": {
+          "keyIdea": "将动态路由承载于预分配缓冲与计数元数据，通过完成信号保证远程数据可见，再按非对称计算资源组织双流流水。",
+          "designPoints": [
+            {
+              "title": "对等资源池（Peer-to-Peer Resource Pooling）",
+              "challengeAddressed": "预填充、解码和缓存需求不同，数据局部性限制调度，专家热点造成负载不均。",
+              "mechanism": "将三类服务拆成可独立扩缩的资源池，经统一互联访问共享内存；解码把细粒度专家分布到独立计算裸片，并通过冗余专家缓解热点。"
+            },
+            {
+              "title": "静态缓冲与完成信号（Static Buffers and Completion Signals）",
+              "challengeAddressed": "动态容量增加分配与同步成本，共用收发缓冲还可能在快慢参与方之间发生覆盖竞争。",
+              "mechanism": "按最大容量预分配独立派发和汇合缓冲，通过设备远程直写传送词元与元数据；数据写完后发布计数和标志，接收方确认就绪后消费。"
+            },
+            {
+              "title": "非对称资源流水线（Asymmetric Resource Pipelining）",
+              "challengeAddressed": "注意力与专家通信路径耗时不匹配，主机准备元数据和采样又打断设备执行。",
+              "mechanism": "为两条路径配置不同数量的矩阵核与向量核，使微批耗时接近并交错执行；批量准备动态元数据，将采样保留在设备侧。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "默认预填充实测为每 NPU 每秒 5655 词元；6688 词元是完美专家负载均衡的理想投影。采用一个推测词元并假设 70%有效接受率时，解码批量 96 对应每 NPU 每秒 1943 词元、逐输出词元 49.4 毫秒；严格低时延点为批量 8、538 词元、14.9 毫秒。UnifiedBus 上的 CANN 通信微基准在专家并行 256、每参与方 128 词元时，派发为 152 微秒和 54 GB/s，汇合为 149 微秒和 103 GB/s，带宽均按参与方计。",
+          "experimentalConditions": "论文将双裸片封装芯片统称为 Ascend 910，未标注具体后缀型号。384 NPU 超节点中使用 256 NPU、32 节点：解码占 160 NPU 及 320 裸片，专家与数据并行度均为 320；预填充为 6 组、每组 16 NPU，专家并行度 32。模型为 DeepSeek-R1 671B、INT8；预填充批量 16384 词元、输入 4096，解码 KV 长度 4096，低时延点输入与输出为 4096 和 256 词元、批量 8。通信测试以每裸片为一个参与方、每方 128 词元；GPU 对照采用公开 DeepSeek、SGLang 及 DeepEP 数据。",
+          "limitations": "完美专家均衡投影不能替代默认实测，解码结果依赖推测接受率假设。GPU 对比取自公开资料，硬件与批量并不相同。专家并行度从 8 增至 256 时，CANN 派发带宽由每参与方 71 降至 54 GB/s，汇合由 131 降至 103 GB/s，表明当前通信实现存在扩展瓶颈。昇腾硬件、CANN 及静态图执行已有证据，不能据此确认 vLLM-Ascend 实现或 ACL Graph 捕获重放接口。",
+          "engineeringApplicability": "有昇腾 910 超节点、UnifiedBus 及 CANN 实证；GPU 为公开数据对照，vLLM-Ascend 与 ACL Graph 接口适配仍属推断。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "cm-default-versus-perfect-eplb",
+            "section": "§5.2 默认实测与理想均衡（Table 2，PDF p.40）",
+            "quoteExcerpt": "These results represent projected performance under an idealized assumption of perfect load distribution across experts.",
+            "metrics": [
+              "默认实测 5655 tokens/s/NPU",
+              "完美均衡投影 6688 tokens/s/NPU",
+              "批量 16384 词元；输入 4096 词元"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2506.12708v3"
+          },
+          {
+            "refId": "cm-decode-mtp-and-latency",
+            "section": "§5.2 解码接受率与时延（Tables 3–4，PDF pp.40–41）",
+            "quoteExcerpt": "Notably, both the SGLang (Simulated MTP) and CloudMatrix-Infer configurations utilize multi-token prediction (MTP) with an assumed effective acceptance rate of 70% for a single speculative token.",
+            "metrics": [
+              "1 个推测词元；假设接受率 70%",
+              "批量 96：1943 tokens/s/NPU；49.4 毫秒",
+              "批量 8：538 tokens/s/NPU；14.9 毫秒"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2506.12708v3"
+          },
+          {
+            "refId": "cm-ep256-communication",
+            "section": "§5.5.1 大规模专家通信（Table 6，PDF pp.46–47）",
+            "quoteExcerpt": "large EP degrees, we observe a significant decline in the effective bandwidth of CANN EP on CloudMatrix384. This degradation highlights a scalability bottleneck in the current EP implementation,",
+            "metrics": [
+              "EP256；每参与方 128 词元",
+              "派发 152 微秒；54 GB/s/参与方",
+              "汇合 149 微秒；103 GB/s/参与方",
+              "EP8→256：派发 71→54 GB/s/参与方",
+              "EP8→256：汇合 131→103 GB/s/参与方"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2506.12708v3"
+          }
+        ]
+      }
+    ],
+    "prs": [
+      {
+        "id": "pr-vllm-ascend-20242",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm-ascend#20242",
+        "repository": "vllm-project/vllm-ascend",
+        "number": 20242,
+        "title": "[BugFix][MoE] Mask graph padding rows in Ascend MC2 dispatch",
+        "displayTitle": "屏蔽专家通信中的图填充热点",
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/20242",
+        "state": "merged",
+        "mergedAt": "2026-11-13T09:44:25Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "ascend_native",
+        "ascendEvidence": "昇腾原生 MC2 及融合通信路径修复。作者提供 Atlas 800I A3 性能对照、四卡 DeepSeek-V4-Flash 草稿接受率回归和 NPU 草稿输入测试；后续发布分支的 CPU 回归不构成新增 NPU 性能证据。",
+        "hardwareDependency": "性能实测为单节点 Atlas 800I A3、张量并行 16 与专家并行 16，采用 MC2 及第一代 FlashComm 通信。A2、310P、全收集或全互换分发、跨节点专家并行未纳入性能验证。",
+        "summaryLine": "利用本轮已刷新的有效行状态屏蔽专家通信中的图填充，并修正草稿输入，缓解热点与等待；无填充配置仍有轻微退化。",
+        "problem": "完整解码图按捕获容量补齐输入，相同填充行路由到相同专家，形成单卡热点，使其余十五张卡等待结果汇合。原通信掩码只识别序列及数据并行对齐填充，遗漏图填充；若重放启动后才刷新状态，设备还可能读取上一轮掩码。草稿输入若保留捕获时的全填充标记，启用屏蔽又会误丢真实草稿行。",
+        "optimization": "在运行器已于重放前正确发布本轮真实行状态的前提下，将有效行掩码与既有通信掩码取交集，按原有序列与张量并行布局对齐，并在一次前向的各专家层复用；普通与融合 MC2 路径共用该准备过程。草稿输入同步区分真实查询行和填充行。缺少真实行状态、性能剖析及预填充上下文并行等场景保留原掩码。",
+        "effectsAndLimits": {
+          "resultSummary": "作者端到端对照中，并发 1 的逐输出词元时延为 92.5→83.9 毫秒，下降 9.3%；并发 9 为 108.5→106.1 毫秒，下降 2.2%；无填充的并发 16 为 113.1→113.3 毫秒，轻微上升约 0.2%。并发 9 的算子剖析中，最慢卡每层两次分组矩阵乘合计 491→353 微秒，结果汇合通信 201→118 微秒，专家层 654→约 583 微秒。九请求和单请求贪心对照逐词元一致；另有 730 项 CPU 单元测试及 23 项 NPU 草稿输入测试通过。",
+          "experimentalConditions": "Atlas 800I A3 单节点，Kimi-K3 W4A8 截断为 48 层，张量与专家并行度均为 16，DSpark 生成 7 个草稿词元，仅解码完整图，采用第一代 FlashComm。同容器同配置，仅切换填充屏蔽；图容量 16 至 128、步长 16。并发 1、9、16 的填充行与总行数分别为 8/16、8/80、0/128。输入 512 词元，输出 1024 词元，并发 1 输出 512 词元；时延取两轮中位数的均值。并发 9 剖析覆盖 30 步、47 个专家层及 16 张卡。",
+          "limitations": "性能配置的草稿接受率接近零，每步只产出一个词元，因而主要验证批次填充及路由负载，不能代表正常接受率下的推测解码收益。四卡 DeepSeek-V4-Flash 接受率回归属于另一模型与配置。未测完整四节点、数据并行 4 与专家并行 64 部署，也未提供准确率基准或 NPU 混合负载性能验证。最终补丁可核实的改动是通信掩码与草稿准备；重放前刷新真实行状态仍是执行前提，不能将作者描述的额外输入准备修改视为已包含。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-pr-20242-1",
+            "section": "PR 正文 · 端到端性能、算子剖析与正确性测试",
+            "quoteExcerpt": "The padding rows all carry the same input, so they route to the same experts, and in MC2 those experts sit on one rank.",
+            "metrics": [
+              "并发 1 时延 92.5→83.9 毫秒",
+              "并发 9 时延 108.5→106.1 毫秒",
+              "并发 16 时延 113.1→113.3 毫秒；上升约 0.2%",
+              "并发 9 矩阵乘 491→353 微秒",
+              "汇合通信 201→118 微秒",
+              "专家层 654→约 583 微秒",
+              "CPU 单测 730 项；NPU 输入测试 23 项",
+              "性能配置草稿接受率接近 0"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/20242"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-ascend-22200",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm-ascend#22200",
+        "repository": "vllm-project/vllm-ascend",
+        "number": 22200,
+        "title": "[BugFix] Fix fine-grained embedding TP hangs with idle DP ranks",
+        "displayTitle": "让空闲参与方补齐词嵌入集合通信",
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22200",
+        "state": "merged",
+        "mergedAt": "2026-11-19T12:24:54Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "ascend_native",
+        "ascendEvidence": "修复昇腾第二代模型执行流程的输入准备。作者在 A3 NPU 上验证真实请求与空闲数据并行参与方共存的功能行为，证据支持通信参与一致性修复，未测性能收益。",
+        "hardwareDependency": "功能测试使用昇腾 A3 NPU、MiniMax-M3.1-Flash W8A8 动态量化，数据并行 4、张量并行 4、专家并行 16。触发条件为细粒度词嵌入张量并行、前向之外准备多模态或提示嵌入，以及同组存在空闲参与方。",
+        "summaryLine": "在细粒度词嵌入张量并行中，让空闲数据并行参与方执行同组必需通信，避免真实请求与占位批次并存时因参与缺失而挂起。",
+        "problem": "活跃参与方在输入准备时执行词嵌入查找，空闲参与方却直接复用预分配占位嵌入，遗漏同组全收集和归约分散。当嵌入在模型前向之外准备时，上游批次协调无法替代这些通信，参与不齐会使请求挂起。",
+        "optimization": "空闲参与方在返回原有占位缓冲前，执行既有细粒度词嵌入计算以补齐必需集合通信。执行位置保持在上游数据并行协调之后，并与真实批次处于同一输入准备边界，同时保留原有占位缓冲。",
+        "effectsAndLimits": {
+          "resultSummary": "未提供端到端吞吐/延迟基准。新增及相关单元测试 525 项通过、1 项跳过；A3 NPU 功能测试中，词嵌入张量并行 4、词嵌入与输出头均张量并行 4 两种配置各有 10/10 生成检查正确，运行时错误及设备超时均为 0，支持挂起修复结论。",
+          "experimentalConditions": "单元测试覆盖真实及空闲的多模态、提示嵌入路径，实际执行嵌入查找和词表掩码，分布式集合通信采用模拟。NPU 测试使用 MiniMax-M3.1-Flash W8A8 动态量化，数据并行 4、张量并行 4、专家并行 16，DSpark 七个草稿词元、贪心采样及仅解码完整图。两种细粒度配置均覆盖健康检查、模型列表、其他参与方空闲时的单请求、并发 2 和 4、空闲转活跃及独立客户端请求。",
+          "limitations": "单元测试证明所需参与行为，设备测试证明给定 A3 模型与并行配置可完成请求。作者未添加性能基准或性能回归测试，额外通信成本及吞吐、时延变化尚未量化，也未提供跨节点扩展数据。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-pr-22200-1",
+            "section": "PR 正文 · 单元测试及覆盖边界",
+            "quoteExcerpt": "Tests use the actual embedding lookup and vocabulary masking, with distributed collectives mocked.",
+            "metrics": [
+              "单元测试 525 项通过；1 项跳过"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/22200"
+          },
+          {
+            "refId": "ev-pr-22200-2",
+            "section": "PR 正文 · A3 NPU 功能测试",
+            "quoteExcerpt": "Each configuration passed health/model-list checks, a single request with other DPs idle, concurrency 2/4, idle-to-active transitions, and a request from a separate client.",
+            "metrics": [
+              "两种配置各 10/10 生成检查正确",
+              "运行时错误 0 次；设备超时 0 次",
+              "DP4×TP4/EP16；并发 2/4"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/22200"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-66465",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm#66465",
+        "repository": "vllm-project/vllm",
+        "number": 66465,
+        "title": "[MRV2][PP] Support different CUDA graph padding across pipeline stages",
+        "displayTitle": "分离流水传输真实行与本地图容量",
+        "url": "https://github.com/vllm-project/vllm/pull/66465",
+        "state": "merged",
+        "mergedAt": "2026-11-11T19:09:54Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "cuda_specific_needs_port",
+        "ascendEvidence": "已合入上游 CUDA 第二代模型执行流程，未提供昇腾验证。真实行传输与本地图容量分离可供昇腾对照，但静态图、持久中间缓冲和传输通路的兼容性仍需验证。",
+        "hardwareDependency": "作者验证采用 NVIDIA B300、流水并行 2。新增不同图模式回归要求 SM90 或更新架构，并纳入 B200 夜间测试，该门槛属于回归触发条件。复制引擎通道要求张量并行 1，张量并行 2 与流水并行 2 组合采用 NCCL。",
+        "summaryLine": "流水阶段仅交换真实词元行，接收端按本地图桶容量执行，使相邻阶段可采用不同填充与图模式，并避免中间张量尺寸失配。",
+        "problem": "各流水阶段按本地注意力能力选择图模式，草稿注意力仅在末阶段执行时，末阶段可能退为分段图。同批次真实行数相同，阶段本地图容量却可不同；旧逻辑按接收端容量复制较短的发送张量，引发尺寸失配，例如发送 3 行而接收端复制 4 行。",
+        "optimization": "发送端只传真实有效行，接收端仅将这些行写入持久中间缓冲，再按本地填充容量形成执行视图。传输已直接写入该缓冲时，通过指针复用判断省去重复复制；尾部填充继续由既有注意力元数据和槽位逻辑处理。此处解耦发生在流水阶段边界，不改变同一集合通信内部的匹配要求。",
+        "effectsAndLimits": {
+          "resultSummary": "未提供端到端吞吐/延迟基准。不同阶段图模式的 Qwen3-8B 加 EAGLE3 回归连续四次通过，复制引擎通道及张量并行 2 与流水并行 2 组合也通过。图填充一致的流水并行 2 对照中，主干与修复版 8/8 输出一致，草稿接受数均为 259/753。张量并行 2 与流水并行 2 下，两版各自三次重复均出现输出波动，部分跨版本运行完全匹配，不能据此宣称所有布局逐词元一致。",
+          "experimentalConditions": "作者验证均采用 NVIDIA B300、第二代模型执行流程、流水并行 2 及贪心解码，主干对照采用 NCCL。不同图模式回归使用 Qwen3-8B 加 EAGLE3、两个草稿词元，目标与草稿采用不同注意力后端，使末阶段退为分段图；四个提示各生成 32 词元，按对数概率接近标准与即时执行比较。8/8 输出及 259/753 接受数属于填充一致的对照，不能移用于张量并行 2 与流水并行 2 的波动测试。",
+          "limitations": "现有证据支持尺寸修复和图模式兼容，传输字节减少尚未转化为可量化服务收益。两版在张量并行 2 与流水并行 2 下均有运行间波动，跨版本差异不能全部归因于改动。复制引擎与 NCCL 的复制路径和适用并行配置不同，昇腾适配及跨节点性能均未实测。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-pr-66465-1",
+            "section": "PR 正文 · 真实行传输、回归及重复运行对照",
+            "quoteExcerpt": "The two stages share the same real token rows, but their padding is local to each stage.",
+            "metrics": [
+              "不同图模式回归连续 4 次通过",
+              "每次 4 提示×32 词元",
+              "匹配填充：8/8 输出一致",
+              "匹配填充：接受数 259/753 不变",
+              "TP2×PP2：每版 3 次重复均有波动",
+              "预填充传输 57 真实行，原容量 64 行"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/66465"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-66799",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm#66799",
+        "repository": "vllm-project/vllm",
+        "number": 66799,
+        "title": "[Perf][MoE] Mask DP padding rows in grouped top-k routing by default",
+        "displayTitle": "分组专家路由默认屏蔽填充行",
+        "url": "https://github.com/vllm-project/vllm/pull/66799",
+        "state": "merged",
+        "mergedAt": "2026-11-14T02:18:28Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "cuda_specific_needs_port",
+        "ascendEvidence": "上游默认屏蔽分组路由中的数据并行及图填充，性能证据来自 CUDA 模块化专家路径。昇腾迁移需验证无效专家标记、掩码布局和通信后端兼容性，不能替代 MC2 原生修复。",
+        "hardwareDependency": "实测采用 FlashInfer 提供的 TensorRT-LLM NVFP4 及 MXFP4/MXFP8 模块化专家后端。GLM 使用两台 GB200 节点、数据并行 8 加专家并行；MiMo 与 DeepSeek 采用数据并行 4 加专家并行。单元测试在 GB200 执行，未测昇腾。",
+        "summaryLine": "让分组专家路由默认跳过数据并行与图填充，减少无效专家计算，三模型重复对照呈现多档吞吐收益，也揭示噪声与局部退化。",
+        "problem": "分组候选专家路由此前只在部分模型与通信后端组合下启用屏蔽，其他配置把数据并行对齐行和图填充行当作真实词元，产生无效专家计算。混合预填充与解码进一步扩大对齐容量；若路由前先汇聚各数据并行方的输入，本地掩码又不足以覆盖全部行。",
+        "optimization": "在适用分组路由中默认把填充行的专家编号设为负一、权重置零，使模块化专家跳过无效行，真实行专家及权重保持不变。汇聚后行数超过本地掩码覆盖范围时继续不屏蔽，避免尺寸错误；ROCm 融合专家路径保留原有显式启用限制。",
+        "effectsAndLimits": {
+          "resultSummary": "作者对三模型、两类专家后端开展端到端吞吐与逐输出词元时延重复对照。GLM-5.3-NVFP4 并发 8 至 256 报告吞吐增加 5.4%至 21.1%；MiMo-V2.6-Flash-RL 并发 16、64、256 增加 5.8%、5.1%、6.8%；DeepSeek-V3.2-NVFP4 并发 4、16、64 增加 7.7%、3.4%、3.1%，这些配置两次处理结果均高于两次基线。MiMo 并发 4 的 2.6%及 DeepSeek 并发 256 的 1.5%属于噪声。DeepSeek 并发 256、每卡 33–128 行解码桶两次均变慢，平均耗时上升 5.6%，占基线步耗时 13%；超过 512 行混合桶耗时上升 0.1%，属噪声内退化。路由单元测试 2800 项通过、10 项跳过，另有 81 项相关测试通过。",
+          "experimentalConditions": "同一基线上仅切换既有填充屏蔽，在所测 CUDA、本地行路由和模块化专家配置中等价于该改动。两侧各启动两次，顺序为基线、处理、处理、基线；采用 ShareGPT、温度 0、随机种子 0，每个并发单位提交四个提示。GLM 采用 NVFP4、数据并行 8 及三个预测草稿词元；MiMo 采用 MXFP4/MXFP8、数据并行 4；DeepSeek 采用 NVFP4、数据并行 4，均启用专家并行。步骤剖析仅统计数据并行第 0 参与方、占基线步耗时至少 5%的桶。GSM8K 使用 1319 题、五示例，GLM 仅测并发 256，另两模型测 4 和 256。",
+          "limitations": "噪声还包括 GLM 并发 16、不超过 8 行解码桶平均耗时下降 5.4%，以及 DeepSeek 并发 64、9–32 行解码桶下降 0.1%；两者均有单次变慢。MiMo 并发 64 的逐输出词元时延均值下降 1.8%，但单次结果高于一次基线。GSM8K 质量结果有运行间波动。DeepSeek 并发 4 的吞吐按展示整数重算约增加 7.55%，作者报告 7.7%。性能仅测 ShareGPT，未覆盖 DeepEP 低延迟或高吞吐模式及 Kimi-K3。专家并行且张量、数据并行规模均大于 1 的序列布局中，掩码未按张量并行重分片，后续参与方可能残留填充，但作者说明不会误屏蔽真实词元。汇聚后路由继续不屏蔽；CPU、ROCm 融合路径、自带路由的一体化专家及 DeepSeek-V4/V4.1、LongCat-Flash 独立路由均不属新增默认覆盖范围。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-pr-66799-1",
+            "section": "PR 正文 · 三模型端到端重复对照",
+            "quoteExcerpt": "Each side launched twice, order Baseline, After, After, Baseline.",
+            "metrics": [
+              "三模型；每侧 2 次启动",
+              "GLM 并发 256：6484/6642→7922/7973 tokens/s",
+              "MiMo 并发 256：8052/8240→8482/8922 tokens/s",
+              "DeepSeek 并发 4：281/275→297/301 tokens/s",
+              "MiMo 并发 4：500/489→526/488 tokens/s；噪声",
+              "DeepSeek 并发 256：3780/3948→3922/3920 tokens/s；噪声"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/66799"
+          },
+          {
+            "refId": "ev-pr-66799-2",
+            "section": "PR 正文 · 步骤耗时、噪声与测试",
+            "quoteExcerpt": "Mean step time (ms) on DP rank 0, by step kind and padded rows per rank, buckets with at least 5% of Baseline step time.",
+            "metrics": [
+              "DeepSeek 并发 256、33–128 行解码桶",
+              "19.96/18.98→20.54/20.57 毫秒",
+              "两次均变慢；平均耗时上升 5.6%",
+              "该桶占基线步耗时 13%",
+              "超过 512 行混合桶耗时上升 0.1%；噪声",
+              "GLM 小解码桶 19.54/18.97→17.38/19.03 毫秒",
+              "DeepSeek 小解码桶 18.48/18.43→18.50/18.38 毫秒",
+              "路由测试 2800 通过/10 跳过；相关测试 81 通过"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/66799"
+          }
+        ]
+      }
+    ]
+  }
+]

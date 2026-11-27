@@ -19,6 +19,7 @@ import InferenceMap from "../pages/InferenceMap";
 import ReportTrends, { uniquePRs } from "../pages/ReportTrends";
 import { selectChapterIntros, type FlowIndex } from "../pages/chapter-intros";
 import { localReports, type Catalog } from "../pages/report-preview-data";
+import { getAclGraphAnalysisStats } from "../pages/aclgraph-analysis";
 import "./overview.css";
 import inferenceStages from "../inference-stages.json";
 const stageNames: Record<string,string> = inferenceStages;
@@ -43,6 +44,7 @@ export default function OverviewPage({
   const from = query.get("from") ?? "";
   const to = query.get("to") ?? "";
   const data = result?.data;
+  const aclStats = getAclGraphAnalysisStats();
 
   const latestDay = days[0];
   const latest = catalog.days[latestDay];
@@ -560,7 +562,9 @@ export default function OverviewPage({
                 <Link to="/topics/aclgraph" className="spotlight-topic-item">
                   <div>
                     <strong>ACL Graph：昇腾推理图执行</strong>
-                    <small>导引 · 学术综述 · 动态报告（11 PR）</small>
+                    <small>{aclStats.problems > 0
+                      ? `导引 · 专题剖析（${aclStats.problems} 大问题 · ${aclStats.papers} 论文 · ${aclStats.prs} PR）`
+                      : "导引 · 专题剖析（核心问题与 Research Gap）"}</small>
                   </div>
                   <ArrowRight size={15} aria-hidden />
                 </Link>

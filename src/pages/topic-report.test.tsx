@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import actualIndex from "../../public/word-reports/topics.json";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import TopicResearchReport from "./TopicResearchReport";
 import TopicPages, { type Entry, type Topic } from "./TopicPages";
 import { evidenceTimeline, loadFrozenVersion, reportOverview, revealTopicPart, safeTopicSource, sectionLead, topicArtifactHref, type ResearchReport } from "./topic-report";
 
@@ -36,13 +37,19 @@ const topic: Topic = {
   coverage: { firstDay: "2026-11-12", lastDay: "2026-11-12", days: 1, prs: 1 },
   counts: { total: 1, byRepository: { "vllm-ascend": 1 } }, entries: [entry], report,
 };
-function render(path: string, data = topic, schemaVersion: 1 | 2 = 2) {
+function renderTopic(path: string, data = topic, schemaVersion: 1 | 2 = 2) {
   return renderToStaticMarkup(<MemoryRouter initialEntries={[path]}><Routes><Route path="/topics/:topicId?" element={<TopicPages index={{ schemaVersion, topics: [data] }} />} /></Routes></MemoryRouter>);
+}
+
+function render(path: string, data = topic, embedded = false) {
+  return renderToStaticMarkup(<MemoryRouter initialEntries={[path]}>
+    <TopicResearchReport topic={data} report={data.report!} embedded={embedded} />
+  </MemoryRouter>);
 }
 
 describe("living topic report", () => {
   it("renders synthesis and evidence boundaries while waiting for frozen artifact verification", () => {
-    const html = render("/topics/aclgraph?view=report&legacy=1");
+    const html = render("/topics/aclgraph", topic, true);
     expect(html).toContain("静态执行计划与动态请求状态");
     expect(html).toContain("如何验证");
     expect(html).toContain("同版本配对实验");
@@ -78,9 +85,9 @@ describe("living topic report", () => {
     expect(html).toContain("PDF 尚未生成");
     expect(html).not.toContain(`href="${archiveBase}topic-reports/aclgraph/${version}/report.pdf"`);
   });
-  it("shows a preparation status for a legacy topic without a survey", () => {
-    const html = render("/topics/aclgraph?view=paper", { ...topic, report: undefined }, 1);
-    expect(html).toContain("综述准备中");
+  it("keeps the ACL guide accessible when its archived report is unavailable", () => {
+    const html = renderTopic("/topics/aclgraph", { ...topic, report: undefined }, 1);
+    expect(html).toContain('data-testid="aclgraph-guide"');
     expect(html).not.toContain("专题收录 PR");
     expect(html).not.toContain("未解问题与未来方向");
     expect(html).not.toContain("导出综述 PDF");
@@ -161,7 +168,7 @@ describe("frozen ACLGraph contract", () => {
     const previous = frozenReports[`../../public/word-reports/topic-reports/aclgraph/${frozen.previousVersion}/report.json`];
     expect(previous.version).toBe(frozen.previousVersion);
     expect(previous.revision).toBeLessThan(frozen.revision);
-    const html = render("/topics/aclgraph?read=brief", actual);
+    const html = render("/topics/aclgraph?read=brief", actual, true);
     const targets = [...html.matchAll(/part=(survey-[^"&]+)/g)].map((match) => decodeURIComponent(match[1]));
     expect(targets.length).toBeGreaterThan(30);
     for (const id of targets) expect(html).toContain(`id="${id}"`);
@@ -209,7 +216,7 @@ describe("frozen ACLGraph contract", () => {
     for (const id of ["engineering-fixture"]) {
       const topic = { ...actualIndex.topics.find((item) => item.id === "kv-cache"), id } as unknown as Topic;
       expect(topic.report).toBeUndefined();
-      const html = render(`/topics/${id}`, topic);
+      const html = renderTopic(`/topics/${id}`, topic);
       expect(html).toContain("专题收录 PR");
       expect(html).toContain("查看日报正文");
       expect(html).not.toContain("综述准备中");
@@ -217,7 +224,7 @@ describe("frozen ACLGraph contract", () => {
       const rowClass = /class="topic-card"/g;
       expect(html.match(rowClass)).toHaveLength(topic.entries.length);
       const selected = topic.entries[0];
-      const filtered = render(`/topics/${id}?repo=${selected.repository}&label=${selected.label}`, topic);
+      const filtered = renderTopic(`/topics/${id}?repo=${selected.repository}&label=${selected.label}`, topic);
       const expected = topic.entries.filter((entry) => entry.repository === selected.repository && entry.label === selected.label);
       expect(filtered.match(rowClass)).toHaveLength(expected.length);
       expect(filtered).toContain(`section=${selected.number}`);
@@ -226,10 +233,10 @@ describe("frozen ACLGraph contract", () => {
     }
     const spec = actualIndex.topics.find((item) => item.id === "speculative-decoding") as unknown as Topic;
     expect(spec.report?.sections).toHaveLength(8);
-    const specHtml = render("/topics/speculative-decoding", spec);
+    const specHtml = renderTopic("/topics/speculative-decoding", spec);
     expect(specHtml).toContain("一次 Target 前向");
     expect(specHtml).toContain("view=report");
-    const directory = render("/topics", { ...topic, report: undefined });
+    const directory = renderTopic("/topics", { ...topic, report: undefined });
     expect(directory).toContain("ACL Graph");
   });
   it("unlocks only artifact paths checked for the same frozen metadata", async () => {

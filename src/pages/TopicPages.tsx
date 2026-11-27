@@ -10,6 +10,7 @@ import type { TopicSurvey } from "./topic-survey";
 import KvCacheTopic, { KvCacheTopicCard } from "./KvCacheTopic";
 import { communityEntries } from "./kv-community";
 import AclGraphTopic, { AclGraphTopicCard } from "./AclGraphTopic";
+import { getAclGraphAnalysisStats } from "./aclgraph-analysis";
 import SpecDecTopic, { SpecDecTopicCard } from "./SpecDecTopic";
 import EngineeringTopicWorkbench, { EngineeringTopicCard } from "./EngineeringTopicWorkbench";
 
@@ -64,7 +65,7 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
     );
   }
 
-  const totalTopicPRs = archiveTopics.reduce((sum, t) => sum + (t.counts?.total ?? 0), communityEntries.length);
+  const totalTopicPRs = archiveTopics.reduce((sum, t) => sum + (t.id === "aclgraph" ? getAclGraphAnalysisStats().prs : (t.counts?.total ?? 0)), communityEntries.length);
 
   return (
     <div className="topic-page">

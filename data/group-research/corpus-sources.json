@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "rulesVersion": "community-corpus/1",
+  "rulesVersion": "community-corpus/2",
   "scope": "站内当前日报及实际专题路由消费的 PR 材料；离线重建，不抓取 GitHub，不改变首页统计。",
   "daily": {
     "catalog": "public/word-reports/catalog.json",
@@ -24,7 +24,9 @@
     "indexLoader": "src/pages/DocxPreview.tsx",
     "indexRequest": "topics.json",
     "staticJson": [
-      "src/pages/aclgraph-dynamic-report.json",
+      "src/pages/aclgraph-data/problems-1-2.json",
+      "src/pages/aclgraph-data/problems-3-4.json",
+      "src/pages/aclgraph-data/problems-5-6.json",
       "src/pages/kv-cache-study.json",
       "src/pages/kv-community.json",
       "src/pages/kv-overview.json",
@@ -49,28 +51,46 @@
       "path": "public/word-reports/topics.json",
       "adapter": "topic_index",
       "excludeTopicIds": [
-        "kv-cache"
+        "kv-cache",
+        "aclgraph"
       ],
       "include": [
-        "topics[id!=kv-cache].entries",
+        "topics[id!=kv-cache && id!=aclgraph].entries; ACL Graph is served by three analysis chunks and topics.json retains only its frozen archive",
         "report.references[kind=pr]",
         "report.pendingEvidence",
         "report.evidenceDetails and cited report sections/taxonomy/gaps/bottleneckMigration/conclusions"
       ],
-      "boundary": "TopicPages filters kv-cache out of archiveTopics; ACL legacy report and speculative-decoding initial report remain reachable. Paper/documentation references never become PR identities."
+      "boundary": "KV Cache uses KvCacheTopic; ACL Graph uses three AclGraphAnalysis chunks and topics.json retains only its frozen archive. Speculative-decoding initial report remains reachable. Paper/documentation references never become PR identities."
     },
     {
-      "id": "aclgraph-dynamic",
-      "path": "src/pages/aclgraph-dynamic-report.json",
-      "adapter": "aclgraph",
+      "id": "aclgraph-analysis-1-2",
+      "path": "src/pages/aclgraph-data/problems-1-2.json",
+      "adapter": "aclgraph_analysis",
       "include": [
-        "allTrackedPrs",
-        "featuredPrs",
-        "baselineUpdates",
-        "insights via featuredSlugs",
-        "nextWatchlist via tracked watchPrs"
+        "problems[*].prs with problem/gap context",
+        "PR problem/optimization/effectsAndLimits/evidenceRefs"
       ],
-      "boundary": "Only the current imported report; legacyArchive paths do not expand the corpus."
+      "boundary": "Only explicit PR card identities are admitted. Papers, the archived 147-item list, and incidental PR URLs inside evidenceRefs never become new PR identities."
+    },
+    {
+      "id": "aclgraph-analysis-3-4",
+      "path": "src/pages/aclgraph-data/problems-3-4.json",
+      "adapter": "aclgraph_analysis",
+      "include": [
+        "problems[*].prs with problem/gap context",
+        "PR problem/optimization/effectsAndLimits/evidenceRefs"
+      ],
+      "boundary": "Only explicit PR card identities are admitted. Papers, the archived 147-item list, and incidental PR URLs inside evidenceRefs never become new PR identities."
+    },
+    {
+      "id": "aclgraph-analysis-5-6",
+      "path": "src/pages/aclgraph-data/problems-5-6.json",
+      "adapter": "aclgraph_analysis",
+      "include": [
+        "problems[*].prs with problem/gap context",
+        "PR problem/optimization/effectsAndLimits/evidenceRefs"
+      ],
+      "boundary": "Only explicit PR card identities are admitted. Papers, the archived 147-item list, and incidental PR URLs inside evidenceRefs never become new PR identities."
     },
     {
       "id": "kv-research",
@@ -137,6 +157,8 @@
   "exclusions": [
     "Non-current daily versions, fixtures, synthetic/legacy public/data samples, and arbitrary repository JSON are not scanned.",
     "public/word-reports/topics.json topics[id=kv-cache] is superseded by KvCacheTopic.",
+    "public/word-reports/topics.json topics[id=aclgraph] is a frozen archive superseded by the three AclGraphAnalysis chunks.",
+    "src/pages/aclgraph-dynamic-report.json is an offline archive snapshot outside runtime and corpus scope.",
     "kv-research entries with decision=excluded/pending, and all paper entries.",
     "kv-community.search.candidates and search receipts are not collected material.",
     "ACL legacyArchive artifact paths and unimported topic drafts are not followed.",

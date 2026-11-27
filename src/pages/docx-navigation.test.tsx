@@ -35,7 +35,7 @@ const catalog: Catalog = { schemaVersion: 1, days: {
 beforeEach(() => { request.data = {}; request.errors = {}; request.paths = []; });
 
 describe("persistent report reading navigation", () => {
-  it.each(["/topics", "/topics/kv-cache?view=papers", "/contributors"])("keeps reading accessible at %s before the daily catalog loads", (path) => {
+  it.each(["/topics", "/topics/kv-cache?view=papers", "/topics/aclgraph", "/topics/aclgraph?view=analysis", "/contributors"])("keeps reading accessible at %s before the daily catalog loads", (path) => {
     const html = render(path);
     expect(html).toContain('href="/reports/latest"');
     expect(html).toContain(">研报阅读</a>");

@@ -1,0 +1,1177 @@
+[
+  {
+    "id": "p1",
+    "index": 1,
+    "slug": "coverage-vs-kv-memory",
+    "title": "图覆盖率与显存 / KV Cache 容量的零和博弈",
+    "shortTitle": "图覆盖与 KV 容量",
+    "priorityBadge": "P0 · 核心显存权衡",
+    "gap": {
+      "background": "在 GPU 或昇腾 NPU 连续批处理与长短上下文切换的在线运行场景下，固定 HBM 预算内的图池、静态缓冲和专家权重与 KV Cache 共用容量，会有扩大图覆盖却压缩请求容量、增加排队或重算的问题。本题研究运行期分配，启动、重启、恢复与销毁的生命周期由 P5 讨论。",
+      "existingLimitations": "虽然当前现有的工作已提供多类基础：本题八卡中，PagedAttention、vAttention 提供显存分页与虚拟地址容量基础，PLA-Serve（数值证据来自 LAPS v2）与 xLLM 提供图桶与编译执行策略证据；vLLM-Ascend #18604、#22485 与 vLLM #66523、#68552 分别改进专家驻留、冗余缓冲占用、捕获前 KV 块释放与平台分桶，但是因为共享分配使图的增量占用与实际可回收量相互依赖，KV 保留价值和重建成本又随负载变化，已有证据尚不能确定在线重分配何时优于充分调优的静态联合预算，仍然没有彻底解决。补充比较基线包括 P5 附卡 Foundry，以及未纳入本题附卡的 vLLM #63155 共享图池方案。这些机制应作为强基线，不能把它们的存在当作联合动态决策已经失败的证据。",
+      "researchOpportunity": "因此我们从在线运行期固定 HBM 内的图资产与 KV Cache 联合预算方向出发，有机会在明确的负载与后端约束下缓解此问题，并检验收益能否覆盖新增成本。可检验假设是：真实负载切换会改变最佳资源分配，且净收益超过判断、回收、重绑定与重建成本。先有限枚举图集合与 KV 预算组合，对照共享池及启动修复后的配置，再用未参与调参的固定轨迹分别开展固定 KV 容量与固定总 HBM 实验。记录达标完成请求率、有效词元、填充工作、存活与保留占用、捕获峰值、实际 KV 容量、准备时间和尾延迟。候选策略须优于充分调优的最佳静态联合配置及简单驻留替换策略，并报告与计入转换成本的离线先知上界之间的差距；收益若不足以覆盖转换成本，则收缩在线管理主张。",
+      "keyTakeaway": "图命中率必须与可服务 KV 容量共同核算，零和约束限于固定预算，真实复用与释放会改变可分配空间。"
+    },
+    "papers": [
+      {
+        "id": "paper-kwon2023vllm",
+        "kind": "paper",
+        "paperId": "kwon2023vllm",
+        "arxivId": "2309.06180",
+        "title": "Efficient Memory Management for Large Language Model Serving with PagedAttention",
+        "url": "https://doi.org/10.1145/3600006.3613165",
+        "authors": [
+          "Woosuk Kwon",
+          "Zhuohan Li",
+          "Siyuan Zhuang",
+          "Ying Sheng",
+          "Lianmin Zheng",
+          "Cody Hao Yu",
+          "Joseph E. Gonzalez",
+          "Hao Zhang",
+          "Ion Stoica"
+        ],
+        "venueOrYear": "SOSP 2023",
+        "venueName": "SOSP",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "通过按需分配与共享 KV 块回收请求容量，为图驻留挤占显存提供容量基线，但论文并未评估图覆盖与执行收益。",
+        "problem": {
+          "scenario": "连续请求到达、输出长度未知的自回归服务中，KV 随生成增长；并行采样、束搜索和共享前缀还会重复保存相同状态。",
+          "existingGap": "按最大长度连续预留，会提前占用尚未生成词元的空间，产生预留浪费和碎片；各序列独立的连续缓冲也妨碍共享。",
+          "impact": "可用 KV 容量限制并发批次，负载超过服务能力后排队延迟快速增长。因此，评估图驻留代价时，需要同时核算其挤占的可接纳请求容量。"
+        },
+        "method": {
+          "keyIdea": "将序列的逻辑 KV 布局与物理位置解耦，按生成进度分配并共享固定大小的块，在输出长度未知时也能控制预留浪费，把有限显存转化为可服务的并发容量。",
+          "designPoints": [
+            {
+              "title": "按需块分配（Demand Allocation）",
+              "challengeAddressed": "输出长度未知，连续预留容易造成容量浪费和外部碎片。",
+              "mechanism": "用块表把逻辑序列映射到独立放置的等大小物理块，仅在已有块填满时继续分配，注意力按映射读取状态；单序列未使用容量被限制在末尾块内，该分配器内部不再产生外部碎片。"
+            },
+            {
+              "title": "共享与写时复制（Copy-on-Write）",
+              "challengeAddressed": "共享提示、并行采样和束搜索会重复保存相同 KV 状态。",
+              "mechanism": "让多个序列引用相同物理块，以引用计数管理生命周期；只有分支需要修改共享块时才复制，引用归零后回收，使相同前缀和分支祖先状态能够共享容量。"
+            },
+            {
+              "title": "容量感知调度（Capacity-Aware Scheduling）",
+              "challengeAddressed": "生成过程中可能耗尽 KV 块，相关序列及并行设备还需保持一致的执行状态。",
+              "mechanism": "按先到先服务准入，容量不足时优先抢占较晚请求，并整体驱逐序列状态；相关序列协同调度，通过主机交换或重算恢复，集中式管理器向张量并行设备分发一致的块映射。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "在 ShareGPT 长度分布构造的泊松到达基本采样负载中，OPT-13B 使用单卡 A100 40 GB，OPT-66B 使用四卡 A100、每卡 40 GB，OPT-175B 使用八卡 A100、每卡 80 GB。在相近归一化延迟下，可持续请求率达到 Orca Oracle 的 1.7×–2.7×、Orca Max 的 2.7×–8×；这些是跨上述模型配置的结果范围，不是每种配置均达到的增益，也不是图执行加速比。",
+          "experimentalConditions": "单卡 A100 40 GB 对应 OPT-13B 与 LLaMA-13B，四卡 A100 40 GB 对应 OPT-66B，八卡 A100 80 GB 对应 OPT-175B；ShareGPT、Alpaca 长度分布与泊松到达；对照为动态批处理 FasterTransformer，以及采用不同预留策略的 Orca Oracle、Orca Pow2、Orca Max；主要比较相近平均每输出词元端到端延迟下的可持续请求率。",
+          "limitations": "该研究不包含图开关或图池消融，也不代表当前 vLLM 版本表现。单独的注意力内核剖析中，相对 FasterTransformer 的优化内核，延迟增加 20%–26%，说明容量带来的端到端收益不等于内核变快。短序列、计算受限负载的收益较小，块大小还需权衡访问效率、碎片与共享，抢占后的交换或重算也有成本。",
+          "engineeringApplicability": "这是原始 vLLM 的容量管理基础；迁移到昇腾需适配注意力算子、重放兼容元数据和更新同步，论文未验证 ACL Graph 收益。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "§1 显存使用现状（Figure 2，PDF p.2）",
+            "quoteExcerpt": "Indeed, our profiling results in Fig. 2 show that only 20.4% - 38.2% of the KV Cache memory is used to store the actual token states in the existing systems.",
+            "metrics": [
+              "Existing-system token-state occupancy: 20.4%–38.2% of KV Cache memory.",
+              "Derived non-token-state fraction: 61.8%–79.6%."
+            ],
+            "sourceUrl": "https://doi.org/10.1145/3600006.3613165"
+          },
+          {
+            "refId": "ev-2",
+            "section": "§4.3 Decoding with PagedAttention and vLLM（PDF p.6）；§7.2 Impact of Block Size（PDF p.12）",
+            "quoteExcerpt": "vLLM limits all the memory wastes for a request within one block",
+            "metrics": [
+              "Unused per-sequence capacity is confined to one KV block.",
+              "Default block size: 16 tokens."
+            ],
+            "sourceUrl": "https://doi.org/10.1145/3600006.3613165"
+          },
+          {
+            "refId": "ev-3",
+            "section": "§6.2 基本采样评测（PDF p.11）",
+            "quoteExcerpt": "On the ShareGPT dataset, vLLM can sustain 1.7×–2.7× higher request rates compared to Orca (Oracle) and 2.7×–8× compared to Orca (Max)",
+            "metrics": [
+              "ShareGPT request-rate ratio versus Orca Oracle: 1.7×–2.7×.",
+              "ShareGPT request-rate ratio versus Orca Max: 2.7×–8×.",
+              "Request-rate ratio versus FasterTransformer: up to 22×."
+            ],
+            "sourceUrl": "https://doi.org/10.1145/3600006.3613165"
+          }
+        ]
+      },
+      {
+        "id": "paper-prabhu2025vattention",
+        "kind": "paper",
+        "paperId": "prabhu2025vattention",
+        "arxivId": "2405.04437",
+        "title": "vAttention: Dynamic Memory Management for Serving LLMs without PagedAttention",
+        "url": "https://arxiv.org/abs/2405.04437v3",
+        "authors": [
+          "Ramya Prabhu",
+          "Ajay Nayak",
+          "Jayashree Mohan",
+          "Ramchandran Ramjee",
+          "Ashish Panwar"
+        ],
+        "venueOrYear": "ASPLOS 2025",
+        "venueName": "ASPLOS",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "将连续虚拟地址与按需物理映射分离，兼顾 KV 动态增长和连续注意力计算，但映射成本与图重放兼容性仍需分别核算。",
+        "problem": {
+          "scenario": "连续批处理服务中，未知输出长度使 KV 持续增长；长上下文、预填充占比较高的请求尤其需要兼顾容量与注意力执行效率。",
+          "existingGap": "连续物理预留会浪费容量，软件分页虽然缓解浪费，却要求注意力处理非连续布局和块表；直接采用虚拟内存接口又会引入同步映射延迟与粗粒度分配碎片。",
+          "impact": "内存布局选择可能同时影响可接纳请求数、主机准备开销与预填充速度。稳定虚拟地址为动态物理容量提供基础，但不自动解决图池与 KV 的共同预算。"
+        },
+        "method": {
+          "keyIdea": "为请求保留连续虚拟视图，再按上下文增长映射物理页，把地址连续性与逐请求物理占用分开，使连续注意力内核也能承载动态增长的 KV，而无需预留每个请求的最大物理容量。",
+          "designPoints": [
+            {
+              "title": "连续虚拟视图（Contiguous Virtual Memory）",
+              "challengeAddressed": "需要动态增长 KV，同时保留连续注意力内核所需的地址布局。",
+              "mechanism": "初始化时建立可复用的物理页池，并为各层键和值张量预留连续虚拟空间；每个请求获得稳定的索引区域，仅在执行前为当前上下文建立所需物理映射。"
+            },
+            {
+              "title": "后台映射复用（Background Mapping）",
+              "challengeAddressed": "逐层同步映射会占用执行关键路径，频繁回收与重新映射也会增加开销。",
+              "mechanism": "利用解码逐词元增长的可预测性，在当前迭代计算时准备下一迭代所需映射；延迟回收并复用已有映射的请求区域，同时提前准备空闲区域以接纳新预填充。"
+            },
+            {
+              "title": "细粒度物理页（Fine-Grained Paging）",
+              "challengeAddressed": "粗粒度物理页会在大量请求的尾部积累内部碎片，压缩可形成的批次。",
+              "mechanism": "扩展设备内存驱动以支持更小的物理页组，让物理映射更贴近请求实际长度，在保持连续虚拟视图的同时减少尾部未使用容量。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "在 OpenChat 每秒 7 请求的容量实验中，Yi-6B 使用单卡 A100 80 GB，Llama-3-8B 与 Yi-34B 各使用两卡 A100、每卡 80 GB。相较 2 MB 物理页，64 KB 物理页使观测最大批次依次由 187、203、56 增至 240、258、68；这是该负载中的观测批次，不是保证可持续承载的并发上限。长上下文离线实验还显示完成请求吞吐改善，但解码性能与最佳分页内核基本相当。",
+          "experimentalConditions": "Yi-6B 使用单卡 A100 80 GB，Llama-3-8B 与 Yi-34B 使用两张互联 A100 80 GB；容量实验采用 OpenChat、每秒 7 请求，对照物理页大小为 2 MB 与 64 KB。离线服务实验采用 427 个 arXiv-Summarization 请求，总上下文为 64K–192K 词元、输出为 17–5153 词元；在同一 vLLM 服务框架内比较连续与分页注意力版本。",
+          "limitations": "物理页池在初始化时预分配，按需映射不能直接等同于把显存归还图池。小页依赖驱动扩展，映射与回收仍有成本，主机 KV 交换尚未实现；稳定虚拟地址也不证明任意图拓扑或参数更新可用。超长预填充的正文与表格加速比未完全对应，因此不混用该组数值。",
+          "engineeringApplicability": "方案在 vLLM 中评估；迁移至昇腾需验证虚拟内存接口、映射生命周期及重放同步，现有结果不证明 CANN 或 ACL Graph 支持。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "§3.3.1 分页注意力开销（PDF p.4）",
+            "quoteExcerpt": "PagedAttention based prefill kernels of FlashAttention-2 and FlashInfer are up to 37% and 42% slower than the non-paged kernels",
+            "metrics": [
+              "FlashAttention-2 paged-prefill latency overhead: up to 37%.",
+              "FlashInfer paged-prefill latency overhead: up to 42%.",
+              "Paged-kernel instruction count: 7%–13% higher."
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2405.04437v3"
+          },
+          {
+            "refId": "ev-2",
+            "section": "§7.6.3 页大小与批次容量（Figure 15，PDF p.13）",
+            "quoteExcerpt": "64 KB pages helped serve batch sizes of up to 240, 258 and 68 for our models as shown in Figure 15.",
+            "metrics": [
+              "OpenChat at 7 queries/s; model order Yi-6B, Llama-3-8B, Yi-34B.",
+              "Maximum batches with 2 MB pages: 187, 203, 56.",
+              "Maximum batches with 64 KB pages: 240, 258, 68."
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2405.04437v3"
+          },
+          {
+            "refId": "ev-3",
+            "section": "§7.3 离线服务吞吐（PDF p.11）",
+            "quoteExcerpt": "FA2_vAttention outperforms FA2_Paged by 1.18×, 1.15× and 1.13×, and FI_Paged by 1.19×, 1.23×, and 1.14× for Yi-6B, Llama-3-8B and Yi-34B, respectively.",
+            "metrics": [
+              "Offline workload: 427 arXiv-Summarization requests.",
+              "Total context: 64K–192K tokens; output: 17–5153 tokens.",
+              "Reported throughput ratios versus FA2_Paged: 1.18×, 1.15×, 1.13×.",
+              "Reported throughput ratios versus FI_Paged: 1.19×, 1.23×, 1.14×."
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2405.04437v3"
+          }
+        ]
+      },
+      {
+        "id": "paper-she2026plaserve",
+        "kind": "paper",
+        "paperId": "she2026plaserve",
+        "arxivId": "2601.11589",
+        "title": "PLA-Serve: A Prefill-Length-Aware LLM Serving System",
+        "url": "https://proceedings.mlsys.org/paper_files/paper/2026/hash/bbb7506579431a85861a05fff048d3e1-Abstract-Conference.html",
+        "authors": [
+          "She, Jianshu",
+          "Li, Zonghang",
+          "Du, Hongchao",
+          "Wu, Shangyu",
+          "Zheng, Wenhao",
+          "Xing, Eric P.",
+          "Liu, Zhengzhong",
+          "Yao, Huaxiu",
+          "Xue, Jason",
+          "Ho, Qirong"
+        ],
+        "venueOrYear": "MLSys 2026",
+        "venueName": "MLSys",
+        "venueTier": "top_venue",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "通过长短预填充分流、有限图桶与期限感知等待提高复用效率，同时揭示单图驻留和捕获成本，不能据此推断 KV 容量净收益。",
+        "problem": {
+          "scenario": "多轮对话采用预填充与解码分离时，短提示及重复预填充需要读取已有历史，长预填充则产生较重的计算，两类请求仍会在预填充侧相互干扰。",
+          "existingGap": "仅分离预填充与解码，不能消除长短预填充混批造成的等待、形状差异和填充浪费；为所有形状捕获图又会增加驻留、选择与初始化成本。",
+          "impact": "短请求可能等待长任务，异构批次也难以稳定复用图。增加图桶会消耗显存和准备时间，但论文没有量化由此损失的可服务 KV 容量。"
+        },
+        "method": {
+          "keyIdea": "先按长度重组预填充请求，再用受预算约束的图集合承接相近形状，使图复用建立在可控的批次与等待策略上，通过协调请求组织和有限图覆盖提高服务效率。",
+          "designPoints": [
+            {
+              "title": "长短请求分流（Length-Aware Disaggregation）",
+              "challengeAddressed": "长短预填充相互干扰，且两类请求比例会随负载变化。",
+              "mechanism": "依据计算与访存特征划分独立队列，在单实例内分时执行或跨实例池分开执行；反馈控制器结合积压、服务时限偏差与利用率，在冷却和失衡检查后逐步调整两类实例配额。"
+            },
+            {
+              "title": "有限图桶匹配（Graph Matching）",
+              "challengeAddressed": "提示长度和批次变化导致图难以复用，无限制捕获又会扩大内存占用。",
+              "mechanism": "只捕获选定的离散长度与批次组合，将相近请求分组并填充到满足容量约束的可用图配置；不存在合适图时，回退到常规预填充执行路径。"
+            },
+            {
+              "title": "期限感知等待（Adaptive Wait-Depth）",
+              "challengeAddressed": "等待更多请求有利于形成高效批次，却可能损害首词元时限。",
+              "mechanism": "等待窗口到期或达到目标批次深度时派发，剩余时限较短则提前执行；根据实际填充情况调整等待窗口和目标深度，使批次尽量对齐可用图，无严格期限的任务可以等待更充分的聚合。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "本地 LAPS v2 在单卡与八卡 H200 的预填充配置上，以 Qwen2.5-7B、14B、32B 运行 ShareGPT-4、客户端并发 1–64；相对预填充与解码分离的 SGLang，单预填充实例和八预填充实例的请求吞吐最高分别增加 20% 与 33%，正文报告平均延迟下降 20%。这些汇总极值未逐项标明对应模型与并发点，且仅开启 CUDA Graph 有时反而降低吞吐。H200 上这三个模型的单预填充图占用分别为 228、240、277 MB，每图捕获约 8–12 秒；这些是单图成本，不能直接相加推算图池总占用。",
+          "experimentalConditions": "H200 单卡与八卡配置；Qwen2.5-7B、Qwen2.5-14B、Qwen2.5-32B；ShareGPT-4 客户端并发 1–64，对照为预填充与解码分离的 SGLang，以及仅启用图、仅启用长短分流的消融。服务时限实验采用 LMSYS-Chat-1M、泊松到达和首词元时限 0.4 秒；离线蒸馏采用 LMSYS、ShareGPT，四个预填充加四个解码实例，输出长度 1K 词元，无严格请求期限。",
+          "limitations": "正式发表身份为 MLSys 2026 的 PLA-Serve，此处全部数值来自本地 LAPS v2，未由另行检查的正式版全文确认。草稿摘要与正文的部分汇总口径未对齐，不合并使用。图池共享、图覆盖与实际 KV 容量的关系，以及捕获成本是否计入服务计时，均未单独量化；等待策略和预填充与解码混合执行仍可能带来延迟或吞吐代价，H200 成本也不能视为 ACL Graph 成本。",
+          "engineeringApplicability": "原型基于 SGLang，vLLM 仅作服务对照；迁移昇腾需重验捕获形状、稳定缓冲、注意力算子和图池共享，尚无 ACL Graph 实测。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "§4.2 图开销分析（LAPS v2，PDF p.10）",
+            "quoteExcerpt": "We measure single-graph sizes of 228 MB, 240 MB, and 277 MB for the 7B, 14B, and 32B models, showing that graph size is largely insensitive to model scale.",
+            "metrics": [
+              "Single-graph footprint: 228 MB for 7B, 240 MB for 14B, 277 MB for 32B.",
+              "Single-prefill-graph initialization: approximately 8–12 seconds."
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2601.11589v2"
+          },
+          {
+            "refId": "ev-2",
+            "section": "§4.1 端到端评测（LAPS v2，PDF p.8）",
+            "quoteExcerpt": "enabling CUDA Graph alone yields limited improvements and can even degrade throughput",
+            "metrics": [
+              "Full LAPS versus SGLang PD: up to 20% higher RPS with one prefill instance.",
+              "Full LAPS versus SGLang PD: up to 33% higher RPS with eight prefill instances.",
+              "Body-reported average-latency reduction: 20%."
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2601.11589v2"
+          },
+          {
+            "refId": "ev-3",
+            "section": "§4.1 离线蒸馏（Table 2，LAPS v2，PDF p.10）",
+            "quoteExcerpt": "LAPS achieves about an 8% reduction in time consumption",
+            "metrics": [
+              "LMSYS total time: 18963 s to 17572 s; recomputed reduction 7.3353%, reported 7.3%.",
+              "ShareGPT total time: 25132 s to 23041 s; recomputed reduction 8.3201%, reported 8.3%.",
+              "Four prefill plus four decode instances; decode length 1K; no strict request deadline."
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2601.11589v2"
+          }
+        ]
+      },
+      {
+        "id": "paper-liu2025xllm",
+        "kind": "paper",
+        "paperId": "liu2025xllm",
+        "arxivId": "2510.14686",
+        "title": "xLLM Technical Report",
+        "url": "https://arxiv.org/abs/2510.14686v2",
+        "authors": [
+          "Tongxuan Liu",
+          "Tao Peng",
+          "Peijun Yang",
+          "Xiaoyang Zhao",
+          "Xiusheng Lu",
+          "Weizhe Huang",
+          "Zirui Liu",
+          "Xiaoyu Chen",
+          "Zhiwei Liang",
+          "Jun Xiong",
+          "Donghe Jin",
+          "Minchao Zhang",
+          "Jinrong Guo",
+          "Yingxu Deng",
+          "Xu Zhang",
+          "Xianzhe Dong",
+          "Siqi Wang",
+          "Siyu Wu",
+          "Yu Wu",
+          "Zihan Tang",
+          "Yuting Zeng",
+          "Yanshu Wang",
+          "Jinguang Liu",
+          "Meng Kang",
+          "Menxin Li",
+          "Yunlong Wang",
+          "Yiming Liu",
+          "Xiaolong Ma",
+          "Yifan Wang",
+          "Yichen Zhang",
+          "Jinrun Yin",
+          "Keyang Zheng",
+          "Jiawei Yin",
+          "Jun Zhang",
+          "Ziyue Wang",
+          "Xiaobo Lin",
+          "Liangyu Liu",
+          "Liwei Lan",
+          "Yang Liu",
+          "Chunhua Peng",
+          "Han Liu",
+          "Songcheng Ren",
+          "Xuezhu Wang",
+          "Yunheng Shen",
+          "Yi Wang",
+          "Guyue Liu",
+          "Yitao Hu",
+          "Hui Chen",
+          "Tong Yang",
+          "Hailong Yang",
+          "Jing Li",
+          "Guiguang Ding",
+          "Ke Zhang"
+        ],
+        "venueOrYear": "arXiv:2510.14686v2 (2026)",
+        "venueName": "arXiv",
+        "venueTier": "preprint",
+        "publicationStatus": "preprint",
+        "readDepth": "fulltext",
+        "summaryLine": "通过局部参数化捕获与固定地址共享池支持昇腾图执行，并独立管理 KV 物理页，但尚未量化图覆盖与容量的联合收益。",
+        "problem": {
+          "scenario": "昇腾上的大模型服务需要处理变化的批次和序列长度，部分自定义算子还依赖主机计算参数；频繁发射与同步会留下设备空闲间隙。",
+          "existingGap": "完整捕获固定形状与地址，动态参数和复杂算子难以直接重放，多图之间也存在存储复用冲突；另一方面，按最大长度预留 KV 会浪费物理容量。",
+          "impact": "扩大图覆盖可能增加存储约束和准备负担，地址变化还可能破坏重放正确性。图池与 KV 都占用 HBM，但报告没有给出两者共同预算下的容量与服务收益曲线。"
+        },
+        "method": {
+          "keyIdea": "把动态维度支持与稳定地址作为图复用的共同条件，在可参数化区域减少主机发射，在复杂区域保留即时执行，从而扩大可安全覆盖的执行范围并控制地址生命周期。",
+          "designPoints": [
+            {
+              "title": "选择性参数化捕获（Adaptive Graph Mode）",
+              "challengeAddressed": "动态形状和主机侧参数计算使固定配置的捕获难以复用。",
+              "mechanism": "将支持的动态维度作为执行期输入，仅捕获形状变化较简单的模块，复杂区域即时执行并缓存多种图配置；改造注意力和归约算子，使其在重放时接收相关形状参数。"
+            },
+            {
+              "title": "固定地址共享池（Shared HBM Pool）",
+              "challengeAddressed": "图内张量地址需要稳定，多图管理又需要复用存储。",
+              "mechanism": "预分配连续设备内存池，用相对池基址的固定偏移描述内部张量；启动前把外部输入复制到指定位置，结束后把输出复制到调用方缓冲，从而控制图内地址的生命周期。"
+            },
+            {
+              "title": "按需映射与页复用（Demand Paging）",
+              "challengeAddressed": "最大长度 KV 预留浪费容量，重复映射又增加管理开销。",
+              "mechanism": "预分配可复用物理页池，为请求保留连续虚拟区域，随序列增长建立映射；复用请求区域和页集合，异步准备下一词元的映射，并适配注意力与 KV 写入算子以使用连续虚拟地址。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "在默认 Ascend 910B 平台、输入与输出各 2048 词元的图模式开关消融中，Qwen3-1.7B 吞吐由 2385.58 增至 3038.88 tokens/s，增加 27.4%，平均 TPOT 由 39.27 降至 30.63 ms，下降 22.0%；Qwen3-4B 吞吐由 1539.93 增至 1671.39 tokens/s，增加 8.5%，平均 TPOT 由 55.44 降至 50.58 ms，下降 8.8%。基线为同一 xLLM 关闭自适应图模式；表中未交代设备数、数据集、并发和请求率，结果仅支持该固定长度消融，不能解释为单独共享池或 KV 管理的收益。",
+          "experimentalConditions": "图模式消融按论文默认使用 Ascend 910B；模型为 Qwen3-1.7B、Qwen3-4B，输入和输出各 2048 词元；比较同一 xLLM 关闭与开启自适应图模式。该消融未列出设备数、数据集、请求率、并发和服务时限，不能套用整系统实验的负载约束。",
+          "limitations": "共享图池与 xTensor 是分开描述的组件，缺少统一显存分解、实际 KV 容量及图数量扩展曲线；池预分配和输入输出复制未单独计量。消融未拆分局部捕获、参数化、算子改造和池复用，也未说明捕获及预热成本的计时口径。整系统相对 vLLM-Ascend、MindIE 的收益还包含调度、流水和推测等机制，不能全归因于 ACL Graph，也不证明任意控制流或形状都可重放。",
+          "engineeringApplicability": "xLLM 是独立框架，vLLM-Ascend 是对照；已有昇腾图模式实测，但迁入 vLLM-Ascend 仍需验证算子参数、地址生命周期与同步。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "§4.2 可复用 HBM 内存池（PDF p.17）",
+            "quoteExcerpt": "Before the graph is launched, the user-provided input tensor is copied into the HBM memory pool at the offset pre-defined for the graph’s input.",
+            "metrics": [],
+            "sourceUrl": "https://arxiv.org/abs/2510.14686v2"
+          },
+          {
+            "refId": "ev-2",
+            "section": "§5.2 自适应图模式消融（Table 8，PDF pp.30、32）",
+            "quoteExcerpt": "increases from 2385.58 to 3038.88 tokens/s (a 27.4% improvement), while its mean TPOT decreases by 22.0%.",
+            "metrics": [
+              "Qwen3-1.7B, input/output 2048 each: throughput 2385.58 to 3038.88 tokens/s; mean TPOT 39.27 to 30.63 ms.",
+              "Qwen3-1.7B recomputed changes: throughput +27.3854%; mean TPOT −22.0015%.",
+              "Qwen3-4B, input/output 2048 each: throughput 1539.93 to 1671.39 tokens/s; mean TPOT 55.44 to 50.58 ms.",
+              "Qwen3-4B recomputed changes: throughput +8.5368%; mean TPOT −8.7662%."
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2510.14686v2"
+          },
+          {
+            "refId": "ev-3",
+            "section": "§5.1.1 Qwen3 系列框架比较（PDF p.25）",
+            "quoteExcerpt": "Similarly, xLLM‡ outperforms vLLM-Ascend‡ and MindIE‡ by up to 2.2× and 1.5×, respectively.",
+            "metrics": [
+              "Complete-framework Qwen3 benchmark: input/output 2048 each; TPOT constraint 50 ms.",
+              "Ascend 910B: up to 1.9× vLLM-Ascend and 1.7× MindIE throughput.",
+              "Ascend 910C: up to 2.2× vLLM-Ascend‡ and 1.5× MindIE‡ throughput.",
+              "These ratios are separate from the Table 8 Adaptive Graph Mode ablation."
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2510.14686v2"
+          }
+        ]
+      }
+    ],
+    "prs": [
+      {
+        "id": "pr-vllm-ascend-18604",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm-ascend#18604",
+        "repository": "vllm-project/vllm-ascend",
+        "number": 18604,
+        "title": "[Feature][MoE] Add exact expert offload for V2 eager and decode ACL graphs",
+        "displayTitle": "固定槽位专家卸载与图容量",
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/18604",
+        "state": "merged",
+        "mergedAt": "2026-11-18T12:52:11Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "ascend_native",
+        "ascendEvidence": "面向昇腾 A5 的原生专家卸载，单卡 950PR 已有专家搬运与图重放的功能验证；950DT 未见独立硬件验证。",
+        "hardwareDependency": "依赖昇腾专家量化布局、主存到 NPU 的传输和 ACL Graph 重放；限单工作进程，各并行维度均为一，草稿即时执行并保持驻留。",
+        "summaryLine": "以稳定设备槽位按需装入专家，并把驻留上限同步到解码图选择，避免命中未捕获图；容量收益仍受传输与完整池回退约束。",
+        "problem": "大规模混合专家模型无法把全部专家权重放入单卡，按需卸载又必须维持图重放所需的稳定设备地址。若解码分派没有同步专家驻留容量，可能选中超出容量、实际未捕获的图，造成执行失败。",
+        "optimization": "将准备好的目标专家权重和缩放参数保存在锁页主存，按路由搬入每层固定设备槽位，保留原始专家、权重和量化布局，并处理重放期间的传输与失败。预填充、混合批次及容量溢出使用可复用完整专家池，未捕获批次回退即时执行；将驻留容量限制同步到解码分派，避免选择超限图。仅卸载目标专家，草稿专家常驻，每个工作进程内串行执行卸载与权重发布。",
+        "effectsAndLimits": {
+          "resultSummary": "当前修复分支未提供端到端吞吐/延迟基准。容量修复候选版通过 2 项 A5 硬件端到端功能用例及 749 项 CPU 测试，另有 1 项跳过；最终变基后仅补跑 3 项依赖检查相关测试。保存的性能数值属于前期硬件版本的历史参考数据，并非当前修复分支的同条件端到端基准：单卡 950PR、并发 1、输入 65,536、输出 1,024 词元时，DeepSeek-V4-Flash-0731 输出吞吐为 18.70 tokens/s，GLM-5.3-Flash 为 7.87 tokens/s；均无成对性能基线，不能解释为加速比。",
+          "experimentalConditions": "历史测量使用单卡 Ascend 950PR，DeepSeek-V4-Flash-0731 采用 W4A8 MXFP 专家权重，GLM-5.3-Flash 采用 W8A8 MXFP8；均为并发 1、每请求输入 65,536 与输出 1,024 词元，前缀缓存命中约 90%，排除预热。DeepSeek 连续执行 5 个离线请求，GLM 连续执行 8 个流式 HTTP 请求；前者吞吐计入预填充，后者还计入请求间隔。目标专家每层分别驻留 84 与 68 个，草稿全驻留并即时执行，解码采用仅解码全图模式。",
+          "limitations": "仅支持单工作进程；多工作进程卸载、专家并行、专家负载均衡及预填充与解码分离不在支持范围。完整模型历史性能和精度未重跑，DeepSeek 测量还包含另一项 KV 块大小修复，两模型的接口与计时边界也不同。未量化设备显存净节省或高并发收益；最终变基补丁虽与硬件候选等价，但完整 CPU 与硬件套件未重跑，完整 A5 套件也未完成。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "ACL Graph 动态报告 · 核心机制",
+            "quoteExcerpt": "证据摘要：固定专家槽位承接路由权重，解码分派同步采用驻留上限；超出容量的批次转入完整池或常规执行。",
+            "metrics": [],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/18604"
+          },
+          {
+            "refId": "ev-2",
+            "section": "ACL Graph 动态报告 · 历史硬件与精度边界",
+            "quoteExcerpt": "证据摘要：历史单卡记录包含问答准确性及两模型输出速率，缺少同条件性能基线，不能将绝对速率视为加速。",
+            "metrics": [
+              "DeepSeek 历史 GPQA：183/198，与四卡常驻参考相同。",
+              "单卡 950PR 历史输出吞吐：DeepSeek 18.70 tokens/s，GLM 7.87 tokens/s。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/18604"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-ascend-22485",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm-ascend#22485",
+        "repository": "vllm-project/vllm-ascend",
+        "number": 22485,
+        "title": "[BugFix][Model] Skip unused DeepSeek V4.1 HC buffer for DSpark",
+        "displayTitle": "释放 DSpark 无用隐藏态缓冲",
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22485",
+        "state": "merged",
+        "mergedAt": "2026-11-20T08:27:44Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "ascend_native",
+        "ascendEvidence": "历史实测来自两节点 A3 的 DeepSeek V4.1 与 DSpark 部署；当前分支完成 CPU 分配回归，尚无该分支完整模型及序列并行开启时的硬件验证。",
+        "hardwareDependency": "历史硬件对照使用两节点 A3、每节点 16 个逻辑 NPU，未进一步标明芯片型号；改动无需新增硬件接口，但依赖该模型已有的无缓冲前向路径。",
+        "summaryLine": "省去 DSpark 不消费的完整隐藏态缓冲及重复复制，让自动预算把释放空间用于 KV；当前分支仅验证分配行为，硬件收益来自历史对照。",
+        "problem": "DeepSeek V4.1 的宽泛推测条件会为 DSpark 分配完整隐藏态缓冲，但 DSpark 已单独保存所需辅助状态，因而产生无用驻留和逐次前向复制。缓冲存在还会影响序列并行的聚合路径，并占用本可由自动预算分配给 KV 的容量。",
+        "optimization": "仅在 DeepSeek V4.1 的完整隐藏态缓冲分配入口排除 DSpark，复用已有无缓冲路径完成隐藏态归约与聚合；其他草稿方式和流水线角色的分配规则保持原语义。自动 KV 定容无需改动，即可把未再分配的缓冲空间纳入可用预算。",
+        "effectsAndLimits": {
+          "resultSummary": "当前分支 14 项构造分配回归通过，未提供端到端吞吐/延迟基准；硬件数值来自相同分配条件在早期适配部署中的历史对照。两节点 A3 的 DeepSeek V4.1 Flash W4A8、DSpark 五词元推测且序列并行关闭时，预填充侧每个并行进程的缓冲从 320 MiB 降至 0 MiB，自动 KV 预算从 17.06 增至 17.37 GiB；解码侧缓冲从 6.5625 MiB 降至 0 MiB，KV 预算从 16.54 增至 16.55 GiB。在对应历史合成负载下，预填充平均耗时的轮次中位数由 2264.6 上升至 2267.4 ms；解码有效 TPOT 的轮次中位数由 12.354 降至 12.291 ms，同一解码负载下预填充与解码整体输出吞吐由 8039 增至 8144 tokens/s。",
+          "experimentalConditions": "历史对照使用两节点 A3、每节点 16 个逻辑 NPU、DeepSeek V4.1 Flash W4A8、BF16 隐藏态、DSpark 五词元推测及自动 KV 预算，关闭序列并行并排除预热。预填充端采用即时执行，输入 16K、输出 64 词元、并发 32；解码端采用仅解码全图模式，输入 1K、输出 1024 词元、并发 128。对照为同一适配部署加入分配条件前后，各做三轮固定输出合成请求，比较某一角色时固定另一角色代码；当前分支测试只使用 CPU 张量，不加载完整模型。",
+          "limitations": "释放容量可能被自动 KV 定容吸收，总 HBM 占用不必下降。历史对照并非当前分支逐提交硬件验收，合成负载草稿接受率约 96.6%，不能外推业务吞吐。预填充文本哈希匹配 189/192 个请求，即 3 个不一致；解码匹配 384/384 个，但严格逐词元与对数概率等价，以及预填充差异原因仍未验证。序列并行开启路径、完整模型分支回归及完整静态检查尚未覆盖。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "PR 正文 · 变更动机与背景",
+            "quoteExcerpt": "The existing buffer-free forward path then handles collapse/gather, while MTP, Eagle/Eagle3, DFlash and regular draft-model conditions remain unchanged.",
+            "metrics": [],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/22485"
+          },
+          {
+            "refId": "ev-2",
+            "section": "PR 正文 · 历史真实权重硬件证据",
+            "quoteExcerpt": "P output text hashes matched 189/192 requests and D 384/384; strict token/logprob equivalence and the cause of the P differences remain unverified.",
+            "metrics": [
+              "189/192 requests",
+              "384/384"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/22485"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-66523",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm#66523",
+        "repository": "vllm-project/vllm",
+        "number": 66523,
+        "title": "[Bugfix] Extensible KV cache: release warmup's blocks before CUDA graph capture",
+        "displayTitle": "捕获前归还预热 KV 块",
+        "url": "https://github.com/vllm-project/vllm/pull/66523",
+        "state": "merged",
+        "mergedAt": "2026-11-12T00:55:52Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "cuda_specific_needs_port",
+        "ascendEvidence": "证据来自上游 vLLM 的 H100 启动和生成验证；尚无昇腾实测，迁移前需确认虚拟地址保留、物理映射伸缩与 ACL Graph 重放的一致性。",
+        "hardwareDependency": "依赖 CUDA 可扩展 KV Cache 和图池，要求缩容与扩容时张量视图及虚拟地址保持有效；已测单卡 H100 80 GB，昇腾等价接口未验证。",
+        "summaryLine": "捕获前归还预热物理 KV 块并保留虚拟地址，捕获后按实际图占用扩容缓存，修复大编码器图与缓存争用导致的启动失败。",
+        "problem": "可扩展 KV 在预热后仍保留物理块，启动定容又未单列编码器图预算。大图捕获与这些临时块争用显存，可能在捕获期间或其后采样预热阶段触发显存不足，导致本可容纳的配置无法启动。",
+        "optimization": "在预热测得临时峰值后，将缓存缩至空块所需最小物理映射，保留虚拟地址与张量视图；捕获使用占位槽位并清理草稿请求映射，避免通过旧状态写入无效 KV。待图完成驻留，再按真实可用显存恢复 KV 容量并重测自适应验证成本，使启动预算反映实际图占用。",
+        "effectsAndLimits": {
+          "resultSummary": "未提供端到端吞吐/延迟基准。单卡 H100 80 GB 上，gemma-4-31B-it 的最大上下文长度为 4096 与 8192 时，相对主线对照均由捕获后采样预热显存不足变为启动成功，并各完成 6/6 条图像请求生成；最终 KV 容量分别为 7.54 GiB、772 块和 6.97 GiB、714 块。相关测试 114 项通过。约 2 秒的捕获结束至缓存扩容区间包含映射、清零、采样预热和最终测量，不能当作独立映射开销或推理延迟。",
+          "experimentalConditions": "单张 NVIDIA H100 80 GB，gemma-4-31B-it，第二代执行路径和多模态编码器图开启，显存利用率 0.95，最大上下文长度 4096 与 8192；每请求最多两张图像，使用贪心生成。对照为主线提交 821851eab0，每种长度测试六条图像提示，请求并发未报告；另以 Qwen3-0.6B 检查捕获期映射与贪心输出一致性。",
+          "limitations": "仅改变可扩展缓存的启动生命周期，不减少图本身占用，也不保证所有配置都能容纳。硬件运行未标明对应的具体修复提交；图像生成完成属于功能验证，不能推断服务性能。不同布局所需最小映射不同，不能把单块回归断言视为通用条件；昇腾的物理映射伸缩与重放语义仍待验证。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "ACL Graph 动态报告 · 最小物理映射与状态准备",
+            "quoteExcerpt": "证据摘要：捕获期间仅维持布局所需的最小物理后备，草稿请求映射使用无效标记，恢复容量后重新测量验证成本。",
+            "metrics": [
+              "最小映射：常规布局 1 块，块维度最外层布局 2 块。",
+              "捕获期草稿请求映射：无效标记 −1。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/66523"
+          },
+          {
+            "refId": "ev-2",
+            "section": "ACL Graph 动态报告 · H100 启动功能验证",
+            "quoteExcerpt": "证据摘要：H100 的两档上下文配置均从预热显存不足转为可启动，并分别完成全部图像生成检查；这属于功能证据。",
+            "metrics": [
+              "设备：单卡 H100 80 GB；显存利用率 0.95。",
+              "最大上下文：4096 与 8192；两档均完成 6/6 条图像请求。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/66523"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-68552",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm#68552",
+        "repository": "vllm-project/vllm",
+        "number": 68552,
+        "title": "[Refactor] Move CUDA graph sizing policy into Platform",
+        "displayTitle": "将图桶预算下沉平台接口",
+        "url": "https://github.com/vllm-project/vllm/pull/68552",
+        "state": "merged",
+        "mergedAt": "2026-11-19T05:19:50Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "portable_framework",
+        "ascendEvidence": "上游配置层已提供可扩展的平台策略入口，可供昇腾借鉴；现有真实模型证据来自 GB200，未证明昇腾已实现策略覆盖或接入 ACL Graph。",
+        "hardwareDependency": "真实模型对照使用 NVIDIA GB200；CUDA 与 AMD 平台的默认策略分开处理，AMD 和 XPU 的实机验证仍缺失，昇腾接入尚未验证。",
+        "summaryLine": "把预填充、解码和验证图桶策略交给平台接口，保留公共校验与用户优先级，为后端差异提供入口，但尚无容量或服务性能收益证据。",
+        "problem": "公共配置把硬件默认值、捕获网格生成和通用校验混在一起，平台无法替换关键分桶策略；共用硬件能力判断还会误把部分 AMD 设备归入 CUDA 新架构策略，导致默认捕获预算不符合后端。",
+        "optimization": "将默认上限和预填充、统一解码、自适应验证的网格生成分别下沉到可覆盖的平台接口，单词元草稿也复用解码网格入口；公共层继续负责用户设置优先级、调度上限、形状解析和返回尺寸校验。限制 CUDA 专用默认值只作用于对应平台，纠正 AMD gfx10xx 的误选，保留继承路径的原有网格公式。",
+        "effectsAndLimits": {
+          "resultSummary": "未提供端到端吞吐/延迟基准，也未提供实测显存节省。当前配置套件 62 项通过，90 项未选中；生产代码等价版本的 27 种配置结果与对照一致。GB200 上 OPT-125m 的普通和草稿场景分别生成 256 词元，生成词元、文本、所选词元对数概率、网格及捕获计数一致；草稿场景 176/176 个草稿词元被接受，只证明推测路径执行及行为一致，不是吞吐指标。",
+          "experimentalConditions": "真实模型验证使用 GB200、OPT-125m、FP16、张量并行度 1、8 条提示和每条 32 词元贪心输出；普通场景与同模型作为草稿、每轮预测 2 词元的场景均启用全图与分段图组合。双方使用相同原生算子产物，对照为记录的主线快照；模型与图重放比较在生产代码等价版本补跑，各场景每个版本运行一次。",
+          "limitations": "这是策略接口重构与平台误选修复，未实现在线图规划。当前 62 项配置测试未包含真实 GPU 用例；真实 GPU 与模型重放结果属于先前支持验证及生产代码等价版本对照，不能当作当前提交重跑全部套件。AMD gfx10xx 移除隐含限制后可能捕获更大的图桶，需要显式预算；小模型一致性不能外推大模型精度、吞吐或昇腾收益，AMD 与 XPU 实机验证也仍待完成。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "ACL Graph 动态报告 · 平台分桶策略",
+            "quoteExcerpt": "证据摘要：平台分别提供预填充、解码和验证的捕获网格，公共配置继续校验用户优先级与尺寸；专属硬件默认值被限制到对应后端。",
+            "metrics": [],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/68552"
+          },
+          {
+            "refId": "ev-2",
+            "section": "PR 正文 · GB200 模型与配置一致性验证",
+            "quoteExcerpt": "证据摘要：普通生成和草稿执行均核对输出及所选概率；全部草稿接受仅说明推测路径确已执行。",
+            "metrics": [
+              "草稿模型场景生成：256 词元。",
+              "草稿接受：176/176 词元；非吞吐指标。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/68552"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "p2",
+    "index": 2,
+    "slug": "fixed-address-dirty-state",
+    "title": "固定地址下的跨重放隐式脏状态与语义漂移",
+    "shortTitle": "地址稳定与状态新鲜度",
+    "priorityBadge": "P0 · 正确性红线",
+    "gap": {
+      "background": "在 GPU 与昇腾 NPU 以固定地址执行单次设备图重放的场景下，跨轮复用的注意力元数据与就绪标记会有地址合法却读取旧值、无效尾行或未完成结果的问题。请求替换、批次收缩回长和异步生产会改变状态含义，固定地址与拓扑本身并不记录这些变化。本题检查单次重放的状态消费安全，跨子图、请求分支与外部工具的提交和取消语义由 P6 讨论。",
+      "existingLimitations": "虽然当前现有的工作中，本题八卡 GraCE、PolyGraph、Event Tensor、MoonBright，以及 vLLM-Ascend #21191、#22156 和 vLLM #52440、#67181，已从参数刷新、有效范围、依赖与映射一致性、地址守卫及局部状态重置角度缓解这一问题，但是因为捕获绑定、逻辑世代与异步完成具有不同更新节奏，已有证据尚未证明能够自动提取非 KV 辅助状态的生产消费约束并覆盖其跨重放转移，仍然没有彻底解决。外部比较基线包括 KVGuard、GRIEF 与 SGLang RFC #32432（均非本题附卡，其中 SGLang RFC #32432 为契约提案）。KVGuard 明确排除非 KV 辅助元数据和分布式协调消息；GRIEF 已有定时并发请求变异，SGLang RFC 已提出元数据、工作区、世代、流所有权及跨卡布局约束。因此，静态契约声明、手工版本标签或通用并发模糊测试本身不足以构成新增检错贡献。",
+      "researchOpportunity": "因此我们从可观测非 KV 辅助状态的自动约束提取与跨重放状态转移覆盖方向出发，有机会在明确的负载与后端约束下缓解此问题，并检验收益能否覆盖新增成本。以消费点检查定位旧世代、无效范围和错序读取。研究范围限于生产者与消费者可访问的状态，封闭内核保留未知；版本、有效范围、所有者和完成事件只是检查载体。以真实历史修复前后配对用例构造批次收缩回长、同批量换请求、多图交替及完成顺序变化，按根因去重并保留未参与设计的错误家族。比较逐步非图执行差分、随机状态变异、GRIEF 式反馈与 KVGuard 适用检查，并对照 SGLang RFC 界定新增检错类别；报告家族覆盖、误报、生产消费定位距离、检测耗时、时序扰动和吞吐开销。强同步与人工标签仅作检查器对照，必须保留不强制同步的验证；该路径须以在未见错误家族或独立新缺陷上相对既有工具新增可定位检错能力作为核心检验标准。",
+      "keyTakeaway": "对纳入检查范围的状态，每次重放均应检查地址、当前值、有效范围及依赖完成关系；不可观测的封闭内核状态应明确标为未知。"
+    },
+    "papers": [
+      {
+        "id": "paper-ghosh2026grace",
+        "kind": "paper",
+        "paperId": "ghosh2026grace",
+        "title": "GraCE: Unlocking CUDA Graphs with Compiler Support for ML Workloads",
+        "url": "https://www.usenix.org/conference/osdi26/presentation/ghosh",
+        "authors": [
+          "Abhishek Ghosh",
+          "Ajay Nayak",
+          "Ashish Panwar",
+          "Arkaprava Basu"
+        ],
+        "venueOrYear": "OSDI 2026",
+        "venueName": "OSDI",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "通过编译器修复捕获障碍并间接刷新参数，让图重放读取当前输入，同时以逐区域实测选择执行方式，避免复制成本吞噬收益。",
+        "problem": {
+          "scenario": "训练或推理迭代反复启动短 GPU 内核，但输入张量地址、标量和主机缓冲可能在迭代间变化，图捕获却按值保存启动参数。",
+          "existingGap": "固定占位张量配合内容复制能够刷新参数，却会为每次重放增加搬运成本；省略刷新则可能保留旧标量或已失效的主机地址。少量不兼容操作还可能阻止整个候选区域捕获。",
+          "impact": "参数刷新成本可能抵消图启动收益，而失效参数可能导致错误结果、静默数据损坏或崩溃，必须同时满足语义正确性与执行收益。"
+        },
+        "method": {
+          "keyIdea": "将固定图绑定与可变参数解耦，让内核经稳定槽位读取当前输入指针，以紧凑元数据更新替代整张量复制；再按区域实测选择图执行，避免刷新成本抵消启动收益。",
+          "designPoints": [
+            {
+              "title": "捕获兼容变换（Capture Repair）",
+              "challengeAddressed": "标量表示、张量放置或不兼容复制可能使包含大量内核的区域无法捕获。",
+              "mechanism": "检查编译中间表示及元数据，将不兼容的主机标量改为设备张量，调整张量位置，并把必要复制移到捕获区域之前，再重新生成受影响的计算表示。"
+            },
+            {
+              "title": "参数间接访问（Parameter Indirection）",
+              "challengeAddressed": "固定捕获参数通常要求把新输入复制到旧占位张量，搬运量随输入大小增长。",
+              "mechanism": "捕获稳定指针槽，在重放前沿同一执行流刷新外部输入指针。可改写内核直接解引用槽位；不可改写的预编译内核通过前置内核与设备侧图管理接口更新参数，图内产生的参数无需额外间接访问。"
+            },
+            {
+              "title": "逐区域择优执行（Selective Deployment）",
+              "challengeAddressed": "图重放及参数间接访问自身也有成本，无法保证每个区域都受益。",
+              "mechanism": "在编译与捕获阶段分别测量普通执行、不带参数间接的图执行和带参数间接的图执行，为每个候选区域缓存最快的可用方案。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "在单张 H100 NVL 的 25 项训练与推理工作负载上，论文按每轮执行时间报告相对 PyTorch 2.4 图执行基线平均改善 29%，其中批量为 1 的 XLNet 推理最高加速 3.36 倍。同一主实验中，仅启用 CUDA Graph 相对非图基线使 4 项应用性能退化至少 3%。GraCE 的编译时间相对图执行基线平均为 2.21 倍，BSCG 任务最坏为 3.2 倍；这些准备成本未计入重放收益。",
+          "experimentalConditions": "主实验使用单张 NVIDIA H100 NVL、94 GB 显存，覆盖 TorchBench、HuggingFace 与 TIMM 的 25 项训练或推理工作负载，包括批量为 1 的 XLNet 推理。对照为 PyTorch 2.4 开启或关闭 CUDA Graph；各任务使用论文指定批量和不同输入样本，未指定命名数据集或在线到达轨迹。",
+          "limitations": "论文所称平均改善 29% 的汇总口径与图中归一化均值不一致，不能认定为已核实的几何平均。候选捕获、编译改写和择优测量增加准备成本，未给出在线服务的摊销临界点。预编译内核需要额外参数更新路径，其成本随参数数量增长。方法依赖稳定的内核启动依赖图，未证明能检查任意跨重放工作区、计数器或其他隐式状态。",
+          "engineeringApplicability": "论文仅讨论 vLLM 潜在受益，未展示集成或昇腾验证；迁移需确认内核改写、图参数更新、缓冲寿命及更新先于重放的顺序支持。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "§2.3.2 参数复制开销（PDF p.6）",
+            "quoteExcerpt": "parameter copying accounts for 24% and 17% of their end-to-end execution time",
+            "metrics": [
+              "29 of 116",
+              "25% of the graphs",
+              "24% and 17%"
+            ],
+            "sourceUrl": "https://www.usenix.org/conference/osdi26/presentation/ghosh"
+          },
+          {
+            "refId": "ev-2",
+            "section": "§5.1 主性能评测（PDF p.12）",
+            "quoteExcerpt": "29% for EOS (HPC) and 15% for Deep Recommender (inference).",
+            "metrics": [
+              "4 of the 25 applications",
+              "at least 3%",
+              "29% for EOS (HPC)",
+              "15% for Deep Recommender (inference)",
+              "3.36× (XLNET-inference)"
+            ],
+            "sourceUrl": "https://www.usenix.org/conference/osdi26/presentation/ghosh"
+          },
+          {
+            "refId": "ev-3",
+            "section": "§5 编译开销分析（PDF p.14）",
+            "quoteExcerpt": "We observe that GraCE increases compilation time by 2.21× on average.",
+            "metrics": [
+              "2.21× on average",
+              "3.2× for the BSCG application",
+              "up to 506 seconds",
+              "12% on average",
+              "up to 15%"
+            ],
+            "sourceUrl": "https://www.usenix.org/conference/osdi26/presentation/ghosh"
+          }
+        ]
+      },
+      {
+        "id": "paper-yang2026polygraph",
+        "kind": "paper",
+        "paperId": "yang2026polygraph",
+        "arxivId": "2610.23861",
+        "title": "PolyGraph: Plan-Buffered CUDA Graphs for Adaptive Speculative Decoding",
+        "url": "https://arxiv.org/abs/2610.23861v1",
+        "authors": [
+          "Yang, Junchao"
+        ],
+        "venueOrYear": "arXiv:2610.23861 (2026)",
+        "venueName": "arXiv",
+        "venueTier": "preprint",
+        "publicationStatus": "preprint",
+        "readDepth": "fulltext",
+        "summaryLine": "以固定地址计划缓冲表达本轮有效工作范围，在固定图中跳过非活跃计算，兼顾形状变化与重放复用，但证据限于单卡机制实验。",
+        "problem": {
+          "scenario": "自适应投机解码同时改变活跃批量和批次草稿长度，使验证宽度随迭代变化，而图捕获绑定了启动参数与执行范围。",
+          "existingGap": "预建全部形状增加启动成本，按需捕获把首次构建放入请求路径，始终执行最大草稿则浪费计算。固定计划地址仍需保证当前内容先于重放可见，并防止异步复制读取已被覆盖的主机暂存数据。",
+          "impact": "系统在启动时间、尾延迟与无效计算之间取舍；若只保持地址稳定却忽略发布顺序，图还可能按上一轮计划执行。"
+        },
+        "method": {
+          "keyIdea": "把变化形状从捕获参数转为设备侧计划数据，让固定图中的内核只执行本轮有效范围；通过有序发布保证重放读到当前计划，减少预建图与填充计算的取舍。",
+          "designPoints": [
+            {
+              "title": "持久形状计划（Persistent Shape Plan）",
+              "challengeAddressed": "直接捕获形状标量会把图绑定到单一执行宽度。",
+              "mechanism": "在固定设备地址保存紧凑计划，由当前验证宽度、上下文长度、草稿长度和缓存槽位等状态描述本轮工作，形状相关内核在每次执行时读取计划。"
+            },
+            {
+              "title": "非活跃分块屏蔽（Guarded Tiles）",
+              "challengeAddressed": "固定最大启动网格可能迫使小批次也完成最大形状的全部计算。",
+              "mechanism": "保持拓扑、分配、布局、指针和启动网格不变，让每个形状相关内核读取活跃范围并跳过范围外分块；实验采用单个覆盖最大验证宽度的图桶。"
+            },
+            {
+              "title": "有序计划发布（Ordered Publication）",
+              "challengeAddressed": "计划尚未发布或暂存区提前复用，会让重放读取错误轮次的状态。",
+              "mechanism": "先填充锁页主机暂存区，再在图启动流上排入计划复制，随后重放；通过事件保护暂存环，确保仍在传输的数据不会被后续更新覆盖。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "本卡指标为执行步延迟 P99（非请求端到端延迟）。在单张 H800 PCIe、无训练权重的 Qwen2.5-3B 尺寸工作负载及主合成轨迹上，PolyGraph 用 1 张图和 93 ms 预构建时间替代 AllShapes 的 64 张图与 3915 ms，两者 P99 均为 18.4 ms；按需捕获基线为 62.0 ms，最大填充基线也为 18.4 ms。同一卡、同一合成任务的固定草稿长度 4 对照中，相对最大填充，P99 从 18.4 ms 降至 15.0 ms，按种子计算的平均降幅为 18.7%。",
+          "experimentalConditions": "单张 NVIDIA H800 PCIe；采用 Qwen2.5-3B 尺寸的 36 层解码工作负载，无训练权重。合成轨迹使用泊松到达、按 ShareGPT 校准的长度和随生成推进缩短的草稿计划，三个随机种子各含 400 个请求。批量为 1 至 16，草稿长度为 1 至 8，最大验证宽度为 128；对照为全形状预建、按需捕获和最大草稿填充。",
+          "limitations": "结果属于机制级实验，未覆盖真实模型输出正确性、生产调度、分页缓存、网络或多卡服务。预构建时间可能包含捕获触发的首次编译，不能视作纯捕获时间。主轨迹相对最大填充没有显示更低的四舍五入后 P99；百分比按种子分别计算，不能由取整后的延迟精确反推。所有形状相关内核都须读取计划并屏蔽无效工作，不透明内核需要兼容接口或图边界。方法未提供通用脏状态检测，也不支持越过捕获范围的任意拓扑或布局变化。",
+          "engineeringApplicability": "尚未集成 vLLM，也无昇腾实测；迁移需实现读取计划并屏蔽无效分块的昇腾内核，验证发布顺序、暂存寿命及固定布局约束。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "§3.1 计划缓冲契约（PDF p.3）",
+            "quoteExcerpt": "Before replay, the runtime writes the fields to pinned host memory and enqueues one 28-byte cudaMemcpyAsync on the graph’s launch stream.",
+            "metrics": [
+              "eight int32 slots (32 bytes)",
+              "28-byte update",
+              "approximately 3.6 µs",
+              "roughly 18 ms"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2610.23861v1"
+          },
+          {
+            "refId": "ev-2",
+            "section": "§4.2 主轨迹执行步评测（Table 3，PDF pp.4–5）",
+            "quoteExcerpt": "POLYGRAPH closely tracks the warmed AllShapes reference: their P50 latencies are 17.7 and 17.8 ms, and both P99 values round to 18.4 ms.",
+            "metrics": [
+              "执行步延迟 P50：PolyGraph 17.7 ms，AllShapes 17.8 ms；非请求端到端延迟。",
+              "执行步延迟 P99（非请求端到端延迟）：PolyGraph 与 AllShapes 均取整为 18.4 ms。",
+              "PolyGraph：1 张图，预构建 93 ms；AllShapes：64 张图，预构建 3915 ms。",
+              "按需捕获基线执行步延迟 P99（非请求端到端延迟）：62.0 ms。"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2610.23861v1"
+          },
+          {
+            "refId": "ev-3",
+            "section": "§4.3 固定草稿长度对照（Table 4，PDF p.5）",
+            "quoteExcerpt": "At d = 4, MaxPad doubles the required token work, and POLYGRAPH reduces P99 from 18.4 to 15.0 ms (−18.7%).",
+            "metrics": [
+              "草稿长度 1、4、8 时，相对最大填充的执行步延迟 P99（非请求端到端延迟）变化依次为 −33.4 ± 0.12%、−18.7 ± 0.06%、−0.3 ± 0.03%。",
+              "对应最大填充的额外词元位置数：700%、100%、0%。"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2610.23861v1"
+          }
+        ]
+      },
+      {
+        "id": "paper-jin2026eventtensor",
+        "kind": "paper",
+        "paperId": "jin2026eventtensor",
+        "arxivId": "2604.13327",
+        "title": "Event Tensor: A Unified Abstraction for Compiling Dynamic Megakernel",
+        "url": "https://proceedings.mlsys.org/paper_files/paper/2026/hash/53d3f45797970d323bd8a0d379c525aa-Abstract-Conference.html",
+        "authors": [
+          "Jin, Hongyi",
+          "Hou, Bohan",
+          "Wang, Guanjie",
+          "Lai, Ruihang",
+          "Chen, Jinqi",
+          "Ye, Zihao",
+          "Cai, Yaxing",
+          "Dong, Yixin",
+          "Cheng, Xinhao",
+          "Zhang, Zhihao",
+          "Zhao, Yilong",
+          "Huang, Yingyi",
+          "Yang, Lijie",
+          "Jiang, Jinchen",
+          "Oliaro, Gabriele",
+          "Ji, Jianan",
+          "Miao, Xupeng",
+          "Grover, Vinod",
+          "Mowry, Todd C.",
+          "Jia, Zhihao",
+          "Chen, Tianqi"
+        ],
+        "venueOrYear": "MLSys 2026",
+        "venueName": "MLSys",
+        "venueTier": "top_venue",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "将细粒度生产消费依赖表示为事件张量，并编译为常驻任务调度，减少解码等待，但未建立通用跨重放脏状态检查。",
+        "problem": {
+          "scenario": "大模型解码包含大量短算子，批量变化和专家路由又会改变任务数量及依赖，传统内核序列与图执行仍保留较粗的算子边界。",
+          "existingGap": "整个内核完成后再启动消费者，无法利用局部数据提前就绪的机会；已有常驻大内核还可能依赖形状专门化，并要求开发者手工维护复杂的任务依赖。",
+          "impact": "低批量解码暴露启动空隙和同步等待，动态路由进一步增加负载不均与依赖管理成本，需要把当前依赖状态及其完成条件显式化。"
+        },
+        "method": {
+          "keyIdea": "把动态依赖表示为带符号形状的事件张量，将通知、等待与任务调度共同编译进常驻内核；让消费者按所需数据就绪执行，减少整算子同步造成的空等。",
+          "designPoints": [
+            {
+              "title": "事件计数依赖（Event Tensors）",
+              "challengeAddressed": "形状和专家路由变化会改变生产者数量及消费者触发条件。",
+              "mechanism": "显式描述生产任务到事件、事件到消费任务的映射，用符号维度表达形状变化，并按当前路由词元数初始化专家计数器；设备整数计数通过原子递减与等待归零表达完成依赖。"
+            },
+            {
+              "title": "静态常驻调度（Static Scheduling）",
+              "challengeAddressed": "规则工作负载需要细粒度重叠，同时避免频繁的运行时队列操作。",
+              "mechanism": "预先生成各计算单元的任务队列，将分块算子融合到常驻循环，并把依赖编译为显式通知与等待；未见过的形状复用相邻更大采样形状的调度。"
+            },
+            {
+              "title": "设备动态队列（Dynamic Scheduling）",
+              "challengeAddressed": "不规则路由与任务完成时间差异会造成静态任务分配失衡。",
+              "mechanism": "使用设备全局内存中的原子队列分配任务，让空闲计算单元领取可执行工作；允许生产者全部派发后提前入队消费者，但仍在消费执行前等待依赖完成。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "在单张 B200、Qwen3-30B-A3B、批量 1、合成输入 512 词元并输出 100 词元时，包含服务引擎开销的每输出词元耗时相对 vLLM 和 SGLang 分别获得 1.48 倍与 1.20 倍加速。四张 B200 的 Qwen3-32B 实验中，相对 vLLM 的加速比仅为 0.99 至 1.06，且两者延迟均高于 SGLang。B200 平台的 Qwen3-32B 启动实验报告 ETC 在线预热 35 s，vLLM 为 123 s，SGLang 为 583 s；ETC 另需 107 s 离线编译，该表未注明张量并行度。",
+          "experimentalConditions": "平台配备 8 张 NVIDIA B200；完整模型解码使用单卡或四卡张量并行。模型为 Qwen3-30B-A3B 与 Qwen3-32B，合成输入长 512 词元、输出长 100 词元，批量取 1、8、16、32、64、128。服务基线为启用图执行与编译的 vLLM 0.11.0rc2 和 SGLang 0.5.3rc0；完整模型采用静态调度。",
+          "limitations": "事件依赖由开发者显式提供，自动从任意计算图提取依赖仍属未来工作；动态队列会竞争并增加调度开销，在已测规则分布式任务上落后于静态调度。在线预热未包含单列的离线编译，不能把 35 s 当作完整部署准备时间。服务实验采用合成定长请求，未证明生产到达轨迹下的收益。当前路由计数初始化提供了明确依赖机制，但不等于通用跨重放状态审计或完整重置协议。本卡提取的测量来自 arXiv:2604.13327v2 预印本，正式发表身份沿用锁定元数据。",
+          "engineeringApplicability": "以 vLLM 为性能基线，未证明已集成；昇腾迁移需重新实现事件计数、原子操作和设备调度，并验证同步语义，不能视作现成 ACL Graph 能力。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "§4.1–§4.2 集合通信与 MoE 评测（PDF pp.8–9）",
+            "quoteExcerpt": "achieving up to a 1.40x execution time speedup over the cuBLAS+NCCL baseline for both workloads.",
+            "metrics": [
+              "8 NVIDIA B200 GPUs",
+              "8192",
+              "1.40x execution time speedup",
+              "1.23x speedup at 1024 tokens",
+              "128 experts with a top-k of 8"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2604.13327v2"
+          },
+          {
+            "refId": "ev-2",
+            "section": "§4.3 端到端解码评测（PDF p.10）",
+            "quoteExcerpt": "0.99x and 1.06x. The latency of both ETC and vLLM is higher than SGLang in this setting",
+            "metrics": [
+              "1.48x speedup",
+              "1.20x over SGLang",
+              "0.99x and 1.06x",
+              "batch size 1"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2604.13327v2"
+          },
+          {
+            "refId": "ev-3",
+            "section": "§4.4 预热与编译开销（Table 1，PDF p.10）",
+            "quoteExcerpt": "vLLM requires 123 s and SGLang 583 s to warm up on Qwen3-32B, whereas ETC initializes in only 35 s.",
+            "metrics": [
+              "123 s",
+              "583 s",
+              "35 s",
+              "107 s for Qwen3-32B",
+              "67 for vLLM"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2604.13327v2"
+          }
+        ]
+      },
+      {
+        "id": "paper-zhang2026moonbright",
+        "kind": "paper",
+        "paperId": "zhang2026moonbright",
+        "title": "MoonBright: A GPU Memory Allocator with Device-Side Page Table Materialization and Deferred TLB Coherence",
+        "url": "https://www.usenix.org/conference/osdi26/presentation/zhang-yangyu",
+        "authors": [
+          "Yangyu Zhang",
+          "Lei Chen",
+          "Chunwei Xia",
+          "Shuaijiang Li",
+          "Shuoming Zhang",
+          "Zhicheng Li",
+          "Qianqi Sun",
+          "Jiawei Xiao",
+          "Ruiyuan Xu",
+          "Ao Chen",
+          "Guangli Li",
+          "Xiaobing Feng",
+          "Huimin Cui",
+          "Chenxi Wang",
+          "Jiacheng Zhao"
+        ],
+        "venueOrYear": "OSDI 2026",
+        "venueName": "OSDI",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "以设备并行建页表和新虚拟地址降低映射成本，同时保留旧地址复用的一致性屏障，揭示地址稳定并不保证映射与数据可见性。",
+        "problem": {
+          "scenario": "动态 GPU 分配、前缀缓存重映射和束搜索状态分叉反复改变虚拟地址到物理页的对应关系。",
+          "existingGap": "主机驱动路径串行构造页表，细粒度映射成本较高；内存池虽减少驱动调用，却可能积累外部碎片。已有地址被重新映射或复用时，地址转换缓存还可能保留旧对应关系。",
+          "impact": "映射开销限制低延迟分配与共享，而相同虚拟地址并不能证明物理后备和可见性已经更新，必须区分新地址安装映射与旧地址重映射的一致性条件。"
+        },
+        "method": {
+          "keyIdea": "将页表构造转为设备侧并行工作，并用新虚拟地址避开常见路径上的旧转换；对地址回收和同址重映射保留显式一致性点，兼顾映射速度与正确性。",
+          "designPoints": [
+            {
+              "title": "线性页表视图（Linearized Page Tables）",
+              "challengeAddressed": "多级页表隐藏在驱动控制路径中，设备线程难以直接高效定位和更新页表项。",
+              "mechanism": "初始化时把页表后备页映射为连续的设备虚拟视图，使主机与设备通过地址计算定位页表项；虚拟地址记账、请求检查和物理页获取仍由主机负责。"
+            },
+            {
+              "title": "流有序页表构造（Stream-Ordered Materialization）",
+              "challengeAddressed": "串行页表构造与映射调用限制批量映射吞吐，并增加状态共享成本。",
+              "mechanism": "将物理页元数据传入设备缓冲，由设备线程并行生成并写入页表项，把映射内核纳入执行流依赖；同一机制可把物理页映射到多个虚拟范围，用于共享与束状态分叉。"
+            },
+            {
+              "title": "分世代地址回收（VA Epoch Recycling）",
+              "challengeAddressed": "直接重用旧地址可能命中尚未失效的地址转换缓存项。",
+              "mechanism": "新映射优先使用新虚拟地址，退休地址进入隔离区；相关设备工作完成并执行批量全局失效后才回收地址。已有地址重映射保留显式一致性点，并按硬件转换预取行为安排新地址间距。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "在 A100 的新地址映射微基准中，以 2 MB 页粒度映射 2 GB 区域，相对 CUDA VMM 的耗时从 36 ms 降至 14 µs，此结果仅衡量映射操作。单张 A100 的前缀缓存推理中，相对 vAttention，Llama-2-7B 与 Llama-3-8B 的首词延迟加速比分别最高为 8.2 倍和 2.9 倍，而完整预填充最多约加速 5%。同卡 Llama-3-8B 束搜索在批量 128、束宽 2 和 4 时，吞吐分别为 vLLM 的 2.5 倍和 3.6 倍。",
+          "experimentalConditions": "映射原语和所述推理结果使用单张 NVIDIA A100；映射页粒度为 2 MB，区域大小从 2 MB 到 2 GB。Llama-2-7B 的提示或前缀长度为 4K 至 96K，Llama-3-8B 为 4K 至 192K；束搜索测试批量为 1 至 128、束宽为 2 或 4。对照包括 CUDA VMM、vAttention 与 vLLM，未指定推理提示数据集或生产到达轨迹。",
+          "limitations": "实现需要修改 GPU 驱动，并假设计算内核可信；不可信多租户安全机制尚未完成。覆盖旧映射、权限变化、解除映射和地址回收仍可能需要主机发起转换缓存失效，新地址快路径不能外推为同址免同步。物理分配及地址记账仍有主机成本，束搜索输入输出长度和精确前缀命中配置未交代。论文未验证改变捕获地址背后的物理页时，CUDA Graph 或 ACL Graph 重放是否正确。",
+          "engineeringApplicability": "论文以 vLLM 为束搜索对照，未验证图重放集成；昇腾迁移依赖驱动权限、页表访问和转换缓存一致性，不能用新地址快路径证明同址免同步。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "§5.2 映射时延微基准（PDF p.10）",
+            "quoteExcerpt": "mapping a fresh 2 GB region takes 36 ms with CUDA VMM, but only 14 µs with MOONBRIGHT, a reduction of over 2,500×.",
+            "metrics": [
+              "2 MB page granularity",
+              "≈45 µs",
+              "2.6 µs",
+              "36 ms",
+              "14 µs",
+              "over 2,500×"
+            ],
+            "sourceUrl": "https://www.usenix.org/conference/osdi26/presentation/zhang-yangyu"
+          },
+          {
+            "refId": "ev-2",
+            "section": "§5.3.2 前缀缓存推理（Figure 8，PDF pp.12–13）",
+            "quoteExcerpt": "As a result, MOONBRIGHT achieves up to 8.2× lower TTFT on Llama-2-7B and 2.9× lower TTFT on Llama-3-8B.",
+            "metrics": [
+              "up to ∼5% faster",
+              "8.2× lower TTFT on Llama-2-7B",
+              "2.9× lower TTFT on Llama-3-8B"
+            ],
+            "sourceUrl": "https://www.usenix.org/conference/osdi26/presentation/zhang-yangyu"
+          },
+          {
+            "refId": "ev-3",
+            "section": "§5.3.3 束搜索吞吐（PDF p.13）",
+            "quoteExcerpt": "MOONBRIGHT achieves 2.5× and 3.6× higher throughput at beam widths of 2 and 4, respectively.",
+            "metrics": [
+              "452 and 780 fork operations per request",
+              "batch size 128",
+              "2.5× and 3.6× higher throughput",
+              "beam widths of 2 and 4"
+            ],
+            "sourceUrl": "https://www.usenix.org/conference/osdi26/presentation/zhang-yangyu"
+          }
+        ]
+      }
+    ],
+    "prs": [
+      {
+        "id": "pr-vllm-ascend-21191",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm-ascend#21191",
+        "repository": "vllm-project/vllm-ascend",
+        "number": 21191,
+        "title": "[Performance][Attention] Reuse device query boundaries to avoid redundant H2D",
+        "displayTitle": "复用设备查询边界，消除重复传输",
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/21191",
+        "state": "merged",
+        "mergedAt": "2026-11-12T06:04:27Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "ascend_native",
+        "ascendEvidence": "已合入昇腾适配仓库的注意力路径；950DT、A5 与 A3 上分别报告任务消除、消费时边界取值和模型正确性验证，覆盖范围随后端及执行配置而异。",
+        "hardwareDependency": "验证使用昇腾 950DT、A5 或 A3，涉及 FIA、FA3 及多词元预测路径；仅解码全图与其他执行模式分别验证，未覆盖 310P。",
+        "summaryLine": "复用已有设备查询边界以移除草稿图内重复传输，以消费时取值测试核验状态新鲜度，单次服务延迟改善仍需重复测量确认。",
+        "problem": "合并执行的多词元预测草稿图会把重复的主机到设备查询边界复制一并捕获，每次重放再次支付传输和任务开销。改为共享设备缓冲后，地址及视图长度不变仍不能证明当前请求布局已经写入；本次修改针对冗余传输，并非修复已证实的旧值输出错误。",
+        "optimization": "注意力元数据构建器直接复用运行器维护的公共设备查询边界视图，省去独立设备副本，保持原有后端选择、主机长度列表和填充规则。共享缓冲由原有生产者更新，正确性依赖更新、消费、再次覆盖的顺序；消费时取值与寿命检查属于验证证据，并非新增的通用运行时守卫。",
+        "effectsAndLimits": {
+          "resultSummary": "950DT 的 Qwen3.5-0.8B 轨迹中，36 次目标图重放的冗余主机到设备复制从 72 次降至 0 次，属于任务消除证据。A5 的 Qwen3.6-27B 单次配对测量中，端到端延迟从 2302.649 ms 降至 2284.405 ms，下降 18.244 ms、约 0.79%；每输出词元耗时从 13.217 ms 降至 13.065 ms，但首词延迟从 624.074 ms 上升至 625.183 ms。另一次 FIA 动态边界验证的 452 次比较均匹配有效范围与当前值，属于正确性测试。",
+          "experimentalConditions": "延迟实验使用单张昇腾 A5、112 GiB 显存及 Qwen3.6-27B BF16，张量和数据并行度均为 1，采用三步多词元预测、仅解码全图、异步调度并关闭前缀缓存。对照纯净主线与仅应用本次注意力修改的版本，输入 4096 词元、输出 128 词元、并发 1，每组预热 3 次后仅测 1 个正式请求。任务消除实验使用 950DT、Qwen3.5-0.8B BF16、批量 56、输入与输出各 128 词元；动态边界检查另用 A5 的混合长度请求。",
+          "limitations": "单次延迟配对不能证明稳定服务收益，未报告端到端吞吐或重复端到端延迟统计；重复首词检查的区间重叠，未见一致上升。合成填充尾部的表示存在差异，但活跃请求前缀一致。GSM8K 汇总准确率相同仍伴随逐题变化：Qwen3.5-9B 各有 4 题改善和退化，MiniMax-M3 各有 7 题；后者完整输出等价性未建立。寿命审计仅支持已测配置，不能外推全部跨流图路径，也未解决混合长度数值差异的根因。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "ACL Graph 动态报告 · 重复传输消除",
+            "quoteExcerpt": "证据摘要：950DT 的指定草稿路径重放 36 次，共移除 72 次查询边界上传；该计数衡量任务消除，不等于服务加速。",
+            "metrics": [
+              "目标图重放：36 次。",
+              "每次冗余主机到设备复制：2→0 次；合计 72→0 次。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/21191"
+          },
+          {
+            "refId": "ev-2",
+            "section": "PR 正文 · A5 整模型在线延迟对照实验",
+            "quoteExcerpt": "证据摘要：A5 仅有一次正式请求的配对计时，观测到小幅端到端降时，尚不能确认重复测量下的收益。",
+            "metrics": [
+              "端到端延迟：2302.649→2284.405 ms；减少 18.244 ms，约 0.79%。",
+              "并发 1；请求率限制为 0；每组正式请求仅 1 次。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/21191"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-ascend-22156",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm-ascend#22156",
+        "repository": "vllm-project/vllm-ascend",
+        "number": 22156,
+        "title": "[Bugfix][SpecDecode] Fix attention metadata mismatch in FULL-graph DSpark and DFlash decoding",
+        "displayTitle": "对齐草稿图的 Q/KV 有效行",
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22156",
+        "state": "merged",
+        "mergedAt": "2026-11-19T13:57:41Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "ascend_native",
+        "ascendEvidence": "已合入昇腾适配仓库，直接修复 DSpark 与 DFlash 草稿图的注意力元数据对齐；四张昇腾 950DT 上有修复后功能验证，DFlash2 修复后端到端验证仍未完成。",
+        "hardwareDependency": "已报告的复现及修复后 DSpark、DFlash 验证使用四张昇腾 950DT、张量并行度 4；FIA 的裁齐规则不能直接套用于采用设备长度的其他后端。",
+        "summaryLine": "在草稿全图重写查询边界后，同步裁齐键值长度和块表有效行，修复请求减少时的形状错配，并保留各注意力后端约定。",
+        "problem": "活跃请求未填满草稿图槽位时，注意力构建器可能为查询填充尾部添加合成请求。DSpark 或 DFlash 随后重写查询边界，却留下额外的键值长度项和块表行，使 FIA 接收到不一致的请求维度，触发形状错误并中断推理；服务成功启动不能排除后续请求完成时出现该问题。",
+        "optimization": "在草稿元数据后处理阶段，沿用现有查询边界重写，并把对应键值长度及块表裁齐到图的填充请求数，保留有效行的内容和顺序。DSpark 单独处理嵌套注意力元数据并保留外部 FlashMLA 旁路；DFlash 仅对相应昇腾后端应用 FIA 裁齐约定，保留设备长度后端的不同语义。DFlash2 继承该后处理修改。",
+        "effectsAndLimits": {
+          "resultSummary": "未提供端到端吞吐/延迟基准。四张昇腾 950DT 上，DSpark 与 DFlash 分别通过 60/60 个变批次功能用例。GSM8K 前 300 题的并发 1 对照中，两种方法修复前后均为 286/300、95.3333%，各自生成文本一致；草稿词元接受率分别保持 50.5159% 和 60.2759%，这些是准确性与接受率结果。后续相关回归报告 217/217 项通过，与此前 179 项存在重叠，不能相加。",
+          "experimentalConditions": "修复后硬件回归使用四张昇腾 950DT、Qwen3-8B、张量并行度 4、第二代模型运行器、仅解码全图及 5 个投机词元；测试 30 组离散批量，范围为 1 至 128，固定输出长度为 16 或 64。GSM8K 使用原顺序前 300 题，并发 1、温度 0、无预热、最大输出 4096 词元，分别比较 DSpark 和 DFlash 修复前后。",
+          "limitations": "DFlash2 的 Qwen3.8-27B 原始故障已在硬件上复现，但没有修复后的端到端运行结果，继承修改与单测覆盖不能替代该证据。首次失败批量取决于图桶和请求布局，不能把报告中的批量阈值推广到所有配置。并发 1 的准确性结果不替代变批次回归；快照未提供最新测试夹具修正后发布版本环境及完整套件的执行结果。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "ACL Graph 动态报告 · 变批次功能验证",
+            "quoteExcerpt": "证据摘要：四卡 950DT 在仅解码全图路径验证两种草稿方法的批次变化；早期单测与后续汇总有重叠。",
+            "metrics": [
+              "DSpark 与 DFlash：各 60/60 个变批次用例。",
+              "早期相关单测：179 项通过；不可与后续套件相加。",
+              "两种方法的 GSM8K 准确数均为 286/300。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/22156"
+          },
+          {
+            "refId": "ev-2",
+            "section": "PR 正文 · GSM8K 精度、接受率与单测回归",
+            "quoteExcerpt": "证据摘要：准确率和草稿接受统计用来核对生成行为，并发为一的评估不能替代变批次测试。",
+            "metrics": [
+              "DSpark：19266 轮，提出 96330 词元，接受 48662 词元。",
+              "DFlash：16891 轮，提出 84455 词元，接受 50906 词元。",
+              "后续相关回归：217/217 项通过。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/22156"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-52440",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm#52440",
+        "repository": "vllm-project/vllm",
+        "number": 52440,
+        "title": "[MRV2][CUDA Graph] Guard attention metadata addresses before replay",
+        "displayTitle": "重放前校验注意力元数据地址",
+        "url": "https://github.com/vllm-project/vllm/pull/52440",
+        "state": "open",
+        "vllmStatus": "open_pr",
+        "ascendApplicability": "cuda_specific_needs_port",
+        "ascendEvidence": "本地快照仍为开放 PR，描述的是上游 vLLM 的 CUDA 地址诊断；未提供昇腾实现或 NPU 验证，迁移需要相应的设备地址采集及捕获归属管理。",
+        "hardwareDependency": "依赖 CUDA 设备张量与第二代模型运行器的全图管理路径；快照未给出实测 GPU 型号或硬件运行结果，现有采集机制不能直接视作昇腾支持。",
+        "summaryLine": "在调试模式的全图重放前核对注意力元数据地址，提前阻止捕获绑定失配，但无法识别同址旧值，测试尚无执行结果。",
+        "problem": "全图捕获后若注意力张量更换存储，当前传入元数据与图保留的地址可能分离，主模型和投机解码重放因而可能访问不同于当前元数据的存储。现有材料未提供具体模型崩溃或旧输出复现，所诊断的是捕获地址绑定契约的潜在违反。",
+        "optimization": "调试模式下递归收集嵌套元数据中的 CUDA 张量地址，忽略主机张量，由捕获所有者保存各全图描述对应的地址快照。主模型与草稿入口显式传入本轮元数据，在卸载同步及图重放之前比较绑定；缺少快照或地址变化即停止执行，错误信息不暴露原始地址，分段图及非调试路径沿用原行为。",
+        "effectsAndLimits": {
+          "resultSummary": "补丁定义了嵌套设备张量收集、忽略主机张量、地址失配及缺失快照的诊断单元测试，未报告测试通过数，且未提供端到端吞吐/延迟基准。失败先于卸载同步和图重放属于测试断言定义，不能表述为已经执行并通过的验证。",
+          "experimentalConditions": "材料仅描述 CUDA 调试模式下的全图路径，涉及主模型、自回归草稿、DFlash 与多模块多词元预测入口；未提供实测硬件型号、目标模型、数据集、请求负载或测试运行参数。",
+          "limitations": "依据为本地专题摘要与保存快照，未取得完整 PR 正文或补丁，直接实现核验受限；快照状态为开放，不能视作已合入功能。地址相等不证明内容新鲜、请求范围正确或生产消费顺序安全，因此该守卫无法发现同址旧值，也没有已报告的运行开销或昇腾验证。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "ACL Graph 动态报告 · 捕获地址绑定诊断",
+            "quoteExcerpt": "证据摘要：全图管理层在同步与重放前比较本轮设备地址，缺失快照或存储变化即中止；分段图和非调试路径沿用既有行为。",
+            "metrics": [],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/52440"
+          },
+          {
+            "refId": "ev-2",
+            "section": "ACL Graph 动态报告 · 测试定义与证据边界",
+            "quoteExcerpt": "证据摘要：现有材料描述设备张量筛选及失败顺序的测试断言，未记录用例执行结果，也没有完整模型性能数据。",
+            "metrics": [
+              "测试通过数与模型吞吐：均未报告。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/52440"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-67181",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm#67181",
+        "repository": "vllm-project/vllm",
+        "number": 67181,
+        "title": "[Bugfix][Kernel] Bump DeepGEMM for the MegaMoE combine-readiness fix under CUDA graph replay",
+        "displayTitle": "清除上轮 Mega MoE 就绪标记",
+        "url": "https://github.com/vllm-project/vllm/pull/67181",
+        "state": "merged",
+        "mergedAt": "2026-11-13T09:55:45Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "cuda_specific_needs_port",
+        "ascendEvidence": "这是上游 vLLM 针对 NVIDIA DeepGEMM Mega MoE 的依赖更新，未报告昇腾内核修改或验证；可借鉴的是重放前清理持久就绪状态并保证通知顺序的原则。",
+        "hardwareDependency": "具体修复面向 SM100 上多卡专家并行的 Mega MoE 内核，跨重放复现使用四张 GB200、专家并行度 4；单卡常规内核测试不能替代这项覆盖。",
+        "summaryLine": "修复多卡专家并行中旧就绪标记跨图重放残留的问题，在现有屏障前重置状态，避免本轮合并误读上一轮结果。",
+        "problem": "捕获内核的启动标识在每次图重放时保持不变，DeepGEMM 融合专家内核以该标识判断完成时，可能把其他卡上一轮的就绪标记误认成本轮通知，进而在当前写入尚未可见时读取合并数据。该缺陷出现在多卡专家并行的图重放路径，普通参考精度检查可以通过而连续重放仍然出错。",
+        "optimization": "通过更新 DeepGEMM 依赖引入内核修复，使每个参与卡在已有分发屏障之前清除本地就绪标记，再由该屏障保证清零先于其他卡本轮完成通知。修改复用已有同步点，不新增屏障、不改变工作区或二进制接口；vLLM 本身仅更新依赖版本。",
+        "effectsAndLimits": {
+          "resultSummary": "未提供端到端吞吐/延迟基准。在四张 GB200、专家并行度 4 的交替输入回归中，旧依赖版本的图重放与逐次执行比较在 2/2 次运行中失败，新版本在 2/2 次运行中通过；两版普通参考精度检查均通过。重建依赖后的 GB200 内核套件报告 146 项通过、1 项跳过，跳过原因未说明。",
+          "experimentalConditions": "跨卡回归使用四张 NVIDIA GB200、专家并行度 4，以交替输入逐位比较 CUDA Graph 重放和逐次执行结果，并检查普通参考精度。vLLM 内核套件另在 GB200 上使用重建后的依赖运行；未报告完整服务模型、在线请求轨迹或吞吐与延迟负载。",
+          "limitations": "跨卡图重放验证在持续集成之外完成，普通 vLLM Mega MoE 内核套件未覆盖跨专家并行卡的图重放，146 项通过不能证明该缺陷已获持续回归覆盖。未测量性能开销，不能把不新增屏障等同于零开销。根因与清零机制依据 PR 正文，未独立重跑或审查底层补丁；这是已合入的历史修复案例，不能据此声称当前版本仍有该缺陷。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ev-1",
+            "section": "PR 正文 · 跨卡重放与内核验证",
+            "quoteExcerpt": "The test compares CUDA Graph replays bitwise against eager launches with alternating inputs:",
+            "metrics": [
+              "4x GB200, EP4",
+              "fails, 2/2 runs",
+              "passes, 2/2 runs",
+              "146 passed, 1 skipped"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/67181"
+          },
+          {
+            "refId": "ev-2",
+            "section": "PR 正文 · 问题与修复细节",
+            "quoteExcerpt": "Before the existing dispatch pull barrier, each rank clears its local readiness flags. The barrier orders that reset before every peer's current completion notification.",
+            "metrics": [
+              "There is no new barrier and no workspace or ABI change."
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/67181"
+          }
+        ]
+      }
+    ]
+  }
+]

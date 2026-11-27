@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import actualIndex from "../../public/word-reports/topics.json";
 import reviewedSurvey from "../../topics/speculative-decoding/survey.json";
 import TopicPages, { type Topic, type TopicIndex } from "./TopicPages";
+import TopicResearchReport from "./TopicResearchReport";
 import { validatedSurvey, readingSurvey } from "./topic-survey";
 
 const index = actualIndex as unknown as TopicIndex;
@@ -111,7 +112,13 @@ describe("SpecDec novice-to-research reading contract", () => {
 
   it("preserves the historical disclosure contract and ACLGraph", () => {
     for (const topicId of ["aclgraph", "speculative-decoding"]) {
-      const brief = render(`/topics/${topicId}?view=report${topicId === "speculative-decoding" ? "&edition=2026-11-18" : "&legacy=1"}`);
+      const archived = index.topics.find(item => item.id === topicId)!;
+      const readReport = (search: string) => topicId === "aclgraph"
+        ? renderToStaticMarkup(<MemoryRouter initialEntries={[`/topics/aclgraph?${search}`]}>
+          <TopicResearchReport topic={archived} report={archived.report!} embedded />
+        </MemoryRouter>)
+        : render(`/topics/${topicId}?${search}`);
+      const brief = readReport(topicId === "speculative-decoding" ? "view=report&edition=2026-11-18" : "read=brief");
       if (topicId === "aclgraph") {
         expect(brief).toContain("研究范围与方法");
         expect(brief).toContain("如何使用这些来源");
@@ -119,7 +126,7 @@ describe("SpecDec novice-to-research reading contract", () => {
         expect(brief).toContain("范围与研究方法");
         expect(brief).toContain("证据层级与适用边界");
       }
-      const full = render(`/topics/${topicId}?view=report&read=full`);
+      const full = readReport("view=report&read=full");
       const outer = (html: string) => html.match(/<details[^>]*id="survey-analysis"[^>]*>/)?.[0];
       const chapters = (html: string) => [...html.matchAll(/<details[^>]*class="survey-body-section"[^>]*>/g)]
         .map(match => match[0]);

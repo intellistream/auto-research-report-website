@@ -7,6 +7,13 @@ import type { FlowIndex } from "../pages/chapter-intros";
 import type { TopicIndex } from "../pages/TopicPages";
 import { uniquePRs } from "../pages/ReportTrends";
 import { useJson, type Catalog } from "../pages/report-preview-data";
+import { ACLGRAPH_PROBLEMS, getAclGraphAnalysisStats, type AclGraphProblem } from "../pages/aclgraph-analysis";
+
+const aclGraphDescription = "导引 · 专题剖析：理解图捕获与重放，按核心问题拆解 Research Gap、论文方法与社区 PR。";
+const topicKeywords: Record<string, string> = {
+  "kv-cache": "kv cache 缓存 分页 复用 布局 容量 传输",
+  "speculative-decoding": "speculative decoding 推测解码 草稿 验证 EAGLE MTP DFlash",
+};
 
 const stageCatalog = [
   { key: "startup", label: "模型准备", en: "Startup & Model Loading", desc: "权重加载、量化初始化、图捕获预热" },
@@ -32,6 +39,175 @@ type SearchResultItem = {
   badgeTone?: "vllm" | "ascend" | "topic" | "stage" | "report";
   to: string;
 };
+
+export function computeCommandSearchResults({ query, category, topics, days, catalog, deduplicatedPRs, mods, aclProblems }: {
+  query: string;
+  category: SearchCategory;
+  topics?: ReadonlyArray<Pick<TopicIndex["topics"][number], "id" | "title" | "description">>;
+  days: string[];
+  catalog?: Catalog;
+  deduplicatedPRs: ReturnType<typeof uniquePRs>;
+  mods: Parameters<typeof searchMods>[0];
+  aclProblems: readonly AclGraphProblem[];
+}): SearchResultItem[] {
+  const needle = query.trim().toLowerCase().replace(/^#\s*/, "");
+  const list: SearchResultItem[] = [];
+
+  // 1. Topics & Stages
+  if (category === "all" || category === "topic") {
+    const searchTopics = topics ?? [
+      {
+        id: "aclgraph",
+        title: "ACL Graph",
+        description: aclGraphDescription,
+      },
+      {
+        id: "kv-cache",
+        title: "KV Cache",
+        description: "跟踪推理 KV 缓存的复用、布局、容量管理和跨实例搬运",
+      },
+      {
+        id: "speculative-decoding",
+        title: "推测解码",
+        description: "跟踪草稿模型、候选词元生成与验证，以及推测解码运行时适配",
+      },
+    ];
+    for (const t of searchTopics) {
+      if (t.id === "aclgraph") {
+        const stats = getAclGraphAnalysisStats(aclProblems);
+        const problemEntries = aclProblems.map(problem => ({
+          problem,
+          keywords: [problem.id, problem.title, problem.shortTitle, ...Object.values(problem.gap),
+            ...problem.papers.flatMap(card => [card.title, card.summaryLine]),
+            ...problem.prs.flatMap(card => [card.title, card.displayTitle, card.summaryLine, String(card.number), `#${card.number}`]),
+          ].join(" ").toLowerCase(),
+        }));
+        const hay = `ACL Graph aclgraph acl graph 昇腾 图执行 捕获 重放 回放 动态状态 专题 ${aclGraphDescription} ${problemEntries.map(entry => entry.keywords).join(" ")}`.toLowerCase();
+        if (!needle || hay.includes(needle)) {
+          list.push({
+            id: "topic-aclgraph-guide",
+            kind: "topic",
+            title: "ACL Graph · 导引",
+            subtitle: "理解昇腾图执行的捕获、重放与动态状态",
+            badge: "导引",
+            badgeTone: "topic",
+            to: "/topics/aclgraph",
+          }, {
+            id: "topic-aclgraph-analysis",
+            kind: "topic",
+            title: "ACL Graph · 专题剖析",
+            subtitle: stats.problems > 0
+              ? `${stats.problems} 大核心问题 · ${stats.papers} 篇论文 · ${stats.prs} 条 PR · Research Gap 与证据剖析`
+              : aclGraphDescription,
+            badge: "专题剖析",
+            badgeTone: "topic",
+            to: "/topics/aclgraph?view=analysis",
+          });
+        }
+        for (const { problem, keywords } of problemEntries) {
+          if (!needle || keywords.includes(needle) || "aclgraph acl graph 图执行 专题剖析".includes(needle)) {
+            const params = new URLSearchParams({ view: "analysis", problem: problem.id });
+            list.push({
+              id: `topic-aclgraph-problem-${problem.id}`,
+              kind: "topic",
+              title: `ACL Graph · 问题 ${String(problem.index).padStart(2, "0")} · ${problem.shortTitle}`,
+              subtitle: problem.title,
+              badge: "核心问题",
+              badgeTone: "topic",
+              to: `/topics/aclgraph?${params.toString()}`,
+            });
+          }
+        }
+        continue;
+      }
+      const hay = `${t.title} ${t.description} ${topicKeywords[t.id] ?? ""}`.toLowerCase();
+      if (!needle || hay.includes(needle)) {
+        list.push({
+          id: `topic-${t.id}`,
+          kind: "topic",
+          title: `${t.title} · 技术专题`,
+          subtitle: t.description,
+          badge: "技术专题",
+          badgeTone: "topic",
+          to: `/topics/${t.id}`,
+        });
+      }
+    }
+
+    for (const stage of stageCatalog) {
+      const hay = `${stage.label} ${stage.en} ${stage.desc} ${stage.key}`.toLowerCase();
+      if (!needle || hay.includes(needle)) {
+        list.push({
+          id: `stage-${stage.key}`,
+          kind: "stage",
+          title: stage.label,
+          subtitle: `${stage.en} · ${stage.desc}`,
+          badge: "推理环节",
+          badgeTone: "stage",
+          to: `/?stage=${stage.key}`,
+        });
+      }
+    }
+  }
+
+  if (category === "all" || category === "mod") {
+    for (const m of searchMods(mods, query).slice(0, category === "mod" ? 40 : 5)) {
+      list.push({id:"mod-"+m.componentId,kind:"mod",title:m.displayName,subtitle:m.problemSummary,badge:m.eligibilityLabel,badgeTone:"topic",to:"/group-mods/"+m.componentId});
+    }
+  }
+
+  // 2. Daily Reports
+  if (category === "all" || category === "report") {
+    const matchedDays = days.filter((d) => !needle || d.includes(needle) || "日报 研报".includes(needle));
+    for (const day of matchedDays.slice(0, category === "report" ? 25 : needle ? 6 : 4)) {
+      const rec = catalog?.days[day];
+      const ver = rec?.versions.find((v) => v.sha256 === rec.current);
+      const counts = ver?.counts;
+      list.push({
+        id: `report-${day}`,
+        kind: "report",
+        title: `${day} 推理性能日报`,
+        subtitle: counts
+          ? `vLLM ${counts.upstream} 项 · vLLM Ascend ${counts.ascend} 项${counts.papers ? ` · 论文 ${counts.papers} 篇` : ""}`
+          : "阅读当日完整社区工程日报",
+        badge: "日报",
+        badgeTone: "report",
+        to: `/reports/${day}`,
+      });
+    }
+  }
+
+  // 3. Engineering PRs
+  if (category === "all" || category === "pr") {
+    const matchedPRs = needle
+      ? deduplicatedPRs.filter((item) => {
+          const prNum = item.workId.split("#").at(-1) ?? "";
+          const repoName = item.workId.includes("vllm-ascend") ? "vllm-ascend ascend 昇腾" : "vllm upstream";
+          const stageName = stageLabels[item.stage] ?? item.stage;
+          return `${item.title} ${prNum} ${item.day} ${repoName} ${stageName} ${item.number}`
+            .toLowerCase()
+            .includes(needle);
+        })
+      : deduplicatedPRs.slice(0, 8);
+
+    for (const pr of matchedPRs.slice(0, category === "pr" ? 40 : needle ? 18 : 6)) {
+      const isAscend = pr.workId.includes("vllm-ascend");
+      const prNum = pr.workId.split("#").at(-1);
+      const search = new URLSearchParams({ section: pr.number, version: pr.version });
+      list.push({
+        id: `pr-${pr.workId}`,
+        kind: "pr",
+        title: pr.title,
+        subtitle: `${pr.day} · ${stageLabels[pr.stage] ?? "待分类"} · 条目 ${pr.number}`,
+        badge: `${isAscend ? "Ascend" : "vLLM"} #${prNum}`,
+        badgeTone: isAscend ? "ascend" : "vllm",
+        to: `/reports/${pr.day}?${search.toString()}`,
+      });
+    }
+  }
+
+  return list;
+}
 
 export default function CommandSearchModal({
   open,
@@ -81,129 +257,10 @@ export default function CommandSearchModal({
     return uniquePRs(raw);
   }, [flowResult?.data]);
 
-  const results = useMemo<SearchResultItem[]>(() => {
-    const needle = query.trim().toLowerCase().replace(/^#\s*/, "");
-    const list: SearchResultItem[] = [];
-
-    // 1. Topics & Stages
-    if (category === "all" || category === "topic") {
-      const topics = topicResult?.data?.topics ?? [
-        {
-          id: "aclgraph",
-          title: "ACL Graph",
-          description: "昇腾推理图执行：捕获、回放与动态状态（导引 · 学术综述 · 动态报告）",
-        },
-        {
-          id: "kv-cache",
-          title: "KV Cache",
-          description: "跟踪推理 KV 缓存的复用、布局、容量管理和跨实例搬运",
-        },
-        {
-          id: "speculative-decoding",
-          title: "推测解码",
-          description: "跟踪草稿模型、候选词元生成与验证，以及推测解码运行时适配",
-        },
-      ];
-      for (const t of topics) {
-        const hay = `${t.title} ${t.description} aclgraph 图执行 综述 专题`.toLowerCase();
-        if (!needle || hay.includes(needle)) {
-          list.push({
-            id: `topic-${t.id}`,
-            kind: "topic",
-            title: `${t.title} · 技术专题`,
-            subtitle: t.description,
-            badge: "技术专题",
-            badgeTone: "topic",
-            to: `/topics/${t.id}`,
-          });
-          if (t.id === "aclgraph" && (!needle || "综述 论文 paper aclgraph".includes(needle))) {
-            list.push({
-              id: `topic-${t.id}-paper`,
-              kind: "topic",
-              title: `${t.title} · 学术综述全文`,
-              subtitle: "阅读同行评审级综述稿、路线地图与可编辑源码",
-              badge: "综述稿",
-              badgeTone: "topic",
-              to: `/topics/${t.id}?view=paper`,
-            });
-          }
-        }
-      }
-
-      for (const stage of stageCatalog) {
-        const hay = `${stage.label} ${stage.en} ${stage.desc} ${stage.key}`.toLowerCase();
-        if (!needle || hay.includes(needle)) {
-          list.push({
-            id: `stage-${stage.key}`,
-            kind: "stage",
-            title: stage.label,
-            subtitle: `${stage.en} · ${stage.desc}`,
-            badge: "推理环节",
-            badgeTone: "stage",
-            to: `/?stage=${stage.key}`,
-          });
-        }
-      }
-    }
-
-    if (category === "all" || category === "mod") {
-      for (const m of searchMods(modIndex.data?.modSearchIndex || [], query).slice(0, category === "mod" ? 40 : 5)) {
-        list.push({id:"mod-"+m.componentId,kind:"mod",title:m.displayName,subtitle:m.problemSummary,badge:m.eligibilityLabel,badgeTone:"topic",to:"/group-mods/"+m.componentId});
-      }
-    }
-
-    // 2. Daily Reports
-    if (category === "all" || category === "report") {
-      const matchedDays = resolvedDays.filter((d) => !needle || d.includes(needle) || "日报 研报".includes(needle));
-      for (const day of matchedDays.slice(0, category === "report" ? 25 : needle ? 6 : 4)) {
-        const rec = resolvedCatalog?.days[day];
-        const ver = rec?.versions.find((v) => v.sha256 === rec.current);
-        const counts = ver?.counts;
-        list.push({
-          id: `report-${day}`,
-          kind: "report",
-          title: `${day} 推理性能日报`,
-          subtitle: counts
-            ? `vLLM ${counts.upstream} 项 · vLLM Ascend ${counts.ascend} 项${counts.papers ? ` · 论文 ${counts.papers} 篇` : ""}`
-            : "阅读当日完整社区工程日报",
-          badge: "日报",
-          badgeTone: "report",
-          to: `/reports/${day}`,
-        });
-      }
-    }
-
-    // 3. Engineering PRs
-    if (category === "all" || category === "pr") {
-      const matchedPRs = needle
-        ? deduplicatedPRs.filter((item) => {
-            const prNum = item.workId.split("#").at(-1) ?? "";
-            const repoName = item.workId.includes("vllm-ascend") ? "vllm-ascend ascend 昇腾" : "vllm upstream";
-            const stageName = stageLabels[item.stage] ?? item.stage;
-            return `${item.title} ${prNum} ${item.day} ${repoName} ${stageName} ${item.number}`
-              .toLowerCase()
-              .includes(needle);
-          })
-        : deduplicatedPRs.slice(0, 8);
-
-      for (const pr of matchedPRs.slice(0, category === "pr" ? 40 : needle ? 18 : 6)) {
-        const isAscend = pr.workId.includes("vllm-ascend");
-        const prNum = pr.workId.split("#").at(-1);
-        const search = new URLSearchParams({ section: pr.number, version: pr.version });
-        list.push({
-          id: `pr-${pr.workId}`,
-          kind: "pr",
-          title: pr.title,
-          subtitle: `${pr.day} · ${stageLabels[pr.stage] ?? "待分类"} · 条目 ${pr.number}`,
-          badge: `${isAscend ? "Ascend" : "vLLM"} #${prNum}`,
-          badgeTone: isAscend ? "ascend" : "vllm",
-          to: `/reports/${pr.day}?${search.toString()}`,
-        });
-      }
-    }
-
-    return list;
-  }, [resolvedCatalog, category, resolvedDays, deduplicatedPRs, query, topicResult?.data, modIndex.data]);
+  const results = useMemo(() => computeCommandSearchResults({
+    query, category, topics: topicResult?.data?.topics, days: resolvedDays, catalog: resolvedCatalog,
+    deduplicatedPRs, mods: modIndex.data?.modSearchIndex || [], aclProblems: ACLGRAPH_PROBLEMS,
+  }), [resolvedCatalog, category, resolvedDays, deduplicatedPRs, query, topicResult?.data, modIndex.data]);
 
   useEffect(() => {
     setActiveIndex(0);

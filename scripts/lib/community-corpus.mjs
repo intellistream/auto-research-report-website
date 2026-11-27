@@ -416,20 +416,29 @@ function topicProjector(documents, notes) {
             nestedValues(row, "sourceIds").map(id => weeklySources.get(id)).filter(source => source?.kind === "pr")
               .map(source => source.workId), "/topics/kv-cache?view=report&week=" + report.week, lookup));
       });
-    } else if (adapter === "aclgraph") {
-      const lookup = new Map();
-      for (const key of ["allTrackedPrs", "featuredPrs", "baselineUpdates"]) (data[key] || []).forEach((row, i) => {
-        const identity = recordIdentity(row, doc.source.path + "/" + key + "/" + i);
-        if (identity) {
-          lookup.set(identity.workId, row);
-          emit(doc, identity, "/" + key + "/" + i, row, "/topics/aclgraph?view=report", { topicId: "aclgraph" });
-        }
+    } else if (adapter === "aclgraph_analysis") {
+      check(Array.isArray(data), "Expected ACL Graph analysis problem array: " + doc.source.path);
+      data.forEach((problem, pi) => {
+        if (problem.papers?.length) ignored.paper = (ignored.paper || 0) + problem.papers.length;
+        const problemContext = { id: problem.id, index: problem.index, slug: problem.slug,
+          title: problem.title, shortTitle: problem.shortTitle, priorityBadge: problem.priorityBadge, gap: problem.gap };
+        (problem.prs || []).forEach((card, ci) => {
+          const pointer = "/" + pi + "/prs/" + ci;
+          const locator = doc.source.path + pointer;
+          const repoNumberId = typeof card.repository === "string" && Number.isSafeInteger(card.number)
+            ? "github:" + card.repository + "#" + card.number : null;
+          const candidates = [card.prId, repoNumberId, card.url].filter(value => value !== undefined);
+          const identities = candidates.map(normalizePrIdentity);
+          check(identities.length > 0 && identities.every(Boolean), "Missing or invalid ACL Graph PR identity at " + locator);
+          const identity = identities[0];
+          check(identities.every(item => item.workId === identity.workId), "Conflicting ACL Graph PR identities at " + locator);
+          check(repoNumberId && normalizePrIdentity(repoNumberId)?.workId === identity.workId,
+            "ACL Graph PR repository/number mismatch at " + locator);
+          const href = "/topics/aclgraph?" + new URLSearchParams({ view: "analysis",
+            problem: String(problem.id), card: String(card.id) }).toString();
+          emit(doc, identity, pointer, { ...card, problemContext }, href, { primary: card, topicId: "aclgraph" });
+        });
       });
-      (data.insights || []).forEach((row, i) => contextForIds(doc, row, "/insights/" + i,
-        (data.featuredPrs || []).filter(pr => row.featuredSlugs.includes(pr.slug)).map(pr => pr.workId),
-        "/topics/aclgraph?view=report", lookup, { topicId: "aclgraph" }));
-      (data.nextWatchlist || []).forEach((row, i) => contextForIds(doc, row, "/nextWatchlist/" + i,
-        row.watchPrs, "/topics/aclgraph?view=report", lookup, { topicId: "aclgraph" }));
     } else if (adapter === "specdec_weekly") {
       const lookup = new Map(data.sources.map(row => [row.workId, row]));
       data.sources.forEach((row, i) => emitRecord(doc, row, "/sources/" + i,
@@ -449,7 +458,7 @@ function topicProjector(documents, notes) {
         (topic.entries || []).forEach((row, i) => emitRecord(doc, row, base + "/entries/" + i,
           route + "?view=evidence&q=" + encodeURIComponent(row.workId), { topicId }));
         if (!report) return;
-        const legacy = route + "?view=report&" + (topicId === "aclgraph" ? "legacy=1" : "edition=2026-11-18");
+        const reportRoute = route + "?view=report" + (topicId === "speculative-decoding" ? "&edition=2026-11-18" : "");
         const refs = new Map();
         (report.references || []).forEach((row, i) => {
           if (row.kind !== "pr") { ignored["reference_" + row.kind] = (ignored["reference_" + row.kind] || 0) + 1; return; }
@@ -461,17 +470,17 @@ function topicProjector(documents, notes) {
           }
           refs.set(row.id, { ...row, workId: identity.workId });
           emit(doc, identity, base + "/report/references/" + i, row,
-            legacy + "&part=survey-ref-" + row.id, { topicId, topicReportVersion: report.version, topicReportAsOf: report.asOf });
+            reportRoute + "&part=survey-ref-" + row.id, { topicId, topicReportVersion: report.version, topicReportAsOf: report.asOf });
         });
         (report.pendingEvidence || []).forEach((row, i) => emitRecord(doc, row,
-          base + "/report/pendingEvidence/" + i, legacy, { topicId, topicReportVersion: report.version, topicReportAsOf: report.asOf, referenceKind: "pending_evidence" }));
+          base + "/report/pendingEvidence/" + i, reportRoute, { topicId, topicReportVersion: report.version, topicReportAsOf: report.asOf, referenceKind: "pending_evidence" }));
         for (const key of ["evidenceDetails", "sections", "taxonomy", "gaps", "bottleneckMigration", "conclusions"])
           (report[key] || []).forEach((row, i) => {
             const identities = unique(nestedValues(row, "sourceIds").map(id => refs.get(id)?.workId).filter(Boolean));
             for (const workId of identities) {
               const primary = [...refs.values()].find(ref => ref.workId === workId);
               emit(doc, normalizePrIdentity(workId), base + "/report/" + key + "/" + i, row,
-                legacy + "&part=" + (key === "evidenceDetails" ? "survey-evidence-" + row.id :
+                reportRoute + "&part=" + (key === "evidenceDetails" ? "survey-evidence-" + row.id :
                   key === "sections" ? "survey-section-" + i : key === "gaps" ? "survey-gap-" + row.id :
                   key === "taxonomy" ? "survey-route-" + i : key === "bottleneckMigration" ? "survey-taxonomy" : "survey-top"),
                 { primary, topicId, topicReportVersion: report.version, topicReportAsOf: report.asOf, referenceKind: "cited_context" });

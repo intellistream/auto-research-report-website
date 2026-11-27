@@ -1,0 +1,1105 @@
+[
+  {
+    "id": "p5",
+    "index": 5,
+    "slug": "lifecycle-compile-recovery",
+    "title": "静态编译、捕获预热与冷启动 / 故障恢复的全生命周期摊销",
+    "shortTitle": "冷启动、复用与恢复",
+    "priorityBadge": "P1 · 弹性与冷启",
+    "gap": {
+      "background": "在弹性扩缩容、Serverless 冷启动、同进程引擎重启与故障恢复场景下，编译、捕获、状态恢复及销毁会有准备成本难以摊销、恢复依赖不完整和资源残留的问题。离线产物可跨实例保存，内核地址却随进程变化；图池、库工作区、KV Cache 与模型持久状态还具有不同所有者和寿命。图加载成功因而不足以证明服务已就绪。本题关注启动、重启、恢复与销毁的生命周期，在线运行期固定 HBM 内的图与 KV 分配由 P1 讨论。",
+      "existingLimitations": "虽然当前现有的工作（如 Medusa、Foundry、GCR、Breaking the Ice，以及 #21921、#22754、#67279、#67583）都尝试从离线物化、模板复用、增量检查点、阶段归因与生命周期接口角度缓解或解决这一问题，但是因为计时边界、可复用状态与恢复完成条件尚未统一，仍然没有彻底解决。Medusa 加速加载阶段恢复，其应用评测采用暖运行环境，在线计时不含离线物化，跨 GPU 与分布式状态恢复仍在边界之外；Foundry 依赖暖编译缓存和预先生成的 NVMe 归档，排除权重加载与完整容器冷启动，跨 rank 复用还要求执行流等价。GCR 将驱动控制状态与数据路径分离，以影子执行识别增量脏缓冲，但未闭合图模板、版本兼容、多 rank 通信及销毁回收的联合恢复过程；Breaking the Ice 提供 vLLM 引擎启动的分阶段诊断，却没有跨进程恢复机制，也未建立面向 MoE 等非线性行为的摊销控制。工程上，#21921 的静态编译需分钟级准备，相邻 #22631 另记录系统集成测试编译超时；#22754 的运行包缓存仍是已关闭未合并提案；#67279 揭示 cuBLAS 隐藏工作区会在图释放后继续占住图池；#67583 仍是开放的堆叠草稿，尚无树内模型采用。将这些局部机制并置，仍不能证明恢复提交时所有依赖共同有效，或反复启停后资源返回同一基线。",
+      "researchOpportunity": "因此我们从启动、重启、恢复与销毁的全生命周期计量及状态闭包方向出发，有机会在明确的负载与后端约束下缓解此问题，并检验收益能否覆盖新增成本。将离线准备、加载、编译、捕获或恢复、首请求和销毁放在同一时间线，以版本、模型、形状及并行拓扑校验恢复单元，只有依赖有效且资源归属清楚时才提交，失败则回滚回收。可检验假设是：依据实例寿命与复用量选择准备范围，能在强缓存和最佳静态方案之上获得持续净收益。用冷暖缓存、进程内外重启、版本变化与故障注入验证，联合报告输出一致性、首请求尾延迟、资源时间、残留、失败率及摊销临界点；简单缓存已足够时收缩主张。",
+      "keyTakeaway": "恢复的终点是依赖一致且可服务，优化的依据是计入准备与销毁后的累计净收益。"
+    },
+    "papers": [
+      {
+        "id": "paper-zeng2025medusa",
+        "kind": "paper",
+        "paperId": "zeng2025medusa",
+        "title": "Medusa: Accelerating Serverless LLM Inference with Materialization",
+        "url": "https://minhui-xie.github.io/papers/asplos25-medusa.pdf",
+        "authors": [
+          "Shaoxun Zeng",
+          "Minhui Xie",
+          "Shiwei Gao",
+          "Youmin Chen",
+          "Youyou Lu"
+        ],
+        "venueOrYear": "ASPLOS 2025",
+        "venueName": "ASPLOS",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "通过离线物化启动状态并在线重建地址与内核资源，缩短模型加载等待，同时保留执行图的稳态推理收益。",
+        "problem": {
+          "scenario": "Serverless 大模型服务随请求突发启动实例，必须完成环境初始化、模型加载与首个词元生成，才能兑现扩容能力。",
+          "existingGap": "已有加载优化仍需在线探测 KV 容量并捕获多个批量的执行图；直接省略捕获又会失去图回放收益，启动速度与持续服务效率相互牵制。",
+          "impact": "KV 初始化与图捕获平均占所测模型加载阶段的 47%，重复准备延长扩容等待和首词元时延，削弱短寿命实例的使用价值。"
+        },
+        "method": {
+          "keyIdea": "利用模型启动控制流和分配顺序的可重复性，将可复用准备离线物化，在线只重建随进程变化的资源。",
+          "designPoints": [
+            {
+              "title": "离线状态物化与阶段重排（Graph Materialization）",
+              "challengeAddressed": "每次启动都重复 KV 容量探测和多批量图捕获，准备工作阻塞服务就绪。",
+              "mechanism": "按模型与设备类型保存 KV 容量、图依赖、内核身份和分配轨迹，在线复用容量信息并恢复图上下文；缩短探测后，将预热与异步权重加载重叠。物化对象是初始化信息，不含在途请求的完整 KV 内容。"
+            },
+            {
+              "title": "分配索引驱动的地址重绑定（Pointer Restoration）",
+              "challengeAddressed": "进程间地址变化及进程内地址复用，使旧指针无法直接用于恢复。",
+              "mechanism": "依据分配、释放与内核执行顺序，将参数指针关联到分配序号及区间偏移；在线重放分配轨迹，用新地址修补参数，仅保存执行无法再生成的必要常驻缓冲内容。"
+            },
+            {
+              "title": "触发式内核资源恢复（Trigger-based Kernel Recovery）",
+              "challengeAddressed": "部分延迟加载内核既没有稳定地址，也无法直接通过公开符号定位。",
+              "mechanism": "保存内核名称和代码库关联，优先按符号解析；对隐藏内核，通过执行并捕获模型首层触发代码加载，再枚举匹配所需函数，利用层间重复减少在线预热范围。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "十个模型的加载阶段时延相对原版 vLLM 平均降低 42.5%，相对仅异步加载权重的版本降低 34.4%；论文另报整体冷启动平均降低 34.9%。Qwen1.5-4B 加载由 2.85 s 降至 1.67 s，降幅 41.4%；图相关成本应比较原来的 0.90 s 与预热 0.31 s 加恢复 0.26 s，共 0.57 s。暖运行环境、每秒两请求时，该模型的 P99 首词元时延降低 53.0%。离线物化平均另需 39.2 s，其中捕获平均 9.7 s，未计入在线恢复时延。",
+          "experimentalConditions": "平台含四张 A100 40 GB、256 GB 主存与 Optane 存储；阶段实验使用单卡，应用实验使用四卡部署多个实例。覆盖 Falcon、Llama2、Qwen1.5、Yi 共十个模型，每模型保留 35 个批量图。应用采用 ShareGPT 请求及泊松到达，对照原版 vLLM、异步权重加载和关闭图方案；离线归档预先生成，应用运行环境已预热。",
+          "limitations": "支持范围限于可放入单 GPU 的模型、主机侧分配和直接指针；跨 GPU 恢复、设备侧分配与间接指针的完整支持尚未实现。容量复用依赖模型与设备一致，地址恢复依赖可重复分配顺序，触发恢复依赖层间内核重复。加载收益同时包含 KV 初始化与异步加载优化，不能全归因于图恢复；跨版本复用和长期故障循环也未获验证。",
+          "engineeringApplicability": "基于 vLLM 的 KV 管理与图捕获实现；迁移至昇腾需验证 CANN 图重建、地址重绑定和内核加载能力，尚无昇腾实测。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "medusa-loading",
+            "section": "§7.2 加载阶段评测（PDF p.10）",
+            "quoteExcerpt": "The average loading phase latency reduction is 42.5% compared with vLLM, and 34.4% compared with vLLM + async.",
+            "metrics": [
+              "42.5%",
+              "34.4%"
+            ],
+            "sourceUrl": "https://minhui-xie.github.io/papers/asplos25-medusa.pdf"
+          },
+          {
+            "refId": "medusa-breakdown",
+            "section": "§7.3 阶段分解（Figure 8，PDF pp.10–11）",
+            "quoteExcerpt": "the profiling forward is eliminated, i.e. from 0.50 seconds to 0.02 seconds.",
+            "metrics": [
+              "2.85 s",
+              "2.48 s",
+              "1.67 s",
+              "0.50 seconds",
+              "0.02 seconds",
+              "0.90 seconds",
+              "0.57 seconds",
+              "0.31 s",
+              "0.26 s"
+            ],
+            "sourceUrl": "https://minhui-xie.github.io/papers/asplos25-medusa.pdf"
+          },
+          {
+            "refId": "medusa-offline",
+            "section": "§7.4 离线物化成本（PDF p.11）",
+            "quoteExcerpt": "It takes 39.2 seconds on average to perform an offline phase including a capturing stage and an analysis stage. The duration of the capturing stage is relatively constant, with an average of 9.7 seconds.",
+            "metrics": [
+              "39.2 seconds",
+              "9.7 seconds",
+              "35 different"
+            ],
+            "sourceUrl": "https://minhui-xie.github.io/papers/asplos25-medusa.pdf"
+          }
+        ]
+      },
+      {
+        "id": "paper-liu2026foundry",
+        "kind": "paper",
+        "paperId": "liu2026foundry",
+        "arxivId": "2604.06664",
+        "title": "Foundry: Template-Based CUDA Graph Context Materialization for Fast LLM Serving Cold Start",
+        "url": "https://arxiv.org/abs/2604.06664v1",
+        "authors": [
+          "Xueshen Liu",
+          "Yongji Wu",
+          "Yuncheng Yao",
+          "Danyang Zhuo",
+          "Ion Stoica",
+          "Z. Morley Mao"
+        ],
+        "venueOrYear": "arXiv:2604.06664 (2026)",
+        "venueName": "arXiv",
+        "venueTier": "preprint",
+        "publicationStatus": "preprint",
+        "readDepth": "fulltext",
+        "summaryLine": "通过共同物化地址布局、内核代码和图模板，将重复捕获转为恢复与参数特化，但收益依赖已有归档和暖缓存。",
+        "problem": {
+          "scenario": "大模型服务扩缩容及并行配置切换需要重新准备执行图；即使权重传输已加速，在线捕获仍可能持续数十秒至数分钟。",
+          "existingGap": "只保存图拓扑无法恢复参数中的设备地址和预热时加载的内核；逐内核修补依赖不透明参数布局，完整进程检查点又过重并绑定进程状态。",
+          "impact": "在线捕获拖慢弹性响应，离线为每个并行配置和全部 rank 配齐设备则增加准备资源，形成在线就绪速度与离线成本之间的权衡。"
+        },
+        "method": {
+          "keyIdea": "把可执行上下文与重复拓扑共同物化，使在线启动主要承担资源恢复和模板特化，减少重复捕获与构图。",
+          "designPoints": [
+            {
+              "title": "确定性地址与内核代码物化（Deterministic Context Materialization）",
+              "challengeAddressed": "图参数隐含地址依赖，跳过预热后又缺少已加载的内核资源。",
+              "mechanism": "将分配重定向至固定基址并记录捕获期间的分配事件，在线预留地址范围和补放分配；离线保存实际内核二进制、加载选项及必要初始化信息，在线加载代码并解析有效句柄。"
+            },
+            {
+              "title": "拓扑模板与节点参数特化（Topology Templating）",
+              "challengeAddressed": "逐批量重建图开销高，并发构图还会争用驱动资源。",
+              "mechanism": "按节点类型、依赖和不可更新属性归并拓扑，仅顺序构建少量模板，并行准备其余参数；服务时更新对应函数、参数和启动尺寸，连续命中相同目标图时省去重复更新。"
+            },
+            {
+              "title": "单卡通信替身与分布式身份恢复（Communication Stubbing & Rank Patching）",
+              "challengeAddressed": "多 rank 离线准备重复相同计算，真实集合通信又要求所有对端参与。",
+              "mechanism": "在单卡准备阶段用通信替身保留目标图结构，在线由各 rank 修补真实通信函数、句柄和身份；在执行流等价的配置内共享图与代码，不同并行配置分别维护归档。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "在暖运行环境、暖编译缓存和已有本地归档下，排除权重加载的 Qwen3-14B 引擎初始化在 DP1 至 DP8 配置中由 36–48 s 降至 1.7–1.8 s，论文概括为约 95% 降低。Qwen3-235B-A22B 的 BF16、EP8 配置由 650 s 降至 3.9 s，按显示值降低约 99.4%，论文概括为 99%。512 个图归并为 12–25 个模板；两项代表配置的参数更新平均为 0.98 ms 和 2.89 ms。代表性服务测试生成词元一致，未观察到吞吐退化，但没有完整离线物化总耗时可供全周期摊销。",
+          "experimentalConditions": "主平台为八张 H200 的 DGX，另测八张 B200，节点内采用 NVLink，归档存于本地 NVMe。覆盖 Qwen3、Llama3、Gemma3 的稠密与 MoE 模型，稠密模型实测数据并行 DP，MoE 实测专家并行 EP，不能写成张量并行 TP 扩展结果。每配置准备 512 个批量图并固定 KV 容量；对照启用图的 vLLM，检查点对照限单 GPU。服务测试采用随机提示、每次生成 128 个词元。",
+          "limitations": "计时排除环境初始化、权重加载与离线归档生成，不能代表完整容器冷启动。固定地址布局要求分配顺序兼容，模板更新要求拓扑一致，跨 rank 共享要求执行流等价；流水线并行不在同图共享范围内。版本失配拒绝、任意在途请求迁移及反复故障后的资源回收尚无联合验证。",
+          "engineeringApplicability": "原型集成 vLLM 解码服务；昇腾迁移需验证 CANN 固定地址、代码恢复、图参数更新及通信身份修补，尚无昇腾实测。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "foundry-dense",
+            "section": "§6.2.1 稠密模型引擎初始化（PDF p.9）",
+            "quoteExcerpt": "For Qwen3-14B, vLLM with graphs takes 36–48 s depending on the parallelism degree (DP1–DP8).",
+            "metrics": [
+              "36–48 s",
+              "1.7–1.8 s",
+              "95%"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2604.06664v1"
+          },
+          {
+            "refId": "foundry-moe",
+            "section": "§6.2.1 MoE 引擎初始化（Figure 7，PDF pp.9–10）",
+            "quoteExcerpt": "requires 650 s (about 10 minutes) for initialization, of which graph capture alone accounts for the majority. Foundry reduces this to 3.9 s, a 99% reduction.",
+            "metrics": [
+              "650 s",
+              "3.9 s",
+              "99%"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2604.06664v1"
+          },
+          {
+            "refId": "foundry-template",
+            "section": "§6.4.2 原地参数特化（Figure 10，PDF pp.10–11）",
+            "quoteExcerpt": "In-place graph update (0.98-2.89 ms) further reduces the latency by 24–32× compared with graph construction, making it possible to execute on demand during serving.",
+            "metrics": [
+              "31.1–69.5 ms",
+              "59.7–198.6 ms",
+              "0.98-2.89 ms",
+              "24–32×"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2604.06664v1"
+          }
+        ]
+      },
+      {
+        "id": "paper-zeng2026gcr",
+        "kind": "paper",
+        "paperId": "zeng2026gcr",
+        "title": "GPU Checkpoint/Restore Made Fast and Lightweight",
+        "url": "https://www.usenix.org/conference/fast26/presentation/zeng",
+        "authors": [
+          "Shaoxun Zeng",
+          "Tingxu Ren",
+          "Jiwu Shu",
+          "Youyou Lu"
+        ],
+        "venueOrYear": "FAST 2026",
+        "venueName": "FAST",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "将驱动控制状态与数据保存分开，并以主机影子执行追踪变化区间，降低完整检查点成本和增量保存的数据量。",
+        "problem": {
+          "scenario": "GPU 服务弹性恢复、任务切换和周期性容错保存，需要同时保全驱动控制状态与模型数据缓冲。",
+          "existingGap": "驱动集成方案控制状态处理快却受数据复制效率限制，全接口拦截方案增加句柄管理与运行开销；按整个缓冲标脏又会放大少量 KV 更新。",
+          "impact": "重复保存只读权重和未变化缓冲增大检查点并延长停顿；把细粒度写入检测放入 GPU 执行路径，还可能损害正常服务性能。"
+        },
+        "method": {
+          "keyIdea": "将控制状态保存交给驱动，将数据复制独立优化，再把写入区间计算移至主机，兼顾恢复效率与低运行开销。",
+          "designPoints": [
+            {
+              "title": "控制状态与数据分离保存（Hybrid Control-Data Checkpointing）",
+              "challengeAddressed": "高效控制状态恢复与高带宽数据复制难以由单一路径同时满足。",
+              "mechanism": "选择性记录缓冲地址和长度，先经异步复制保存数据，再解除物理映射并保留虚拟地址，由驱动保存控制状态；恢复时先还原控制状态和地址空间，再分配物理内存、建立映射并复制数据。"
+            },
+            {
+              "title": "离线生成符号脏区间模板（Symbolic Dirty Templates）",
+              "challengeAddressed": "整缓冲标脏过于粗糙，在线逐条检测设备写入又成本过高。",
+              "mechanism": "离线分析内核写入指令，将写地址和长度化为参数及启动配置的表达式，删除无关计算，生成可在主机执行的模板；复杂地址关系采用保守粗粒度标脏，无可靠语义时禁用对应应用的增量保存。"
+            },
+            {
+              "title": "主机影子执行与增量合并（CPU Shadow Execution）",
+              "challengeAddressed": "持续跟踪变化数据需要控制服务开销，并避免把增量合并负担留给恢复过程。",
+              "mechanism": "主机根据截获的内核参数并行计算脏区间；在 vLLM 中区分只读权重、部分变化的 KV 与其他缓冲，保存前同步设备，再将增量并入已有完整检查点。影子分析可并行，检查点保存仍有停顿。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "初始完整检查点时延相对 cuda-ckpt、PhOS 分别平均降低 72.1%、63.6%。增量实验中，GCR 自身第二次相对第一次检查点的大小平均减少 86.6%，时延减少 43.8%；这不是相对其他系统的降幅。弹性推理冷启动相对两种对照分别降低 54.2%、87.1%，其计时包括从已有主存检查点恢复及后续应用执行，LLM 使用首词元时延计量执行部分，不能称为纯恢复时延。正常执行平均开销小于 1%，不意味着检查点零停顿。",
+          "experimentalConditions": "平台为两张 A100 40 GB，采用 NVLink 与 PCIe 4.0，检查点保存在主存。推理覆盖 Llama2、Llama3、OPT、Pythia、Qwen，完整保存另含训练与高性能计算任务；实际评估 vLLM 0.9.1。主要对照为 cuda-ckpt 和 PhOS。增量实验每次保存间处理五个请求，每请求含 1155 个输入词元、211 个输出词元；弹性恢复从预先准备的实例检查点开始。",
+          "limitations": "依赖驱动控制状态保存恢复、虚拟地址保留及可解释的写入语义；闭源且缺乏文档的内核可能使增量功能失效。当前仅有主存后端，保存前需同步设备，连续训练还需恢复已解除映射的数据。两卡实验不能证明任意多 rank 故障协调；完整图模板生命周期、版本兼容拒绝与长期销毁回收没有专门的联合验证。",
+          "engineeringApplicability": "已评估 vLLM 推理与 KV 增量保存；昇腾迁移需验证驱动控制状态恢复、CANN 地址映射及内核写入分析，尚无昇腾实测。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "gcr-full-checkpoint",
+            "section": "§6.1.3 完整检查点（Figure 11，PDF p.11）",
+            "quoteExcerpt": "As shown in Figure 11, GCR reduces checkpointing latency by 72.1% and 63.6% on average compared to cuda-ckpt and PhOS, respectively.",
+            "metrics": [
+              "72.1%",
+              "63.6%"
+            ],
+            "sourceUrl": "https://www.usenix.org/conference/fast26/presentation/zeng"
+          },
+          {
+            "refId": "gcr-cold-start",
+            "section": "§6.1.1 弹性冷启动（Figure 8，PDF p.10）",
+            "quoteExcerpt": "GCR achieves an average reduction of 54.2% in cold-start latency. The reductions are even more pronounced when compared to PhOS, with an average reduction of 87.1%.",
+            "metrics": [
+              "54.2%",
+              "87.1%"
+            ],
+            "sourceUrl": "https://www.usenix.org/conference/fast26/presentation/zeng"
+          },
+          {
+            "refId": "gcr-incremental",
+            "section": "§6.2 增量推理检查点（Figure 15，PDF p.12）",
+            "quoteExcerpt": "GCR reduces checkpoint size by 86.6% on average compared to the first checkpoint.",
+            "metrics": [
+              "86.6%",
+              "43.8%",
+              "second / first"
+            ],
+            "sourceUrl": "https://www.usenix.org/conference/fast26/presentation/zeng"
+          }
+        ]
+      },
+      {
+        "id": "paper-kabakibo2026breakingice",
+        "kind": "paper",
+        "paperId": "kabakibo2026breakingice",
+        "title": "Breaking the Ice: Analyzing Cold Start Latency in vLLM",
+        "url": "https://proceedings.mlsys.org/paper_files/paper/2026/hash/29416b66c2149872b9d1415a3fd2c5e0-Abstract-Conference.html",
+        "authors": [
+          "Kabakibo, Huzaifa Shaaban",
+          "Trivedi, Animesh",
+          "Wang, Lin"
+        ],
+        "venueOrYear": "MLSys 2026",
+        "venueName": "MLSys",
+        "venueTier": "top_venue",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "将引擎启动拆成可独立测量的阶段，结合冷暖缓存消融和分阶段预测，定位局部优化无法解释的就绪延迟。",
+        "problem": {
+          "scenario": "Serverless 服务需要预测新实例何时可接收请求，但模型结构、主机环境与 vLLM 编译路径变化会改变启动成本。",
+          "existingGap": "权重加载、环境初始化和图物化研究各自优化局部阶段，缺少统一分解；KV 探测还可能隐式触发编译，使日志中的阶段耗时混杂。",
+          "impact": "单个启动总时长掩盖处理器、设备、存储与缓存的不同作用，难以定位版本回归，也使弹性扩容与容量规划缺乏可靠依据。"
+        },
+        "method": {
+          "keyIdea": "按资源依赖拆分启动阶段，再分别测量和拟合，使总时延变化能追溯到具体成本及环境条件。",
+          "designPoints": [
+            {
+              "title": "六阶段独立计时与归因（Stage-wise Instrumentation）",
+              "challengeAddressed": "阶段混合及隐式编译使启动瓶颈难以准确定位。",
+              "mechanism": "分别记录框架启动、分词器初始化、模型加载、编译、KV 探测与图捕获，并细分权重和编译产物步骤；隔离 KV 探测时关闭编译重新测量，避免直接相减带来的归因偏差。"
+            },
+            {
+              "title": "缓存与硬件环境受控消融（Cache & Environment Ablation）",
+              "challengeAddressed": "文件缓存和编译缓存的暖状态不同，可能让相同启动流程呈现完全不同的瓶颈。",
+              "mechanism": "分别改变文件缓存、编译缓存、主机与设备环境，并比较权重加载路径和捕获尺寸数量；对重复启动取均值，将各因素影响归于对应阶段。"
+            },
+            {
+              "title": "可解释的分阶段时延预测（Stage-wise Latency Predictor）",
+              "challengeAddressed": "整体黑箱估计难以解释模型或软件变化，也难以局部更新。",
+              "mechanism": "为各阶段独立拟合线性模型，以模型、分词器和编译图规模等特征预测耗时后汇总；目标环境变化时重训受影响阶段，并以留出的非 MoE 模型验证预测。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "Llama3.2-3B 的引擎初始化示例为 20.32 s，这是测量结果而非优化后的加速。Llama2-7B 的捕获尺寸集合从三个扩大至六十个时，图捕获由 0.33 s 增至 1.8 s，相关系数 PCC 为 1；变化的是尺寸数量，不是单请求批量。禁用编译缓存后，产物生成与保存步骤为 11–21 s，暖缓存对应步骤为 3–6 s，两者均非完整启动时间。五个留出非 MoE 模型上的最大绝对预测误差为 2.08 s。",
+          "experimentalConditions": "主平台为 H100 NVL 与 AMD EPYC 9354，另对照 L40S 及 Intel 主机；覆盖 Llama、Qwen、Yi、Falcon、Gemma、DeepSeek 等系列共二十二个模型。主要研究 vLLM 0.10.1.1，并在 0.11 验证预测器。每项实验重复五次取均值，主实验使用暖文件缓存与已有编译缓存，另分别消融。预测验证留出五个非 MoE 模型，其余非 MoE 模型用于训练。",
+          "limitations": "范围止于引擎初始化，未纳入容器获取、远端存储、节点外通信和完整故障恢复；受控环境也未覆盖真实背景负载与调度争用，日志粒度可能带来数百毫秒误差。线性预测不能直接覆盖 MoE、混合架构及其他非线性行为。论文提供诊断与预测，尚未实现跨进程恢复、编排器集成或全生命周期摊销控制。论文将 MSE 的单位标为秒，量纲未经核实；本卡保留原文标注，不将 MSE 当作绝对误差，也不擅自更正单位。",
+          "engineeringApplicability": "直接研究 vLLM 启动；用于昇腾需重建 CANN 编译与图捕获计时、分离各类缓存并重新拟合，尚无昇腾实测。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "ice-capture",
+            "section": "§2.6 图捕获开销（Figure 9，PDF p.8）",
+            "quoteExcerpt": "The time for capturing the graph increases from 0.33 secs with three batch sizes to 1.8 secs with 60 batch sizes.",
+            "metrics": [
+              "0.33 secs",
+              "1.8 secs",
+              "PCC = 1"
+            ],
+            "sourceUrl": "https://proceedings.mlsys.org/paper_files/paper/2026/hash/29416b66c2149872b9d1415a3fd2c5e0-Abstract-Conference.html"
+          },
+          {
+            "refId": "ice-cache",
+            "section": "§3.5 编译缓存消融（Figure 15，PDF p.10）",
+            "quoteExcerpt": "The total graph storing time ranges between 11–21 secs across models, compared to 3–6 secs when cached (see Figure 6).",
+            "metrics": [
+              "11–21 secs",
+              "3–6 secs",
+              "PCC = 0.95"
+            ],
+            "sourceUrl": "https://proceedings.mlsys.org/paper_files/paper/2026/hash/29416b66c2149872b9d1415a3fd2c5e0-Abstract-Conference.html"
+          },
+          {
+            "refId": "ice-predictor",
+            "section": "§4 分阶段预测误差（Figure 17，PDF p.11）",
+            "quoteExcerpt": "the predictor achieves strong accuracy, with a mean squared error (MSE) of 2.42 secs and a maximum error of 2.08 secs, observed for Llama3-3B.",
+            "metrics": [
+              "vLLM 0.10.1.1 的预测 MSE：2.42 s（原文单位，量纲未核实）。",
+              "五个留出非 MoE 模型中的最大绝对预测误差：2.08 s（Llama3-3B）。",
+              "vLLM 0.11 复验的预测 MSE：2.62 s（原文单位，量纲未核实）。"
+            ],
+            "sourceUrl": "https://proceedings.mlsys.org/paper_files/paper/2026/hash/29416b66c2149872b9d1415a3fd2c5e0-Abstract-Conference.html"
+          }
+        ]
+      }
+    ],
+    "prs": [
+      {
+        "id": "pr-vllm-ascend-21921",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm-ascend#21921",
+        "repository": "vllm-project/vllm-ascend",
+        "number": 21921,
+        "title": "[Ops][Feature] Enable static & super kernel under PIECEWISE cudagraph mode",
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/21921",
+        "state": "merged",
+        "mergedAt": "2026-11-19T13:29:20Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "ascend_native",
+        "displayTitle": "分段图启用静态编译与超级内核",
+        "summaryLine": "让分段图中的静态编译和超级内核覆盖实际预填充与解码尺寸，改善首词元时延，同时暴露高昂的启动准备成本。",
+        "problem": "分段图模式曾在配置层强制关闭静态内核编译和超级内核融合，编译尺寸又主要取自受并发上限限制的解码批次，无法完整覆盖实际捕获的预填充形状，导致用户选择的优化不能生效。",
+        "optimization": "保留并传递用户的静态编译与超级内核选项，将逐段编译的形状范围对齐预填充词元桶与解码请求批量的捕获集合，旧配置回退到通用捕获尺寸。预填充分段因此获得对应特化产物，但更广的分段与形状覆盖也扩大了编译工作量。",
+        "effectsAndLimits": {
+          "resultSummary": "作者报告静态加超级内核后，1024 词元输入的首词元时延中位数由 155 ms 降至 140 ms，8192 词元输入由 812 ms 降至 779 ms；各长度相对基线的首词元翻转均为 0/80。准备阶段包含 122 个静态内核编译单元，无共享缓存时单节点约需 25 分钟。服务请求的毫秒级节省与启动准备成本分属不同计时范围，不能直接相除推导摊销请求数。",
+          "experimentalConditions": "16 张 Ascend 910B，DeepSeek 系列 MoE，W4A8 量化，张量并行 TP4、数据并行 DP4，并启用专家并行 EP。相同拓扑比较关闭两项优化、仅静态内核、静态加超级内核三种模式；关闭前缀缓存，每个输入长度测试 80 个请求，每请求生成一个词元。作者另报告格式与静态检查通过。",
+          "limitations": "已于 2026 年 11 月 19 日合入 vLLM-Ascend。冷预填充指关闭前缀缓存，并非每请求重启进程。32768 词元输入时，组合方案为 3318 ms，仅静态内核为 3314 ms，叠加优化并非各条件都更快；没有长输出质量、尾延迟或吞吐结论。相邻 #22631 的系统集成测试在准确率阶段前编译超时，是另一项工程记录，不能当作本 PR 的基准。跨重启复用与长期回收仍未验证。"
+        },
+        "ascendEvidence": "这是 vLLM-Ascend 原生已合并修改，具有 16 张 Ascend 910B 的服务时延与首词元对照证据；结果限于所测模型、量化、并行和缓存条件。",
+        "hardwareDependency": "依赖昇腾图编译后端及 CANN 的静态内核、超级内核能力；已报告硬件为 16 张 Ascend 910B，启动准备测量没有共享编译缓存。",
+        "evidenceRefs": [
+          {
+            "refId": "pr21921-validation",
+            "section": "PR 正文 · 服务验证与冷启动成本",
+            "quoteExcerpt": "证据摘要：各长度首个输出均与关闭静态内核的基线相同；这些正确性结果与单列的分钟级准备开销需分别解读。",
+            "metrics": [
+              "每个输入长度首词元翻转：0/80。",
+              "静态内核编译单元：122 个；无共享缓存时单节点准备约 25 分钟。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/21921"
+          },
+          {
+            "refId": "pr21921-featured-boundary",
+            "section": "ACL Graph 动态报告 · 工程边界与相邻记录",
+            "quoteExcerpt": "证据摘要：两档短提示的首词时延改善伴随较重编译成本，邻近改动还报告过集成测试在准确性评估前超时。",
+            "metrics": [
+              "输入 1024 词元的首词元时延 P50：155→140 ms。",
+              "输入 8192 词元的首词元时延 P50：812→779 ms。",
+              "122 个编译单元；单节点约 25 分钟；相邻 #22631 的超时不是本 PR 基准。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/21921"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-ascend-22754",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm-ascend#22754",
+        "repository": "vllm-project/vllm-ascend",
+        "number": 22754,
+        "title": "[BugFix] Reuse the cached static kernel run packages across restarts",
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22754",
+        "state": "closed",
+        "vllmStatus": "not_verified_in_vllm",
+        "ascendApplicability": "ascend_pr_available",
+        "displayTitle": "按兼容性复用静态内核运行包",
+        "summaryLine": "将重启时重复静态编译转为按兼容性选择运行包复用，并隔离不同图与形状的缓存，但提案已关闭且未合并。",
+        "problem": "分段编译入口在特定编译配置下绕过底层已有运行包缓存，每次重启都重新编译并累积目录；直接共用缓存目录又可能安装属于其他图、形状或并行配置的产物。",
+        "optimization": "提案将缓存选项传入底层实际读取的位置，使分段编译可选择已有运行包安装路径。以图摘要、输入形状、全局与本地拓扑规模及运行时版本划分缓存目录，安装前校验产物构建时的 CANN 版本、设备名称与确定性设置；不兼容时回退编译，显式关闭编译缓存时也关闭运行包复用。",
+        "effectsAndLimits": {
+          "resultSummary": "未提供端到端吞吐/延迟基准，也没有精确冷编译与暖重启对照计时。解码侧重复编译约 5–6 分钟、单节点积累 5617 个目录和 9 GB，均来自原问题报告。作者报告旧版方案连续两次运行后目录数由 1 保持为 1，第二次安装已有运行包；这仅验证复用路径，不是上述启动成本已被消除的测量。",
+          "experimentalConditions": "旧版功能验证使用两张 Ascend 910B3、CANN 9.1.0 与 PyTorch NPU 2.10.0.post4，连续驱动静态内核编译器。作者报告修改前后已有测试集均为 244 项通过、2 项失败，失败在未修改基线上同样存在；目录与配置辅助测试可在 CPU 运行，需要真实后端的用例在 CPU 跳过并在 NPU 镜像运行，另报告格式和静态检查通过。",
+          "limitations": "PR 已关闭且未合并。实机结果来自旧版平铺缓存目录，最终按编译分段隔离的方案未重跑实机；原问题的多卡长期重启场景与完整服务基准也未复现。方案复用的是静态内核运行包，未恢复完整图上下文、在途请求或通信状态，也未证明跨模型与版本累积缓存具有全局容量上限。"
+        },
+        "ascendEvidence": "昇腾已有 PR 的标记仅表示存在这份已关闭提案，不表示主干支持或仍在推进。旧版方案有两张 Ascend 910B3 的功能验证，最终目录方案尚未实机复测。",
+        "hardwareDependency": "复用依赖持久缓存存储、兼容的 CANN 与设备环境，以及一致的图、形状、并行拓扑和确定性设置；已测环境为两张 Ascend 910B3。",
+        "evidenceRefs": [
+          {
+            "refId": "pr22754-reported-issue",
+            "section": "PR 正文 · 原问题报告背景",
+            "quoteExcerpt": "static kernels from scratch (the issue reports ~5-6 minutes on the decode side)",
+            "metrics": [
+              "~5-6 minutes",
+              "5617 directories / 9 GB"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/22754"
+          },
+          {
+            "refId": "pr22754-npu-cache",
+            "section": "PR 正文 · NPU 验证与旧版缓存目录",
+            "quoteExcerpt": "the second run installs that run package",
+            "metrics": [
+              "first run : 1",
+              "second run: 1",
+              "2x Ascend 910B3",
+              "CANN 9.1.0",
+              "2.10.0.post4"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/22754"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-67279",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm#67279",
+        "repository": "vllm-project/vllm",
+        "number": 67279,
+        "title": "[Bugfix] Clear cuBLAS workspaces at in-process shutdown to free the graph pool",
+        "url": "https://github.com/vllm-project/vllm/pull/67279",
+        "state": "merged",
+        "mergedAt": "2026-11-12T23:32:25Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "cuda_specific_needs_port",
+        "displayTitle": "关闭引擎时释放隐藏库工作区",
+        "summaryLine": "将线性代数库缓存工作区纳入引擎关闭流程，解除隐藏的图池引用，修复同进程再次捕获时的分配器断言。",
+        "problem": "图捕获期间延迟分配的 cuBLAS 工作区来自全局图内存池，却由库缓存持续持有。即使模型和图对象已经释放，旧池仍有活跃分配，同进程下一个引擎再次捕获时会触发引用计数断言。",
+        "optimization": "在 GPU 模型执行器的进程内关闭流程中，显式清理框架缓存的 cuBLAS 工作区，使库持有的隐藏引用随引擎销毁一并解除，从而允许图池实际回收。",
+        "effectsAndLimits": {
+          "resultSummary": "未提供端到端吞吐/延迟基准。作者复现主干连续测试中一项通过、一项失败的回归，修复后相关组合通过，加入捕获前内存预热提交用例后共三项通过。分配器快照显示，多词元预测与自适应验证配置在引擎关闭后残留的一个 32 MiB 活跃块降为零；证据支持故障修复和资源回收。",
+          "experimentalConditions": "作者在 GB200、CUDA、PyTorch 2.14.0 上使用 Qwen3.5-0.8B 验证同进程连续引擎测试，并通过带分配栈的设备内存快照比较关闭后的图池残留；主干持续集成亦出现相同失败。",
+          "limitations": "已于 2026 年 11 月 12 日合入上游 vLLM。仅多词元预测配置也观察到 32 MiB 残留，但修改后未重跑该配置；ROCm 未测试。同一设备上另有仍存活的进程内引擎不在支持范围。该修复不能推出跨进程恢复加速或长期故障循环的完整资源稳定性。"
+        },
+        "ascendEvidence": "直接证据来自 CUDA 与 cuBLAS，未验证昇腾支持。迁移这一清理原则需确认 CANN 算子库工作区的所有权和释放接口，并验证反复启停后的 NPU 驻留内存。",
+        "hardwareDependency": "已测平台为 GB200、CUDA 与 PyTorch 2.14.0；修复依赖框架提供的 cuBLAS 工作区清理能力，不能直接替代其他设备后端的释放机制。",
+        "evidenceRefs": [
+          {
+            "refId": "pr67279-root-cause",
+            "section": "PR 正文 · 问题与生命周期机制",
+            "quoteExcerpt": "A workspace created during CUDA Graph capture is allocated from the global graph pool and otherwise keeps that pool alive after its graphs are freed",
+            "metrics": [],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/67279"
+          },
+          {
+            "refId": "pr67279-memory",
+            "section": "PR 正文 · 资源回收与功能验证",
+            "quoteExcerpt": "Frees the 32 MiB workspace that was otherwise left in the graph pool after each such engine shuts down.",
+            "metrics": [
+              "32 MiB",
+              "3 passed"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/67279"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-67583",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm#67583",
+        "repository": "vllm-project/vllm",
+        "number": 67583,
+        "title": "[Core] Persistent state: model hooks for CUDA graph capture, warmup, shutdown and memory contributors",
+        "url": "https://github.com/vllm-project/vllm/pull/67583",
+        "state": "open",
+        "vllmStatus": "rfc_or_draft",
+        "ascendApplicability": "portable_framework",
+        "displayTitle": "统一模型持久状态的启动与清理",
+        "summaryLine": "让模型通过统一生命周期接口申报执行内存并管理状态池图、预热和关闭清理，已有功能验证但仍为开放草稿。",
+        "problem": "持久状态模型需要自行分配执行内存、按状态池捕获图并清理资源，通用引擎却缺少统一接口；隐含执行内存若未纳入预算，会挤占原先承诺给 KV Cache 的容量。",
+        "optimization": "草稿为模型提供执行内存准备、是否捕获、捕获与清图、预热后处理及关闭接口。执行内存在探测窗口内分配并从 KV 预算扣除，图估算使用计划容量的临时状态池并清理临时资源，真实捕获按固定次序执行。状态池仅在捕获期间开放访问，并提供不可变布局快照；预热后回调与种子重置、监测和同步检查有明确顺序。关闭时先同步设备，再调用模型清理；普通异常记录后继续清理，中断清理后重抛，内存不足诊断附加模型声明的容量来源。",
+        "effectsAndLimits": {
+          "resultSummary": "未提供端到端吞吐/延迟基准；正文只有功能验收附带的单点启动计时，不能计算加速比。作者报告 CPU 选择集验证及 A40 GPU 矩阵：持久状态替身模型 138 项、图内存估算 36 项、模型执行器 56 项、设备工作进程 52 项、混合预热 9 项、KV 规划 179 项和依赖功能 282 项均通过。树外语音插件启动耗时 48 s，200 条语音在 32 路并发下的转写与即时执行一致；KV 容量为 32.0 GiB，即时执行对照为 32.9 GiB，体现图与执行内存进入预算。",
+          "experimentalConditions": "GPU 验证使用单张 A40、CUDA 13.2 与 PyTorch 2.14.0，CPU 验证在 macOS；作者报告 CPU 选择集有十二项基线同样失败，未新增失败。树外 Nemotron 流式语音插件组合包含生命周期依赖及语音请求接口改动，使用 LibriSpeech 测试清洁子集前 200 条语音。A40 矩阵对应较早提交，替身模型整套运行 28.2 分钟，这不是服务启动耗时。",
+          "limitations": "仍是开放的堆叠 RFC 草稿，直接依赖 #67375，后者依赖 #67374；接口仅在新版执行器运行，尚无树内模型采用。最新头提交未重跑 GPU，早期矩阵和插件验收不能当作最新头实测。默认接口不分配也不捕获，未实现跨进程序列化恢复；部分后端预热顺序及长期异常循环仍未覆盖，不能保证所有清理路径都保留原异常。"
+        },
+        "ascendEvidence": "这是可供昇腾借鉴的上游生命周期框架，已有 A40 与树外插件功能证据，但 Ascend 支持未验证。接入需验证 CANN 设备同步、状态池地址稳定、图捕获清理与内存预算语义。",
+        "hardwareDependency": "现有设备验证限单张 NVIDIA A40，模型需接入新版执行器的生命周期接口；其他设备后端必须提供对应的同步、图管理和内存计量能力。",
+        "evidenceRefs": [
+          {
+            "refId": "pr67583-gpu-scope",
+            "section": "PR 正文 · GPU 矩阵与单测范围",
+            "quoteExcerpt": "every selection in the GPU table below passes",
+            "metrics": [
+              "138/138 (28.2 min)",
+              "36/36",
+              "56/56",
+              "52/52",
+              "9/9",
+              "179/179",
+              "282/282"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/67583"
+          },
+          {
+            "refId": "pr67583-plugin-startup",
+            "section": "PR 正文 · 树外语音插件端到端验证",
+            "quoteExcerpt": "The plugin's end-to-end hook test passes. The server starts in 48 s with no errors.",
+            "metrics": [
+              "48 s",
+              "0.89 GiB",
+              "0.14 GiB",
+              "32.0 GiB",
+              "32.9 GiB",
+              "200",
+              "32 concurrent streams"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/67583"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "p6",
+    "index": 6,
+    "slug": "heterogeneous-workflow-orchestration",
+    "title": "多模态、投机解码与 Agent 复杂工作流下的异构子图编排与端到端归因",
+    "shortTitle": "复杂工作流与子图编排",
+    "priorityBadge": "P1 · 前沿工作流",
+    "gap": {
+      "background": "在视觉与音频编码、草稿生成与目标验证、多分支 Agent 工具调用交织的服务场景下，跨子图依赖、请求分支与外部工具会有状态寿命和提交边界错位的问题。工具异步返回可能改变分支身份，请求取消也未必立即停止已提交的设备任务；迟到结果与仍被占用的缓存须按完成关系隔离。本题把后端、图模式及推测长度作为编排层实验变量，检查提交、取消及服务反馈；单次设备重放的地址和状态消费安全由 P2 讨论，局部资源争用模型由 P3 讨论。",
+      "existingLimitations": "虽然当前现有的工作（如 SGLang、SpecInfer、Taskflow、ACRoBat，以及 #22172、#22217、#66067、#68831）都尝试从结构化程序执行、树形验证、异构任务调度、编译与运行时分工及编码器或草稿图接入角度缓解或解决这一问题，但是因为这些机制承担变化的层次和保证的语义不同，仍然没有彻底解决。SGLang 处理模型程序及前缀复用，其程序图并非设备重放图；SpecInfer 并行验证候选树，尚未统一动态候选拓扑与静态图变体的组合；Taskflow 已能编排 CPU/GPU 主机与设备任务，却未验证语言模型 Agent 的外部工具提交和取消事务；ACRoBat 分担编译期分析与运行时自动组批，未统一异构捕获子图的生命周期。工程上，#22172 打通本地草稿与预填充、解码服务，但生产比较同时改变草稿方法、投机长度及相关执行路径；#22217 分别改进音频图、外围同步和位置查表，仍缺完整服务消融；#66067 统一视觉编码器接入协议，提供的是行为保持证据；#68831 已给出同后端音频图对照，却仍限于特定子链，输出与调度反馈也未被固定。所选证据尚未共同验证跨请求分支、模型状态、设备完成和外部操作提交的组合语义，也未充分解释局部收益如何经过这些反馈转化为服务收益。",
+      "researchOpportunity": "因此我们从跨子图、请求分支与外部工具的提交和取消契约方向出发，有机会在明确的负载与后端约束下缓解此问题，并检验收益能否覆盖新增成本。区分设备提交、完成与对外提交，按分支身份隔离迟到结果，以工具声明的幂等或补偿语义约束重试。将后端、图模式和推测长度作为编排层实验变量，局部争用建模交由 P3。先固定输入、工具响应、分支和验证轨迹作同后端图开关对照，再允许排队、组批和接受率反馈。在未参与建模与调参的留出测试负载上，比较最佳静态配置、有限图族及已有控制器，检验决策损失能否预测并改善；计入启动、切换和协调成本，报告输出质量、取消回收、成功提交词元成本、端到端尾延迟及达标吞吐。",
+      "keyTakeaway": "异构子图的价值，取决于跨层提交语义是否一致，以及局部节省能否兑现为服务达标收益。"
+    },
+    "papers": [
+      {
+        "id": "paper-zheng2024sglang",
+        "kind": "paper",
+        "paperId": "zheng2024sglang",
+        "title": "SGLang: Efficient Execution of Structured Language Model Programs",
+        "url": "https://proceedings.neurips.cc/paper_files/paper/2024/hash/724be4472168f31ba1c9ac630f15dec8-Abstract-Conference.html",
+        "authors": [
+          "Zheng, Lianmin",
+          "Yin, Liangsheng",
+          "Xie, Zhiqiang",
+          "Sun, Chuyue",
+          "Huang, Jeff",
+          "Yu, Cody Hao",
+          "Cao, Shiyi",
+          "Kozyrakis, Christos",
+          "Stoica, Ion",
+          "Gonzalez, Joseph E.",
+          "Barrett, Clark",
+          "Sheng, Ying"
+        ],
+        "venueOrYear": "NeurIPS 2024",
+        "venueName": "NeurIPS",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "通过结构化程序与推理运行时协同，复用多次模型调用的共享前缀并利用分支并行，降低复杂生成任务的执行成本。",
+        "problem": {
+          "scenario": "复杂推理、Agent 和多模态应用包含相互依赖的模型调用，并穿插条件判断、并行分支及结构化输出约束。",
+          "existingGap": "执行引擎把调用视为独立请求，难以利用跨调用共享前缀和并行关系；即使输出约束已确定连续文本，仍可能逐词元执行。",
+          "impact": "重复预填充占用计算和缓存，限制批量并行；串行调用及细粒度约束解码进一步拉长整个程序的完成时间。"
+        },
+        "method": {
+          "keyIdea": "把模型调用的结构关系暴露给运行时，使共享计算与程序内并行成为执行依据，减少孤立调用造成的重复工作。",
+          "designPoints": [
+            {
+              "title": "基数树缓存与缓存感知调度（RadixAttention）",
+              "challengeAddressed": "跨调用与分叉程序共享不同长度的前缀，固定前缀缓存难以统一匹配、淘汰和调度。",
+              "mechanism": "用基数树索引分页 KV Cache，保留已完成请求的前缀与生成结果，以引用计数保护活跃节点并优先淘汰叶节点；等待请求按共享前缀长度排序，分叉前提前提交公共前缀。"
+            },
+            {
+              "title": "压缩状态机约束解码（Compressed FSM）",
+              "challengeAddressed": "约束中连续确定的文本仍被拆成多个模型步骤，重复支付解码调度成本。",
+              "mechanism": "将状态机中连续单一转移压缩成长边，对确定文本重新分词后一次处理多个词元，并在同批请求间复用状态机预处理。"
+            },
+            {
+              "title": "结构化调用与异步程序执行（Structured Primitives）",
+              "challengeAddressed": "生成、选择、分叉、合并和多模态输入缺少统一表达，程序结构难以传递给执行端。",
+              "mechanism": "以结构化原语表达模型程序，将提示词状态作为异步流推进，在读取结果时同步；黑盒接口可缓存越过停止条件的额外生成文本，在后续匹配调用中复用。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "开放模型程序基准相对 Guidance、vLLM 和 LMQL 中适用的基线，最高吞吐达 6.4 倍、延迟加速达 3.7 倍，吞吐单位为程序数每秒。多模态表中，单张 A10G 24 GB 上的 LLaVA-v1.5-7B 在 llava-bench-in-the-wild 上，相对模型作者实现从 0.18 提升至 1.15 图像每秒，按表内舍入值约为 6.39 倍；单张 A100G 80 GB 上的 LLaVA-NeXT-34B 在 ActivityNet 上从 0.02 提升至 0.10 帧每秒，为 5 倍。缓存命中率为 50%–99%，平均达到最优命中率的 96%，后者不是绝对命中率。这些收益来自程序级机制组合，多模态结果未单独消融视觉编码器捕获。",
+          "experimentalConditions": "开放模型使用半精度，覆盖 Llama-2、Mixtral 和 LLaVA。主要平台为单张 A10G 24 GB、八张 A10G 24 GB 或四张 A100G 80 GB；多模态配置对应上述单卡。基线为 Guidance 0.1.8、vLLM 0.2.5、LMQL 0.7.3 及多模态模型作者实现。负载包括 MMLU、HellaSwag、固定 Agent 轨迹、GSM-8K 树式推理、约束 JSON、检索增强生成和四轮对话；程序延迟以单程序、不组批方式测量。",
+          "limitations": "长输出对话由解码主导，几乎没有提速；缓存感知贪心调度存在饥饿风险，压缩状态机仍有字符串与词元映射导致的概率失真。追踪编译模式尚不支持数据依赖控制流，不能与主文解释器能力混同。固定 Agent 轨迹实验未验证外部工具副作用、取消和重试提交；模型程序图也不保证任意分支共享一个设备捕获图。",
+          "engineeringApplicability": "vLLM 是历史基线；迁移至昇腾需核对 CANN 分页缓存、动态元数据与捕获缓冲协议，分别验证前缀复用和图收益。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "zheng2024sglang:5577-7112",
+            "section": "§1 引言与系统设计（PDF p.2）",
+            "quoteExcerpt": "Instead, our system maintains an LRU cache of the KV Cache for all requests within a radix tree.",
+            "metrics": [],
+            "sourceUrl": "https://proceedings.neurips.cc/paper_files/paper/2024/hash/724be4472168f31ba1c9ac630f15dec8-Abstract-Conference.html"
+          },
+          {
+            "refId": "zheng2024sglang:33941-35594",
+            "section": "§6.2 缓存命中率评估（PDF p.8）",
+            "quoteExcerpt": "rate ranges from 50% to 99%. Fig. 13 (Appendix) lists the achieved and optimal cache hit rates for all of them, showing that our cache-aware scheduling approaches 96% of the optimal hit rate on average.",
+            "metrics": [
+              "50% to 99%",
+              "96% of the optimal hit rate on average"
+            ],
+            "sourceUrl": "https://proceedings.neurips.cc/paper_files/paper/2024/hash/724be4472168f31ba1c9ac630f15dec8-Abstract-Conference.html"
+          },
+          {
+            "refId": "zheng2024sglang:36541-37086",
+            "section": "§6.2 多模态吞吐对比（Table 2，PDF p.9；硬件见附录 C）",
+            "quoteExcerpt": "Author’s original implementation: 0.18 image/s, 0.02 frame/s; SGLang: 1.15 image/s, 0.10 frame/s",
+            "metrics": [
+              "0.18 image/s",
+              "1.15 image/s",
+              "0.02 frame/s",
+              "0.10 frame/s"
+            ],
+            "sourceUrl": "https://proceedings.neurips.cc/paper_files/paper/2024/hash/724be4472168f31ba1c9ac630f15dec8-Abstract-Conference.html"
+          }
+        ]
+      },
+      {
+        "id": "paper-miao2024specinfer",
+        "kind": "paper",
+        "paperId": "miao2024specinfer",
+        "arxivId": "2305.09781",
+        "title": "SpecInfer: Accelerating Large Language Model Serving with Tree-based Speculative Inference and Verification",
+        "url": "https://arxiv.org/abs/2305.09781v4",
+        "authors": [
+          "Xupeng Miao",
+          "Gabriele Oliaro",
+          "Zhihao Zhang",
+          "Xinhao Cheng",
+          "Zeyu Wang",
+          "Zhengxin Zhang",
+          "Rae Ying Yee Wong",
+          "Alan Zhu",
+          "Lijie Yang",
+          "Xiaoxiang Shi",
+          "Chunan Shi",
+          "Zhuoming Chen",
+          "Daiyaan Arfeen",
+          "Reyna Abhyankar",
+          "Zhihao Jia"
+        ],
+        "venueOrYear": "ASPLOS 2024",
+        "venueName": "ASPLOS",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "将目标模型转为候选词元树的并行验证器，以有限的额外推测计算减少昂贵目标步骤，缓解分布式与卸载推理延迟。",
+        "problem": {
+          "scenario": "自回归解码逐词元调用目标模型；跨设备分布和主机权重卸载还会反复支付通信与参数搬运成本。",
+          "existingGap": "单个小模型的一条草稿序列覆盖不足，扩展候选又增加验证计算和缓存冲突；随机验证还须保持目标模型的条件分布。",
+          "impact": "请求内并行不足使计算资源闲置，昂贵目标步骤重复发生；仅提高候选覆盖而不控制验证代价，可能反而延长推理。"
+        },
+        "method": {
+          "keyIdea": "将目标模型从逐词元生成器转为候选树的并行验证器，以共享前缀的批量验证换取更少的昂贵目标步骤。",
+          "designPoints": [
+            {
+              "title": "多样化草稿与共享前缀词元树（Token Tree）",
+              "challengeAddressed": "单条草稿难以覆盖目标输出，无约束分支展开又会造成候选规模膨胀。",
+              "mechanism": "按预设分支策略扩展小模型候选；多模型路径通过逐轮关注先前未对齐样本的联合调优提高互补性，并合并相同前缀。主文主要性能实验采用固定扩展策略。"
+            },
+            {
+              "title": "拓扑感知树注意力与并行验证（Tree Attention）",
+              "challengeAddressed": "不同候选在相同位置具有不同缓存，逐路径验证会重复公共前缀计算。",
+              "mechanism": "将词元树组织为共享缓存表示，用祖先关系构造因果掩码，使每个候选仅访问合法历史与自身路径，将整树注意力并行执行。"
+            },
+            {
+              "title": "保持目标分布的多步随机验证（Tree-based Verification）",
+              "challengeAddressed": "多分支候选需要兼顾接受率与目标模型输出分布，朴素验证可能频繁拒绝。",
+              "mechanism": "按目标与草稿概率之比逐次接受候选，拒绝后更新并归一化剩余分布；全部候选失败时从剩余目标分布采样，以保持目标条件分布。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "在 A10 平台的五类提示词数据上，平均每输出词元的端到端延迟相对适用的增量解码基线加速 1.5–2.8 倍：LLaMA-7B 单卡及 OPT-30B 单节点四卡配置为 1.5–2.5 倍，LLaMA-65B 双节点八卡为 2.4–2.8 倍；相对序列式投机再加速 1.2–1.5 倍。单张 A10 24 GB、权重驻留主机内存时，OPT-13B 与 OPT-30B 相对 FlexGen 的每词元延迟加速为 2.6–3.5 倍，覆盖批大小 1、2、4、8、16。这些是延迟比，不能改写为未测得的绝对词元吞吐。",
+          "experimentalConditions": "两台 AWS g5.12xlarge，每台四张 A10 24 GB、48 个 CPU 核心、192 GB 内存，节点间为 100 Gbps 以太网。目标模型为半精度 LLaMA-7B、LLaMA-65B、OPT-13B 和 OPT-30B，草稿为 LLaMA-68M 或 OPT-125M。数据为 CIP、CP、WebQA、Alpaca、PIQA；分布式实验最多生成 128 个新词元。基线包括 vLLM、TGI、FasterTransformer、自身增量及序列式投机配置，卸载实验另用 FlexGen。",
+          "limitations": "树越宽，目标步骤越少，但验证计算与缓存成本越高；大批次减少可供推测利用的闲置资源。自适应动态扩树属于未来方向，固定扩展实验不能写成已实现动态控制。论文当时的 vLLM、TGI 没有同配置多节点结果；分布式收益也不表示单次通信量直接下降。树拓扑和掩码的逻辑变化尚未证明可组合为静态设备图重放，更未覆盖 Agent 工具事务。",
+          "engineeringApplicability": "vLLM 是直接基线；迁移至昇腾需在 CANN 上验证树注意力、动态掩码和接受路径的缓存提交，并建立合法捕获或回退边界。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "miao2024specinfer:fulltext:p7:L934",
+            "section": "§4.2 拓扑感知树注意力（PDF p.7）",
+            "quoteExcerpt": "We introduce topology-aware casual mask to fuse tree attention computation of all tokens in a single kernel.",
+            "metrics": [
+              "a single kernel"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2305.09781v4"
+          },
+          {
+            "refId": "miao2024specinfer:fulltext:p11:L1505",
+            "section": "§6.2 分布式推理加速（PDF p.11；卸载结果见 §6.3）",
+            "quoteExcerpt": "SpecInfer outperforms incremental decoding systems by 1.5-2.5× for single-node, multi-GPU inference and by 2.4-2.8× for multi-node, multi-GPU inference, while generating the exact same sequence of tokens as incremental decoding for all prompts.",
+            "metrics": [
+              "1.5-2.5×",
+              "2.4-2.8×",
+              "2.6-3.5×，§6.3 相对 FlexGen 的每词元延迟结果"
+            ],
+            "sourceUrl": "https://arxiv.org/abs/2305.09781v4"
+          }
+        ]
+      },
+      {
+        "id": "paper-huang2022taskflow",
+        "kind": "paper",
+        "paperId": "huang2022taskflow",
+        "title": "Taskflow: A Lightweight Parallel and Heterogeneous Task Graph Computing System",
+        "url": "https://doi.org/10.1109/TPDS.2021.3104255",
+        "authors": [
+          "Tsung-Wei Huang",
+          "Dian-Lun Lin",
+          "Chun-Xun Lin",
+          "Yibo Lin"
+        ],
+        "venueOrYear": "IEEE TPDS 2022",
+        "venueName": "IEEE TPDS",
+        "venueTier": "ccf_a",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "把主机条件控制与设备子图纳入统一任务依赖，并按任务域自适应调度线程，减少异构计算的图外同步和无效等待。",
+        "problem": {
+          "scenario": "芯片设计分析与科学计算在单个异构节点上交织 CPU/GPU 任务、循环、条件分支和运行时生成的依赖。",
+          "existingGap": "传统无环任务图常把控制判断移到图外，依靠迭代间同步或静态展开表达循环；线程管理又难以跟随不同设备任务的并行度变化。",
+          "impact": "图外同步削弱跨阶段并行，静态展开增大图内存，持续工作窃取浪费主机资源并影响共运行程序。"
+        },
+        "method": {
+          "keyIdea": "让主机控制流直接组织设备子图，把控制依赖与异构执行纳入同一调度模型，避免循环同步割裂并行机会。",
+          "designPoints": [
+            {
+              "title": "可组合的异构控制任务图（Condition Task & Subflow）",
+              "challengeAddressed": "无环图难以同时表达循环、条件分支、动态子流和主机设备依赖。",
+              "mechanism": "以条件任务选择后继，通过强依赖和条件弱依赖区分就绪规则；支持动态子流与模块复用，让设备子图成为外层控制图中的任务。"
+            },
+            {
+              "title": "按任务域自适应工作窃取（Work-Stealing Scheduler）",
+              "challengeAddressed": "不同设备的可执行任务不断变化，固定线程活动策略容易闲置资源或产生无效忙等。",
+              "mechanism": "按任务域设置队列和工作线程，同域窃取、跨域通知；结合活跃与窃取线程状态以及两阶段等待通知，调整线程睡眠和唤醒并避免遗漏就绪任务。"
+            },
+            {
+              "title": "显式构图与流捕获的设备封装（cudaFlow & Capturer）",
+              "challengeAddressed": "既要降低设备操作启动成本，又要接入仅提供流式接口的已有算子。",
+              "mechanism": "提供显式设备图构造和基于流的捕获两条路径；捕获时按拓扑分层分派操作，以事件连接跨流依赖，再把设备子图接入主机条件控制。不支持设备图时采用流执行。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "在 40 个 Xeon 核心与四张 RTX 2080 上，五个 1920 层、每层 4096 个神经元的稀疏 DNN 推理程序共运行时，加权吞吐相对 oneTBB 为 1.9 倍、相对 StarPU 为 2.1 倍。这里的吞吐是各共运行程序加速比之和形成的加权加速指标，具有无量纲含义，不是语言模型词元每秒。VLSI 增量时序分析中，含上千依赖操作的设备子图相对流实现报告 9%–17% 的运行加速。稀疏 DNN 图执行相对四流实现，单卡约加速 1.5 倍、四卡约 1.9 倍，同时内存分别增加 4% 和 6%。",
+          "experimentalConditions": "平台为 40 个 2.00 GHz Intel Xeon 核心、四张 RTX 2080、256 GB 内存，结果为 20 次运行平均。基线包括 oneTBB 2021.1、StarPU 1.3，微基准另含 HPX 1.4 和 OpenMP 4.5。负载为 SAXPY 随机任务图、TAU 2015 设计修改轨迹驱动的 VLSI 增量时序分析，以及 MIT/Amazon 稀疏 DNN 挑战；主要网络为 1920×4096，另测 1920×65536。",
+          "limitations": "系统限定于单个异构节点，不自动决定任务放置，内存位置和设备上下文由使用者负责；同一模块图的多个复用任务不能并发执行。显式构图要求内核参数预先已知，流数需要调优，图执行还增加内存占用。主机条件任务并非设备图内部条件执行；线程通知和任务完成也未提供语言模型缓存、Agent 外部工具提交及取消补偿语义。",
+          "engineeringApplicability": "未直接接入或比较 vLLM；昇腾迁移需以 CANN 图、流和事件重建设备层，并核对资源所有权、异步完成与回退语义。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "huang2022taskflow:fulltext:p6:L618",
+            "section": "§4.5 条件任务与设备子图封装（PDF p.6）",
+            "quoteExcerpt": "Both cudaFlow and cudaFlow capturer can work seamlessly with condition tasks.",
+            "metrics": [],
+            "sourceUrl": "https://doi.org/10.1109/TPDS.2021.3104255"
+          },
+          {
+            "refId": "huang2022taskflow:fulltext:p15:L1773",
+            "section": "§7.3 VLSI 时序分析加速（PDF p.15）",
+            "quoteExcerpt": "we observed 9–17% runtime speed-up over stream-based implementations.",
+            "metrics": [
+              "9–17% runtime speed-up"
+            ],
+            "sourceUrl": "https://doi.org/10.1109/TPDS.2021.3104255"
+          },
+          {
+            "refId": "huang2022taskflow:fulltext:p16:L1833",
+            "section": "§7.4 稀疏神经网络共运行（Figure 22，PDF p.16）",
+            "quoteExcerpt": "We use weighted speedup to measure the throughput.",
+            "metrics": [
+              "1920×4096",
+              "five coruns",
+              "1.9×，相对 oneTBB",
+              "2.1×，相对 StarPU"
+            ],
+            "sourceUrl": "https://doi.org/10.1109/TPDS.2021.3104255"
+          }
+        ]
+      },
+      {
+        "id": "paper-fegade2024acrobat",
+        "kind": "paper",
+        "paperId": "fegade2024acrobat",
+        "title": "ACRoBat: Optimizing Auto-batching of Dynamic Deep Learning at Compile Time",
+        "url": "https://proceedings.mlsys.org/paper_files/paper/2024/hash/096b1019463f34eb241e87cfce8dfe16-Abstract-Conference.html",
+        "authors": [
+          "Pratik Fegade",
+          "Tianqi Chen",
+          "Phillip B. Gibbons",
+          "Todd C. Mowry"
+        ],
+        "venueOrYear": "MLSys 2024",
+        "venueName": "MLSys",
+        "venueTier": "top_venue",
+        "publicationStatus": "accepted",
+        "readDepth": "fulltext",
+        "summaryLine": "将可预测的组批分析前移到编译期，同时保留运行时对实际控制路径的动态调度，降低不规则深度学习的执行开销。",
+        "problem": {
+          "scenario": "递归网络、搜索和早退模型具有输入相关路径，部分控制判断还依赖中间张量值，难以手工形成有效批次。",
+          "existingGap": "纯动态自动组批反复分析和调度，专用静态方案又限制控制流表达；孤立算子调用难以利用跨算子融合与共享参数。",
+          "impact": "控制分歧削弱实例间并行，构图、调度、数据聚集和调用开销可能超过实际张量计算成本。"
+        },
+        "method": {
+          "keyIdea": "把可预测的组批工作提前完成，仅将实际控制路径留给运行时决策，从而兼顾动态表达能力与低调度成本。",
+          "designPoints": [
+            {
+              "title": "编译分析与动态组批分工（Hybrid Auto-Batching）",
+              "challengeAddressed": "运行时重复识别依赖、参数复用和组批时机，增加构图与调度成本。",
+              "mechanism": "编译期分析共享参数和并行关系，生成内联深度计算，结合程序阶段控制组批时机，并为静态子块生成可融合数据聚集的批量内核；运行时按实际路径构建并调度小批次数据流图。"
+            },
+            {
+              "title": "主机控制程序预先编译（AOT Host Compilation）",
+              "challengeAddressed": "频繁分支和不规则数据结构操作使解释执行的分派开销突出。",
+              "mechanism": "将控制流、标量运算和不规则结构降为原生主机程序，通过运行时接口构建数据流图并调用批量内核，使控制执行与设备计算分离。"
+            },
+            {
+              "title": "张量依赖控制流的协作推进（Control-Flow Parallelism）",
+              "challengeAddressed": "逐实例等待中间张量会过早触发设备执行，失去跨实例组批机会。",
+              "mechanism": "让多个实例以协作式执行单元推进，遇到张量依赖时暂停；全部暂时无法继续时统一执行积累的数据流图，再恢复各实例，从而聚合可并行计算。"
+            }
+          ]
+        },
+        "effectsAndLimits": {
+          "performanceSummary": "单张 RTX 3070 上，相对原始 DyNet，论文报告最高约 8.5 倍、全部模型配置总体约 2.3 倍加速。Stanford Sentiment Treebank 的小型 MV-RNN、批大小 64，在原始 DyNet、改进 DyNet、ACRoBat 下分别为 12.45、3.15、1.48 ms；最高点原表报告 8.47 倍，按已舍入时间计算约 8.41 倍，改进基线后约为 2.13 倍。同数据集小型 TreeLSTM、隐层 256、批大小 8 的三者时间为 4.31、3.80、1.48 ms，按舍入值相对两种基线约加速 2.91 和 2.57 倍。收益并不普遍：小型 NestedRNN、批大小 8 从 DyNet 的 29.38 ms 变为 31.01 ms。",
+          "experimentalConditions": "硬件为单张 RTX 3070 与 Ryzen Threadripper 3970X。主要批大小为 8、64，常规模型隐层为 256、512，MV-RNN 为 64、128。TreeLSTM 与 MV-RNN 使用 Stanford Sentiment Treebank，BiRNN 与 StackRNN 使用 XNLI；其余含随机张量或模拟控制流。比较原始和改进 DyNet、Cortex、PyTorch，并另做主机解释与预编译配置对照。部分张量依赖分支采用伪随机模拟，DRNN 报告 50 个种子的平均时间。",
+          "limitations": "仅评估批量推理，未覆盖训练、分布式或现代语言模型服务。原型不支持可变引用副作用，部分融合和并行仍需人工提示；模拟控制流也限制了真实应用结论。主机预编译对照同时包含其他优化，不能独立归因为解释器分派消除。部分 BiRNN、NestedRNN 配置更慢；运行时动态构图与组批不等于所有路径共享同一捕获设备图。",
+          "engineeringApplicability": "未直接接入或比较 vLLM；迁移至昇腾需重建批量内核，并在目标 CANN 栈验证静态捕获区域、动态调度及缓冲生命周期。"
+        },
+        "evidenceRefs": [
+          {
+            "refId": "fegade2024acrobat:17681-19344",
+            "section": "§3 系统架构与运行时构图（PDF p.4）",
+            "quoteExcerpt": "At runtime, ACROBAT lazily executes the AOT compiled input program 7 on a mini-batch of inputs 6 , and constructs DFGs 8 .",
+            "metrics": [],
+            "sourceUrl": "https://proceedings.mlsys.org/paper_files/paper/2024/hash/096b1019463f34eb241e87cfce8dfe16-Abstract-Conference.html"
+          },
+          {
+            "refId": "fegade2024acrobat:41808-43038",
+            "section": "§7.3 改进基线与执行时延（Table 7，PDF p.8）",
+            "quoteExcerpt": "Table 7. Model execution times in ms after the improvements described in §7.3 were made for the TreeLSTM, MV-RNN and DRNN models. DN, DN++ and AB stand for DyNet, DyNet with improvements and ACROBAT respectively.",
+            "metrics": [
+              "small TreeLSTM，batch 8：4.31 ms / 3.8 ms / 1.48 ms",
+              "small MV-RNN，batch 64：12.45 ms / 3.15 ms / 1.48 ms"
+            ],
+            "sourceUrl": "https://proceedings.mlsys.org/paper_files/paper/2024/hash/096b1019463f34eb241e87cfce8dfe16-Abstract-Conference.html"
+          },
+          {
+            "refId": "fegade2024acrobat:fulltext:p17:L2442",
+            "section": "§附录 C.3 原型边界说明（PDF p.17）",
+            "quoteExcerpt": "our current prototype only supports the functional subset of Relay. Specifically, side-effects via mutable references are currently not supported.",
+            "metrics": [],
+            "sourceUrl": "https://proceedings.mlsys.org/paper_files/paper/2024/hash/096b1019463f34eb241e87cfce8dfe16-Abstract-Conference.html"
+          }
+        ]
+      }
+    ],
+    "prs": [
+      {
+        "id": "pr-vllm-ascend-22172",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm-ascend#22172",
+        "repository": "vllm-project/vllm-ascend",
+        "number": 22172,
+        "title": "[Feature][SpecDecode] Enable GLM-5.3-Flash DFlash2 graph in PD serving",
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22172",
+        "state": "merged",
+        "mergedAt": "2026-11-24T08:50:19Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "ascend_native",
+        "displayTitle": "打通本地草稿图与预填充解码服务",
+        "summaryLine": "打通受支持 GLM 本地草稿的图执行与预填充解码服务；生产配置对照同时改变草稿方法和长度，收益不能单独归因于图。",
+        "problem": "GLM 本地草稿接入预填充与解码共部署或分离部署时，注意力后端准入、缓存布局、草稿捕获和跨角色缓存传输必须同时兼容。已有组合受即时执行限制，单独开放图入口无法保证整条服务链路可用。",
+        "optimization": "仅对模型配置、实际加载标签、草稿架构和能力检查均匹配的 GLM 本地草稿开放 FA3 后端与 ACL Graph 路径，保留通用能力检查和不支持配置的原有选择。维持既有 KV Cache 物理布局，向注意力算子提供按页、词元、头和通道组织的零复制逻辑视图。目标模型与 DFlash2 草稿分别捕获完整解码图，使预填充与解码共部署和分离部署均可使用；分离部署继续消费既有跨角色缓存传输。",
+        "effectsAndLimits": {
+          "resultSummary": "A3 上的 GLM-5.3-Flash-w8a8-1013 比较 MTP、K 为 3 与 DFlash2、K 为 7：单节点输出吞吐从 437.17 升至 515.16 tokens/s，约增 17.84%；双节点预填充解码分离从 862.16 升至 1286.94 tokens/s，约增 49.27%。四组配置均完成全部 1319 道 GSM8K 且零抢占。单节点准确率从 97.8014% 变为 97.0432%，双节点从 97.1190% 变为 97.3465%。单节点首词元延迟为 623.14→701.42 ms，平均每输出词元时间为 30.645→26.975 ms，词元间隔为 106.066→151.537 ms；双节点三项分别为 289.218→296.261 ms、11.536→8.117 ms、40.445→45.668 ms。吞吐和平均词元时间改善的同时，首词元延迟及词元间隔增加。",
+          "experimentalConditions": "Ascend A3，目标为 GLM-5.3-Flash-w8a8-1013，草稿为 GLM-5.3-Flash-DFlash2。单节点使用 16 卡进程组，数据并行 8、张量并行 2，单接口无代理；双节点预填充侧数据并行 2、张量并行 8，解码侧数据并行 8、张量并行 2，使用负载均衡代理。负载为全部 1319 道 GSM8K、四样例思维链聊天提示、贪心解码、批大小 16、最大输出 8192，无准确率预热；服务角色配置为完整解码图。",
+          "limitations": "这是多变量生产配置比较：草稿方法及模型不同，K 从 3 变为 7，补丁又同时调整后端准入、布局适配和目标与草稿图路径。未提供相同草稿、相同 K、相同后端的独立图开关消融，不能把吞吐增益归为纯图收益；MTP 基线的注意力后端未明确，亦不能称其为全即时执行。单节点 DFlash2 准确率采用修正千位分隔符解析后的 1280/1319 口径。支持范围仍受模型、数据类型、算子与并行组合检查约束。"
+        },
+        "ascendEvidence": "这是 vLLM-Ascend 于 2026 年 11 月 24 日合入的原生改动。作者在 A3 上验证两种部署均完成目标模型和草稿的完整图捕获，并报告缓存布局、零复制视图与不支持配置回退的聚焦检查。",
+        "hardwareDependency": "依赖 Ascend A3、受支持的 FA3 算子、GLM-5.3-Flash 目标与 DFlash2 草稿，以及匹配的 KV 布局和预填充解码通信配置。",
+        "evidenceRefs": [
+          {
+            "refId": "pr-22172-production-configuration-boundary",
+            "section": "PR 正文 · 不同草稿长度的生产配置边界",
+            "quoteExcerpt": "证据摘要：两侧使用不同草稿方法与预测长度，数字用于比较拟部署方案，不能隔离图执行的贡献。",
+            "metrics": [
+              "MTP：草稿长度 3；DFlash2：草稿长度 7。",
+              "单节点输出吞吐：437.17→515.16 tokens/s。",
+              "双节点预填充解码分离输出吞吐：862.16→1286.94 tokens/s。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/22172"
+          },
+          {
+            "refId": "pr-22172-completion-and-accuracy-normalization",
+            "section": "PR 正文 · 完整 GSM8K 评测结果",
+            "quoteExcerpt": "证据摘要：评测请求全部完成且无抢占，草稿配置的准确数在修正数字解析后改变，须采用统一评分口径。",
+            "metrics": [
+              "GSM8K：1319 请求全部完成，抢占 0 次。",
+              "DFlash2 单节点：解析修正前 1279/1319，修正后 1280/1319，即 97.0432%。",
+              "DFlash2 双节点准确率：97.3465%。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/22172"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-ascend-22217",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm-ascend#22217",
+        "repository": "vllm-project/vllm-ascend",
+        "number": 22217,
+        "title": "[Performance] Speed up Qwen3-ASR on Ascend: audio tower graph capture, sync-free prelude and M-RoPE index_select",
+        "url": "https://github.com/vllm-project/vllm-ascend/pull/22217",
+        "state": "open",
+        "vllmStatus": "open_pr",
+        "ascendApplicability": "ascend_pr_available",
+        "displayTitle": "分层优化音频图与解码位置查表",
+        "summaryLine": "分别改进音频编码图、外围同步和解码位置查表，降低携带新音频步骤及局部查表耗时，服务整体收益仍待完整测量。",
+        "problem": "变长音频窗口的元数据准备需要主机读回，阻碍图捕获；编码前后的设备同步还会排空队列，连带阻塞其他请求的解码。编码器加速后，每层位置编码查表成为进一步可见的开销。",
+        "optimization": "第一项将音频窗口置于固定宽度网格，用动态布尔掩码表达实际长度，按窗口数量分桶捕获编码层和输出头，重放时更新掩码。第二项把长度、窗口与索引准备移至主机，缓存固定窗口宽度并异步上传行索引，同一索引服务网格写入和输出裁剪，消除约八次读回或动态尺寸同步。第三项优化多轴旋转位置编码，将位置展平后以一次行选择完成余弦和正弦缓存查表，替代带检查的高级索引。三项分别改变编码子图、外围准备和解码查表，测量口径也应分别保留。",
+        "effectsAndLimits": {
+          "resultSummary": "Atlas 800T A2 上运行 Qwen3-ASR-1.7B，在保持同一捕获图和计算的条件下，无同步外围准备使携带新音频的引擎步骤由约 27 ms 降至约 11.7 ms，约加速 2.31 倍。独立位置查表微基准由 34.1 µs 降至 7.3 µs，约加速 4.67 倍。捕获图中重放 28 次查表时，1、8、32 个词元对应的查表部分分别从 210.8、339.6、900.9 µs 降至 57.8、133.8、195.0 µs，约加速 3.65、2.54、4.62 倍。未给出音频图单项开关速度比，也未提供端到端吞吐/延迟基准。",
+          "experimentalConditions": "Atlas 800T A2、910B3，Qwen3-ASR-1.7B，vLLM-Ascend v0.23.0 环境。查表微基准使用 65536×128 的半精度脑浮点缓存，覆盖 28 层解码器的查表负载；各尺寸检查新旧结果逐元素相等。服务步骤测量未列出请求率、并发数和音频时长分布。",
+          "limitations": "截至 2026 年 11 月 24 日证据快照，PR 仍开放，目标是 v0.23.0 发布分支，不能视为主干已合入支持。此前主干及 v0.33.0 环境的测试记录不等于目标分支通过；重定基后匹配环境因接口缺失未能重跑单测，音频图也没有独立单元测试。服务转写对比未发现可归因于改动的差异，但没有完整三因素服务消融。步骤耗时和查表微基准均不能替代端到端收益。"
+        },
+        "ascendEvidence": "这是针对 Atlas 800T A2、910B3 的昇腾原生开放 PR，已有真实 NPU 服务步骤和局部查表测量；目标发布分支的测试缺口仍需补齐。",
+        "hardwareDependency": "依赖 Atlas 800T A2、910B3、Qwen3-ASR-1.7B 与 vLLM-Ascend v0.23.0，需匹配 NPU 注意力算子、图捕获和动态掩码能力。",
+        "evidenceRefs": [
+          {
+            "refId": "pr-22217-target-release-branch",
+            "section": "PR 正文 · 目标发布分支说明",
+            "quoteExcerpt": "证据摘要：提案面向 0.23.0 发布线，先前其他分支的检查不能证明目标环境已通过。",
+            "metrics": [
+              "目标发布分支：v0.23.0。"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/22217"
+          },
+          {
+            "refId": "pr-22217-sync-free-prelude-step",
+            "section": "PR 正文 · 无同步外围准备与局部微基准",
+            "quoteExcerpt": "On an A2 serving Qwen3-ASR-1.7B, the steps that carried a new audio took about 11.7 ms instead of about 27 ms.",
+            "metrics": [
+              "about 27 ms",
+              "about 11.7 ms",
+              "34.1 µs → 7.3 µs，独立查表微基准",
+              "210.8 → 57.8 µs/step",
+              "339.6 → 133.8 µs/step",
+              "900.9 → 195.0 µs/step"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm-ascend/pull/22217"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-66067",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm#66067",
+        "repository": "vllm-project/vllm",
+        "number": 66067,
+        "title": "[Refactor][Multimodal] Share encoder CUDA graph code: Qwen2-VL-style mixin + default budget range",
+        "url": "https://github.com/vllm-project/vllm/pull/66067",
+        "state": "merged",
+        "mergedAt": "2026-11-18T02:14:55Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "cuda_specific_needs_port",
+        "displayTitle": "统一同类视觉编码器的图接入协议",
+        "summaryLine": "将同类视觉塔的图接入逻辑与默认预算集中复用，保留模型专有元数据和即时执行回退，通过等价检查确认重构行为。",
+        "problem": "多个视觉模型重复实现相同的编码器图接入逻辑，公共协议变更需要逐模型同步，容易产生实现漂移；窗口注意力、输入模态和捕获布局等模型差异又必须保留。",
+        "optimization": "为 Qwen2-VL 风格视觉塔提取共享图接入实现，复用模态识别、项目词元计数、项目选择、捕获输入、重放缓冲及图与即时执行入口。默认预算下界为 64，上界为批次词元上限与模型长度上限的较小值。窗口注意力、仅图像输入及特殊捕获输入保留模型覆盖，注意力元数据仍由各视觉塔准备；其他结构不同的模型仅复用默认预算。既有编码器图管理层继续选择可容纳输入的最小已捕获预算，超限时即时执行。",
+        "effectsAndLimits": {
+          "resultSummary": "未提供端到端吞吐/延迟基准。这是保持行为的纯重构：16 个类的逐方法 CPU 等价检查未发现输出差异；GB200 上比较基线与重构后的图执行和即时执行输出，逐元素一致，并覆盖先大后小批次的共享缓冲污染及超预算回退。编码器图测试报告 144 项通过，预计算嵌入测试 4 项通过；端到端生成属于正确性测试，不能作为服务加速证据。",
+          "experimentalConditions": "GPU 验证平台为 GB200，每模型包含 34–35 个图像批次，最大为 200 张混合尺寸图像，约七批超过 5120 词元预算而即时执行；视频覆盖 14 批，包含 2–32 帧单视频及最多八视频混合批。Qwen2.5-VL-7B、GLM-4.1V-9B、Qwen3.8-27B 使用真实权重，其余多项使用虚拟权重；基线与 PR 比较数据类型、形状、值及缓冲行为。",
+          "limitations": "共享接入实现不意味着所有模型或模态共用同一张设备图，也没有新增性能机制。部分模型配置无法离线加载，仅完成 CPU 预算比较；端到端视觉生成测试两侧均有检查点下载失败。各项验证对应不同基线和重定基阶段，不能声称全部在最终合入提交完整重跑。相邻 PR 的首词元延迟收益不属于本次重构。"
+        },
+        "ascendEvidence": "该改动于 2026 年 11 月 18 日合入 vLLM 上游，验证针对 CUDA 与 GB200。没有该 PR 的昇腾实现或 NPU 测试；可借鉴公共协议划分，实际接入仍需移植。",
+        "hardwareDependency": "依赖 NVIDIA CUDA 编码器图运行时。昇腾落地需适配目标 CANN 图接口，核对视觉塔注意力元数据、缓冲区布局和超预算回退。",
+        "evidenceRefs": [
+          {
+            "refId": "pr-66067-pure-refactor",
+            "section": "PR 正文 · 行为保持的重构范围",
+            "quoteExcerpt": "It is a pure refactor: no behavior change.",
+            "metrics": [
+              "16 classes，CPU 等价检查",
+              "0 differences in any output"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/66067"
+          },
+          {
+            "refId": "pr-66067-gb200-fallback-equivalence",
+            "section": "PR 正文 · GB200 输出与回退对照",
+            "quoteExcerpt": "Images: 34–35 batches per model, from single images to 200-image batches of mixed sizes. About 7 batches per model exceed the 5120-token maximum and run eagerly, so the eager forward is compared too.",
+            "metrics": [
+              "34–35 batches per model",
+              "200-image batches",
+              "5120-token maximum",
+              "144 passed",
+              "4 passed",
+              "23 passed, 10 skipped"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/66067"
+          }
+        ]
+      },
+      {
+        "id": "pr-vllm-68831",
+        "kind": "pr",
+        "prId": "github:vllm-project/vllm#68831",
+        "repository": "vllm-project/vllm",
+        "number": 68831,
+        "title": "[Perf][Multimodal] Encoder CUDA graphs for the Qwen3-Omni / Qwen3-ASR audio tower",
+        "url": "https://github.com/vllm-project/vllm/pull/68831",
+        "state": "merged",
+        "mergedAt": "2026-11-21T05:33:41Z",
+        "vllmStatus": "merged_recent",
+        "ascendApplicability": "cuda_specific_needs_port",
+        "displayTitle": "拆分音频编码阶段并捕获重复子图",
+        "summaryLine": "保留卷积前端即时执行，将重复的音频编码层捕获为预算子图并在超限时回退，同后端对照显示尾延迟改善但收益有波动。",
+        "problem": "视觉塔已有图执行路径，共享音频塔仍逐算子执行。短语音的约 100–3000 个编码词元经过 32 层小型注意力与前馈计算，启动开销容易在负载下累积成编码器和请求尾延迟。",
+        "optimization": "将 Qwen3-Omni 与 Qwen3-ASR 共享音频塔拆为即时执行的卷积前端及位置嵌入，以及可捕获的 Transformer 层和输出投影子图。即时执行、捕获和重放共用窗口元数据准备逻辑；按卷积后词元数分派预算，从一个 104 词元窗口起生成，受批次上限、模型长度及默认 5120 词元捕获上限约束。按最坏窗口数预留长度缓冲，填充部分重复末尾偏移以表示空窗口；超预算即时执行。复用既有编码器图管理层，仅开放设备读取长度元数据的 FlashAttention 和 Triton 注意力路径。",
+        "effectsAndLimits": {
+          "resultSummary": "单张 B200 上，同为 FlashAttention 后端，编码器每调用 P50 从 1.82 升至 1.89 ms，P95 从 7.07 降至 2.20 ms，P99 从 9.87 降至 2.65 ms。输入负载为每秒 58 请求时，请求端到端 P50/P95/P99 从 63.1/166.5/298.9 降至 57.1/153.3/250.2 ms；每秒 80 请求时，从 73.7/198.5/430.2 降至 63.5/171.8/334.5 ms，第二次图运行则为 62.2/163.7/289.6 ms。每秒 80 请求的首次对照中，端到端 P95、P99 分别降低约 13.45%、22.25%，明显小于编码器尾部改善。捕获 34 张图耗时 1.73 s、占用 322 MiB。58 和 80 是输入负载，未报告最大完成吞吐或输出词元吞吐。",
+          "experimentalConditions": "性能实验使用单张 NVIDIA B200，模型为八位浮点的 Qwen3-Omni 30B-A3B 语音识别微调模型，配合 DFlash 投机解码；解码器启用完整图，最大序列数 16。重放 4096 条真实音频，采用开放环泊松到达，每负载档 120 s；每条音频使用唯一多模态身份以排除身份复用缓存命中。对照为即时 SDPA、即时 FlashAttention 和同后端音频图，其中 SDPA 使用较慢主机。另在公开 Qwen3-ASR-0.6B 与 Qwen3-Omni-30B-A3B-Instruct 上进行贪心转写验证，不能混同为性能表中的微调模型。",
+          "limitations": "图捕获不含卷积前端；主机依赖或未验证的注意力后端仍即时执行。SDPA 对照受较慢主机影响，不能把它到图执行的全部差距归为图收益。同后端实验仍有自然反馈：投机接受率从 0.502 变为 0.509，第二次图运行为 0.497，尾延迟也存在运行波动。两个公开模型的八片段检查各有 8/8 词元序列一致，但每模型 22785 条语音的完整评估并非逐字一致：图运行原始转写变化比例分别为 2.68%、3.91%，重复即时执行为 1.74%、1.91%；图运行最大词错误率差为 0.032 个百分点，重复即时执行最大差约 0.07 个百分点。部分长音频仍走预算回退，局部等价检查不能推广为所有输入的精确一致性。"
+        },
+        "ascendEvidence": "该改动于 2026 年 11 月 21 日合入 vLLM 上游，性能与功能证据来自 B200，未验证昇腾。迁移需核对 CANN 的设备侧长度读取、空窗口语义、固定预算缓冲及超限回退。",
+        "hardwareDependency": "依赖 NVIDIA CUDA Graph 以及受支持的 FlashAttention 或 Triton 音频注意力，验证硬件为 B200；Qwen3-Omni 与 Qwen3-ASR 使用共享音频塔，卷积前端保持即时执行。",
+        "evidenceRefs": [
+          {
+            "refId": "pr-68831-exact-audio-capture-boundary",
+            "section": "PR 正文 · 音频塔捕获边界",
+            "quoteExcerpt": "The graph covers the transformer layers and output MLP. The conv frontend (a few large kernels) stays eager.",
+            "metrics": [
+              "104 词元，单注意力窗口",
+              "5,120，默认捕获词元预算上限",
+              "Larger batches run eagerly"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/68831"
+          },
+          {
+            "refId": "pr-68831-e2e-80rps-graph-results",
+            "section": "PR 正文 · 每秒 80 请求的端到端 P50、P95 与 P99",
+            "quoteExcerpt": "证据摘要：同一注意力后端的音频图在两次运行中呈现不同高分位时延，服务端尾部改善小于编码器局部改善。",
+            "metrics": [
+              "1× B200",
+              "80 req/s",
+              "Eager FlashAttention：73.7 / 198.5 / 430.2 ms",
+              "Graph：63.5 / 171.8 / 334.5 ms",
+              "Graph run 2：62.2 / 163.7 / 289.6 ms",
+              "Encoder P95：7.07 → 2.20 ms",
+              "Encoder P99：9.87 → 2.65 ms"
+            ],
+            "sourceUrl": "https://github.com/vllm-project/vllm/pull/68831"
+          }
+        ]
+      }
+    ]
+  }
+]

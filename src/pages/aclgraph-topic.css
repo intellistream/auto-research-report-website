@@ -84,6 +84,12 @@
   box-shadow: var(--shadow-xs);
 }
 
+.acl-topic-nav[aria-label="ACL Graph 专题分区"] a {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+}
+
 .acl-topic-card-sections {
   display: flex;
   flex-wrap: wrap;
@@ -119,4 +125,14 @@
 .acl-topic .survey-title-row,
 .acl-topic .survey-downloads {
   flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .acl-topic-nav[aria-label="ACL Graph 专题分区"] {
+    gap: 0.35rem;
+  }
+
+  .acl-topic-nav[aria-label="ACL Graph 专题分区"] a {
+    padding-inline: 0.6rem;
+  }
 }

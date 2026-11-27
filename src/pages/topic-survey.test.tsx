@@ -1,33 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
 import actualIndex from "../../public/word-reports/topics.json";
 import source from "../../topics/aclgraph/survey.json";
-import TopicPages, { type Topic, type TopicIndex } from "./TopicPages";
+import type { Topic } from "./TopicPages";
+import TopicResearchReport from "./TopicResearchReport";
 import { readingSurvey, validatedSurvey, type TopicSurvey } from "./topic-survey";
-import AclGraphSurveyMap from "./AclGraphSurveyMap";
 
 const topic = actualIndex.topics.find((item) => item.id === "aclgraph") as unknown as Topic;
 const survey = source as TopicSurvey;
 const checkedTopic = { ...topic, survey };
-function render(item: Topic, view: string) {
-  const index: TopicIndex = { schemaVersion: 2, topics: [item] };
-  return renderToStaticMarkup(<MemoryRouter initialEntries={[`/topics/aclgraph?view=${view}`]}>
-    <Routes><Route path="/topics/:topicId" element={<TopicPages index={index} />} /></Routes>
+function render(item: Topic) {
+  return renderToStaticMarkup(<MemoryRouter initialEntries={["/topics/aclgraph"]}>
+    <TopicResearchReport topic={item} report={item.report!} embedded />
   </MemoryRouter>);
 }
 
-function renderMap(item: Topic, showTaxonomy = true) {
-  return renderToStaticMarkup(<MemoryRouter><AclGraphSurveyMap topic={item}
-    htmlHref="/paper.html" revealSection={() => false} showTaxonomy={showTaxonomy} /></MemoryRouter>);
-}
-
 describe("continuous survey presentation", () => {
-  it("uses reviewed source data and exposes traceable evidence, limitations and questions", () => {
+  it("preserves the frozen archive projection, version bindings and reference identities", () => {
+    expect(source).toEqual(topic.survey);
     expect(validatedSurvey(checkedTopic)).toEqual(survey);
-    const html = render(checkedTopic, "paper");
-    expect(html).not.toContain(survey.thesis);
-    const map = html.slice(html.indexOf('<figure class="acl-taxonomy">'), html.indexOf("</figure>"));
     expect(survey.paperVersion).toBe("62dba962fda5240ee8b37bdac3d8c877245daabcdab03265e7ef7ead46d0fd86");
     expect(survey.reportVersion).toBe("6dd5554a521e6faeb3477353dd6258a54089733402109dec9c3555eb67ba1d66");
     expect(source.scenarios).toHaveLength(4);
@@ -61,57 +53,21 @@ describe("continuous survey presentation", () => {
       "DEEPSERVE（昇腾）": 34, BlitzScale: 35, CRIUgpu: 38, "PhoenixOS / PhOS": 39,
       "服务物化系统 Medusa": 36, Foundry: 37, GCR: 40,
     });
-    expect(map.match(/<table class="acl-taxonomy-table"/g)).toHaveLength(2);
-    expect(map).toContain("ACLGraph 综述研究版图总览");
-    expect(map).toContain("从负载变化追踪执行图的适配需求");
-    expect(map).toContain("视角一：推理负载变化与图适配需求（4 个研究方向 · 24 项相关工作）");
-    expect(map).toContain("视角二：通用执行图系统核心机制版图（第 4 章 · 4 大机制 · 33 项代表工作）");
-    expect(map.indexOf('id="acl-taxonomy-scenarios-heading"')).toBeLessThan(map.indexOf('id="acl-taxonomy-mechanisms-heading"'));
-    for (const heading of ["研究方向与典型负载", "动态性来源", "对执行图的影响", "图适配需求", "代表工作与图重放证据",
-      "核心系统机制（正文章节）", "细粒度机制分组（10 组）", "代表系统工作（33 项，点击编号直达参考文献）"]) {
-      expect(map).toContain(heading);
-    }
-    expect(survey.routes.map((route) => route.paperAnchor)).toEqual([
-      "section-4-3", "section-4-4", "section-4-5", "section-4-6",
-    ]);
-    expect(map.match(/scope="rowgroup"/g)).toHaveLength(4);
-    expect(map.match(/scope="row"/g)).toHaveLength(14);
-    expect(map.match(/class="acl-taxonomy-citation"/g)).toHaveLength(57);
-    for (const scenario of source.scenarios) {
-      for (const text of [scenario.title, scenario.workload, scenario.dynamicity, scenario.impact, scenario.requirement, scenario.boundary]) expect(map).toContain(text);
-      for (const work of scenario.works) {
-        expect(map).toContain(work.context);
-        expect(map).toContain(work.role);
-        expect(map).toContain(`图重放 · ${work.graphEvidence.status}`);
-        expect(map).toContain(work.graphEvidence.detail);
-      }
-      for (const section of scenario.paperSections) expect(map).toContain(`#section-${section.replaceAll(".", "-")}"`);
-    }
+
+    expect(survey.routes.map((route) => route.paperAnchor)).toEqual(["section-4-3", "section-4-4", "section-4-5", "section-4-6"]);
+    for (const legacy of ["双平面", "平面 I", "平面 II", "Tree 1", "Tree 2", "T1-L", "T2-L", "T1-B", "T2-B", "早期剪枝", "相邻剪枝"]) expect(JSON.stringify(source)).not.toContain(legacy);
+    const html = render(checkedTopic);
     for (const route of survey.routes) {
-      expect(map).toContain(`#${route.paperAnchor}"`);
-      for (const subcategory of route.subcategories!) {
-        expect(map).toContain(subcategory.title);
-        for (const work of subcategory.works) {
-          expect(map).toContain(work.label);
-          expect(map).toContain(`#ref-${work.reference}"`);
-        }
-      }
+      const reading = readingSurvey(checkedTopic)!.routes.find(item => item.id === route.id)!;
+      expect(reading.assessment).toBe(route.assessment);
+      expect(reading.limitation).toBe(route.limitation);
+      for (const id of route.gapIds) expect(html).toContain(`part=survey-gap-${id}`);
+      for (const id of route.evidenceIds) expect(html).toContain(`part=survey-evidence-${id}`);
+      expect(html).toContain(topic.report!.references.find((item) => item.id === route.sourceIds[0])!.url);
     }
-    for (const work of works) expect(map).toContain(`#ref-${work.reference}"`);
-    for (const legacy of ["双平面", "平面 I", "平面 II", "Tree 1", "Tree 2", "T1-L", "T2-L", "T1-B", "T2-B", "早期剪枝", "相邻剪枝"]) {
-      expect(JSON.stringify(source)).not.toContain(legacy);
-      expect(html).not.toContain(legacy);
-    }
-    expect(html).toContain('<details class="acl-taxonomy-evidence"><summary>分章查看工程证据与待验证问题</summary>');
-    const first = survey.routes[0];
-    expect(html).toContain(first.assessment);
-    expect(html).toContain(first.limitation);
-    expect(html).toContain(`part=survey-gap-${first.gapIds[0]}`);
-    expect(html).toContain(`part=survey-evidence-${first.evidenceIds[0]}`);
-    expect(html).toContain(topic.report!.references.find((item) => item.id === first.sourceIds[0])!.url);
   });
 
-  it("hides malformed or missing scenarios while retaining the validated mechanism map and evidence", () => {
+  it("keeps shared survey validation independent of optional archived scenario-map data", () => {
     const withFirst = (changes: Record<string, unknown>) => source.scenarios.map((item, index) => index ? item : { ...item, ...changes });
     const invalid: unknown[] = [undefined, null, {}, [], [null, ...source.scenarios.slice(1)],
       withFirst({ title: " " }), withFirst({ workload: undefined }), withFirst({ dynamicity: undefined }),
@@ -131,50 +87,30 @@ describe("continuous survey presentation", () => {
         .map((graphEvidence) => ({ ...source.scenarios[0].works[0], graphEvidence }))]) {
       invalid.push(withFirst({ works: [work, ...source.scenarios[0].works.slice(1)] }));
     }
+
     for (const scenarios of invalid) {
       const item = { ...checkedTopic, survey: { ...survey, scenarios } as TopicSurvey };
       expect(validatedSurvey(item)).toBe(item.survey);
-      const html = render(item, "paper");
-      expect(html).not.toContain('id="acl-taxonomy-scenarios-heading"');
-      expect(html).toContain('id="acl-taxonomy-mechanisms-heading"');
-      expect(html.match(/class="acl-taxonomy-citation"/g)).toHaveLength(33);
-      expect(html).toContain(survey.routes[0].assessment);
-      expect(html).not.toContain("#ref-75");
+      expect(readingSurvey(item)!.routes).toEqual(survey.routes);
     }
   });
 
-  it("retains the platform-example fallback when any mechanism subcategories are absent", () => {
+  it("accepts optional mechanism subcategories and platform examples without changing shared evidence", () => {
     const fallback = { ...survey, routes: survey.routes.map((route, index) => index ? route : { ...route, subcategories: undefined }) };
     const item = { ...checkedTopic, survey: fallback };
     expect(validatedSurvey(item)).toBe(fallback);
-    const html = render(item, "paper");
-    expect(html).toContain('id="acl-taxonomy-scenarios-heading"');
-    expect(html).not.toContain('id="acl-taxonomy-mechanisms-heading"');
-    expect(html).toContain('class="acl-taxonomy-branches"');
-    expect(html).toContain("昇腾直接工作");
-    expect(html).toContain("可借鉴的 GPU 工作");
-    expect(html).toContain(survey.routes[0].assessment);
-    for (const route of survey.routes) expect(html).toContain(`#${route.paperAnchor}"`);
+    expect(readingSurvey(item)!.routes[0].assessment).toBe(survey.routes[0].assessment);
     const withoutExamples = { ...item, survey: { ...fallback, routes: fallback.routes.map((route) => ({ ...route, examples: undefined })) } };
-    expect(renderMap(withoutExamples)).toContain("昇腾接口映射及适用条件待核验。");
-  });
-
-  it("keeps the plain engineering guide when taxonomy is disabled and omits an unavailable report", () => {
-    const html = renderMap(checkedTopic, false);
-    expect(html).toContain("技术路线与待验证问题");
-    expect(html).toContain(survey.thesis);
-    expect(html).toContain(survey.routes[0].assessment);
-    expect(html).not.toContain('class="acl-taxonomy"');
-    expect(renderMap({ ...checkedTopic, report: undefined })).toBe("");
-    expect(renderMap({ ...checkedTopic, survey: undefined, report: { ...topic.report!, taxonomy: [] } })).toBe("");
+    expect(validatedSurvey(withoutExamples)).toBe(withoutExamples.survey);
+    expect(readingSurvey(withoutExamples)!.routes[0].sourceIds).toEqual(survey.routes[0].sourceIds);
   });
 
   it("accepts matching new versions without a frontend hash edit", () => {
     const version = "b".repeat(64);
     const next = { ...checkedTopic, report: { ...topic.report!, version, revision: 4 }, survey: { ...survey, reportVersion: version } };
     expect(validatedSurvey(next)).toBe(next.survey);
-    expect(render(next, "report&legacy=1")).toContain(survey.update.summary);
-    expect(render(next, "paper")).toContain(survey.routes[0].assessment);
+    expect(render(next)).toContain(survey.update.summary);
+    expect(readingSurvey(next)!.routes[0].assessment).toBe(survey.routes[0].assessment);
   });
 
   it("accepts a first revision with an explicit zero previous revision", () => {
@@ -196,12 +132,12 @@ describe("continuous survey presentation", () => {
       taxonomy: [{ problem: "新报告的问题", approach: "新路线", tradeoff: "新边界", sourceIds: ["E1"] }],
     } };
     expect(validatedSurvey(next)).toBeUndefined();
-    const report = render(next, "report&legacy=1");
+    const report = render(next);
     expect(report).toContain("新报告推翻旧的服务判断。");
     expect(report).not.toContain(survey.update.summary);
     expect(report).toContain(topic.report!.evidenceDetails![0].result);
     expect(report).toContain(topic.report!.evidenceDetails![0].limitation);
-    const paper = render(next, "paper");
+    const paper = render(next);
     expect(paper).toContain("新报告的问题");
     expect(paper).toContain("新边界");
     expect(paper).not.toContain(encodeURIComponent(survey.routes[0].paperAnchor!));
@@ -225,7 +161,7 @@ describe("continuous survey presentation", () => {
       const item = { ...checkedTopic, survey: bad as TopicSurvey };
       expect(validatedSurvey(item)).toBeUndefined();
       expect(readingSurvey(item)!.routes.length).toBe(topic.report!.taxonomy.length);
-      expect(render(item, "paper")).toContain("技术路线与待验证问题");
+      expect(render(item)).toContain("技术路线与关键权衡");
     }
   });
 
@@ -239,12 +175,12 @@ describe("continuous survey presentation", () => {
       const bad = { ...survey, routes: survey.routes.map((route, index) => index ? route : { ...route, subcategories }) } as unknown as TopicSurvey;
       const item = { ...checkedTopic, survey: bad };
       expect(validatedSurvey(item)).toBeUndefined();
-      expect(render(item, "paper")).toContain("技术路线与待验证问题");
+      expect(render(item)).toContain("技术路线与关键权衡");
     }
   });
 
   it("separates the dated topic reassessment, frozen report and pending leads", () => {
-    const html = render(checkedTopic, "report&legacy=1");
+    const html = render(checkedTopic);
     expect(html).toContain(survey.researchAssessment!.summary);
     expect(html).toContain("选题复评于");
     expect(html).toContain("冻结报告修订 3 与同版 PDF 保留原研究截止日期");
