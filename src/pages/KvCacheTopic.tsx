@@ -1,5 +1,6 @@
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
+import TopicDirectoryCard from "./TopicDirectoryCard";
 import { Link, useSearchParams } from "react-router-dom";
 import KvMaterialLibrary from "./KvMaterialLibrary";
 import KvPapers from "./KvPapers";
@@ -37,27 +38,18 @@ export function KvCacheTopicCard() {
   const papers = filterPapers(kvResearch.entries, new URLSearchParams());
   const vllmCount = communityEntries.filter(entry => entry.repository === "vllm").length;
   const ascendCount = communityEntries.filter(entry => entry.repository === "vllm-ascend").length;
-  const total = Math.max(1, communityEntries.length);
-  return <li className="topic-directory-card">
-    <div className="survey-card-top">
-      <span className="survey-status">技术专题</span>
-      <span className="topic-meta" style={{ flexBasis: "100%" }}>{communityEntries.length} 条 PR · {papers.length} 篇论文</span>
-    </div>
-    <h2><Link to="/topics/kv-cache">KV Cache <ArrowUpRight size={16} aria-hidden="true" /></Link></h2>
-    <p className="eng-dir-desc">理解 KV 的工作过程，比较论文方法，把握整体进展与待解问题。</p>
-    <div className="eng-dir-bar-wrap">
-      <div className="eng-dir-ratio-bar" aria-hidden="true">
-        {vllmCount > 0 && <span className="bar-vllm" style={{ width: `${(100 * vllmCount) / total}%` }} />}
-        {ascendCount > 0 && <span className="bar-ascend" style={{ width: `${(100 * ascendCount) / total}%` }} />}
-      </div>
-      <div className="eng-dir-counts">
-        <span><i className="dot-vllm" /> vLLM <strong>{vllmCount}</strong></span>
-        <span><i className="dot-ascend" /> vLLM Ascend <strong>{ascendCount}</strong></span>
-      </div>
-    </div>
-    <div className="acl-topic-card-sections">{sections.map(({ id, label }) =>
-      <Link key={id} to={{ pathname: "/topics/kv-cache", search: `view=${id}` }}>{label}</Link>)}</div>
-  </li>;
+  return (
+    <TopicDirectoryCard
+      title="KV Cache"
+      description="理解 KV 的工作过程，比较论文方法，把握整体进展与待解问题。"
+      path="/topics/kv-cache"
+      summary={`${communityEntries.length} 条工程 PR`}
+      detail={`${papers.length} 篇论文`}
+      vllmCount={vllmCount}
+      ascendCount={ascendCount}
+      sections={sections.map(section => ({ ...section, search: `view=${section.id}` }))}
+    />
+  );
 }
 
 export default function KvCacheTopic() {

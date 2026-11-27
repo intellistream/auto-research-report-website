@@ -1,5 +1,6 @@
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
+import TopicDirectoryCard from "./TopicDirectoryCard";
 import { Link, useSearchParams } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import AclGraphGuide from "./AclGraphGuide";
@@ -44,38 +45,17 @@ export function resolveAclGraphSearch(query: URLSearchParams, problems: readonly
 export function AclGraphTopicCard(_props: { topic?: Topic }) {
   const stats = getAclGraphAnalysisStats();
   return (
-    <li className="topic-directory-card">
-      <div className="survey-card-top">
-        <span className="survey-status">技术专题 · 问题驱动剖析</span>
-        <span className="topic-meta">{stats.problems} 大核心问题 · {stats.prs} 条工程 PR</span>
-      </div>
-      <h2>
-        <Link to={path}>
-          {title} <ArrowUpRight size={16} aria-hidden="true" />
-        </Link>
-      </h2>
-      <p className="eng-dir-desc">{description}</p>
-      <p className="topic-meta">{stats.papers} 篇论文 · {stats.fulltextPapers} 篇全文精读</p>
-      <div className="eng-dir-bar-wrap">
-        <div className="eng-dir-ratio-bar" aria-hidden="true">
-          <span className="bar-vllm" style={{ width: `${stats.prs ? 100 * stats.upstreamPrs / stats.prs : 0}%` }} />
-          <span className="bar-ascend" style={{ width: `${stats.prs ? 100 * stats.ascendPrs / stats.prs : 0}%` }} />
-        </div>
-        <div className="eng-dir-counts">
-          <span>
-            <i className="dot-vllm" /> vLLM <strong>{stats.upstreamPrs}</strong>
-          </span>
-          <span><i className="dot-ascend" /> vLLM Ascend <strong>{stats.ascendPrs}</strong></span>
-        </div>
-      </div>
-      <div className="acl-topic-card-sections">
-        {sections.map(({ id, label, search }) => (
-          <Link key={id} to={{ pathname: path, search }}>
-            {label}
-          </Link>
-        ))}
-      </div>
-    </li>
+    <TopicDirectoryCard
+      title={title}
+      description={description}
+      path={path}
+      status="技术专题 · 问题驱动剖析"
+      summary={`${stats.problems} 大核心问题 · ${stats.prs} 条工程 PR`}
+      detail={`${stats.papers} 篇论文 · ${stats.fulltextPapers} 篇全文精读`}
+      vllmCount={stats.upstreamPrs}
+      ascendCount={stats.ascendPrs}
+      sections={sections}
+    />
   );
 }
 
