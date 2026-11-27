@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from "react";
+import TimeBlock from "./TimeBlock";
+import { useState } from "react";
 import {
   ArrowRight, Box, Check, Clapperboard, Cpu, Factory, GitBranch,
   Layers3, ListOrdered, MapPin, Play, Repeat2, Timer,
@@ -24,17 +25,6 @@ function StepHeading({ number, label, title }: { number: string; label: string; 
         <h2 id={`acl-step-${Number(number)}-title`}>{title}</h2>
       </div>
     </header>
-  );
-}
-
-function TimeBlock({ start, end, label, waiting = false, children }: {
-  start: number; end: number; label: string; waiting?: boolean; children?: ReactNode;
-}) {
-  return (
-    <span className={`acl-time-block${waiting ? " acl-time-wait" : ""}`}
-      style={{ gridColumn: `${start + 1} / ${end + 1}` }} aria-label={label} title={label}>
-      {children ?? label}
-    </span>
   );
 }
 
