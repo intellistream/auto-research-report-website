@@ -602,6 +602,29 @@
           }
         }
       ]
+    },
+    "2026-11-26": {
+      "current": "c26613d67c825470d65ba07a533739ccf5e75ba3d347a43a05eb715d854b5605",
+      "versions": [
+        {
+          "sha256": "18d0b106bf13a61d79d87e6a4a92a4adcfc8b04333d2109f92843a84b5f46e8f",
+          "path": "2026-11-26/18d0b106bf13a61d79d87e6a4a92a4adcfc8b04333d2109f92843a84b5f46e8f/report.json",
+          "counts": {
+            "upstream": 19,
+            "ascend": 2,
+            "papers": 5
+          }
+        },
+        {
+          "sha256": "c26613d67c825470d65ba07a533739ccf5e75ba3d347a43a05eb715d854b5605",
+          "path": "2026-11-26/c26613d67c825470d65ba07a533739ccf5e75ba3d347a43a05eb715d854b5605/report.json",
+          "counts": {
+            "upstream": 19,
+            "ascend": 2,
+            "papers": 5
+          }
+        }
+      ]
     }
   }
 }
