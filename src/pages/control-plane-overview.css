@@ -45,3 +45,8 @@
 .cp-batch-track .baseline { background:#9ab7c9; }
 .cp-batch-row b { font-variant-numeric:tabular-nums; text-align:right; }
 .acl-guide .acl-time-track.cp-eight { grid-template-columns:repeat(8,minmax(0,1fr)); background-size:300% 100%; }
+.cp-arch-map { min-width:840px; }
+.cp-arch-map .cp-arch-node { fill:#1d493e; stroke:#719384; }
+.cp-arch-line { fill:none; stroke:#9ae8bf; stroke-width:2; }
+.cp-arch-link { cursor:pointer; color:#eafff5; }
+.cp-arch-link:hover .cp-arch-node, .cp-arch-link:focus-visible .cp-arch-node { fill:#285d4f; stroke:#a6efc5; stroke-width:3; }

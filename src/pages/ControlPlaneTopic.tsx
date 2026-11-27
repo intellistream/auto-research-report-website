@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import { EvidenceList } from "./TopicEvidence";
 import "./aclgraph-topic.css";
+import ControlPlaneArchitecture from "./ControlPlaneArchitecture";
 import ControlPlaneOverview, { directions } from "./ControlPlaneOverview";
 
 const path = "/topics/distributed-inference-control-plane";
@@ -35,6 +36,7 @@ export default function ControlPlaneTopic({ topic }: { topic: Topic }) {
     <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden /> 专题目录</Link>
     <header className="acl-topic-header"><h1>{topic.title}</h1>
       <p className="acl-topic-subtitle">多实例推理服务有三个管控对象：请求在哪台实例执行，各模型层的 KV 应驻留在哪里，以及实例池怎样随负载调整。</p></header>
+    {(!view || view === "guide") && <ControlPlaneArchitecture />}
     <nav className="acl-topic-nav" aria-label="分布式推理控制面专题分区">{directions.map(([id, label]) =>
       <Link key={id} to={{ pathname: path, search: "view=" + id }} aria-current={view === id ? "page" : undefined}>{label}</Link>)}</nav>
     {view !== "systems" && view !== "evidence" && <ControlPlaneOverview selected={selected} />}
