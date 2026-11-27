@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
-  ArrowLeft,
   ArrowUpRight,
   Check,
   Cpu,
@@ -17,9 +16,22 @@ import {
   Zap,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
+import TopicDetailLayout from "./TopicDetailLayout";
 import TopicDirectoryCard from "./TopicDirectoryCard";
+import { revealTopicPart } from "./topic-report";
 import type { Entry, Topic } from "./TopicPages";
 import "./engineering-topic.css";
+
+const workbenchSections = [
+  { id: "guide", label: "原理导引", target: "topic-visual-guide" },
+  { id: "routes", label: "技术路线图", target: "topic-route-map" },
+  { id: "trends", label: "演进趋势与环节分布", target: "topic-analytics" },
+  { id: "evidence", label: "工程证据库", target: "topic-evidence-workbench" },
+] as const;
+
+function revealWorkbenchSection(target: string) {
+  revealTopicPart(document, target, window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
 
 const communityNames: Record<Entry["repository"], string> = {
   vllm: "vLLM",
@@ -491,17 +503,9 @@ export default function EngineeringTopicWorkbench({ topic }: { topic: Topic }) {
   const focus = query.get("focus") ?? "";
 
   useEffect(() => {
-    if (!focus) return;
-    const targetId =
-      focus === "routes"
-        ? "topic-route-map"
-        : focus === "evidence"
-          ? "topic-evidence-workbench"
-          : "";
-    if (!targetId) return;
-    const frame = requestAnimationFrame(() => {
-      document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth" });
-    });
+    const target = workbenchSections.find(section => section.id === focus)?.target;
+    if (!target) return;
+    const frame = requestAnimationFrame(() => revealWorkbenchSection(target));
     return () => cancelAnimationFrame(frame);
   }, [focus]);
 
@@ -599,61 +603,28 @@ export default function EngineeringTopicWorkbench({ topic }: { topic: Topic }) {
   const manualCount = topic.entries.filter((e) => e.method === "manual").length;
 
   return (
-    <div className="acl-topic eng-topic-root">
-      <Link className="topic-back" to="/topics">
-        <ArrowLeft size={16} aria-hidden="true" /> 全部专题
-      </Link>
-
-      {/* Unified Flagship Topic Header */}
-      <header className="acl-topic-header eng-topic-header">
-        <div className="eng-header-badges">
-          <p className="acl-topic-kicker">技术专题 · 架构导引与持续证据</p>
-          <span className="eng-coverage-pill">
-            覆盖 {topic.coverage.firstDay} 至 {topic.coverage.lastDay}（{topic.coverage.days} 期）
-          </span>
-        </div>
-        <h1>{topic.title}</h1>
-        <p className="acl-topic-subtitle">{topic.description}</p>
-      </header>
-
-      <nav className="acl-topic-nav eng-section-nav" aria-label={`${topic.title} 专题导览`}>
-        <a
-          href="#topic-visual-guide"
-          onClick={(e) => {
-            e.preventDefault();
-            document.getElementById("topic-visual-guide")?.scrollIntoView({ behavior: "smooth" });
-          }}
-        >
-          01 原理导引
-        </a>
-        <a
-          href="#topic-route-map"
-          onClick={(e) => {
-            e.preventDefault();
-            document.getElementById("topic-route-map")?.scrollIntoView({ behavior: "smooth" });
-          }}
-        >
-          02 技术路线图（{routes.length}）
-        </a>
-        <a
-          href="#topic-analytics"
-          onClick={(e) => {
-            e.preventDefault();
-            document.getElementById("topic-analytics")?.scrollIntoView({ behavior: "smooth" });
-          }}
-        >
-          03 演进趋势与环节分布
-        </a>
-        <a
-          href="#topic-evidence-workbench"
-          onClick={(e) => {
-            e.preventDefault();
-            document.getElementById("topic-evidence-workbench")?.scrollIntoView({ behavior: "smooth" });
-          }}
-        >
-          04 工程证据库（{topic.counts.total} PR）
-        </a>
-      </nav>
+    <TopicDetailLayout
+      title={topic.title}
+      subtitle={topic.description}
+      sections={workbenchSections.map(({ id, label, target }) => {
+        const next = new URLSearchParams(query);
+        next.set("focus", id);
+        return {
+          label,
+          to: { search: next.toString() },
+          current: (focus || "guide") === id ? "location" : undefined,
+          onClick: focus === id ? event => {
+            if (!event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+              event.preventDefault();
+              revealWorkbenchSection(target);
+            }
+          } : undefined,
+        };
+      })}
+    >
+      <p className="topic-meta">
+        覆盖 {topic.coverage.firstDay} 至 {topic.coverage.lastDay}（{topic.coverage.days} 期）
+      </p>
 
       {/* KPI Summary Strip (keeps exact "专题收录 PR" text for test compatibility) */}
       <dl className="eng-kpi-grid" aria-label="专题收录规模">
@@ -688,7 +659,7 @@ export default function EngineeringTopicWorkbench({ topic }: { topic: Topic }) {
       </dl>
 
       {/* 01 Visual Mechanism Guide */}
-      <div id="topic-visual-guide" className="eng-anchor-block">
+      <div id="topic-visual-guide" tabIndex={-1} className="eng-anchor-block">
         {topic.id === "kv-cache" ? (
           <KvCacheVisualGuide />
         ) : topic.id === "speculative-decoding" ? (
@@ -697,7 +668,7 @@ export default function EngineeringTopicWorkbench({ topic }: { topic: Topic }) {
       </div>
 
       {/* 02 Interactive Technical Route Map */}
-      <section id="topic-route-map" className="acl-survey-map eng-route-section" aria-labelledby="eng-route-heading">
+      <section id="topic-route-map" tabIndex={-1} className="acl-survey-map eng-route-section" aria-labelledby="eng-route-heading">
         <div className="eng-section-head">
           <div>
             <h2 id="eng-route-heading">核心技术路线与工程边界</h2>
@@ -773,7 +744,7 @@ export default function EngineeringTopicWorkbench({ topic }: { topic: Topic }) {
       </section>
 
       {/* 03 Daily Accumulation & Stage Breakdown */}
-      <section id="topic-analytics" className="eng-analytics-grid" aria-label="专题趋势与推理环节分布">
+      <section id="topic-analytics" tabIndex={-1} className="eng-analytics-grid" aria-label="专题趋势与推理环节分布">
         <div className="eng-chart-card">
           <header>
             <h3>每日收录趋势（按日报日期）</h3>
@@ -845,6 +816,7 @@ export default function EngineeringTopicWorkbench({ topic }: { topic: Topic }) {
       {/* 04 Searchable & Filterable PR Evidence Workbench */}
       <section
         id="topic-evidence-workbench"
+        tabIndex={-1}
         className="eng-evidence-section"
         aria-labelledby="eng-evidence-heading"
       >
@@ -999,6 +971,6 @@ export default function EngineeringTopicWorkbench({ topic }: { topic: Topic }) {
           </ul>
         )}
       </section>
-    </div>
+    </TopicDetailLayout>
   );
 }

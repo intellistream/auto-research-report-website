@@ -75,11 +75,11 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
         topic.id === "distributed-inference-control-plane" ? (
           <ControlPlaneTopic topic={topic} />
         ) : topic.id === "aclgraph" ? (
-          <AclGraphTopic topic={topic} />
+          <AclGraphTopic />
         ) : topic.id === "speculative-decoding" ? (
           <SpecDecTopic topic={topic} />
         ) : topic.academicPaper && (view !== "report" || !topic.report) ? (
-          <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} />
+          <TopicAcademicPaper key={topic.academicPaper.version} topic={topic} paper={topic.academicPaper} reportAvailable={index?.schemaVersion === 2 && Boolean(topic.report)} />
         ) : index?.schemaVersion === 2 && topic.report ? (
           <TopicResearchReport key={topic.report.version} topic={topic} report={topic.report} />
         ) : (

@@ -50,7 +50,7 @@ describe("KV paper reading", () => {
     expect(next.get("q")).toBe("HCache");
     for (const key of ["repo", "month", "kind", "label"]) expect(next.has(key)).toBe(false);
     const html = render("/topics/kv-cache?view=evidence&repo=vllm&month=2026-11&kind=pr&label=offload");
-    const href = html.match(/href="([^"]+)"[^>]*><strong>论文<\/strong>/)?.[1].replaceAll("&amp;", "&");
+    const href = html.match(/href="([^"]+)"[^>]*>论文<\/a>/)?.[1].replaceAll("&amp;", "&");
     expect(href).toContain("view=papers");
     expect(href).not.toContain("topic="); // The main section opens the recommended reading landing page.
     for (const key of ["repo=", "month=", "kind=", "label="]) expect(href).not.toContain(key);

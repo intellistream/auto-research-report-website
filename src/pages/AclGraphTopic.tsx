@@ -1,12 +1,10 @@
-import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
+import TopicDetailLayout from "./TopicDetailLayout";
 import TopicDirectoryCard from "./TopicDirectoryCard";
-import { Link, useSearchParams } from "react-router-dom";
-import type { Topic } from "./TopicPages";
+import { useSearchParams } from "react-router-dom";
 import AclGraphGuide from "./AclGraphGuide";
 import AclGraphAnalysis from "./AclGraphAnalysis";
 import { ACLGRAPH_PROBLEMS, findAclGraphCardById, getAclGraphAnalysisStats, type AclGraphProblem } from "./aclgraph-analysis";
-import "./aclgraph-topic.css";
 
 const title = "ACL Graph";
 const subtitle = "昇腾推理图执行：捕获、重放与动态状态";
@@ -58,7 +56,7 @@ export function AclGraphTopicCard() {
   );
 }
 
-export default function AclGraphTopic(_props: { topic: Topic }) {
+export default function AclGraphTopic() {
   const [query, setQuery] = useSearchParams();
   const resolved = resolveAclGraphSearch(query);
   const section = resolved.section;
@@ -70,18 +68,12 @@ export default function AclGraphTopic(_props: { topic: Topic }) {
     if (resolved.needsNormalize) setQuery(resolved.normalizedParams, { replace: true });
   }, [resolved.needsNormalize, resolved.normalizedParams, setQuery]);
 
-  return <div className="acl-topic">
-    <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden="true" /> 专题目录</Link>
-    <header className="acl-topic-header">
-      <p className="acl-topic-kicker">技术专题</p>
-      <h1>{title}</h1>
-      <p className="acl-topic-subtitle">{subtitle}</p>
-    </header>
-    <nav className="acl-topic-nav" aria-label="ACL Graph 专题分区">
-      {sections.map(({ id, label, search }) =>
-        <Link key={id} to={{ pathname: path, search }} aria-current={section === id ? "page" : undefined}>{label}</Link>)}
-    </nav>
+  return <TopicDetailLayout title={title} subtitle={subtitle} sections={sections.map(({ id, label, search }) => ({
+    label,
+    to: { pathname: path, search },
+    current: section === id ? "page" : undefined,
+  }))}>
     {section === "guide" && <AclGraphGuide />}
     {section === "analysis" && <AclGraphAnalysis />}
-  </div>;
+  </TopicDetailLayout>;
 }

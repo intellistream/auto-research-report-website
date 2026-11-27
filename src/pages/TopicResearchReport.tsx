@@ -1,6 +1,7 @@
-import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Download, FileText, GitPullRequest, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BookOpen, Download, FileText, GitPullRequest, Sparkles } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import TopicDetailLayout from "./TopicDetailLayout";
 import TopicDirectoryCard from "./TopicDirectoryCard";
 import type { Topic } from "./TopicPages";
 import { safeTopicSource, loadFrozenVersion, revealTopicPart, reportOverview, sectionLead, type EvidenceDetail, type FrozenVersion, type Reference, type ResearchReport } from "./topic-report";
@@ -319,7 +320,6 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
     setQuery(next, { replace: true });
   }
   const downloads = <div className="survey-downloads">
-    {!embedded && topic.academicPaper && <Link to={`/topics/${topic.id}?view=paper`}><BookOpen size={14} />学术综述稿</Link>}
     {markdown && <a href={markdown} download><FileText size={14} />报告源稿</a>}
     {pdf ? (
       <a className="survey-pdf" href={pdf} download={`${topic.id}-review-r${report.revision}-${report.version.slice(0, 12)}.pdf`}>
@@ -427,53 +427,66 @@ export default function TopicResearchReport({ topic, report, embedded = false }:
 
   const updateDate = report.changelog[report.changelog.length - 1]?.date;
 
-  return <div className="survey-page">
-    <ReportJump className="survey-skip" id="survey-paper">跳到报告正文</ReportJump>
-    {!embedded && <Link className="topic-back" to="/topics"><ArrowLeft size={15} /> 专题研究库</Link>}
-    {embedded ? <>
-      <header className="report-brief-heading" id="survey-top" tabIndex={-1}>
-        <div>
-          <h2>动态报告</h2>
-          <p className="survey-meta">
-            <span>修订 {report.revision}{previousRevision && ` · 对比修订 ${previousRevision}`}</span>
-            <span>{updateDate ? "更新于" : "研究截至"} <time dateTime={updateDate ?? report.asOf}>{updateDate ?? report.asOf}</time></span>
-          </p>
-        </div>
-        {downloads}
-      </header>
-      {current?.error && <p className="survey-artifact-note" role="status">{current.error}</p>}
-      <ReportUpdateOverview report={report} topic={topic} />
-      <details className="report-brief-disclosure report-pr-trends" id="survey-pr-trends" tabIndex={-1}>
-        <summary>PR 与趋势 <span>每日收录与 {topic.entries.length} 条 PR 线索</span></summary>
-        <div className="report-brief-disclosure-content">
-          <EvidenceTimeline topic={topic} report={report} />
-          <section id="survey-appendix" tabIndex={-1} aria-labelledby="report-pr-index">
-            <h3 id="report-pr-index">PR 取材索引</h3>
-            <p className="survey-muted">覆盖 {topic.coverage.firstDay} 至 {topic.coverage.lastDay}。可按社区或子方向筛选，打开原始 PR 或对应日报。</p>
-            <EvidenceList entries={topic.entries} labels={topic.labels} />
-          </section>
-        </div>
-      </details>
-      <details className="report-brief-disclosure" id="survey-analysis" tabIndex={-1} open={analysisOpen} onToggle={(event) => setAnalysisOpen(event.currentTarget.open)}>
-        <summary>具体分析 <span>{report.sections.length} 节正文、证据与引用</span></summary>
-        <div className="report-brief-disclosure-content">
-          <div className="survey-toolbar">{modeSwitch}</div>
-          {body}
-        </div>
-      </details>
-      <details className="report-brief-disclosure" id="survey-evolution" tabIndex={-1} onToggle={(event) => {
-        if (event.currentTarget.open) setHistoryRequested(true);
-      }}>
-        <summary>历史版本 <span>修订记录与各版下载</span></summary>
-        <div className="report-brief-disclosure-content">
-          <ReportHistory topic={topic} report={report} current={current?.data} embedded requested={historyRequested} />
-        </div>
-      </details>
-    </> : <>
-    <header id="survey-top" tabIndex={-1} className="survey-heading"><div className="docx-eyebrow">LIVING TECHNICAL REVIEW <span>持续演进的技术综述</span></div><div className="survey-title-row"><h1>{report.title}</h1><span className="survey-status">研究草稿</span></div><p className="survey-deck">{topic.description}</p><div className="survey-meta"><span>研究截至 <time dateTime={report.asOf}>{report.asOf}</time></span><span>修订 {report.revision}</span><span>{report.references.length} 项来源 · {papers} 篇背景论文 · {prs} 项 PR 证据</span></div>
-      <div className="survey-takeaways" aria-label="报告速览"><div><h2>核心问题</h2><p>{overview.problem}</p></div>{overview.conclusion && <div><h2>综合判断</h2><p>{overview.conclusion}<ReportJump id="survey-taxonomy">查看技术权衡</ReportJump></p></div>}{overview.boundary && <div><h2>证据边界</h2><p>{overview.boundary}<ReportJump id="survey-limitations">查看适用范围</ReportJump></p></div>}</div>
-      <div className="survey-toolbar">{modeSwitch}{downloads}</div><p className="survey-reading-note" role="status">{mode === "brief" ? "速读：保留摘要、路线比较与研究问题；8节分析可逐节展开。".replace("8", String(report.sections.length)) : "精读：展开全部技术分析；可随时单独折叠。"} 引用编号可跳转来源并返回引用位置。</p><p className="survey-artifact-note" role="status">{current?.error ?? (current?.data ? `已核对网页与冻结稿一致 · 修订 ${report.revision} · ${report.version.slice(0, 12)}。下载文件与此版本绑定。` : "正在核对网页内容与冻结稿；核验完成后提供下载。")}</p></header>
-      {body}
-    </>}
+  const skipLink = <ReportJump className="survey-skip" id="survey-paper">跳到报告正文</ReportJump>;
+  if (embedded) return <div className="survey-page">
+    {skipLink}
+    <header className="report-brief-heading" id="survey-top" tabIndex={-1}>
+      <div>
+        <h2>动态报告</h2>
+        <p className="survey-meta">
+          <span>修订 {report.revision}{previousRevision && ` · 对比修订 ${previousRevision}`}</span>
+          <span>{updateDate ? "更新于" : "研究截至"} <time dateTime={updateDate ?? report.asOf}>{updateDate ?? report.asOf}</time></span>
+        </p>
+      </div>
+      {downloads}
+    </header>
+    {current?.error && <p className="survey-artifact-note" role="status">{current.error}</p>}
+    <ReportUpdateOverview report={report} topic={topic} />
+    <details className="report-brief-disclosure report-pr-trends" id="survey-pr-trends" tabIndex={-1}>
+      <summary>PR 与趋势 <span>每日收录与 {topic.entries.length} 条 PR 线索</span></summary>
+      <div className="report-brief-disclosure-content">
+        <EvidenceTimeline topic={topic} report={report} />
+        <section id="survey-appendix" tabIndex={-1} aria-labelledby="report-pr-index">
+          <h3 id="report-pr-index">PR 取材索引</h3>
+          <p className="survey-muted">覆盖 {topic.coverage.firstDay} 至 {topic.coverage.lastDay}。可按社区或子方向筛选，打开原始 PR 或对应日报。</p>
+          <EvidenceList entries={topic.entries} labels={topic.labels} />
+        </section>
+      </div>
+    </details>
+    <details className="report-brief-disclosure" id="survey-analysis" tabIndex={-1} open={analysisOpen} onToggle={(event) => setAnalysisOpen(event.currentTarget.open)}>
+      <summary>具体分析 <span>{report.sections.length} 节正文、证据与引用</span></summary>
+      <div className="report-brief-disclosure-content">
+        <div className="survey-toolbar">{modeSwitch}</div>
+        {body}
+      </div>
+    </details>
+    <details className="report-brief-disclosure" id="survey-evolution" tabIndex={-1} onToggle={(event) => {
+      if (event.currentTarget.open) setHistoryRequested(true);
+    }}>
+      <summary>历史版本 <span>修订记录与各版下载</span></summary>
+      <div className="report-brief-disclosure-content">
+        <ReportHistory topic={topic} report={report} current={current?.data} embedded requested={historyRequested} />
+      </div>
+    </details>
   </div>;
+
+  return <TopicDetailLayout
+    title={report.title}
+    subtitle={topic.description}
+    headerId="survey-top"
+    sections={[
+      ...(topic.academicPaper ? [{ label: "学术综述稿", to: { search: "view=paper" } }] : []),
+      { label: "动态报告", to: { search: "view=report" }, current: "page" },
+    ]}
+  >
+    <div className="survey-page">
+      {skipLink}
+      <div className="survey-overview">
+        <div className="survey-meta"><span>研究草稿</span><span>研究截至 <time dateTime={report.asOf}>{report.asOf}</time></span><span>修订 {report.revision}</span><span>{report.references.length} 项来源 · {papers} 篇背景论文 · {prs} 项 PR 证据</span></div>
+        <div className="survey-takeaways" aria-label="报告速览"><div><h2>核心问题</h2><p>{overview.problem}</p></div>{overview.conclusion && <div><h2>综合判断</h2><p>{overview.conclusion}<ReportJump id="survey-taxonomy">查看技术权衡</ReportJump></p></div>}{overview.boundary && <div><h2>证据边界</h2><p>{overview.boundary}<ReportJump id="survey-limitations">查看适用范围</ReportJump></p></div>}</div>
+        <div className="survey-toolbar">{modeSwitch}{downloads}</div><p className="survey-reading-note" role="status">{mode === "brief" ? "速读：保留摘要、路线比较与研究问题；8节分析可逐节展开。".replace("8", String(report.sections.length)) : "精读：展开全部技术分析；可随时单独折叠。"} 引用编号可跳转来源并返回引用位置。</p><p className="survey-artifact-note" role="status">{current?.error ?? (current?.data ? `已核对网页与冻结稿一致 · 修订 ${report.revision} · ${report.version.slice(0, 12)}。下载文件与此版本绑定。` : "正在核对网页内容与冻结稿；核验完成后提供下载。")}</p>
+      </div>
+      {body}
+    </div>
+  </TopicDetailLayout>;
 }

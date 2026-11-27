@@ -1,32 +1,3 @@
-/* Workbench Root & Header */
-.eng-topic-root {
-  display: grid;
-  gap: 0;
-}
-
-.eng-header-badges {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.eng-coverage-pill {
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-subtle);
-  color: var(--ink-tertiary);
-  font-size: 12px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.eng-section-nav {
-  margin-bottom: 20px;
-}
-
 .eng-anchor-block,
 .eng-route-section,
 .eng-analytics-grid,

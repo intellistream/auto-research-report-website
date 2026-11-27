@@ -21,9 +21,9 @@ describe("KV topic reading paths", () => {
       ["view=compare&part=kv-pr-66558", "社区进展"], ["view=report&edition=2026-11-17", "社区进展"],
     ]) {
       const html = render(search);
-      const nav = html.match(/<nav class="kv-topic-nav kv-primary-nav".*?<\/nav>/)![0];
+      const nav = html.match(/<nav class="topic-detail-nav".*?<\/nav>/)![0];
       expect(nav.match(/<a /g)).toHaveLength(4);
-      expect(nav.match(/<a[^>]*aria-current="page"[^>]*>.*?<\/a>/)?.[0]).toContain("<strong>" + active + "</strong>");
+      expect(nav.match(/<a[^>]*aria-current="page"[^>]*>.*?<\/a>/)?.[0]).toContain(">" + active + "</a>");
       expect(html).not.toContain("daily unavailable");
       expect(html).not.toContain(">研究综述<");
     }

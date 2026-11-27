@@ -1,7 +1,7 @@
-import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
+import TopicDetailLayout, { TopicSectionNav } from "./TopicDetailLayout";
 import TopicDirectoryCard from "./TopicDirectoryCard";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import KvMaterialLibrary from "./KvMaterialLibrary";
 import KvPapers from "./KvPapers";
 import KvResearchOverview from "./KvResearchOverview";
@@ -16,11 +16,12 @@ import { revealTopicPart } from "./topic-report";
 import { parseKvGuideState, withKvGuideState } from "./kv-guide-state";
 import "./kv-sections.css";
 
+const path = "/topics/kv-cache";
 const sections = [
-  { id: "guide", label: "导引", purpose: "理解缓存怎样工作" },
-  { id: "papers", label: "论文", purpose: "掌握方法与适用条件" },
-  { id: "report", label: "社区进展", purpose: "跟踪实现进展与变化" },
-  { id: "overview", label: "综合分析", purpose: "把握整体进展与待解问题" },
+  { id: "guide", label: "导引" },
+  { id: "papers", label: "论文" },
+  { id: "report", label: "社区进展" },
+  { id: "overview", label: "综合分析" },
 ] as const;
 
 export function kvTopicView(query: URLSearchParams) {
@@ -40,9 +41,9 @@ export function KvCacheTopicCard() {
   const ascendCount = communityEntries.filter(entry => entry.repository === "vllm-ascend").length;
   return (
     <TopicDirectoryCard
-      title="KV Cache"
+      title={kvResearch.title}
       description="理解 KV 的工作过程，比较论文方法，把握整体进展与待解问题。"
-      path="/topics/kv-cache"
+      path={path}
       summary={`${communityEntries.length} 条工程 PR`}
       detail={`${papers.length} 篇论文`}
       repositories={{ vllm: vllmCount, "vllm-ascend": ascendCount }}
@@ -79,28 +80,33 @@ export default function KvCacheTopic() {
     return next.toString();
   }
 
-  return <div className={"kv-topic" + (view === "guide" ? " kv-topic-is-guide" : "")}>
-    <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden="true" /> 专题目录</Link>
-    <header className="topic-heading kv-topic-heading">
-      <p className="kv-topic-kicker">独立技术专题</p>
-      <h1>{kvResearch.title}</h1>
-      <p>从基础知识出发，理解论文方法，把握整体进展，跟踪社区实现的变化与边界。</p>
-    </header>
-    <nav className="kv-topic-nav kv-primary-nav" aria-label="KV Cache 专题板块">
-      {sections.map(({ id, label, purpose }) =>
-        <Link key={id} to={{ search: sectionSearch(id) }} aria-current={section === id ? "page" : undefined}>
-          <strong>{label}</strong><span>{purpose}</span>
-        </Link>)}
-    </nav>
-    {section === "papers" && <nav className="kv-subnav" aria-label="论文板块页面">
-      <Link to={{ search: paperSearch() }} aria-current={view === "papers" ? "page" : undefined}>论文解读</Link>
-      <Link to={{ search: sectionSearch("survey", topic) }} aria-current={view === "survey" ? "page" : undefined}>方法比较</Link>
-    </nav>}
-    {section === "report" && <nav className="kv-subnav" aria-label="社区进展 板块页面">
-      <Link to={{ search: sectionSearch("report") }} aria-current={view === "report" || view === "compare" ? "page" : undefined}>每周总结</Link>
-      <Link to={{ search: sectionSearch("trends") }} aria-current={view === "trends" ? "page" : undefined}>PR 趋势分析</Link>
-      <Link to={{ search: sectionSearch("evidence", topic) }} aria-current={view === "evidence" ? "page" : undefined}>全部 PR</Link>
-    </nav>}
+  return <TopicDetailLayout
+    className="kv-topic"
+    title={kvResearch.title}
+    subtitle="从基础知识出发，理解论文方法，把握整体进展，跟踪社区实现的变化与边界。"
+    sections={sections.map(({ id, label }) => ({
+      label,
+      to: { pathname: path, search: sectionSearch(id) },
+      current: section === id ? "page" : undefined,
+    }))}
+  >
+    {section === "papers" && <TopicSectionNav
+      secondary
+      label="论文板块页面"
+      sections={[
+        { label: "论文解读", to: { search: paperSearch() }, current: view === "papers" ? "page" : undefined },
+        { label: "方法比较", to: { search: sectionSearch("survey", topic) }, current: view === "survey" ? "page" : undefined },
+      ]}
+    />}
+    {section === "report" && <TopicSectionNav
+      secondary
+      label="社区进展 板块页面"
+      sections={[
+        { label: "每周总结", to: { search: sectionSearch("report") }, current: view === "report" || view === "compare" ? "page" : undefined },
+        { label: "PR 趋势分析", to: { search: sectionSearch("trends") }, current: view === "trends" ? "page" : undefined },
+        { label: "全部 PR", to: { search: sectionSearch("evidence", topic) }, current: view === "evidence" ? "page" : undefined },
+      ]}
+    />}
     {view === "guide" && <KvBasics />}
     {view === "papers" && <KvPapers />}
     {view === "survey" && <KvResearchOverview />}
@@ -109,5 +115,5 @@ export default function KvCacheTopic() {
     {view === "report" && <KvCommunityReport />}
     {view === "trends" && <KvPrTrends />}
     {view === "evidence" && <KvMaterialLibrary />}
-  </div>;
+  </TopicDetailLayout>;
 }
