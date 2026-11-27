@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, Network } from "lucide-react";
+import { Server } from "lucide-react";
 import "./aclgraph-guide.css";
 
 const spec = "https://github.com/vLLM-HUST/ride/blob/071976ebcaa0fa9ae3553adb512693f1326ce24d/docs/reference/FRAMEWORK_SPEC.md";
@@ -29,23 +29,43 @@ export default function ControlPlaneLoop() {
   const [index, setIndex] = useState(0);
   const row = history[index];
   const fmt = (v: number) => Number(v.toFixed(2));
+  const selectedY = row.target === "A" ? 137 : 248;
   return <section className="acl-guide cp-loop" aria-label="RIDE 控制器决策闭环"><div className="acl-guide-overview">
-    <div className="acl-interaction-heading"><div><p className="acl-mini-label">RIDE 控制面 · 双实例决策闭环</p>
-      <h2>两台引擎同时有余量，下一组请求交给谁？</h2></div><Network aria-hidden size={24}/></div>
-    <p>一个逻辑控制器通过适配器连接 A、B。引擎上报状态，模型估计候选动作的结果，策略按目标选择可执行动作，引擎回报执行结果。控制器在下一窗口用到这次反馈。</p>
-    <div className="cp-objective"><strong>优化目标 · maximize throughput</strong><p>固定设备预算与工作负载，以两台引擎每分钟成功完成的 program steps 之和衡量吞吐，同时检查 program 等待 P99 与失败率。图中假设两个候选均满足约束，原有流量的完成量相同，只比较新请求带来的增量。</p></div>
-    <div className="acl-guide-toggle" role="group" aria-label="选择决策窗口">{history.map((_, i) =>
-      <button type="button" key={i} aria-pressed={i === index} onClick={() => setIndex(i)}>第 {i + 1} 分钟</button>)}</div>
-    <div className="cp-loop-stages" aria-live="polite">
-      <div><small>Observe · 引擎 → 控制器</small><h3>读取两台引擎</h3><p>A 有 {row.a} 个空闲并发槽，B 有 {row.b} 个。两台运行同一模型，等待队列中有足够多的同规格请求。</p></div>
-      <div><small>Predict / Decide · 模型与策略</small><h3>比较两个候选动作</h3><p>预计新增完成量 = 空闲槽 × 每槽每分钟完成步数。送 A 预计 {fmt(row.estimates.A)} 步，送 B 预计 {fmt(row.estimates.B)} 步。策略选预计吞吐较高者。</p></div>
-      <div><small>Actuate · 控制器 → 执行端</small><h3>放行至实例 {row.target}</h3><p>请求适配器把这一组工作送至 {row.target}，按 {row.slots} 个槽限制在途量。引擎继续调度本地批次。</p></div>
-      <div><small>Verify / Reconcile · 反馈</small><h3>回读成功完成量</h3><p>{row.target} 本窗口新增完成 {row.completed} 步。用观测速率与原估计等权平均，每槽完成率从 {fmt(row.before)} 更新到 {fmt(row.after)}。另一台保留原估计。</p></div>
-    </div>
-    {index === 2 && <p className="acl-experiment-takeaway">第三分钟 A 有 9 个空闲槽，B 只有 8 个。若沿用初始模型会选 A；前两分钟的完成回执提高了对 B 的每槽完成率估计，校准后的策略选择 B。</p>}
-    <p className="acl-experiment-note">教学回放。三个窗口使用同一选择策略，负载变化会改变动作，预测误差会改变模型参数。数字为示例，均非硬件回执。</p>
-    <div className="cp-objective"><h3><Activity size={17} aria-hidden/> 从自适应到策略演进</h3><p>窗口内用最新状态选动作，窗口间用反馈校准模型。更长周期内，可用历史决策轨迹提出候选策略，再用同输入、同资源的配对回放比较吞吐、等待与失败；通过后切换策略版本，退化时回退。线上自动策略演进属于设计目标。</p></div>
-    <p>同一闭环有三种执行接口：请求控制器向路由层提交放行与目标实例；KV 控制器向引擎提交驻留与搬运计划；实例控制器向部署层提交扩缩或排空。每种动作都需要可核对的执行回执。</p>
-    <nav className="acl-source-links"><a href={spec}>RIDE 控制器协议 ↗</a><a href={loop}>请求控制器实现 ↗</a></nav>
+    <div className="cp-map-heading"><div><p className="acl-mini-label">RIDE 控制面 · 教学回放</p><h2>下一组请求交给谁？</h2></div>
+      <div className="acl-guide-toggle" role="group" aria-label="选择决策窗口">{history.map((_, i) =>
+        <button key={i} type="button" aria-pressed={i === index} onClick={() => setIndex(i)}>第 {i + 1} 分钟</button>)}</div></div>
+    <div className="cp-map-scroll" tabIndex={0} aria-label="双实例控制回路，窄屏可横向滚动">
+    <svg className="cp-map" viewBox="0 0 816 370" role="img" aria-label={`第 ${index + 1} 分钟：选择实例 ${row.target}，实际新增完成 ${row.completed} 步`}>
+      <defs>{(["observe","action","feedback"] as const).map(kind =>
+        <marker key={kind} id={"cp-tip-"+kind} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path className={kind} d="M0 0 10 5 0 10Z"/></marker>)}</defs>
+      <rect className="cp-boundary" x="301" y="66" width="489" height="219" rx="17"/>
+      <text x="321" y="95" className="cp-label">RIDE · 请求控制器</text>
+      <path className="cp-wire action" d={`M698 125 V34 H22 V${selectedY} H56`} markerEnd="url(#cp-tip-action)"/>
+      <rect x="166" y="20" width="153" height="25" rx="10" fill="#123c33"/><text x="242" y="38" textAnchor="middle" className="cp-action-text">执行 API · 放行至 {row.target}</text>
+      {(["A","B"] as const).map((name,i) => {
+        const slots = name === "A" ? row.a : row.b;
+        const y = i === 0 ? 103 : 214;
+        return <g key={name}><rect className={name === row.target ? "cp-engine selected" : "cp-engine"} x="57" y={y} width="162" height="75" rx="10"/>
+          <Server x="68" y={y+9} width="20" height="20" color="#ade7d4"/><text x="96" y={y+24} className="cp-title">引擎 {name}</text>
+          {Array.from({length:9},(_,j)=><rect key={j} x={69+j*10} y={y+43} width="7" height="12" rx="2" fill={j<slots?"#78dfbd":"#365950"}/>)}
+          <text x="164" y={y+55} className="cp-small">{slots} 空槽</text>
+          <path className="cp-wire observe" d={`M219 ${y+31} H${i ? 268 : 253} V${i ? 200 : 164} H326`} markerEnd="url(#cp-tip-observe)"/></g>;
+      })}
+      <text x="230" y="122" className="cp-small">上报</text>
+      <rect className="cp-module" x="328" y="125" width="225" height="125" rx="11"/>
+      <text x="344" y="151" className="cp-title">模型</text><text x="344" y="173" className="cp-small">预测增量 · steps/min</text>
+      {(["A","B"] as const).map((name,i)=><g key={name}><text x="344" y={199+i*27}>{name}</text><rect x="365" y={188+i*27} width={row.estimates[name]*10} height="12" rx="3" fill={row.target===name?"#86e8bd":"#729a94"}/><text x="479" y={200+i*27}>{fmt(row.estimates[name])}</text></g>)}
+      <path className="cp-wire observe" d="M553 187 H603" markerEnd="url(#cp-tip-observe)"/>
+      <rect className="cp-module" x="606" y="125" width="160" height="125" rx="11"/>
+      <text x="622" y="151" className="cp-title">策略</text><text x="622" y="176" className="cp-small">最大化完成步数</text>
+      <text x="622" y="221" className="cp-result">选 {row.target}</text>
+      <path className="cp-wire feedback" d={`M197 ${selectedY+41} H233 V329 H442 V252`} markerEnd="url(#cp-tip-feedback)"/>
+      <rect x="246" y="312" width="181" height="31" rx="9" fill="#123c33"/><text x="336" y="332" textAnchor="middle" className="cp-feedback-text">回执 · 完成 {row.completed} 步</text>
+      <text x="456" y="325" className="cp-feedback-text">校准 {row.target} 的每槽完成率</text>
+      <text x="456" y="348" className="cp-label">{fmt(row.before)} → {fmt(row.after)} 步 / 槽 / 分钟</text>
+    </svg></div>
+    <p className="cp-map-caption" aria-live="polite">{index === 2 ? "A 的空槽更多，B 的预测吞吐更高。前两分钟的执行反馈改变了这次选址。" : `第 ${index+1} 分钟，模型预计 ${row.target} 每分钟可多完成 ${fmt(row.estimates[row.target])} 步，策略将这批请求送往 ${row.target}。`}</p>
+    <details><summary>模型假设与策略演进</summary><p>教学数值。固定设备预算，假设两种选址均满足等待 P99 与失败率约束。预测增量等于空闲槽数乘以每槽完成率，回执与原估计等权更新。长期策略演进的设计路径为：记录决策 → 提出候选 → 配对验证 → 晋级或回退。</p>
+    <nav className="acl-source-links"><a href={spec}>RIDE 控制器协议 ↗</a><a href={loop}>请求控制器实现 ↗</a></nav></details>
   </div></section>;
 }
