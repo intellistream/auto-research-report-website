@@ -1,3 +1,4 @@
+import ControlPlaneDiagram from "./ControlPlaneDiagram";
 import { useState } from "react";
 
 // Fixture replayed against ProgramThrottling at f2ba1bb: on_request, tick, release(Q), tick.
@@ -25,7 +26,7 @@ export default function ControlPlaneResume() {
     <div className="cp-map-heading"><div><p className="acl-mini-label">请求控制器 · 单实例 token 预算</p><h2>集群还有余量，P 为什么要等？</h2></div>
     <div className="acl-guide-toggle" role="group" aria-label="选择调度时刻">{frames.map((item,i) =>
       <button key={item.label} type="button" aria-pressed={i===index} onClick={()=>setIndex(i)}>{i+1} · {item.label}</button>)}</div></div>
-    <div className="cp-map-scroll" tabIndex={0} aria-label="实例预算和等待队列，窄屏可横向滚动">
+    <ControlPlaneDiagram label="实例预算和等待队列，窄屏可横向滚动">
     <svg viewBox="0 0 800 250" className="cp-map" role="img" aria-label={`A 余 ${frame.a}，B 余 600，P ${frame.resumed ? "恢复至 A" : "等待"}`}>
       <text x="24" y="37" className="cp-label">P 需要 800 tokens</text><text x="224" y="37" className="cp-small">700 上下文 ＋ 100 预留</text>
       <path d="M24 52H774" stroke="#426057"/>
@@ -37,7 +38,7 @@ export default function ControlPlaneResume() {
       <text x="584" y="140" className="cp-title">{frame.resumed?"P → 引擎 A":"P · PAUSED"}</text>
       <text x="584" y="163" className="cp-small">{["单台余量不足","已有容量，等待 tick","ACTIVE · 移出队列"][index]}</text>
       <text x="24" y="232" className="cp-small">每台总预算 1,200　　绿色：剩余　　灰色：其他活跃 program　　蓝色：P</text>
-    </svg></div>
+    </svg></ControlPlaneDiagram>
     <p aria-live="polite">{frame.caption}</p>
     <details><summary>预算口径与实现</summary><p>教学输入，P 是唯一等待者。余量 = 实例容量 − 所有 ACTIVE program 的（上下文 + 每个 program 的预留）。图中使用默认预留 100 tokens；显示的是调度器账面预算。恢复时先以总余量筛选候选，再逐个检查能否放入单台实例。</p>
     <a href="https://github.com/vLLM-HUST/request-throttling-controller/blob/f2ba1bb17562a5036c4a1986e1d8b2805f247085/src/thunderagent_controller_mod/_runtime/controller/program_throttling.py#L285">查看恢复逻辑 ↗</a></details>

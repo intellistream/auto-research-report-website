@@ -36,7 +36,7 @@ export default function ControlPlaneTopic({ topic }: { topic: Topic }) {
   useEffect(() => {
     if (typeof window !== "undefined") window.scrollTo(0, 0);
   }, [view]);
-  return <article className="acl-topic">
+  return <article className="acl-topic cp-topic">
     <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden /> 专题目录</Link>
     <header className="acl-topic-header"><h1>{topic.title}</h1>
       <p className="acl-topic-subtitle">多实例推理服务有三个管控对象：请求在哪台实例执行，各模型层的 KV 应驻留在哪里，以及实例池怎样随负载调整。</p></header>
