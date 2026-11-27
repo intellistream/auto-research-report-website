@@ -1,3 +1,4 @@
+import ControlPlaneResume from "./ControlPlaneResume";
 import ControlPlaneEngine from "./ControlPlaneEngine";
 import ControlPlaneLoop from "./ControlPlaneLoop";
 import ControlPlaneTimeline from "./ControlPlaneTimeline";
@@ -24,7 +25,7 @@ function Analysis({ direction }: { direction: keyof typeof analysis }) {
 
 export default function ControlPlaneOverview({ selected }: { selected?: string }) {
   return <div className="cp-overview">
-    {!selected && <><ControlPlaneLoop /><ControlPlaneEngine /></>}
+    {!selected && <><ControlPlaneLoop /><ControlPlaneResume /><ControlPlaneEngine /></>}
     {!selected && <aside className="cp-intro">
       <h2>从一次工具返回读懂三个板块</h2>
       <p>设一个 agent 已完成第一轮生成，正在等测试工具返回。此时模型没有为它生成 token，历史前缀仍可能留在实例 A。等工具返回，客户端会把历史和新的工具结果一起发来。这一刻有三个控制对象和执行位置不同的决定。</p>
