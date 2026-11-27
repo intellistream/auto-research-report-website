@@ -31,7 +31,7 @@ export default function ControlPlaneLoop() {
   const fmt = (v: number) => Number(v.toFixed(2));
   const selectedY = row.target === "A" ? 137 : 248;
   return <section className="acl-guide cp-loop" aria-label="RIDE 控制器决策闭环"><div className="acl-guide-overview">
-    <div className="cp-map-heading"><div><p className="acl-mini-label">RIDE 控制面 · 教学回放</p><h2>下一组请求交给谁？</h2></div>
+    <div className="cp-map-heading"><div><p className="acl-mini-label">RIDE 请求限流控制器 · 预测选址示意</p><h2>下一组请求交给谁？</h2></div>
       <div className="acl-guide-toggle" role="group" aria-label="选择决策窗口">{history.map((_, i) =>
         <button key={i} type="button" aria-pressed={i === index} onClick={() => setIndex(i)}>第 {i + 1} 分钟</button>)}</div></div>
     <div className="cp-map-scroll" tabIndex={0} aria-label="双实例控制回路，窄屏可横向滚动">
