@@ -39,11 +39,16 @@ export default function ControlPlaneTopic({ topic }: { topic: Topic }) {
   return <article className="acl-topic">
     <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden /> 专题目录</Link>
     <header className="acl-topic-header"><h1>{topic.title}</h1>
-      <p className="acl-topic-subtitle">多实例推理服务有三个管控对象：请求在哪台实例执行，各模型层的 KV 应驻留在哪里，以及实例池怎样随负载调整。</p></header>
+      <p className="acl-topic-subtitle">推理引擎负责计算下一个 token。多台引擎一起服务时，还要决定哪台接请求、历史缓存放在哪里，以及何时增加或回收副本。一次决定可能省下重算，也可能让另一条请求等得更久。</p></header>
     {(!view || view === "guide") && <ControlPlaneArchitecture />}
     <nav className="acl-topic-nav" aria-label="分布式推理控制面专题分区">{directions.map(([id, label]) =>
       <Link key={id} to={{ pathname: path, search: "view=" + id }} aria-current={view === id ? "page" : undefined}>{label}</Link>)}</nav>
-    {view !== "systems" && view !== "evidence" && <ControlPlaneOverview selected={selected} />}
+    {selected && <ControlPlaneOverview selected={selected} />}
+    {!selected && view !== "systems" && view !== "evidence" && <section className="topic-card"><h2>三个开放问题</h2>
+      <h3><Link to="?view=scheduling">有热前缀的实例正在排队，下一轮请求该往哪里走？</Link></h3><p>在路由时选择实例、在轮次之间限制并发、在执行中迁移，各自能利用哪些信息？比较它们对整批吞吐和慢请求的影响。</p>
+      <h3><Link to="?view=kv">请求留在原实例，什么时候值得改变 KV 驻留位置？</Link></h3><p>显存放不下全部上下文时，可以从主机或远端取回历史，也可以重算。分界取决于数据何时再用，以及传输能否被计算掩盖。</p>
+      <h3><Link to="?view=instances">新增副本赶得上波峰吗，回收副本又要等多久？</Link></h3><p>把流量持续时间与启动、首次接单、最后一条流结束的时间放在同一条时间线上，比较用户等待与设备卡时。</p>
+    </section>}
     {view === "systems" && <section className="topic-card"><h2>调度对象、执行位置与代价</h2>
       {systems.map(([name, scope, text, source]) => <section key={name}><h3>{name} · {scope}</h3><p>{text} <a href={source}>原文与机制说明 ↗</a></p></section>)}
     </section>}

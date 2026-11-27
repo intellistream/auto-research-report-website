@@ -5,13 +5,13 @@ export const analysis = {
     {
       title: "暂停之后，什么时候值得恢复一个 program？",
       mechanism: "多轮 agent 调工具时，推理请求已经结束，下一轮却仍要读之前的历史。一次性放回大量等待者，会让这些历史前缀竞争同一片 KV 空间。ThunderAgent 按 program 跟踪工作集并控制放行；恢复决策还需面对下一轮上下文增长和工具返回时刻的不确定性。",
-      evidence: "35B 单实例、C48、首轮约 40k tokens 的三轮回放中，直连、默认限流、收紧预算的整批时间依次为 1514.55、1492.48、713.45 秒。收紧预算后，输入 token 缓存复用率从直连的 0% 升至 59.59%。另一次 600 秒窗口里仅 18/48 个 program 完成首轮：优先让部分 program 连续前进也会延长其余 program 的等待。",
+      evidence: "若只看每分钟完成步数，少数 program 连续推进也能提高这个指标。把每个 program 首次被服务的等待时间一起画出，才能发现被延后的一组。",
       test: "固定放置、引擎和输入，比较原恢复阈值与按近期上下文增长预留空间的策略。按 program 对齐 resume 时刻、下一轮实算 prefill、首轮等待 P99、整批时间。若多留空间只让更多 program 等待，且重算和批时均未改善，就否定该策略。",
       sources: [["ThunderAgent · program 调度", "https://arxiv.org/html/2602.13692v1#S4"], ["35B 三臂回放与逐请求记录", reports + "controller-35b-c48-budget-20261126"]],
     }, {
       title: "缓存亲和与排队冲突时，下一轮去哪台实例？",
       mechanism: "固定回原实例能保留局部性；选择队列最短的实例能避开热点，但可能重算整段历史。Dynamo 同时利用前缀重叠与引擎负载。Llumnix 允许对执行中的请求重新调度，执行方还需移动内存状态。这是两个不同的决策时刻。",
-      evidence: "双 devbox 各一个 TP2 的 35B 配对中，直连和默认控制器都完成 336 次请求，整批分别用时 654.91 和 678.96 秒。两臂前缀命中增量均为零，且未观察到业务 pause/resume。这组运行测到了整条转发路径的代价，尚未覆盖热前缀与排队竞争的条件。",
+      evidence: "知道上次在哪台实例执行，并不能确定前缀还驻留在那里。观察到的队列也可能在请求到达前发生变化。两种信息各自允许多大误差，才不会选错实例？",
       test: "让 A 持有 P 的前缀、B 保持冷缓存，每次只改变 A 上已有的 decode 流数。将相同续轮分别定向到 A 和 B，核对实际 cached tokens，再比较工具返回到首 token 的时间，以及原有流的 P99 输出间隔。观察最佳位置是否随排队增长而反转。",
       sources: [["Dynamo · KV 感知路由", "https://docs.nvidia.com/dynamo/knowledge-base/concepts/system-architecture/kv-aware-routing"], ["Llumnix · 运行中重调度", "https://www.usenix.org/conference/osdi24/presentation/sun-biao"], ["双 devbox 配对原件", reports + "controller-35b-two-devbox-20261125"]],
     },
