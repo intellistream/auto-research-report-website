@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { Topic } from "./TopicPages";
 import { EvidenceList } from "./TopicEvidence";
@@ -15,7 +16,7 @@ const systems = [
   ["NVIDIA Dynamo", "KV 感知路由", "路由器结合前缀重叠与副本负载选择目的地。对一个返回的长上下文请求，需要同时估计本地命中能节省多少 prefill，以及该副本已有多少工作在等待。", "https://docs.nvidia.com/dynamo/knowledge-base/concepts/system-architecture/kv-aware-routing"],
   ["Llumnix · OSDI 2024", "执行期间重调度", "借助引擎迁移在途请求和内存状态，在执行期间重新分配工作。与下一轮重新选址相比，这一动作还要承担复制 KV、同步进度及切换执行所有者的成本。", "https://www.usenix.org/conference/osdi24/presentation/sun-biao"],
   ["DistServe · OSDI 2024", "prefill 与 decode 分离", "分别为 prefill 与 decode 配置资源，降低两阶段干扰。一次请求跨越两个资源池，KV 交接的带宽和等待时间随之进入首 token 延迟与输出间隔的权衡。", "https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin"],
-  ["OrbitFlow · PVLDB 2026", "引擎内 KV 重配置", "固定请求的执行位置，按请求和模型层调整设备与主机间的驻留计划。图 12 评估了单节点张量并行。", "https://arxiv.org/pdf/2601.10729"],
+  ["OrbitFlow · PVLDB 2026", "引擎内 KV 重配置", "固定请求的执行位置，按请求和模型层调整设备与主机间的驻留计划。图 11 评估了单节点张量并行。", "https://arxiv.org/pdf/2601.10729v2"],
   ["MORI", "工具等待期间的 KV 分层", "按 program 近期等待工具的时间占比决定哪些 KV 留在 HBM、哪些移至主机内存。作者改动了 ThunderAgent 调度器和 SGLang HiCache；移植到其他引擎需要可执行的分层驱逐与恢复接口。", "https://arxiv.org/html/2606.00866v2#S5"],
 ];
 
@@ -32,6 +33,9 @@ export default function ControlPlaneTopic({ topic }: { topic: Topic }) {
   const [query] = useSearchParams();
   const view = query.get("view");
   const selected = directions.find(([id]) => id === view)?.[0];
+  useEffect(() => {
+    if (typeof window !== "undefined") window.scrollTo(0, 0);
+  }, [view]);
   return <article className="acl-topic">
     <Link className="topic-back" to="/topics"><ArrowLeft size={16} aria-hidden /> 专题目录</Link>
     <header className="acl-topic-header"><h1>{topic.title}</h1>

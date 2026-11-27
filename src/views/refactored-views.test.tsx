@@ -35,6 +35,9 @@ describe("refactored website views", () => {
     expect(html).toContain("沿着推理流程，查看社区改动");
     expect(html).toContain("展开完整推理生命周期连线全图");
     expect(html).toContain("ACL Graph：昇腾推理图执行");
+    expect(html).toContain("四大核心推理专题");
+    expect(html).toContain("分布式推理控制面：调度、KV 与实例池");
+    expect(html).toContain('href="/topics/distributed-inference-control-plane"');
     expect(html).toContain("导引 · 专题剖析");
     for (const stale of ["学术综述", "动态报告", "11 PR"]) expect(html).not.toContain(stale);
     expect(html).toContain("近期日报速览");

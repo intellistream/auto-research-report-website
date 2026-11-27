@@ -4,6 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import TopicResearchReport from "./TopicResearchReport";
 import TopicPages, { type Entry, type Topic } from "./TopicPages";
+import { KvOverlapFigure } from "./ControlPlaneKvFigures";
+import { PoolScaleIn } from "./InstancePoolFigures";
 import { evidenceTimeline, loadFrozenVersion, reportOverview, revealTopicPart, safeTopicSource, sectionLead, topicArtifactHref, type ResearchReport } from "./topic-report";
 
 const archiveBase = import.meta.env.BASE_URL + "word-reports/";
@@ -280,13 +282,31 @@ it("opens the control-plane topic from the directory and resolves each evidence 
   expect(overview).toMatch(/问题是什么？.*为什么重要？.*我们怎么做？/s);
   expect(overview.match(/class="cp-arch-link"/g)).toHaveLength(3);
   expect(overview.match(/怎样验证/g)).toHaveLength(7);
+  expect(overview).toContain("已附真机配对回执");
+  expect(overview).toContain("待验证：逐层动态 KV 驻留引擎接入与缩容在线迁移对照");
+  expect(overview).toContain("动态 1–4 副本（观测峰值 3）");
+  expect(overview).toContain("此前 200 秒和 400 秒周期的正弦负载中，新副本都在峰后接单，平均延迟均上升。");
+  expect(overview).toContain("整批加速 2.12×</strong><span>固定历史回放 · 每配置一次 · 完成时间（秒）");
+  for (const figure of [<KvOverlapFigure />, <PoolScaleIn />]) {
+    expect(renderToStaticMarkup(figure)).toContain("<small>教学示意。");
+  }
+  for (const file of ["kv-reload.json", "kv-fetch-vs-recompute.json", "ascend-scaling.json"]) {
+    expect(overview).toContain(`href="${import.meta.env.BASE_URL}evidence/control-plane/${file}"`);
+  }
   for (const [id, title] of [["scheduling", "分布式请求调度"], ["kv", "分布式 KV 优化"], ["instances", "分布式多实例优化"]]) {
     const section = renderTopic(path + "?view=" + id, item);
     expect(section).toContain("<h2>" + title + "</h2>");
     expect(section.match(/<figure\b/g)).toHaveLength(id === "scheduling" ? 2 : 3);
   }
-  expect(renderTopic(path + "?view=kv", item)).toContain("https://arxiv.org/pdf/2601.10729");
-  expect(renderTopic(path + "?view=systems", item)).toContain("Llumnix");
+  const kv = renderTopic(path + "?view=kv", item);
+  const systems = renderTopic(path + "?view=systems", item);
+  for (const html of [overview, kv, systems]) {
+    expect(html).toContain("图 11");
+    expect(html).toContain('href="https://arxiv.org/pdf/2601.10729v2"');
+    expect(html).not.toContain("图 12");
+    expect(html).not.toContain('href="https://arxiv.org/pdf/2601.10729"');
+  }
+  expect(systems).toContain("Llumnix");
   const evidence = renderTopic(path + "?view=evidence", item);
   expect(evidence).toContain("controller-35b-two-devbox-20261125");
   expect(evidence).toContain("713.45");

@@ -20,9 +20,9 @@ export const analysis = {
     {
       title: "请求和实例都固定，为什么还要重配置 KV？",
       mechanism: "OrbitFlow 观察到长上下文生成时，序列长度和批组成变化会使静态卸载计划失效。它在 GPU 显存约束下，用整数线性规划为每个请求选择层级 KV 驻留计划，再根据传输和计算时间的反馈调整，使预取尽量被计算掩盖。",
-      evidence: "图 12 比较单节点 2 路和 4 路张量并行，多张卡共同执行一个模型实例。严重过载时，系统还可暂缓在途请求，通过缓冲的已生成 token 维持输出节奏。这里的 pause/resume 是引擎内的后备机制，与控制面在两轮之间决定是否放行处在不同位置。",
+      evidence: "图 11 比较单节点 2 路和 4 路张量并行，多张卡共同执行一个模型实例。严重过载时，系统还可暂缓在途请求，通过缓冲的已生成 token 维持输出节奏。这里的 pause/resume 是引擎内的后备机制，与控制面在两轮之间决定是否放行处在不同位置。",
       test: "固定路由、请求集合和显存上限，对照静态与自适应驻留。记录每次重配置搬运的字节、未被计算掩盖的传输时间、TPOT 与 TBT 达标率。另测只剩少数解码步的情况，判断迁移能否收回成本。",
-      sources: [["OrbitFlow · 机制与图 12", "https://arxiv.org/pdf/2601.10729"], ["作者实现", "https://github.com/omnia-postech/OrbitFlow"]],
+      sources: [["OrbitFlow · 机制与图 11", "https://arxiv.org/pdf/2601.10729v2"], ["作者实现", "https://github.com/omnia-postech/OrbitFlow"]],
     },
     {
       title: "长前缀留在远端，搬运和重算的分界在哪里？",

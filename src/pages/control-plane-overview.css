@@ -49,6 +49,9 @@
 .cp-arch-map .cp-arch-node { fill:#1d493e; stroke:#719384; }
 .cp-arch-line { fill:none; stroke:#9ae8bf; stroke-width:2; }
 .cp-arch-link { cursor:pointer; color:#eafff5; }
+.acl-guide .cp-arch-map a.cp-arch-link,
+.acl-guide .cp-arch-map a.cp-arch-link:hover,
+.acl-guide .cp-arch-map a.cp-arch-link:focus-visible { color:#eafff5; }
 .cp-arch-link:hover .cp-arch-node, .cp-arch-link:focus-visible .cp-arch-node { fill:#285d4f; stroke:#a6efc5; stroke-width:3; }
 
 .cp-measured { margin-block:1.25rem; }

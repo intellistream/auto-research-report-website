@@ -66,7 +66,7 @@ export default function ControlPlaneOverview({ selected }: { selected?: string }
         <KvOverlapFigure />
       </section>
       <section><h3>我们怎么做？观测传输与计算，判断何时更新驻留。</h3>
-        <p>参考 OrbitFlow：引擎采样 decode 耗时，模型预测与实测偏离或当前放置将失效时，规划器在显存约束下用整数规划选择每个请求各层的驻留方案，引擎据此卸载、预取。论文的多卡验证包括单节点 TP2、TP4。<a href="https://arxiv.org/pdf/2601.10729">OrbitFlow 原文与图 12 ↗</a></p>
+        <p>参考 OrbitFlow：引擎采样 decode 耗时，模型预测与实测偏离或当前放置将失效时，规划器在显存约束下用整数规划选择每个请求各层的驻留方案，引擎据此卸载、预取。论文的多卡验证包括单节点 TP2、TP4。<a href="https://arxiv.org/pdf/2601.10729v2">OrbitFlow 原文与图 11 ↗</a></p>
         <p>若旧计划已超预算，先恢复可行性。若新旧方案都可行，我们用下面的教学模型说明选择条件：预计剩余步数 × 每步可省的关键路径等待，大于一次重配置成本时，切换才有净收益。实际还需满足逐 token 延迟目标。</p>
         <ControlPlaneTimeline direction="kv" />
         <KvMeasurements />

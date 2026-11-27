@@ -554,7 +554,7 @@ export default function OverviewPage({
               <div className="spotlight-badge">
                 <BookOpen size={14} aria-hidden /> 深度技术专题矩阵
               </div>
-              <h2 id="spotlight-topic-title">三大核心推理专题</h2>
+              <h2 id="spotlight-topic-title">四大核心推理专题</h2>
               <p>
                 结合交互式原理导引、技术路线图与多期 PR 证据，深入拆解推理引擎关键子系统。
               </p>
@@ -579,6 +579,13 @@ export default function OverviewPage({
                   <div>
                     <strong>推测解码：草稿生成与并行验证</strong>
                     <small>EAGLE-3 / MTP / DFlash · 图回放（105 PR）</small>
+                  </div>
+                  <ArrowRight size={15} aria-hidden />
+                </Link>
+                <Link to="/topics/distributed-inference-control-plane" className="spotlight-topic-item">
+                  <div>
+                    <strong>分布式推理控制面：调度、KV 与实例池</strong>
+                    <small>请求限流 · KV 驻留 · 弹性扩缩与真机回执</small>
                   </div>
                   <ArrowRight size={15} aria-hidden />
                 </Link>

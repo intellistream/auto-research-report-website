@@ -68,6 +68,6 @@ export function PoolScaleIn() {
       <text x="251" y="185" textAnchor="middle" className="cp-small">3 s 释放 B</text>
       <text x="16" y="222" className="cp-label">流完成：排空 {remaining} s　/　迁移 {remaining+release} s</text>
     </svg></div><p>{long?"迁移让 B 提早 7 秒释放；该流多等 3 秒。若输出间隔约束承受不了这段停顿，仍可选排空。":"自然排空在 2 秒时就能释放 B，比迁移更早，流也更早结束。"}</p>
-    <small>固定终止接单时刻，假设 A 有足够容量、两端计算速度相同。图示采用暂停后复制，交接获确认才释放源端；支持预拷贝的引擎可缩短停顿。</small>
+    <small>教学示意。固定终止接单时刻，假设 A 有足够容量、两端计算速度相同。图示采用暂停后复制，交接获确认才释放源端；支持预拷贝的引擎可缩短停顿。</small>
   </div></figure>;
 }

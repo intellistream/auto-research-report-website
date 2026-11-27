@@ -39,6 +39,7 @@ export function KvOverlapFigure() {
       <div className="acl-execution-row"><span className="acl-device-label">预取</span><div className="acl-time-track acl-device-track cp-eight"><TimeBlock start={0} end={ready} label="下一层 KV：主机 → 设备"/></div></div>
       <div className="acl-execution-row"><span className="acl-device-label">计算</span><div className="acl-time-track acl-device-track cp-eight"><TimeBlock start={0} end={4} label="当前层"/>{slow && <TimeBlock start={4} end={6} label="等 KV" waiting/>}<TimeBlock start={start} end={start+2} label="下一层"/></div></div>
     </div>
-    <p aria-live="polite">暴露在关键路径上的等待为 {Math.max(0,ready-4)} 格，两层合计 {start+2} 格。时间从左向右，块宽代表相对耗时。</p>
+    <p aria-live="polite">暴露在关键路径上的等待为 {Math.max(0,ready-4)} 格，两层合计 {start+2} 格。</p>
+    <small>教学示意。时间从左向右，块宽代表相对耗时。</small>
   </div></figure>;
 }

@@ -37,10 +37,12 @@ describe("command search loaded topics and fallback", () => {
     expect(html).toContain('role="dialog"');
     expect(html).toContain("ACL Graph · 导引");
     expect(html).toContain("ACL Graph · 专题剖析");
+    expect(html).toContain("分布式推理控制面");
     for (const text of stale) expect(html).not.toContain(text);
     const results = computeCommandSearchResults({ ...inputs, topics: mode === "loaded" ? topics : undefined });
     expect(results.find(row => row.title === "ACL Graph · 导引")?.to).toBe("/topics/aclgraph");
     expect(results.find(row => row.title === "ACL Graph · 专题剖析")?.to).toBe("/topics/aclgraph?view=analysis");
+    expect(results.find(row => row.id === "topic-distributed-inference-control-plane")?.to).toBe("/topics/distributed-inference-control-plane");
     for (const text of stale) expect(JSON.stringify(results)).not.toContain(text);
   });
 
@@ -51,6 +53,14 @@ describe("command search loaded topics and fallback", () => {
 });
 
 describe("pure command search query filtering", () => {
+  it.each(["loaded", "fallback"])("finds the control-plane topic by name and RIDE with %s topics", mode => {
+    const source = mode === "loaded" ? topics : undefined;
+    for (const query of ["", "RIDE", "分布式推理控制面"]) {
+      const results = computeCommandSearchResults({ ...inputs, topics: source, query, category: "topic" });
+      expect(results.find(row => row.id === "topic-distributed-inference-control-plane")?.to).toBe("/topics/distributed-inference-control-plane");
+    }
+  });
+
   it.each(["loaded", "fallback"])("finds problem keywords and PR numbers with %s topics", mode => {
     const source = mode === "loaded" ? topics : undefined;
     for (const query of ["GraphBreak", "72000", "# 72000", "graph replay study 1-1"]) {

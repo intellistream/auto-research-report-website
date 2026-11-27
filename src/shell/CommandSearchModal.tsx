@@ -72,6 +72,11 @@ export function computeCommandSearchResults({ query, category, topics, days, cat
         title: "推测解码",
         description: "跟踪草稿模型、候选词元生成与验证，以及推测解码运行时适配",
       },
+      {
+        id: "distributed-inference-control-plane",
+        title: "分布式推理控制面",
+        description: "分布式请求调度、分布式 KV 优化、分布式多实例优化。",
+      },
     ];
     for (const t of searchTopics) {
       if (t.id === "aclgraph") {
