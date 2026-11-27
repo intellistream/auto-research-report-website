@@ -270,3 +270,15 @@ describe("frozen ACLGraph contract", () => {
     expect(revealTopicPart({ getElementById: () => null } as unknown as Document, "missing")).toBe(false);
   });
 });
+
+it("opens the control-plane topic from the directory and resolves each evidence view", () => {
+  const item = actualIndex.topics.find(row => row.id === "distributed-inference-control-plane") as unknown as Topic;
+  const path = "/topics/" + item.id;
+  expect(renderTopic("/topics", item)).toContain(path);
+  expect(renderTopic(path, item)).toContain("沿一次多轮请求看控制面");
+  expect(renderTopic(path + "?view=systems", item)).toContain("Llumnix");
+  const evidence = renderTopic(path + "?view=evidence", item);
+  expect(evidence).toContain("controller-35b-two-devbox-20261125");
+  expect(evidence).toContain("713.45");
+  for (const entry of item.entries) expect(evidence).toContain(entry.url);
+});

@@ -9,6 +9,7 @@ import type { AcademicPaper } from "./academic-paper";
 import type { TopicSurvey } from "./topic-survey";
 import KvCacheTopic, { KvCacheTopicCard } from "./KvCacheTopic";
 import { communityEntries } from "./kv-community";
+import ControlPlaneTopic, { ControlPlaneCard } from "./ControlPlaneTopic";
 import AclGraphTopic, { AclGraphTopicCard } from "./AclGraphTopic";
 import { getAclGraphAnalysisStats } from "./aclgraph-analysis";
 import SpecDecTopic, { SpecDecTopicCard } from "./SpecDecTopic";
@@ -71,7 +72,9 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
     <div className="topic-page">
       {topic && <RelatedGroupMods topicId={topic.id} />}
       {topic ? (
-        topic.id === "aclgraph" ? (
+        topic.id === "distributed-inference-control-plane" ? (
+          <ControlPlaneTopic topic={topic} />
+        ) : topic.id === "aclgraph" ? (
           <AclGraphTopic topic={topic} />
         ) : topic.id === "speculative-decoding" ? (
           <SpecDecTopic topic={topic} />
@@ -107,7 +110,9 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
           <ul className="topic-directory">
             <KvCacheTopicCard />
             {archiveTopics.map((row) =>
-              row.id === "aclgraph" ? (
+              row.id === "distributed-inference-control-plane" ? (
+                <ControlPlaneCard key={row.id} topic={row} />
+              ) : row.id === "aclgraph" ? (
                 <AclGraphTopicCard key={row.id} topic={row} />
               ) : row.id === "speculative-decoding" ? (
                 <SpecDecTopicCard key={row.id} topic={row} />

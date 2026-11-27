@@ -6908,6 +6908,72 @@
         },
         "manifestPath": "topic-papers/speculative-decoding/55a5ac0230875b20dc43011902adf41d3f47d466b4fc871309ac15c265a835ba/manifest.json"
       }
+    },
+    {
+      "id": "distributed-inference-control-plane",
+      "title": "分布式推理控制面",
+      "description": "请求放行与恢复、副本路由、KV 状态交接，以及实例扩缩、排空和故障恢复。",
+      "entries": [
+        {
+          "day": "2026-11-14",
+          "version": "67e17707393e20c6375135036cfa85c8a1e592eda24ddb7688e3d6ab9c695ff8",
+          "stage": "resource_reclaim",
+          "number": "V26",
+          "workId": "github:vllm-project/vllm#67282",
+          "title": "调整托管引擎关闭信号以排空在途请求",
+          "label": "lifecycle",
+          "summary": "停服时将关闭信号与在途请求排空对齐。",
+          "reason": "停服时将关闭信号与在途请求排空对齐。",
+          "method": "manual",
+          "repository": "vllm",
+          "url": "https://github.com/vllm-project/vllm/pull/67282"
+        },
+        {
+          "day": "2026-11-18",
+          "version": "d8db06dde8101c5c37ce91b1c26617052fa58a291440fd51816f4cd6130c4822",
+          "stage": "pd_transfer",
+          "number": "V13",
+          "workId": "github:vllm-project/vllm#68047",
+          "title": "按远端断连错误失效拉取模式对端以触发重连",
+          "label": "recovery",
+          "summary": "对端断连后失效旧连接，使后续拉取可以重连。",
+          "reason": "对端断连后失效旧连接，使后续拉取可以重连。",
+          "method": "manual",
+          "repository": "vllm",
+          "url": "https://github.com/vllm-project/vllm/pull/68047"
+        },
+        {
+          "day": "2026-11-18",
+          "version": "d8db06dde8101c5c37ce91b1c26617052fa58a291440fd51816f4cd6130c4822",
+          "stage": "pd_transfer",
+          "number": "V11",
+          "workId": "github:vllm-project/vllm#66514",
+          "title": "修复 NIXL 分离式推理的显存与握手配置",
+          "label": "transfer",
+          "summary": "分离式推理的两端需要一致的握手与显存配置。",
+          "reason": "分离式推理的两端需要一致的握手与显存配置。",
+          "method": "manual",
+          "repository": "vllm",
+          "url": "https://github.com/vllm-project/vllm/pull/66514"
+        }
+      ],
+      "labels": {
+        "lifecycle": "实例生命周期",
+        "recovery": "故障恢复",
+        "transfer": "状态交接"
+      },
+      "counts": {
+        "total": 3,
+        "byRepository": {
+          "vllm": 3
+        }
+      },
+      "coverage": {
+        "firstDay": "2026-11-14",
+        "lastDay": "2026-11-18",
+        "days": 2,
+        "prs": 3
+      }
     }
   ]
 }
