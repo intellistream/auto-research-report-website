@@ -171,7 +171,7 @@ describe("member workbench interactions using controlled fixtures", () => {
 describe("admin workbench safe views", () => {
   it("resolves a stable GitHub identity before allowing admission", async () => {
     session.member.is_admin = true; show(); await screen.findByLabelText(/账号菜单 @/); fireEvent.click(screen.getByLabelText(/账号菜单 @/)); fireEvent.click(screen.getByRole("link", { name: "管理后台" }));
-    await screen.findByLabelText("GitHub 用户名"); fireEvent.change(screen.getByLabelText("GitHub 用户名"), { target: { value: "controlled-new" } }); fireEvent.click(screen.getByRole("button", { name: "核对 GitHub 身份" }));
+    await screen.findByLabelText("GitHub 用户名"); fireEvent.change(screen.getByLabelText("GitHub 用户名"), { target: { value: "controlled-new" } }); fireEvent.click(screen.getByRole("button", { name: "新增用户" }));
     await screen.findByText(/稳定 GitHub ID 22/); expect(fetcher.mock.calls.some(([path, o]) => path === "/api/admin/members" && o.method === "POST")).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "确认开通" })); await waitFor(() => expect(fetcher.mock.calls.some(([path, o]) => path === "/api/admin/members" && o.method === "POST")).toBe(true));
   });
