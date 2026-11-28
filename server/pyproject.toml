@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "research-workbench-website"
+version = "4.0.0"
+description = "Standalone account-owned research website backend"
+requires-python = ">=3.11"
+dependencies = ["fastapi==0.163.1", "uvicorn==0.54.0", "httpx==0.28.1"]
+
+[project.optional-dependencies]
+dev = ["pytest==9.1.1", "ruff==0.14.14"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
