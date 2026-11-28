@@ -23,8 +23,9 @@ describe("technical topic directory", () => {
       "/topics/kv-cache?view=overview", "/topics/aclgraph?view=analysis",
       "/topics/speculative-decoding?view=report",
       "/topics/distributed-inference-control-plane?view=instances",
+      "/topics/pipeline-reordering?view=analysis",
     ];
-    expect(cards).toHaveLength(index.topics.filter(topic => topic.id !== "kv-cache").length + 1);
+    expect(cards).toHaveLength(index.topics.filter(topic => topic.id !== "kv-cache").length + 2);
     for (const path of paths) {
       const card = cards.find(html => html.includes('href="' + path + '"'));
       expect(card).toBeDefined();

@@ -1,4 +1,6 @@
 import { BookOpen } from "lucide-react";
+import PipelineReorderingTopic, { PipelineReorderingTopicCard } from "./PipelineReorderingTopic";
+import { pipelineStats } from "./pipeline-reordering";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import "./topics.css";
 import RelatedGroupMods from "../features/group-mods/RelatedGroupMods";
@@ -50,6 +52,7 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
   const [query] = useSearchParams();
   const view = query.get("view");
 
+  if (topicId === "pipeline-reordering") return <div className="topic-page"><PipelineReorderingTopic /></div>;
   if (topicId === "kv-cache") return <div className="topic-page"><RelatedGroupMods topicId="kv-cache" /><KvCacheTopic /></div>;
   const validIndex = index && [1, 2].includes(index.schemaVersion) && Array.isArray(index.topics);
   if (topicId && error) return <div className="overview-status-card error" role="alert">暂无可用的专题索引。<Link to="/reports">查看日报档案</Link></div>;
@@ -66,7 +69,7 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
     );
   }
 
-  const totalTopicPRs = archiveTopics.reduce((sum, t) => sum + (t.id === "aclgraph" ? getAclGraphAnalysisStats().prs : (t.counts?.total ?? 0)), communityEntries.length);
+  const totalTopicPRs = archiveTopics.reduce((sum, t) => sum + (t.id === "aclgraph" ? getAclGraphAnalysisStats().prs : (t.counts?.total ?? 0)), communityEntries.length + pipelineStats.prs);
 
   return (
     <div className="topic-page">
@@ -97,7 +100,7 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
             </div>
             <div className="topic-dir-summary">
               <div>
-                <strong>{archiveTopics.length + 1}</strong>
+                <strong>{archiveTopics.length + 2}</strong>
                 <span>核心专题</span>
               </div>
               <div>
@@ -124,6 +127,7 @@ export default function TopicPages({ index, error }: { index?: TopicIndex; error
                 <EngineeringTopicCard key={row.id} topic={row} />
               ),
             )}
+            <PipelineReorderingTopicCard />
           </ul>
           {error && <p className="overview-status-card error" role="alert">其他专题索引暂不可用。</p>}
           {!error && !index && <p className="overview-status-card" role="status">正在加载其他专题…</p>}

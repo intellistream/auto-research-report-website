@@ -429,6 +429,25 @@ test("stable serialization is independent of object insertion order and matches 
   assert.equal(canonicalStringify({ b: { d: 4, c: 3 }, a: 1 }), canonicalStringify({ a: 1, b: { c: 3, d: 4 } }));
 });
 
+test("wrapped problem analysis keeps its own topic links and explicit PR pointers", async t => {
+  const source = { ...descriptor("problem_analysis"), topicId: "pipeline-reordering" };
+  const fx = await fixture(t, [source]);
+  await put(fx.directory, source.path, { provenance: { note: "prototype" }, problems: [{
+    id: "microbatch", title: "微批重叠", gap: { researchOpportunity: "待验证" },
+    papers: [{ title: "paper", url: url(999) }],
+    prs: [{ id: "pr-example-44", prId: id(44), repository: "example/engine", number: 44,
+      url: url(44), title: "overlap", optimization: "preserve dependency", evidenceRefs: [{ sourceUrl: url(888) }] }],
+  }] });
+  const built = await fx.build();
+  const work = built.works.works.find(row => row.workId === id(44));
+  assert.ok(work);
+  const observation = work.observations[0];
+  assert.equal(observation.topicId, "pipeline-reordering");
+  assert.equal(observation.jsonPointer, "/problems/0/prs/0");
+  assert.equal(observation.href, "/topics/pipeline-reordering?view=analysis&problem=microbatch&card=pr-example-44");
+  assert.ok(!built.works.works.some(row => [id(888), id(999)].includes(row.workId)));
+});
+
 test("real current site corpus retains the known PR sources and prerequisite without asserting frozen totals", async () => {
   const built = await buildCommunityCorpus({ root, generatedAt: clock });
   for (const range of ["1-2", "3-4", "5-6"]) assert.ok(built.diagnostics.runtimeImportGraph.staticJson.includes("src/pages/aclgraph-data/problems-" + range + ".json"));

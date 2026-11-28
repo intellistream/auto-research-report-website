@@ -9,8 +9,13 @@ import { uniquePRs } from "../pages/ReportTrends";
 import { useJson, type Catalog } from "../pages/report-preview-data";
 import { ACLGRAPH_PROBLEMS, getAclGraphAnalysisStats, type AclGraphProblem } from "../pages/aclgraph-analysis";
 
+const pipelineTopicSearchEntry = {
+  id: "pipeline-reordering", title: "流水线重排",
+  description: "导引与专题剖析：主机与设备衔接、微批拆分、计算通信重叠、发射顺序、资源争用与多卡一致性。",
+};
 const aclGraphDescription = "导引 · 专题剖析：理解图捕获与重放，按核心问题拆解 Research Gap、论文方法与社区 PR。";
 const topicKeywords: Record<string, string> = {
+  "pipeline-reordering": "pipeline reordering overlap async scheduling DBO microbatch NanoFlow Opara FlashOverlap CloudMatrix384 64145 66052 63483 19716 19909 22200 66465 20242",
   "distributed-inference-control-plane": "distributed inference control plane RIDE ThunderAgent MORI Dynamo Llumnix Ray 分布式推理控制面 放行 恢复 路由 排空",
   "kv-cache": "kv cache 缓存 分页 复用 布局 容量 传输",
   "speculative-decoding": "speculative decoding 推测解码 草稿 验证 EAGLE MTP DFlash",
@@ -78,7 +83,9 @@ export function computeCommandSearchResults({ query, category, topics, days, cat
         description: "分布式请求调度、分布式 KV 优化、分布式多实例优化。",
       },
     ];
-    for (const t of searchTopics) {
+    const topicsWithPipeline = searchTopics.some(t => t.id === pipelineTopicSearchEntry.id)
+      ? searchTopics : [...searchTopics, pipelineTopicSearchEntry];
+    for (const t of topicsWithPipeline) {
       if (t.id === "aclgraph") {
         const stats = getAclGraphAnalysisStats(aclProblems);
         const problemEntries = aclProblems.map(problem => ({
