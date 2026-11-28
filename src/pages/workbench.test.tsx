@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { StrictMode } from "react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ResearchQuery from "./ResearchQuery";
@@ -15,7 +16,10 @@ const json = (value: unknown, status = 200) => new Response(JSON.stringify(value
 let adminMembers: Member[];
 let studies: Study[], jobs: Job[], session: any, sessionStatus: number, charged: number, failRead: boolean, loseSubmission: boolean;
 let fetcher: ReturnType<typeof vi.fn>, keys: Map<string, Job>, hook: ((path: string, options: RequestInit) => Promise<Response> | undefined) | undefined;
-function show(path = "/research?study=s1") { return render(<MemoryRouter initialEntries={[path]}><WorkbenchSessionProvider><SiteLayout days={[]}><ResearchQuery /></SiteLayout></WorkbenchSessionProvider></MemoryRouter>); }
+function show(path = "/research?study=s1", strict = false) {
+  const content = <WorkbenchSessionProvider><SiteLayout days={[]}><ResearchQuery /></SiteLayout></WorkbenchSessionProvider>;
+  return render(<MemoryRouter initialEntries={[path]}>{strict ? <StrictMode>{content}</StrictMode> : content}</MemoryRouter>);
+}
 function summarize(study: Study) { return { ...study, reportCount: jobs.filter((j) => j.studyId === study.id && j.status === "complete" && !j.reportExpired).length, activeJobCount: jobs.filter((j) => j.studyId === study.id && ["running", "queued"].includes(j.status)).length }; }
 beforeEach(() => {
   vi.stubEnv("VITE_WORKBENCH_MODE", "enabled");
@@ -237,5 +241,121 @@ describe("independent management navigation and header account", () => {
   it("does not request a private session or show account controls in the public build", async () => {
     vi.stubEnv("VITE_WORKBENCH_MODE", ""); show("/research"); await screen.findByText("工作台入口尚未配置，请联系管理员。");
     expect(fetcher.mock.calls.some(([path]) => path === "/api/session")).toBe(false); expect(screen.queryByLabelText(/账号菜单 @/)).toBeNull();
+  });
+});
+
+describe("automatic session checks and failure-only retry", () => {
+  const checks = () => fetcher.mock.calls.filter(([path]) => path === "/api/session").length;
+  it("shows only the GitHub action after a normal anonymous result", async () => {
+    sessionStatus = 401; show("/research"); await screen.findByRole("link", { name: "使用 GitHub 登录" });
+    const gate = screen.getByRole("region", { name: "研究查询" });
+    expect(within(gate).queryByRole("button")).toBeNull(); expect(within(gate).getAllByRole("link")).toHaveLength(1);
+    expect(screen.queryByText("重新检查登录状态")).toBeNull(); expect(screen.queryByRole("button", { name: "重试" })).toBeNull();
+  });
+  it("checks automatically on an authenticated return and coalesces focus/visibility/pageshow without losing a draft", async () => {
+    show(); await screen.findByText("第二份报告问题");
+    fireEvent.change(screen.getByPlaceholderText("请输入你想生成的报告内容"), { target: { value: "正在编辑的草稿" } });
+    const before = checks(); let resolve!: (response: Response) => void;
+    hook = (path) => path === "/api/session" ? new Promise((done) => { resolve = done; }) : undefined;
+    fireEvent(window, new Event("focus")); fireEvent(document, new Event("visibilitychange")); fireEvent(window, new Event("pageshow"));
+    await waitFor(() => expect(checks()).toBe(before + 1));
+    expect(screen.queryByText("正在确认登录状态…")).toBeNull(); expect(screen.getByDisplayValue("正在编辑的草稿")).toBeTruthy();
+    await act(async () => { resolve(json(session)); });
+    expect(checks()).toBe(before + 1); expect(screen.getByDisplayValue("正在编辑的草稿")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "使用 GitHub 登录" })).toBeNull();
+  });
+  it.each(["anonymous", "member"])("explains a network failure safely and removes retry when recovery returns %s", async (result) => {
+    hook = (path) => path === "/api/session" ? Promise.reject(new TypeError("raw transport detail token=do-not-display")) : undefined;
+    show("/research"); await screen.findByRole("button", { name: "重试" });
+    expect(screen.getByText("无法连接登录服务，请检查网络后重试。")).toBeTruthy(); expect(document.body.textContent).not.toContain("do-not-display");
+    hook = undefined; sessionStatus = result === "anonymous" ? 401 : 200;
+    fireEvent.click(screen.getByRole("button", { name: "重试" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "重试" })).toBeNull());
+    expect(screen.queryByText("无法连接登录服务，请检查网络后重试。")).toBeNull();
+    if (result === "anonymous") expect(screen.getByRole("link", { name: "使用 GitHub 登录" })).toBeTruthy();
+    else await screen.findByLabelText("账号菜单 @controlled-a");
+  });
+  it("explains service failure without exposing the raw response, and retries automatically into the member view", async () => {
+    hook = (path) => path === "/api/session" ? Promise.resolve(json({ detail: { code: "auth_unavailable", message: "raw backend URL token=private" } }, 503)) : undefined;
+    show("/research"); await screen.findByRole("button", { name: "重试" });
+    expect(screen.getByText("登录服务暂时不可用，请稍后重试。")).toBeTruthy(); expect(document.body.textContent).not.toContain("token=private");
+    hook = undefined; fireEvent.click(screen.getByRole("button", { name: "重试" })); await screen.findByLabelText("账号菜单 @controlled-a");
+    expect(screen.queryByRole("button", { name: "重试" })).toBeNull();
+  });
+  it("keeps an authenticated draft during a temporary check failure and enables actions after retry", async () => {
+    show(); await screen.findByText("第二份报告问题"); fireEvent.change(screen.getByPlaceholderText("请输入你想生成的报告内容"), { target: { value: "保留此草稿" } });
+    hook = (path) => path === "/api/session" ? Promise.reject(new TypeError("controlled offline")) : undefined;
+    fireEvent(window, new Event("focus")); await screen.findByRole("button", { name: "重试" });
+    expect(screen.getByDisplayValue("保留此草稿")).toBeTruthy(); expect((screen.getByRole("button", { name: "生成报告" }) as HTMLButtonElement).disabled).toBe(true);
+    hook = undefined; fireEvent.click(screen.getByRole("button", { name: "重试" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "重试" })).toBeNull());
+    expect(screen.getByDisplayValue("保留此草稿")).toBeTruthy(); expect((screen.getByRole("button", { name: "生成报告" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("automatically discovers a login from another tab without a retry button", async () => {
+    sessionStatus = 401; show("/research"); await screen.findByRole("link", { name: "使用 GitHub 登录" });
+    sessionStatus = 200; fireEvent(document, new Event("visibilitychange"));
+    await screen.findByLabelText("账号菜单 @controlled-a"); await screen.findByRole("button", { name: /研究甲/ });
+    expect(screen.queryByRole("button", { name: "重试" })).toBeNull();
+  });
+  it.each([
+    [403, "member_not_allowed", "GitHub @controlled-a：当前 GitHub 账号尚未开通研究权限，请联系管理员。"],
+    [403, "member_disabled", "GitHub @controlled-a：当前账号已停用，请联系管理员。"],
+    [401, "session_expired", "登录会话已过期，请重新登录。"],
+    [401, "session_revoked", "登录会话已失效，请重新登录。"],
+    [401, "oauth_failed", "本次 GitHub 登录未完成，请重新登录。"],
+    [503, "github_unavailable", "GitHub 登录暂不可用，请稍后重新登录。"],
+  ])("consumes %s/%s once in StrictMode and preserves the notice across ordinary anonymous checks", async (status, code, notice) => {
+    let consumed = false;
+    hook = (path) => {
+      if (path !== "/api/session") return;
+      const data = consumed ? { code: "authentication_required" } : { code, github_login: "controlled-a", message: "raw notice token=private" };
+      const responseStatus = consumed ? 401 : Number(status); consumed = true;
+      return Promise.resolve(json({ detail: data }, responseStatus));
+    };
+    show("/research", true); await screen.findByText(String(notice)); expect(checks()).toBe(1);
+    await act(async () => { fireEvent(window, new Event("focus")); }); expect(checks()).toBe(2);
+    expect(screen.getByText(String(notice))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "重试" })).toBeNull(); expect(document.body.textContent).not.toContain("token=private");
+  });
+  it("treats a malformed anonymous response as a check failure rather than normal logged-out state", async () => {
+    hook = (path) => path === "/api/session" ? Promise.resolve(new Response("<html>private diagnostic</html>", { status: 401 })) : undefined;
+    show("/research"); await screen.findByRole("button", { name: "重试" });
+    expect(screen.getByText("登录状态检查未完成，请重试。")).toBeTruthy(); expect(document.body.textContent).not.toContain("private diagnostic");
+    hook = undefined; sessionStatus = 401; fireEvent.click(screen.getByRole("button", { name: "重试" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "重试" })).toBeNull());
+    expect(screen.getByRole("link", { name: "使用 GitHub 登录" })).toBeTruthy();
+  });
+  it.each([false, true])("does not restore private contents from a check completed after logout (all=%s)", async (all) => {
+    show(); await screen.findByText("第二份报告问题"); fireEvent.change(screen.getByPlaceholderText("请输入你想生成的报告内容"), { target: { value: "退出后应移除的草稿" } });
+    let resolve!: (response: Response) => void;
+    hook = (path) => path === "/api/session" ? new Promise((done) => { resolve = done; }) : undefined;
+    fireEvent(window, new Event("focus")); await waitFor(() => expect(checks()).toBe(2));
+    fireEvent.click(screen.getByLabelText(/账号菜单 @/)); fireEvent.click(screen.getByRole("button", { name: all ? "退出所有设备" : "退出当前设备" }));
+    const notice = all ? "已退出所有设备。" : "已退出当前设备。"; await screen.findByText(notice);
+    await act(async () => { resolve(json(session)); });
+    expect(screen.getByText(notice)).toBeTruthy(); expect(screen.queryByText("第一份报告问题")).toBeNull();
+    expect(screen.queryByDisplayValue("退出后应移除的草稿")).toBeNull(); expect(screen.queryByLabelText(/账号菜单 @/)).toBeNull();
+    hook = undefined; await act(async () => { fireEvent(window, new Event("focus")); }); expect(checks()).toBe(3);
+    expect(screen.getByText(notice)).toBeTruthy(); expect(screen.queryByRole("button", { name: "重试" })).toBeNull();
+  });
+
+  it("ignores a successful check arriving after a protected request rejects the session", async () => {
+    show(); await screen.findByText("第二份报告问题"); let resolve!: (response: Response) => void;
+    hook = (path) => path === "/api/session" ? new Promise((done) => { resolve = done; })
+      : path.startsWith("/api/research/studies/s1/jobs?") ? Promise.resolve(json({ detail: { code: "session_revoked" } }, 401)) : undefined;
+    fireEvent(window, new Event("focus")); await waitFor(() => expect(checks()).toBe(2));
+    fireEvent.click(screen.getByRole("button", { name: "刷新状态" })); await screen.findByText("登录会话已失效，请重新登录。");
+    await act(async () => { resolve(json(session)); });
+    expect(screen.queryByText("第一份报告问题")).toBeNull(); expect(screen.queryByLabelText(/账号菜单 @/)).toBeNull();
+    expect(screen.getByRole("link", { name: "使用 GitHub 登录" })).toBeTruthy();
+  });
+  it("clears private contents when a failed background check outlives the known session expiry", async () => {
+    show(); await screen.findByText("第二份报告问题");
+    vi.spyOn(Date, "now").mockReturnValue(Date.parse("2100-01-01T00:00:00Z"));
+    hook = (path) => path === "/api/session" ? Promise.reject(new TypeError("controlled offline")) : undefined;
+    fireEvent(window, new Event("focus")); await screen.findByText("登录会话已过期，请重新登录。");
+    expect(screen.queryByText("第一份报告问题")).toBeNull(); expect(screen.queryByLabelText(/账号菜单 @/)).toBeNull();
+    expect(screen.getByText("无法连接登录服务，请检查网络后重试。")).toBeTruthy();
   });
 });

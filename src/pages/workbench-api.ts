@@ -113,11 +113,12 @@ export function parseUsage(value: unknown): Usage {
 /** Only same-origin, authenticated endpoints. No dynamic endpoint discovery or anonymous fallback. */
 export class WorkbenchApi {
   private csrf = "";
+  private sessionOwner = "";
   private epoch = 0;
   private controllers = new Set<AbortController>();
   cancelPending() { this.epoch++; this.controllers.forEach((c) => c.abort()); this.controllers.clear(); }
   onSessionRejected?: (error: WorkbenchError) => void;
-  clear() { this.cancelPending(); this.csrf = ""; }
+  clear() { this.cancelPending(); this.csrf = ""; this.sessionOwner = ""; }
   private async request(path: string, method = "GET", body?: unknown, key?: string, signal?: AbortSignal, file = false): Promise<any> {
     const write = !["GET", "HEAD"].includes(method);
     if (write && !this.csrf) throw new WorkbenchError("请重新登录后再操作。", "authentication_required", 401);
@@ -151,7 +152,8 @@ export class WorkbenchApi {
       let data: Record<string, any>;
       try { data = obj(await response.json()); }
       catch {
-        if (response.status === 401 || response.status === 403) {
+        if (epoch !== this.epoch || signal?.aborted) throw new DOMException("Aborted", "AbortError");
+        if (path !== "/api/session" && (response.status === 401 || response.status === 403)) {
           const error = new WorkbenchError("请重新登录后再操作。", "authentication_required", response.status);
           this.onSessionRejected?.(error); throw error;
         }
@@ -162,7 +164,7 @@ export class WorkbenchApi {
         const detail = typeof data.detail === "object" && data.detail ? data.detail : {};
         const error = new WorkbenchError(str(detail.message).slice(0, 500) || unavailable, str(detail.code) || "request_failed", response.status,
           write && response.status >= 500, str(detail.github_login) || undefined);
-        if (response.status === 401 || (response.status === 403 && /disabled|inactive|not_approved|not_admitted|not_allowed|membership/.test(error.code))) {
+        if (path !== "/api/session" && (response.status === 401 || (response.status === 403 && /disabled|inactive|not_approved|not_admitted|not_allowed|membership/.test(error.code)))) {
           this.onSessionRejected?.(error);
         }
         throw error;
@@ -171,12 +173,17 @@ export class WorkbenchApi {
     } finally { clearTimeout(timer); signal?.removeEventListener("abort", abort); this.controllers.delete(controller); }
   }
   async session(signal?: AbortSignal): Promise<Session> {
+    const epoch = this.epoch;
     const data = await this.request("/api/session", "GET", undefined, undefined, signal);
+    if (epoch !== this.epoch || signal?.aborted) throw new DOMException("Aborted", "AbortError");
     const member = parseMember(data.member);
-    if (data.authenticated !== true || member.status !== "active" || !str(data.csrf_token) || !str(data.expires_at)) {
-      throw new WorkbenchError("当前账号尚未开通研究权限，请联系管理员。", "not_admitted", 403);
+    if (data.authenticated !== true || !str(data.csrf_token) || !Number.isFinite(Date.parse(data.expires_at))) {
+      throw new WorkbenchError(unavailable, "invalid_response");
     }
-    this.csrf = data.csrf_token;
+    if (Date.parse(data.expires_at) <= Date.now()) throw new WorkbenchError("登录会话已过期，请重新登录。", "session_expired", 401);
+    if (member.status !== "active") throw new WorkbenchError("当前账号无法使用研究工作台。", member.status === "disabled" ? "member_disabled" : "not_admitted", 403, false, member.github_login);
+    if (this.sessionOwner && this.sessionOwner !== member.user_id) this.cancelPending();
+    this.sessionOwner = member.user_id; this.csrf = data.csrf_token;
     return { authenticated: true, member, csrf_token: data.csrf_token, expires_at: data.expires_at };
   }
   logout(all = false) { return this.request(`/api/session/${all ? "logout-all" : "logout"}`, "POST", {}); }
