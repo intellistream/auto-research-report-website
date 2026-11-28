@@ -609,3 +609,46 @@ describe("approved management tables and confirmed limits", () => {
     expect(screen.queryByRole("table")).toBeNull(); expect(screen.queryByRole("spinbutton")).toBeNull(); expect(screen.getByRole("link", { name: "使用 GitHub 登录" })).toBeTruthy();
   });
 });
+
+
+describe("website-owned submissions across a detached execution service", () => {
+  it("recovers a website-confirmed queued submission with its original key and restores its result after the page closes", async () => {
+    let accepted: Job | undefined, attempts = 0;
+    hook = (path, options) => {
+      if (path === "/api/research/studies/s1/jobs" && options.method === "POST") {
+        attempts++;
+        if (!accepted) {
+          accepted = { ...makeJob("detached-job", "s1", "后台继续的研究", 3, "queued"), error: undefined, completedAt: undefined };
+          jobs.push(accepted); charged++;
+          return Promise.reject(new TypeError("controlled lost website receipt"));
+        }
+        return Promise.resolve(json(accepted, 202));
+      }
+    };
+    const page = show(); await screen.findByText("第二份报告问题");
+    fireEvent.change(screen.getByPlaceholderText("请输入你想生成的报告内容"), { target: { value: "后台继续的研究" } }); fireEvent.click(screen.getByRole("button", { name: "生成报告" }));
+    await screen.findByRole("button", { name: "检查本次提交结果" }); expect(attempts).toBe(1); expect(charged).toBe(3);
+    fireEvent.click(screen.getByRole("button", { name: "检查本次提交结果" }));
+    await screen.findByTestId("job-detached-job"); expect(within(screen.getByTestId("job-detached-job")).getByText("排队中")).toBeTruthy();
+    expect(within(screen.getByTestId("job-detached-job")).queryByRole("button", { name: /重试/ })).toBeNull();
+    const writes = fetcher.mock.calls.filter(([path, options]) => path === "/api/research/studies/s1/jobs" && options.method === "POST");
+    expect(writes).toHaveLength(2); expect(writes[0][1].headers["Idempotency-Key"]).toBe(writes[1][1].headers["Idempotency-Key"]); expect(writes[0][1].body).toBe(writes[1][1].body);
+    page.unmount();
+    const completed = makeJob("detached-job", "s1", "后台继续的研究", 3); jobs = jobs.map((job) => job.id === completed.id ? completed : job);
+    show("/research?study=s1&job=detached-job"); await screen.findByTitle("当前报告预览"); expect(charged).toBe(3); expect(attempts).toBe(2);
+    fireEvent.click(screen.getByRole("button", { name: "返回本研究的报告与生成记录" })); await screen.findByText("第一份报告问题"); expect(screen.getByText("第二份报告问题")).toBeTruthy(); expect(jobs).toHaveLength(3);
+    expect(fetcher.mock.calls.every(([path]) => path.startsWith("/api/") && !path.startsWith("/internal/"))).toBe(true);
+    expect(fetcher.mock.calls.some(([, options]) => Object.keys(options.headers ?? {}).some((key) => key.toLowerCase() === "authorization"))).toBe(false);
+    expect(fetcher.mock.calls.some(([path]) => path.includes("cancel") || path.endsWith("/retry"))).toBe(false);
+  });
+  it("keeps queued ownership and saved reports when status reads disconnect, without re-running or refunding from the browser", async () => {
+    jobs.push({ ...makeJob("queued-detached", "s1", "已确认排队的生成", 3, "queued"), error: undefined, completedAt: undefined }); charged = 3;
+    show(); await screen.findByTestId("job-queued-detached"); failRead = true;
+    fireEvent.click(screen.getByRole("button", { name: "刷新状态" })); await screen.findByRole("button", { name: "恢复读取" });
+    const queued = within(screen.getByTestId("job-queued-detached")); expect(queued.getByText("排队中")).toBeTruthy(); expect(queued.getByText(/状态暂未更新.*等待开始/)).toBeTruthy(); expect(queued.queryByText("生成失败")).toBeNull();
+    fireEvent.click(within(screen.getByTestId("job-j1")).getByRole("button", { name: "查看报告" })); await screen.findByTitle("当前报告预览");
+    expect(screen.getByRole("button", { name: "下载 HTML" })).toBeTruthy(); fireEvent(window, new Event("focus")); await screen.findByLabelText("账号菜单 @controlled-a");
+    expect(charged).toBe(3); expect(fetcher.mock.calls.some(([, options]) => options.method === "POST")).toBe(false);
+    expect(fetcher.mock.calls.every(([path]) => path.startsWith("/api/") && !path.includes("/internal/"))).toBe(true);
+  });
+});
