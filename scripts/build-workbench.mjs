@@ -42,6 +42,10 @@ export async function buildWorkbench(output) {
   if (origin !== "https://github.com/intellistream/auto-research-report-website.git") throw new Error("Unexpected website repository origin.");
   const dirty = execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" }).trim();
   if (dirty) throw new Error("Commit or isolate source changes before building a versioned workbench.");
+  const source = await readFile(path.join(root, "src/pages/ResearchQuery.tsx"), "utf8");
+  if (!source.includes("import.meta.env.VITE_WORKBENCH_MODE") || !source.includes("ResearchWorkbench")) {
+    throw new Error("The T03 workbench build capability is missing; integrate website PR #87 first.");
+  }
   const sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
   await mkdir(path.dirname(output), { recursive: true });
   const staging = output + ".building-" + process.pid;
@@ -55,6 +59,9 @@ export async function buildWorkbench(output) {
       VITE_RESEARCH_API_CONFIG_URL: "", RESEARCH_API_PROXY: "",
     },
   });
+  if (execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" }).trim()) {
+    throw new Error("The build changed source files; review and commit them before packaging.");
+  }
   await sealBuild(staging, sourceCommit);
   await rename(staging, output);
   return { directory: output, sourceCommit, mode: "workbench", api: "same-origin", deployed: false };
