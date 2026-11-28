@@ -74,6 +74,7 @@ beforeEach(() => {
       const job = jobs.find((j) => j.id === jobId && j.studyId === studyId);
       if (!job) return json({ detail: { code: "not_found", message: "内容不存在、已到期或当前账号无法访问。" } }, 404);
       if (method === "DELETE") { jobs = jobs.filter((j) => j.id !== jobId); return new Response(null, { status: 204 }); }
+      if (action === "report.json") return json({ query: job.query, coverage: { startDate: "2026-10-29", endDate: "2026-11-28" }, synthesisStatus: job.synthesisStatus, review: { status: job.reviewStatus, issues: [] } });
       if (action?.startsWith("report.")) return new Response("<h1>受控报告</h1>", { headers: { "content-type": "text/html" } }); return json(job);
     }
     throw new Error(`Unexpected test request: ${method} ${path}`);
@@ -159,7 +160,7 @@ describe("member workbench interactions using controlled fixtures", () => {
     await screen.findByText("已退出所有设备。"); expect(screen.queryByText("第一份报告问题")).toBeNull(); expect(fetcher.mock.calls.some(([path, o]) => path === "/api/session/logout-all" && o.headers["X-CSRF-Token"] === "controlled-csrf")).toBe(true);
   });
   it("deletes one terminal report only after confirming its scope", async () => {
-    show(); await screen.findByText("第二份报告问题"); fireEvent.click(within(screen.getByTestId("job-j1")).getByRole("button", { name: "删除这份报告" }));
+    show(); await screen.findByText("第二份报告问题"); fireEvent.click(within(screen.getByTestId("job-j1")).getByLabelText("生成记录 #1 更多操作")); fireEvent.click(within(screen.getByTestId("job-j1")).getByRole("button", { name: "删除这份报告" }));
     const dialog = screen.getByRole("dialog", { name: "删除这份报告" }); expect(within(dialog).getByText(/当前研究和其他报告继续保留/)).toBeTruthy(); fireEvent.click(within(dialog).getByRole("button", { name: "确认" }));
     await waitFor(() => expect(screen.queryByText("第一份报告问题")).toBeNull()); expect(screen.getByText("第二份报告问题")).toBeTruthy(); expect(studies).toHaveLength(2); expect(charged).toBe(2);
   });
@@ -418,5 +419,57 @@ describe("compact generation and research tools", () => {
     show(); await screen.findByText("用量暂不可用，提交时核验"); expect(screen.queryByText(/今日已用 0/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "额度详情" }));
     expect(within(screen.getByRole("region", { name: "生成额度详情" })).getByText("暂时无法读取用量，提交时仍由服务端检查额度。")).toBeTruthy();
+  });
+});
+
+
+describe("compact report cards and factual quality", () => {
+  it("keeps stable generation numbers, concise dates and no search-range or generic quality warning in the list", async () => {
+    jobs[0].number = 7; jobs[1].number = 42; show(); await screen.findByText("第二份报告问题");
+    const history = screen.getByRole("region", { name: "报告与生成记录" }), card = within(history).getByTestId("job-j1");
+    expect(within(card).getByText("#7")).toBeTruthy(); expect(within(history).getByText("#42")).toBeTruthy();
+    expect(within(card).queryByText(/生成记录 7/)).toBeNull(); expect(card.textContent).not.toContain("最近 30 天");
+    expect(card.textContent).not.toMatch(/待核查|需进一步核查/); expect(within(card).getByText("已生成")).toBeTruthy();
+    expect(within(card).getByText("2026/11/28 08:01")).toBeTruthy(); expect(within(card).getByText("2027/02/28")).toBeTruthy();
+    expect(card.textContent).not.toContain("08:01:00"); expect(within(card).getByRole("button", { name: "删除这份报告" }).closest("details")?.open).toBe(false);
+    expect(within(history).getByRole("button", { name: "刷新状态" })).toBeTruthy();
+  });
+  it("scopes each more menu and confirmation to its own record after the list changes order", async () => {
+    show(); await screen.findByText("第二份报告问题");
+    const first = screen.getByLabelText("生成记录 #1 更多操作"), second = screen.getByLabelText("生成记录 #2 更多操作");
+    fireEvent.click(first); expect(first.closest("details")?.open).toBe(true);
+    fireEvent.pointerDown(second); fireEvent.click(second); expect(first.closest("details")?.open).toBe(false);
+    fireEvent.keyDown(second, { key: "Escape" }); expect(second.closest("details")?.open).toBe(false);
+    jobs.reverse(); fireEvent.click(screen.getByRole("button", { name: "刷新状态" })); await waitFor(() => expect(screen.getAllByRole("button", { name: "查看报告" })).toHaveLength(2));
+    fireEvent.click(screen.getByLabelText("生成记录 #1 更多操作")); fireEvent.click(within(screen.getByTestId("job-j1")).getByRole("button", { name: "删除这份报告" }));
+    const dialog = screen.getByRole("dialog", { name: "删除这份报告" }); fireEvent.click(within(dialog).getByRole("button", { name: "确认" }));
+    await waitFor(() => expect(screen.queryByText("第一份报告问题")).toBeNull()); expect(screen.getByText("第二份报告问题")).toBeTruthy(); expect(studies).toHaveLength(2);
+    expect(fetcher.mock.calls.filter(([, options]) => options.method === "DELETE").map(([path]) => path)).toEqual(["/api/research/studies/s1/jobs/j1"]);
+  });
+  it("shows a producer revision and evidence shortage separately from generation success, then reads actual historical scope and reasons", async () => {
+    const original = jobs[0];
+    const raw = { ...original, reviewStatus: "needs_revision", synthesisStatus: "insufficient_evidence" };
+    hook = (path) => path.startsWith("/api/research/studies/s1/jobs?") ? Promise.resolve(json({ jobs: [raw, jobs[1]], offset: 0, limit: 20, total: 2 }))
+      : path === "/api/research/studies/s1/jobs/j1" ? Promise.resolve(json(raw))
+      : path.endsWith("/j1/report.json") ? Promise.resolve(json({ coverage: { startDate: "2020-01-02", endDate: "2020-02-01" }, review: { status: "needs_revision", issues: [{ claim: "受控表述", reason: "来源未提供相应测试条件", sourceIds: ["source-A"] }] }, synthesisStatus: "insufficient_evidence" })) : undefined;
+    show(); await screen.findByText("第二份报告问题"); const card = screen.getByTestId("job-j1");
+    expect(within(card).getByText("已生成")).toBeTruthy(); expect(within(card).getByText("需修订")).toBeTruthy(); expect(within(card).getByText("证据不足")).toBeTruthy();
+    fireEvent.click(within(card).getByRole("button", { name: "查看报告" })); await screen.findByTitle("当前报告预览");
+    await screen.findByText("来源未提供相应测试条件"); expect(screen.getByText("资料检索范围")).toBeTruthy(); expect(screen.getByText(/本次选择：最近 30 天/)).toBeTruthy();
+    expect(screen.getByText("2020-01-02")).toBeTruthy(); expect(screen.getByText("2020-02-01")).toBeTruthy(); expect(screen.getByText("来源编号：source-A")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "下载 JSON" })).toBeTruthy(); expect(screen.queryByText("需进一步核查")).toBeNull();
+  });
+  it("does not present missing quality as approval or invent a reason", async () => {
+    jobs[0].reviewStatus = undefined; jobs[0].synthesisStatus = undefined;
+    show(); await screen.findByText("第二份报告问题"); const card = screen.getByTestId("job-j1"); expect(within(card).getByText("质量状态未提供")).toBeTruthy();
+    fireEvent.click(within(card).getByRole("button", { name: "查看报告" })); await screen.findByTitle("当前报告预览");
+    await screen.findByText("报告未提供具体问题或依据。"); expect(screen.queryByText("审查通过")).toBeNull(); expect(screen.getByRole("button", { name: "下载 HTML" })).toBeTruthy();
+  });
+  it("keeps HTML readable if optional scope/quality JSON fails and retries only that metadata", async () => {
+    hook = (path) => path.endsWith("/report.json") ? Promise.reject(new TypeError("private raw transport")) : undefined;
+    show("/research?study=s1&job=j1"); await screen.findByTitle("当前报告预览"); await screen.findByText("暂时无法读取报告中的资料范围与质量说明，正文仍可阅读。");
+    const htmlReads = () => fetcher.mock.calls.filter(([path]) => path.endsWith("/report.html")).length; expect(htmlReads()).toBe(1);
+    hook = undefined; fireEvent.click(screen.getByRole("button", { name: "重新读取资料与质量说明" })); await screen.findByText("2026-10-29");
+    expect(htmlReads()).toBe(1); expect(screen.getByTitle("当前报告预览")).toBeTruthy(); expect(document.body.textContent).not.toContain("private raw transport");
   });
 });

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Copy } from "lucide-react";
-import { ResearchProgress } from "./ResearchQuery";
+import { Copy, RefreshCw } from "lucide-react";
 import { WorkbenchError, errorMessage, privateLocation, type WorkbenchApi, type Job, type Study, type Usage } from "./workbench-api";
 import { ConfirmDialog, Notice, dateText, generationWait, pending } from "./workbench-ui";
 import type { Draft, Operation } from "./WorkbenchWorkspace";
 import WorkbenchReport from "./WorkbenchReport";
+import WorkbenchJobCard from "./WorkbenchJobCard";
 export default function WorkbenchStudy({ api, id, jobId, revision, available, draft, onDraft, operation, operationError, onGenerate, onChanged, onJob, onDeleted }: {
   api: WorkbenchApi; id: string; jobId?: string; revision: number; available: boolean; draft: Draft; onDraft: (draft: Draft) => void;
   operation?: Operation; operationError?: string; onGenerate: (draft?: Draft, retryOf?: string) => void;
@@ -111,18 +111,11 @@ export default function WorkbenchStudy({ api, id, jobId, revision, available, dr
         {unavailableQuota && usage && <Notice>{usage.active >= usage.activeJobLimit ? "你有生成尚未结束，请在我的研究列表查看对应研究和进度，结束后再提交。" : "今日生成额度不足，可继续阅读已有报告，等待恢复或联系管理员。"}</Notice>}
         {operationError && <Notice error>{operationError}</Notice>}{operation?.state === "unknown" && <Notice error>{operation.error}<button type="button" disabled={!available} onClick={() => onGenerate()}>检查本次提交结果</button><p>检查沿用原研究、原参数和同一次操作标记，不另建生成。</p></Notice>}
       </form></section>
-      <section className="wb-card wb-history"><div className="wb-section-heading"><h3>报告与生成记录</h3><button onClick={() => setRefresh((v) => v + 1)}>刷新状态</button></div>
+      <section className="wb-card wb-history" aria-labelledby="wb-history-title"><div className="wb-section-heading"><h3 id="wb-history-title">报告与生成记录</h3><button className="wb-refresh" aria-label="刷新状态" title="刷新状态" onClick={() => setRefresh((v) => v + 1)}><RefreshCw size={17} aria-hidden="true" /></button></div>
         {!jobs.length && <p className="wb-empty">这项研究还没有报告。填写上方内容后可生成第一份。</p>}
-        <ol>{[...jobs].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.number - a.number).map((job) => <li key={job.id} className="wb-job" data-testid={`job-${job.id}`}>
-          <div className="wb-job-heading"><h4><span className="wb-meta">生成记录 {job.number}</span>{job.query}</h4><span className={`wb-status wb-status-${job.status}`}>{job.reportExpired ? "报告已到期" : job.status === "complete" ? "已生成" : job.status === "failed" ? "生成失败" : job.status === "queued" ? "排队中" : "生成中"}</span></div>
-          <p className="wb-meta">最近 {job.days} 天 · 提交于 {dateText(job.createdAt)}{job.retryOf && " · 来自一次失败重试"}</p>{pending(job) && <ResearchProgress job={job} interrupted={!!error} />}
-          {job.status === "failed" && <p className="wb-error-text">{job.error || "本次生成未完成，可重试。"} 其他报告继续保留。</p>}
-          {job.status === "complete" && <p className="wb-meta">{job.reportExpired ? "文件已到期，生成历史仍保留在本研究中。" : `报告文件保留至 ${dateText(job.reportExpiresAt)}`}</p>}
-          {job.status === "complete" && (job.reviewStatus !== "approved" || job.synthesisStatus !== "generated") && <p className="wb-warning">已生成，需进一步核查。请查看审查与证据状态。</p>}
-          <div className="wb-actions"><button onClick={() => openJob(job.id)}>{job.status === "complete" && !job.reportExpired ? "查看报告" : "查看生成记录"}</button>
-            {job.status === "failed" && job.retryable !== false && <button disabled={!available || !!operation || unavailableQuota} onClick={() => onGenerate(undefined, job.id)}>重试（计一次生成）</button>}
-            {!pending(job) && <button className="wb-danger-text" disabled={!available || busy} onClick={() => setRemove(job)}>{job.status === "complete" ? "删除这份报告" : "删除这条记录"}</button>}</div>
-        </li>)}</ol>{jobs.length < total && <button disabled={busy} onClick={() => void moreJobs()}>加载更多生成记录</button>}
+        <ol className="wb-job-list">{[...jobs].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.number - a.number).map((job) => <WorkbenchJobCard key={job.id} job={job} available={available} busy={busy} interrupted={!!error}
+          retryDisabled={!available || !!operation || unavailableQuota} onOpen={() => openJob(job.id)} onRemove={() => setRemove(job)} onRetry={() => onGenerate(undefined, job.id)} />)}</ol>
+        {jobs.length < total && <button disabled={busy} onClick={() => void moreJobs()}>加载更多生成记录</button>}
       </section></>}
     {remove && <ConfirmDialog title={remove === "study" ? "删除整项研究" : remove.status === "complete" ? "删除这份报告" : "删除这条生成记录"} busy={busy} onCancel={() => setRemove(undefined)} onConfirm={() => void deleteContent()}>
       {remove === "study" ? <p>将删除本研究、{study.reportCount} 份可读报告及 {total} 条生成记录，在线内容将无法访问。</p> : <p>只删除选中的这份报告及对应终态生成记录。当前研究和其他报告继续保留。</p>}<p>已登记的生成用量和不含正文的操作记录继续保留。</p>

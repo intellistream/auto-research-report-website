@@ -73,3 +73,9 @@ describe("session-check classification and account boundaries", () => {
     await expect(new WorkbenchApi().session()).rejects.toMatchObject({ code: "session_expired", status: 401 });
   });
 });
+
+
+it("preserves producer quality outcomes independently of legacy review normalization", () => {
+  const job = parseJob({ id: "j", studyId: "s1", number: 8, query: "质量状态", days: 30, status: "complete", createdAt: "2026-11-28T00:00:00Z", reviewStatus: "needs_revision", synthesisStatus: "insufficient_evidence" }, "s1");
+  expect(job.reviewOutcome).toBe("needs_revision"); expect(job.synthesisOutcome).toBe("insufficient_evidence");
+});
