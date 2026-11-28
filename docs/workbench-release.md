@@ -80,6 +80,14 @@ interaction suite:
   research summary retains counts, expiry information and actions without a
   visibility badge. The report prompt starts empty, the approximate waiting
   notice remains, and existing reports survive additional generation.
+- The generation form keeps retrieval range, generation and concise quota
+  together on desktop; full policy/reset information is available on demand.
+  Keep the approximate ten-minute-plus and close-and-return notice as small
+  text, with an initially empty prompt and its specified placeholder. Verify
+  that compact controls still submit the selected range and charge once.
+- The compact sidebar retains accessible search, new-research actions,
+  selection and the necessary mobile expand control, without duplicate visible
+  headings. Search and creating an empty study do not create a generation.
 - Repeat the account menu, administration, member cards and research actions on
   a narrow viewport and both themes. Check wrapping and horizontal overflow.
   Preserve the producer's `needs_revision` display when reviewing reports.
