@@ -227,22 +227,22 @@ describe("independent management navigation and header account", () => {
     expect(fetcher.mock.calls.some(([path]) => path.startsWith("/api/research/studies"))).toBe(false);
     fireEvent.click(screen.getByRole("link", { name: "返回我的研究" })); await screen.findByRole("heading", { name: "新建一项研究" });
   });
-  it("keeps independent member drafts when saving another card, refreshing or changing category", async () => {
+  it("keeps independent member drafts when saving another row, refreshing or changing category", async () => {
     session.member.is_admin = true;
     adminMembers = [{ ...member }, { ...member, user_id: "member-b", github_id: 22, github_login: "long-controlled-member-name-for-responsive-layout" }];
-    show("/research/admin"); await screen.findByTestId("member-card-member-a");
-    const a = screen.getByTestId("member-card-member-a"), b = screen.getByTestId("member-card-member-b");
-    expect(a.tagName).toBe("ARTICLE"); expect(b.tagName).toBe("ARTICLE");
-    fireEvent.change(within(a).getByLabelText("每日报告生成次数"), { target: { value: "7" } });
-    fireEvent.change(within(b).getByLabelText("每日报告生成次数"), { target: { value: "9" } });
+    show("/research/admin"); await screen.findByTestId("member-row-member-a");
+    const a = screen.getByTestId("member-row-member-a"), b = screen.getByTestId("member-row-member-b");
+    expect(a.closest("table")).toBe(screen.getByRole("table", { name: "成员与额度" })); expect(b.closest("table")).toBe(a.closest("table"));
+    fireEvent.change(within(a).getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "7" } });
+    fireEvent.change(within(b).getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "9" } });
     adminMembers.reverse(); fireEvent.click(within(b).getByRole("button", { name: "保存额度" }));
     await waitFor(() => expect(adminMembers.find((m) => m.user_id === "member-b")?.daily_generation_limit).toBe(9));
-    await waitFor(() => expect((within(screen.getByTestId("member-card-member-a")).getByLabelText("每日报告生成次数") as HTMLInputElement).value).toBe("7"));
-    fireEvent.click(screen.getByRole("button", { name: "刷新管理数据" })); await screen.findByTestId("member-card-member-b");
-    expect((within(screen.getByTestId("member-card-member-a")).getByLabelText("每日报告生成次数") as HTMLInputElement).value).toBe("7");
+    await waitFor(() => expect((within(screen.getByTestId("member-row-member-a")).getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("7"));
+    fireEvent.click(screen.getByRole("button", { name: "刷新管理数据" })); await screen.findByTestId("member-row-member-b");
+    expect((within(screen.getByTestId("member-row-member-a")).getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("7");
     fireEvent.click(screen.getByRole("button", { name: "生成队列" })); await screen.findByText("queue-1");
     fireEvent.click(screen.getByRole("button", { name: "成员与额度" }));
-    expect((within(screen.getByTestId("member-card-member-a")).getByLabelText("每日报告生成次数") as HTMLInputElement).value).toBe("7");
+    expect((within(screen.getByTestId("member-row-member-a")).getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("7");
     expect(fetcher.mock.calls.filter(([path, opts]) => opts.method === "PATCH").map(([path]) => path)).toEqual(["/api/admin/members/member-b"]);
   });
   it("does not request a private session or show account controls in the public build", async () => {
@@ -471,5 +471,68 @@ describe("compact report cards and factual quality", () => {
     const htmlReads = () => fetcher.mock.calls.filter(([path]) => path.endsWith("/report.html")).length; expect(htmlReads()).toBe(1);
     hook = undefined; fireEvent.click(screen.getByRole("button", { name: "重新读取资料与质量说明" })); await screen.findByText("2026-10-29");
     expect(htmlReads()).toBe(1); expect(screen.getByTitle("当前报告预览")).toBeTruthy(); expect(document.body.textContent).not.toContain("private raw transport");
+  });
+});
+
+
+describe("compact member table and row-owned operations", () => {
+  function members() {
+    session.member.is_admin = true;
+    adminMembers = [{ ...member, is_admin: true }, { ...member, user_id: "member-b", github_id: 22, github_login: "controlled-long-member-name-123456789" }];
+    show("/research/admin");
+  }
+  it("uses six clear columns with independent role and real membership state, without the removed explanation", async () => {
+    members(); await screen.findByTestId("member-row-member-a");
+    const table = screen.getByRole("table", { name: "成员与额度" });
+    expect(within(table).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["用户名", "身份", "状态", "每日报告上限", "同时未完成上限", "操作"]);
+    expect(within(screen.getByTestId("member-row-member-a")).getByText("管理员")).toBeTruthy();
+    expect(within(screen.getByTestId("member-row-member-b")).getByText("成员", { exact: true })).toBeTruthy();
+    expect(within(screen.getByTestId("member-row-member-b")).getByText("已开通")).toBeTruthy();
+    expect(screen.queryByText("跨该成员所有研究合计；日额度为 0 时仍可阅读历史，降低额度不取消已接收生成。")).toBeNull();
+    expect(screen.getByRole("region", { name: "成员列表，可横向滚动" }).tabIndex).toBe(0);
+    expect(screen.getByRole("button", { name: "新增用户" })).toBeTruthy();
+  });
+  it("saves two stable row targets independently and retains another edit when a slower save finishes", async () => {
+    let resolve!: (response: Response) => void;
+    hook = (path, options) => path === "/api/admin/members/member-a" && options.method === "PATCH" ? new Promise((done) => { resolve = done; }) : undefined;
+    members(); await screen.findByTestId("member-row-member-a");
+    const a = () => within(screen.getByTestId("member-row-member-a")), b = () => within(screen.getByTestId("member-row-member-b"));
+    fireEvent.change(a().getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "7" } }); fireEvent.click(a().getByRole("button", { name: "保存额度" }));
+    await a().findByRole("button", { name: "正在保存…" }); expect((b().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).disabled).toBe(false);
+    fireEvent.change(b().getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "9" } }); fireEvent.click(b().getByRole("button", { name: "保存额度" }));
+    await b().findByText("额度已保存"); fireEvent.change(b().getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "11" } });
+    adminMembers.find((m) => m.user_id === "member-a")!.daily_generation_limit = 7;
+    await act(async () => { resolve(json({ member: adminMembers.find((m) => m.user_id === "member-a") })); }); await a().findByText("额度已保存");
+    expect((a().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("7"); expect((b().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("11");
+    expect(b().getByText("未保存")).toBeTruthy(); expect(b().queryByText("额度已保存")).toBeNull();
+    expect(fetcher.mock.calls.filter(([, options]) => options.method === "PATCH").map(([path, options]) => [path, JSON.parse(String(options.body)).daily_generation_limit])).toEqual([["/api/admin/members/member-a", 7], ["/api/admin/members/member-b", 9]]);
+  });
+  it("keeps an uncertain save error in its own row and preserves other drafts through refresh or temporary pagination removal", async () => {
+    members(); await screen.findByTestId("member-row-member-a");
+    const a = () => within(screen.getByTestId("member-row-member-a")), b = () => within(screen.getByTestId("member-row-member-b"));
+    fireEvent.change(a().getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "7" } }); fireEvent.change(b().getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "9" } });
+    hook = (path, options) => path === "/api/admin/members/member-a" && options.method === "PATCH" ? Promise.reject(new TypeError("controlled response loss")) : undefined;
+    fireEvent.click(a().getByRole("button", { name: "保存额度" })); await a().findByText("保存结果尚未确认，请刷新成员列表核对后再操作。");
+    expect(b().queryByRole("alert")).toBeNull(); expect((b().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("9");
+    const other = adminMembers.pop()!; fireEvent.click(screen.getByRole("button", { name: "刷新管理数据" })); await waitFor(() => expect(screen.queryByTestId("member-row-member-b")).toBeNull());
+    adminMembers.push(other); fireEvent.click(screen.getByRole("button", { name: "刷新管理数据" })); await screen.findByTestId("member-row-member-b");
+    expect((b().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("9"); expect((a().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("7");
+  });
+  it("confirms status changes for the chosen member and locates a failure in that row without erasing quota drafts", async () => {
+    members(); await screen.findByTestId("member-row-member-a");
+    const a = () => within(screen.getByTestId("member-row-member-a")), b = () => within(screen.getByTestId("member-row-member-b"));
+    fireEvent.change(a().getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "8" } });
+    fireEvent.click(b().getByRole("button", { name: "停用成员" }));
+    let dialog = screen.getByRole("dialog", { name: "停用成员" }); expect(within(dialog).getByText(/GitHub ID 22/)).toBeTruthy();
+    expect(fetcher.mock.calls.some(([, options]) => options.method === "PATCH")).toBe(false); fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
+    fireEvent.click(b().getByRole("button", { name: "停用成员" })); dialog = screen.getByRole("dialog", { name: "停用成员" }); fireEvent.click(within(dialog).getByRole("button", { name: "确认" }));
+    await b().findByText("成员已停用"); expect(b().getByText("已停用", { exact: true })).toBeTruthy();
+    hook = (path, options) => path === "/api/admin/members/member-b" && options.method === "PATCH" ? Promise.resolve(json({ detail: { code: "controlled_conflict", message: "受控启用失败，请刷新后重试。" } }, 409)) : undefined;
+    fireEvent.click(b().getByRole("button", { name: "重新启用" })); fireEvent.click(within(screen.getByRole("dialog", { name: "重新启用成员" })).getByRole("button", { name: "确认" }));
+    await b().findByText("受控启用失败，请刷新后重试。"); expect(screen.queryByRole("dialog")).toBeNull(); expect(a().queryByRole("alert")).toBeNull();
+    expect((a().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("8");
+    hook = undefined; fireEvent.click(b().getByRole("button", { name: "重新启用" })); fireEvent.click(within(screen.getByRole("dialog", { name: "重新启用成员" })).getByRole("button", { name: "确认" }));
+    await b().findByText("成员已重新启用"); expect(b().getByText("已开通")).toBeTruthy(); expect((a().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("8");
+    expect(fetcher.mock.calls.filter(([, options]) => options.method === "PATCH").every(([path]) => path === "/api/admin/members/member-b")).toBe(true);
   });
 });
