@@ -40,3 +40,41 @@ Validation uses controlled identities, actual backend sessions and generated
 fixtures; it does not claim real GitHub OAuth or public-domain acceptance.
 See the upstream `docs/workbench-server.md` for persistence, safe logging,
 backup/restore, old anonymous shutdown and rollback instructions.
+
+## Navigation acceptance for a release candidate
+
+The private entry is `/#/research`; administration is a separate
+`/#/research/admin` route reached through the administrator's account menu
+in the global header. The enabled build shares one same-origin session
+provider across these pages. The public build must not request that session.
+
+Before approving an artifact, use the upstream local-only acceptance harness
+with a new isolated state directory and the exact receipt-bearing artifact.
+Keep any existing preview and its state until review is complete. Record the
+backend commit, receipt sourceCommit, artifact path, origin, process ID and
+controlled-identity limitation separately from production configuration.
+
+Check the following against the composed backend, in addition to the frontend
+interaction suite:
+
+- An anonymous direct visit to administration requires login; an ordinary
+  member cannot see the admin menu or load admin data. The admin APIs still
+  reject that member directly. An administrator cannot fetch another member's
+  report through any format.
+- The header contains one account menu beside the theme control, and current
+  or all-device logout clears private views. Returning from administration
+  preserves the selected research, report and scroll context.
+- Each member's identity, policy and actions occupy one card; changing another
+  card, refreshing or changing tabs preserves unsaved policy inputs.
+- The research page has no redundant research/admin switch bar. Its compact
+  research summary retains counts, expiry information and actions without a
+  visibility badge. The report prompt starts empty, the approximate waiting
+  notice remains, and existing reports survive additional generation.
+- Repeat the account menu, administration, member cards and research actions on
+  a narrow viewport and both themes. Check wrapping and horizontal overflow.
+  Preserve the producer's `needs_revision` display when reviewing reports.
+
+A controlled loopback preview is review evidence, not real GitHub OAuth,
+public HTTPS, production data or permission to deploy. If browser inspection
+cannot run, record the missing checks explicitly; DOM tests and successful
+HTTP requests do not establish visual acceptance.
