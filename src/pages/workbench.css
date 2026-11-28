@@ -159,6 +159,9 @@
 .wb-report-quality ul { padding-left: 1.25rem; }
 .wb-report-quality li { margin: .5rem 0; }
 @media (max-width: 760px) {
+  .wb-job-main { position: relative; }
   .wb-job-main h4 { flex-basis: 100%; }
   .wb-job-signals { flex: 1 1 7rem; }
+  .wb-job-more { position: static; }
+  .wb-job-menu { min-width: 0; width: min(12rem, 100%); max-width: 100%; }
 }
