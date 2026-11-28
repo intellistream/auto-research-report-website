@@ -26,9 +26,10 @@ only listed assets. Keep the artifact read-only after review and transfer it
 through the approved deployment channel. A regular Pages build cannot be used
 in its place.
 
-T04's integration patch maps the producer's `needs_revision` status to the
-reader's existing “需进一步核查” state. The backend's report and evidence status
-remain authoritative; this does not turn a failed review into approval.
+T04's integration patch preserves the producer's `needs_revision` outcome
+for the reader. Report and evidence status remain authoritative: revision or
+insufficient-evidence flags must be specific, and a completed generation or
+unknown quality must never be presented as review approval.
 
 The release preparation also updates the existing AJV, React Router and Vite
 dependencies to patched versions. Vitest is a test dependency; its older major
@@ -88,6 +89,15 @@ interaction suite:
 - The compact sidebar retains accessible search, new-research actions,
   selection and the necessary mobile expand control, without duplicate visible
   headings. Search and creating an empty study do not create a generation.
+- Each compact report card keeps its own stable job identity and actions.
+  Its more-actions menu deletes only the selected terminal report after scope
+  confirmation. Other reports and the study remain readable. List timestamps
+  are concise; exact submission/expiry times and the explicitly labelled
+  retrieval range remain available in detail.
+- Quality labels reflect actual report/evidence status, including revision and
+  insufficient evidence. Do not add a generic review warning, invent reasons
+  or treat completion/unknown quality as approval. List layout and the shared
+  status adapter must preserve the backend's `needs_revision` compatibility.
 - Repeat the account menu, administration, member cards and research actions on
   a narrow viewport and both themes. Check wrapping and horizontal overflow.
   Preserve the producer's `needs_revision` display when reviewing reports.
