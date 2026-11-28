@@ -13,7 +13,7 @@ export default function ResearchWorkbench() {
   const state = useWorkbenchSession(), location = useLocation();
   const admin = location.pathname === adminLocation;
   if (!state) return <div className="workbench"><Notice>正在确认登录状态…</Notice></div>;
-  const { api, session, checking, message, connection, logoutRetry, checkSession, logout, research, openResearch } = state;
+  const { api, session, checking, validating, message, checkError, connection, logoutRetry, checkSession, logout, research, openResearch } = state;
   const returnTo = "/#" + (admin ? adminLocation : researchPath(location.search));
   if (!session) return <section className="workbench wb-login" aria-labelledby="wb-title">
     <header><span className="wb-eyebrow"><ShieldCheck size={16} />个人研究工作台</span><h1 id="wb-title">{admin ? "管理后台" : "研究查询"}</h1>
@@ -22,12 +22,13 @@ export default function ResearchWorkbench() {
       {message && <Notice>{message}</Notice>}
       {logoutRetry !== null ? <button className="wb-primary" onClick={() => void logout(logoutRetry)}>重试退出</button>
         : <a className="wb-button wb-primary" href={`/auth/github/login?${new URLSearchParams({ return_to: returnTo })}`}><Github size={18} />使用 GitHub 登录</a>}
-      <button onClick={() => void checkSession()}>重新检查登录状态</button><p className="wb-muted">须由管理员开通。日报、专题和已发布的组内 MOD 仍可公开浏览。</p>
+      {checkError && <Notice error><p>{checkError}</p><button disabled={validating} onClick={() => void checkSession()}>{validating ? "正在检查…" : "重试"}</button></Notice>}
+      <p className="wb-muted">须由管理员开通。日报、专题和已发布的组内 MOD 仍可公开浏览。</p>
       {admin && <Link className="wb-button" to="/research">返回我的研究</Link>}
     </>}
   </section>;
   return <div className="workbench">
-    {connection && <Notice error>{connection} <button onClick={() => void checkSession()}>重新校验</button></Notice>}
+    {connection && <Notice error>{connection} <button disabled={validating} onClick={() => void checkSession()}>{validating ? "正在检查…" : "重试"}</button></Notice>}
     <SignedWorkbench key={session.member.user_id} api={api} session={session} available={!connection} research={research} openResearch={openResearch} />
   </div>;
 }

@@ -46,3 +46,37 @@ describe("same-origin workbench client", () => {
     for (const input of [undefined, "http://example.org", "//example.org", "https://name:secret@example.org", "https://example.org/path", "https://example.org/?token=x", "https://a.trycloudflare.com"]) expect(workbenchEntry(input)).toBeUndefined();
   });
 });
+
+
+describe("session-check classification and account boundaries", () => {
+  it.each([[401, "authentication_required"], [403, "member_not_allowed"], [503, "github_unavailable"]])("leaves %s/%s session classification to the provider", async (status, code) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ detail: { code } }, Number(status))));
+    const api = new WorkbenchApi(), rejected = vi.fn(); api.onSessionRejected = rejected;
+    await expect(api.session()).rejects.toMatchObject({ code, status }); expect(rejected).not.toHaveBeenCalled();
+  });
+  it("invalidates the previous account's late protected response and uses the new account's CSRF", async () => {
+    let resolve!: (response: Response) => void;
+    const next = { ...session, member: { ...member, user_id: "b", github_id: 22, github_login: "controlled-b" }, csrf_token: "b-csrf" };
+    const fetcher = vi.fn().mockResolvedValueOnce(json(session)).mockImplementationOnce(() => new Promise<Response>((done) => { resolve = done; }))
+      .mockResolvedValueOnce(json(next)).mockResolvedValueOnce(json(study)); vi.stubGlobal("fetch", fetcher);
+    const api = new WorkbenchApi(), rejected = vi.fn(); api.onSessionRejected = rejected; await api.session();
+    const oldRead = api.study("s1"); await api.session(); resolve(json({ detail: { code: "session_revoked" } }, 401));
+    await expect(oldRead).rejects.toMatchObject({ name: "AbortError" }); expect(rejected).not.toHaveBeenCalled();
+    await api.createStudy("研究", "", "new-account-operation");
+    expect(fetcher.mock.calls[3][1].headers["X-CSRF-Token"]).toBe("b-csrf");
+  });
+  it("does not let a late malformed protected body revoke a newly validated account", async () => {
+    let rejectBody!: (reason?: unknown) => void;
+    const response = new Response("", { status: 401 });
+    response.json = () => new Promise((_, reject) => { rejectBody = reject; });
+    const fetcher = vi.fn().mockResolvedValueOnce(json(session)).mockResolvedValueOnce(response)
+      .mockResolvedValueOnce(json({ ...session, member: { ...member, user_id: "b" } })); vi.stubGlobal("fetch", fetcher);
+    const api = new WorkbenchApi(), rejected = vi.fn(); api.onSessionRejected = rejected; await api.session();
+    const oldRead = api.study("s1"); await Promise.resolve(); await api.session(); rejectBody(new SyntaxError("late malformed response"));
+    await expect(oldRead).rejects.toMatchObject({ name: "AbortError" }); expect(rejected).not.toHaveBeenCalled();
+  });
+  it("does not accept an already-expired successful session response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ ...session, expires_at: "2000-01-01T00:00:00Z" })));
+    await expect(new WorkbenchApi().session()).rejects.toMatchObject({ code: "session_expired", status: 401 });
+  });
+});
