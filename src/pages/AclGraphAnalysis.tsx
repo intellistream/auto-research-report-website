@@ -78,7 +78,12 @@ function SummaryCard({ card, onOpen }: { card: AclGraphCard; onOpen: () => void 
   </button>;
 }
 
-export default function AclGraphAnalysis({ problems = ACLGRAPH_PROBLEMS }: { problems?: readonly AclGraphProblem[] }) {
+export default function AclGraphAnalysis({
+  problems = ACLGRAPH_PROBLEMS,
+  heading = "以真实工程与学术痛点为纲，剥离伪 Gap，逐一拆解论文与社区 PR",
+  eyebrow = "PROBLEM-DRIVEN RESEARCH GAP ANALYSIS",
+  testId = "aclgraph-analysis",
+}: { problems?: readonly AclGraphProblem[]; heading?: string; eyebrow?: string; testId?: string }) {
   const [query, setQuery] = useSearchParams();
   const [kindFilter, setKindFilter] = useState<AclGraphCardFilter>("all");
   const [keyword, setKeyword] = useState("");
@@ -146,10 +151,10 @@ export default function AclGraphAnalysis({ problems = ACLGRAPH_PROBLEMS }: { pro
     setKeyword("");
   }
 
-  return <div className="acl-analysis" data-testid="aclgraph-analysis">
+  return <div className="acl-analysis" data-testid={testId}>
     <header className="acl-analysis-overview">
-      <p className="acl-analysis-eyebrow">PROBLEM-DRIVEN RESEARCH GAP ANALYSIS</p>
-      <h2>以真实工程与学术痛点为纲，剥离伪 Gap，逐一拆解论文与社区 PR</h2>
+      <p className="acl-analysis-eyebrow">{eyebrow}</p>
+      <h2>{heading}</h2>
       <div className="acl-analysis-stats" aria-label="专题剖析统计">
         <span><strong>{stats.problems}</strong> 大核心问题</span>
         <span>{stats.papers === stats.fulltextPapers ? `${stats.fulltextPapers} 篇全文论文` : `${stats.papers} 篇论文（全文 ${stats.fulltextPapers}）`}</span>

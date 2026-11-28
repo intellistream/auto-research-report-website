@@ -181,6 +181,13 @@ npm run build
 
 ## 技术专题
 
+### 流水线重排首版雏形
+
+新增 /#/topics/pipeline-reordering 导引及 ?view=analysis 专题剖析，沿用 ACL Graph 的问题卡片、搜索、来源详情与深链接。导引用两个独立微批的计算/通信时间线演示资源互补、通信占优及资源争用；时间为教学单位，不是实测。目录和全局搜索均提供入口。
+
+初版为四个问题、四篇论文、八条工程 PR。冻结内容位于 src/pages/pipeline-reordering-data.json：四篇论文及六条 PR 取自既有 ACL Graph 卡片，两条异步调度 PR 于 2026-11-27 核对正文与补丁。研究机会均标为待验证设想；来源与维护边界见 topics/pipeline-reordering/README.md。
+
+
 导航「技术专题」读取 `public/word-reports/topics.json`。ACL Graph 技术专题提供导引（默认入口）、综述（`?view=paper`，含同版 PDF、HTML、LaTeX、BibTeX、Markdown 与源码 ZIP）和动态报告（`?view=report`）。动态报告可展开 PR 趋势、可筛选的 PR 索引、具体分析和版本记录。旧 `?view=evidence` 链接转到动态报告的 PR 与趋势，旧取材附录链接继续定位到 PR 索引。KV Cache 和推测解码沿用原有 PR 索引、筛选与日报回溯入口。
 
 技术专题从后端独立构建。取材复用此仓库的日报归档，论文及原始 PR 核验进入专题研究稿。后端 `build-topic-reports` 写入冻结的 `topic-reports/<id>/<version>/`，然后更新 `topics.json`。上游使用 `topics/README.md` 中的命令构建；站点提交索引及新增版本目录后，现有 Pages 构建即可发布。发布前执行 `python -X utf8 -m unittest discover -s scripts`、`npm test` 和 `npm run build`，覆盖索引、历史链、资产 SHA-256 及页面路由。

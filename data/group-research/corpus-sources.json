@@ -32,7 +32,8 @@
       "src/pages/kv-overview.json",
       "src/pages/kv-research.json",
       "src/pages/kv-synthesis.json",
-      "src/pages/kv-weekly.json"
+      "src/pages/kv-weekly.json",
+      "src/pages/pipeline-reordering-data.json"
     ],
     "globs": [
       {
@@ -152,6 +153,17 @@
         "reports.questions/progress via sourceIds"
       ],
       "boundary": "Paper and proposal sources stay separate; a code recheck URL is attached to its declared workId rather than treated as a PR URL."
+    },
+    {
+      "id": "pipeline-reordering-analysis",
+      "path": "src/pages/pipeline-reordering-data.json",
+      "adapter": "problem_analysis",
+      "topicId": "pipeline-reordering",
+      "include": [
+        "problems[*].prs with problem/gap context",
+        "PR problem/optimization/effectsAndLimits/evidenceRefs"
+      ],
+      "boundary": "Only explicit PR card identities are admitted; prototype research opportunities remain labeled as unverified proposals. Papers and incidental PR links never become new identities."
     }
   ],
   "exclusions": [

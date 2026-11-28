@@ -416,14 +416,19 @@ function topicProjector(documents, notes) {
             nestedValues(row, "sourceIds").map(id => weeklySources.get(id)).filter(source => source?.kind === "pr")
               .map(source => source.workId), "/topics/kv-cache?view=report&week=" + report.week, lookup));
       });
-    } else if (adapter === "aclgraph_analysis") {
-      check(Array.isArray(data), "Expected ACL Graph analysis problem array: " + doc.source.path);
-      data.forEach((problem, pi) => {
+    } else if (adapter === "aclgraph_analysis" || adapter === "problem_analysis") {
+      const wrapped = adapter === "problem_analysis";
+      const topicId = wrapped ? doc.source.topicId : "aclgraph";
+      check(typeof topicId === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(topicId),
+        "Expected a valid analysis topic ID: " + doc.source.path);
+      const problems = wrapped ? data.problems : data;
+      check(Array.isArray(problems), "Expected ACL Graph analysis problem array: " + doc.source.path);
+      problems.forEach((problem, pi) => {
         if (problem.papers?.length) ignored.paper = (ignored.paper || 0) + problem.papers.length;
         const problemContext = { id: problem.id, index: problem.index, slug: problem.slug,
           title: problem.title, shortTitle: problem.shortTitle, priorityBadge: problem.priorityBadge, gap: problem.gap };
         (problem.prs || []).forEach((card, ci) => {
-          const pointer = "/" + pi + "/prs/" + ci;
+          const pointer = (wrapped ? "/problems" : "") + "/" + pi + "/prs/" + ci;
           const locator = doc.source.path + pointer;
           const repoNumberId = typeof card.repository === "string" && Number.isSafeInteger(card.number)
             ? "github:" + card.repository + "#" + card.number : null;
@@ -434,9 +439,9 @@ function topicProjector(documents, notes) {
           check(identities.every(item => item.workId === identity.workId), "Conflicting ACL Graph PR identities at " + locator);
           check(repoNumberId && normalizePrIdentity(repoNumberId)?.workId === identity.workId,
             "ACL Graph PR repository/number mismatch at " + locator);
-          const href = "/topics/aclgraph?" + new URLSearchParams({ view: "analysis",
+          const href = "/topics/" + topicId + "?" + new URLSearchParams({ view: "analysis",
             problem: String(problem.id), card: String(card.id) }).toString();
-          emit(doc, identity, pointer, { ...card, problemContext }, href, { primary: card, topicId: "aclgraph" });
+          emit(doc, identity, pointer, { ...card, problemContext }, href, { primary: card, topicId });
         });
       });
     } else if (adapter === "specdec_weekly") {

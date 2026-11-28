@@ -28,6 +28,8 @@ function expectLayout(html: string, active: string, count: number, current = "pa
 describe("technical topic details", () => {
   it.each([
     ["aclgraph?view=evidence", "专题剖析", 2],
+    ["pipeline-reordering", "导引", 2],
+    ["pipeline-reordering?view=analysis", "专题剖析", 2],
     ["kv-cache?view=evidence&kind=paper", "论文", 4],
     ["speculative-decoding?view=evidence", "动态报告", 3],
     ["distributed-inference-control-plane", "总览", 6],
