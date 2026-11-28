@@ -113,3 +113,16 @@ describe("safe administration projections", () => {
     const api = new WorkbenchApi(), rejected = vi.fn(); api.onSessionRejected = rejected; await expect(api.members()).rejects.toMatchObject({ status: 403 }); expect(rejected).toHaveBeenCalledOnce();
   });
 });
+
+
+it("distinguishes the website's explicit pre-acceptance readiness rejection from unknown generation outcomes", async () => {
+  const error = (code: string) => json({ detail: { code, message: "研究服务暂不可接收新的生成，请稍后重试。" } }, 503);
+  const fetcher = vi.fn().mockResolvedValueOnce(json(session)).mockResolvedValueOnce(error("not_ready")).mockResolvedValueOnce(error("not_ready"))
+    .mockResolvedValueOnce(error("service_unavailable")).mockResolvedValueOnce(error("not_ready"));
+  vi.stubGlobal("fetch", fetcher); const api = new WorkbenchApi(); await api.session();
+  await expect(api.generate("s1", "原研究问题", 30, "generation-key")).rejects.toMatchObject({ code: "not_ready", status: 503, uncertain: false });
+  await expect(api.retry("s1", "j1", "retry-key")).rejects.toMatchObject({ code: "not_ready", uncertain: false });
+  await expect(api.generate("s1", "原研究问题", 30, "generation-key")).rejects.toMatchObject({ code: "service_unavailable", uncertain: true });
+  await expect(api.updateMember("a", { daily_generation_limit: 7 })).rejects.toMatchObject({ code: "not_ready", uncertain: true });
+  expect(fetcher).toHaveBeenCalledTimes(5);
+});

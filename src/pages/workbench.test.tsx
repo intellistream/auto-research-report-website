@@ -652,3 +652,16 @@ describe("website-owned submissions across a detached execution service", () => 
     expect(fetcher.mock.calls.every(([path]) => path.startsWith("/api/") && !path.includes("/internal/"))).toBe(true);
   });
 });
+
+
+it("keeps login, the draft and saved reports usable after a definite website readiness rejection", async () => {
+  hook = (path, options) => path === "/api/research/studies/s1/jobs" && options.method === "POST"
+    ? Promise.resolve(json({ detail: { code: "not_ready", message: "研究服务暂不可接收新的生成，请稍后重试。" } }, 503)) : undefined;
+  show(); await screen.findByText("第二份报告问题"); fireEvent.change(screen.getByPlaceholderText("请输入你想生成的报告内容"), { target: { value: "等待引擎恢复的草稿" } });
+  fireEvent.click(screen.getByRole("button", { name: "生成报告" })); await screen.findByText("研究服务暂不可接收新的生成，请稍后重试。");
+  expect(screen.queryByRole("button", { name: "检查本次提交结果" })).toBeNull(); expect((screen.getByRole("button", { name: "生成报告" }) as HTMLButtonElement).disabled).toBe(false);
+  expect((screen.getByPlaceholderText("请输入你想生成的报告内容") as HTMLTextAreaElement).value).toBe("等待引擎恢复的草稿"); expect(jobs).toHaveLength(2); expect(charged).toBe(2);
+  fireEvent.click(within(screen.getByTestId("job-j1")).getByRole("button", { name: "查看报告" })); await screen.findByTitle("当前报告预览"); expect(screen.getByRole("button", { name: "下载 HTML" })).toBeTruthy();
+  fireEvent(window, new Event("focus")); await screen.findByLabelText("账号菜单 @controlled-a");
+  expect(fetcher.mock.calls.filter(([path, options]) => path === "/api/research/studies/s1/jobs" && options.method === "POST")).toHaveLength(1);
+});

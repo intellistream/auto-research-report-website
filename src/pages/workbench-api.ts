@@ -173,8 +173,12 @@ export class WorkbenchApi {
       if (epoch !== this.epoch || signal?.aborted) throw new DOMException("Aborted", "AbortError");
       if (!response.ok) {
         const detail = typeof data.detail === "object" && data.detail ? data.detail : {};
+        // The website readiness middleware rejects this exact generation error
+        // before acceptance. Other 5xx / missing receipts remain uncertain.
+        const rejectedBeforeAcceptance = response.status === 503 && detail.code === "not_ready" && method === "POST"
+          && path.startsWith("/api/research/studies/") && (path.endsWith("/jobs") || path.endsWith("/retry"));
         const error = new WorkbenchError(str(detail.message).slice(0, 500) || unavailable, str(detail.code) || "request_failed", response.status,
-          write && response.status >= 500, str(detail.github_login) || undefined);
+          write && response.status >= 500 && !rejectedBeforeAcceptance, str(detail.github_login) || undefined);
         if (path !== "/api/session" && (response.status === 401 || (response.status === 403 && (path.startsWith("/api/admin/") || /disabled|inactive|not_approved|not_admitted|not_allowed|membership/.test(error.code))))) {
           this.onSessionRejected?.(error);
         }
