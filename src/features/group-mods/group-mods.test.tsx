@@ -7,6 +7,7 @@ import DocxPreview from "../../pages/DocxPreview";
 import { decodeBundle,digest,validateIndex } from "./data";
 import { comparisonSelection,filterMods,searchMods,groupHref,stageDistribution,resetModFilters,relationState } from "./selectors";
 import { QuestionCard } from "./components";
+import { modIntroduction, communityIntroduction, dailyReferences, comparisonBoundaries } from "./reading-guides";
 import { inferenceStageNames,modStageView,stageMappingVersion } from "./stages";
 import mappingDocument from "../../../data/group-research/inference-stage-mapping.v1.json";
 import type { Bundle,GroupIndex,Question,Relation,Source } from "./types";
@@ -37,7 +38,7 @@ function fixture() {
  data.payload.mods=data.payload.mods.map(m=>({...m,stageMapping:{version:stageMappingVersion,status:"mapped",basis:"隔离夹具的明确作用位置",unmappedReason:null,sourcePhases:m.stages,sourceRefs:[]}}));
  const baseSource=data.payload.sourceSnapshots.find(s=>s.kind==="pr")!;
  function source(id:string,number:number,kind="pr"):Source {
-  return {...baseSource,id:"source-"+id,kind,canonicalWorkId:kind==="pr"?"github:example/runtime#"+number:"paper:arxiv:0000.00001",title:"Original "+id,titleZh:"准确中文标题 "+id,url:kind==="pr"?"https://github.com/example/runtime/pull/"+number:"https://arxiv.org/abs/0000.00001",observedOn:"2026-11-26",version:kind==="pr"?{state:"closed",merged:true}:{edition:"v1"}};
+  return {...baseSource,id:"source-"+id,kind,canonicalWorkId:kind==="pr"?"github:example/runtime#"+number:"paper:arxiv:0000.00001",title:"Original "+id,titleZh:"准确中文标题 "+id,url:kind==="pr"?"https://github.com/example/runtime/pull/"+number:"https://arxiv.org/abs/0000.00001",observedOn:"2026-11-26",version:kind==="pr"?{state:"closed",merged:true}:{edition:"v1"},reportReferences:kind==="pr"?[{role:"daily_main",href:"/reports/2026-11-26?version="+"b".repeat(64)+"&section=V"+number,day:"2026-11-26",version:"b".repeat(64),entryNumber:"V"+number,title:"日报 2026-11-26 · V"+number}]:[]};
  }
  const sources=[source("a",101),source("b",102),source("paper",0,"paper"),source("candidate",103),source("withdrawn",104),source("denied",105)];
  const official=data.payload.sourceSnapshots.find(s=>s.kind!=="pr"&&s.kind!=="paper");
@@ -117,7 +118,7 @@ describe("snapshot-based filtering and navigation",()=>{
 });
 
 describe("concise directory and single comparison selection",()=>{
- it("always opens names in overview and exposes one semantic internal comparison link",()=>{
+ it("introduces both the MOD and selected PR before its semantic comparison link",()=>{
   const data=fixture(),html=render("/group-mods?snapshot="+row.snapshotId,data);
   const card=articles(html)[0],cardLinks=links(card);
   expect(cardLinks.find(a=>a.text==="Fixture MOD")!.href).toContain("view=overview");
@@ -126,7 +127,11 @@ describe("concise directory and single comparison selection",()=>{
   expect(compare.href).toContain("view=compare");
   expect(compare.href).toContain("snapshot="+row.snapshotId);
   expect(card).not.toContain("gm-community-identity");
-  expect(card).not.toContain("准确中文标题");
+  expect(card).toContain("准确中文标题 b");
+  expect(card).not.toContain("准确中文标题 a");
+  expect(links(card).some(a=>a.href.includes("section=V102")&&a.text.includes("阅读日报解读"))).toBe(true);
+  expect(card.indexOf("做了什么")).toBeLessThan(card.indexOf("针对什么问题"));
+  expect(card.indexOf("针对什么问题")).toBeLessThan(card.indexOf("相关社区 PR"));
   expect(card).not.toContain("关键差异");
   expect(card).not.toContain("有据对照 ·");
   expect(card).toContain(data.payload.mods[0].facts.problem);
@@ -379,5 +384,141 @@ describe("eight-stage scope and immutable legacy compatibility",()=>{
   expect(html).toContain("/phases");
   expect(html).toContain("八环节位置尚未明确");
   expect(html).toContain("映射版本与来源定位");
+ });
+});
+
+
+describe("MOD reading context and identity-specific daily entrances",()=>{
+ it("introduces every registered MOD before comparisons, including records without an assessed PR",()=>{
+  const directory=render("/group-mods");
+  const cards=articles(directory);
+  expect(cards).toHaveLength(bundle.payload.mods.length);
+  for(const mod of bundle.payload.mods) {
+   const card=cards.find(html=>links(html).some(link=>link.text===mod.displayName))!;
+   expect(card).toContain(modIntroduction(mod));
+   expect(card).toContain(mod.facts.problem||"当前公开来源未单列所针对的具体问题。");
+   expect(modIntroduction(mod).length).toBeLessThan(110);
+   const html=render("/group-mods/"+mod.componentId+"?view=compare");
+   expect(html.indexOf('aria-label="MOD 简介"')).toBeGreaterThan(-1);
+   const picker=html.indexOf('class="gm-panel gm-comparison-picker"');
+   if(picker>=0)expect(html.indexOf('aria-label="MOD 简介"')).toBeLessThan(picker);
+  }
+ });
+ it("uses the selected PR's own day, version and entry across the directory, comparison and research cards",()=>{
+  for(const relation of bundle.payload.relations.filter(r=>r.reviewStatus==="supported")) {
+   const source=bundle.payload.sourceSnapshots.find(s=>s.id===relation.sourceSnapshotId)!;
+   if(source.kind!=="pr")continue;
+   const mod=bundle.payload.mods.find(m=>m.id===relation.modId)!;
+   const html=render("/group-mods/"+mod.componentId+"?view=compare&relation="+relation.id);
+   const comparison=html.match(new RegExp('<article class="gm-panel gm-comparison" id="'+relation.id+'"[\\s\\S]*?<\\/article>'))![0];
+   expect(comparison.indexOf('class="gm-side gm-side-mod"')).toBeGreaterThan(-1);
+   expect(comparison.indexOf('class="gm-side gm-side-mod"')).toBeLessThan(comparison.indexOf('class="gm-side gm-side-community"'));
+   expect(comparison.indexOf('class="gm-side gm-side-community"')).toBeLessThan(comparison.indexOf("按相同维度比较"));
+   expect(comparison).toContain(communityIntroduction(source,relation));
+   for(const ref of dailyReferences(source)) {
+    expect(links(comparison).some(link=>link.href===ref.href&&link.text.startsWith("阅读日报解读"))).toBe(true);
+    const params=new URLSearchParams(ref.href.split("?")[1]);
+    expect(params.get("version")).toBe(ref.version);
+    expect(params.get("section")).toBe(ref.entryNumber);
+    expect(ref.href).toContain("/reports/"+ref.day+"?");
+   }
+  }
+  const global=render("/group-mods/questions");
+  expect(global.indexOf("做了什么")).toBeLessThan(global.indexOf("关联社区 PR"));
+  const diff=bundle.payload.sourceSnapshots.find(s=>s.canonicalWorkId==="github:vllm-project/vllm#61589")!;
+  expect(links(global).some(link=>link.href===dailyReferences(diff)[0].href&&link.text.startsWith("阅读日报解读"))).toBe(true);
+ });
+ it("changes the daily entrance when switching PRs and never nests a daily link inside a comparison link",()=>{
+  const data=fixture();
+  for(const id of ["a","b"]) {
+   const html=render("/group-mods/fixture?view=compare&relation=rel-"+id,data);
+   const comparison=html.match(/<article class="gm-panel gm-comparison"[\s\S]*?<\/article>/)![0];
+   const source=data.payload.sourceSnapshots.find(s=>s.id==="source-"+id)!;
+   expect(links(comparison).filter(link=>link.text.startsWith("阅读日报解读")).map(link=>link.href)).toEqual(dailyReferences(source).map(ref=>ref.href));
+   expect(html).not.toMatch(/<a\b[^>]*>(?:(?!<\/a>)[\s\S])*<a\b/);
+  }
+ });
+ it("keeps absent daily entries, paper references and unconfirmed relationships distinct",()=>{
+  const data=fixture(),source=data.payload.sourceSnapshots.find(s=>s.id==="source-b")!;
+  source.reportReferences=[{role:"topic",title:"已有专题解读",href:"/topics/kv-cache?view=compare&part=example",day:"2026-11-26"}];
+  let html=render("/group-mods/fixture?view=compare&relation=rel-b",data);
+  expect(dailyReferences(source)).toEqual([]);
+  const comparison=html.match(/<article class="gm-panel gm-comparison"[\s\S]*?<\/article>/)![0];
+  expect(comparison).toContain("当前材料未关联对应的日报条目");
+  expect(links(comparison).filter(link=>link.text.startsWith("阅读日报解读"))).toEqual([]);
+  expect(links(comparison).some(link=>link.href===source.reportReferences![0].href)).toBe(true);
+  html=render("/group-mods/fixture?view=compare&relation=rel-paper",data);
+  expect(html.match(/<article class="gm-panel gm-comparison"[\s\S]*?<\/article>/)![0]).not.toContain("这条 PR 做了什么");
+  expect(html).toContain('<span class="gm-side-tag">论文参照</span>');
+  data.payload.relations=data.payload.relations.filter(r=>r.reviewStatus==="candidate");
+  const card=articles(render("/group-mods",data))[0];
+  expect(card).toContain("目前只有待核查线索");
+  expect(card).not.toContain("相关社区 PR");
+ });
+ it("preserves additional technical dimensions without stretching the main table and falls back when sources change",()=>{
+  const mod=bundle.payload.mods.find(m=>m.componentId==="diffspec")!;
+  const html=render("/group-mods/diffspec?view=compare");
+  const mainTable=html.match(/<table class="gm-method-table">[\s\S]*?<\/table>/)![0];
+  expect([...mainTable.matchAll(/scope="row"/g)]).toHaveLength(4);
+  expect(html).toContain('<details class="gm-comparison-supplement">');
+  expect(html).toContain("可比较的边界");
+  const warmup=render("/group-mods/sealed-serving-warmup?view=compare");
+  const warmupTable=warmup.match(/<table class="gm-method-table">[\s\S]*?<\/table>/)![0];
+  expect(warmupTable).toContain("42-key");
+  expect(warmupTable).not.toContain("此版本未单列社区结果");
+  expect(modIntroduction({...mod,componentId:"new-mod",fieldHashes:{}})).toBe(mod.facts.summary);
+  expect(modIntroduction({...mod,fieldHashes:{...mod.fieldHashes,summary_zh:"changed"}})).toBe(mod.facts.summary);
+  const relation=bundle.payload.relations.find(r=>r.id==="rel-diffspec-61589")!;
+  const source=bundle.payload.sourceSnapshots.find(s=>s.id===relation.sourceSnapshotId)!;
+  expect(communityIntroduction({...source,contentSha256:"changed"},relation)).toBe(relation.communityApproach);
+ });
+});
+
+
+describe("paired comparisons inspired by the presentation reference",()=>{
+ it("keeps each pair's source-bound boundaries and full comparison readable after the overview",()=>{
+  for(const relation of bundle.payload.relations) {
+   const mod=bundle.payload.mods.find(m=>m.id===relation.modId)!;
+   const source=bundle.payload.sourceSnapshots.find(s=>s.id===relation.sourceSnapshotId)!;
+   const boundary=comparisonBoundaries(relation,source)!;
+   expect(boundary).toBeDefined();
+   const html=render("/group-mods/"+mod.componentId+"?view=compare&relation="+relation.id);
+   const comparison=html.match(new RegExp('<article class="gm-panel gm-comparison" id="'+relation.id+'"[\\s\\S]*?<\\/article>'))![0];
+   expect(comparison).toContain(boundary.mod);
+   expect(comparison).toContain(boundary.community);
+   expect(comparison.indexOf('class="gm-focus-banner"')).toBeLessThan(comparison.indexOf('class="gm-side-by-side"'));
+   expect(comparison.indexOf('class="gm-side-by-side"')).toBeLessThan(comparison.indexOf('class="gm-method-table"'));
+   if(relation.codeReferences?.length)expect(comparison).toContain("代码摘录与固定版本");
+   expect(comparison).toContain("引用定位与核查记录");
+  }
+ });
+ it("only derives research callouts from the selected supported relation and preserves the deep-link context",()=>{
+  const data=fixture(),html=render("/group-mods/fixture?view=compare&relation=rel-a&snapshot="+row.snapshotId+"&stage=decode",data);
+  const insight=html.match(/<aside class="gm-research-insight"[\s\S]*?<\/aside>/)![0];
+  expect(insight).toContain("具体问题 q-multi");
+  expect(insight).not.toContain("具体问题 q-second");
+  const href=links(insight).find(link=>link.text==="具体问题 q-multi")!.href;
+  const params=new URLSearchParams(href.split("?")[1]);
+  expect(params.get("question")).toBe("q-multi");
+  expect(params.get("relation")).toBe("rel-a");
+  expect(params.get("snapshot")).toBe(row.snapshotId);
+  expect(params.get("stage")).toBe("decode");
+  expect(render(href,data)).toContain('id="q-multi"');
+  for(const id of ["rel-candidate","rel-denied","rel-withdrawn"]) {
+   const comparison=render("/group-mods/fixture?view=compare&relation="+id,data).match(/<article class="gm-panel gm-comparison"[\s\S]*?<\/article>/)![0];
+   expect(comparison).not.toContain('class="gm-research-insight"');
+   expect(comparison).not.toContain("对照关注的问题");
+  }
+ });
+ it("falls back to the selected version's conditions when the reviewed relationship changes",()=>{
+  const relation=bundle.payload.relations.find(r=>r.id==="rel-router-19708")!;
+  const source=bundle.payload.sourceSnapshots.find(s=>s.id===relation.sourceSnapshotId)!;
+  expect(comparisonBoundaries({...relation,differences:["new reviewed scope"]},source)).toBeUndefined();
+  expect(comparisonBoundaries({...relation,reviewStatus:"candidate"},source)).toBeUndefined();
+  expect(comparisonBoundaries(relation,{...source,contentSha256:"changed"})).toBeUndefined();
+  const data=fixture(),html=render("/group-mods/fixture?view=compare&relation=rel-a",data);
+  const pair=html.match(/<div class="gm-side-by-side"[\s\S]*?<\/section><\/div>/)![0];
+  expect(pair).toContain("MOD 条件 a");
+  expect(pair).toContain("社区条件 a");
  });
 });
