@@ -44,6 +44,7 @@ export default function SiteLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme);
 
+  const privateResearch = pathname === "/research" && import.meta.env.VITE_WORKBENCH_MODE === "enabled";
   const reading = pathname.startsWith("/reports/");
   const latestDay = days[0];
 
@@ -310,7 +311,7 @@ export default function SiteLayout({
         days={days}
         catalog={catalog}
       />
-      <ResearchAssistant hidden={assistantHidden} onHide={() => {
+      <ResearchAssistant hidden={assistantHidden || privateResearch} onHide={() => {
         setAssistantHidden(true);
         mainRef.current?.focus({ preventScroll: true });
       }} />

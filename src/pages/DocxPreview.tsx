@@ -54,7 +54,7 @@ export default function DocxPreview() {
   const topics = useJson<TopicIndex>(topicRoute && !kvTopicRoute ? "topics.json" : undefined);
 
   return (
-    <SiteLayout catalog={catalog} days={days} wide={overview}>
+    <SiteLayout catalog={catalog} days={days} wide={overview || !!research}>
       {groupRoute ? (
         <Suspense fallback={<div className="overview-status-card" role="status">正在打开组内 MOD…</div>}><Routes><Route path="/group-mods/*" element={<GroupMods />} /></Routes></Suspense>
       ) : pathname === "/contributors" ? (
