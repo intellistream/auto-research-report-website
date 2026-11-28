@@ -1,22 +1,21 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useSearchParams } from "react-router-dom";
-import { BookOpen, Github, List, LogOut, Plus, ShieldCheck } from "lucide-react";
-import { WorkbenchError, errorMessage, isAbort, validId, type WorkbenchApi, type Session, type Study } from "./workbench-api";
+import { List, Plus } from "lucide-react";
+import { WorkbenchError, errorMessage, isAbort, validId, type WorkbenchApi, type Study } from "./workbench-api";
 import { dateText, Notice } from "./workbench-ui";
-import WorkbenchAdmin from "./WorkbenchAdmin";
 import WorkbenchStudy from "./WorkbenchStudy";
 export type Draft = { query: string; days: number };
 export type Operation = { key: string; query: string; days: number; retryOf?: string; state: "pending" | "unknown"; error?: string };
 type CreateOperation = { key: string; name: string; description: string; unknown?: boolean };
-export default function WorkbenchWorkspace({ api, session, available, onLogout }: {
-  api: WorkbenchApi; session: Session; available: boolean; onLogout: (all: boolean) => void;
+export default function WorkbenchWorkspace({ api, available, researchSearch, onNavigate }: {
+  api: WorkbenchApi; available: boolean; researchSearch: string; onNavigate: (path: string) => void;
 }) {
-  const [parameters, setParameters] = useSearchParams();
+  const parameters = new URLSearchParams(researchSearch);
+  const setParameters = (next: URLSearchParams | Record<string, string>) => onNavigate(`/research${new URLSearchParams(next).size ? `?${new URLSearchParams(next)}` : ""}`);
   const studyParam = parameters.getAll("study"), jobParam = parameters.getAll("job");
   const invalid = studyParam.length > 1 || jobParam.length > 1 || studyParam.some((v) => !validId(v))
     || jobParam.some((v) => !validId(v)) || (!!jobParam.length && !studyParam.length);
   const selected = invalid ? undefined : studyParam[0], selectedJob = invalid ? undefined : jobParam[0];
-  const [admin, setAdmin] = useState(false), [creating, setCreating] = useState(!selected), [mobileList, setMobileList] = useState(false);
+  const [creating, setCreating] = useState(!selected), [mobileList, setMobileList] = useState(false);
   const [studies, setStudies] = useState<Study[]>([]), [total, setTotal] = useState(0), [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true), [listError, setListError] = useState(""), [revision, setRevision] = useState(0);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({}), [operations, setOperations] = useState<Record<string, Operation | undefined>>({});
@@ -36,7 +35,7 @@ export default function WorkbenchWorkspace({ api, session, available, onLogout }
   useEffect(() => { const timer = setInterval(() => { if (!document.hidden) setRevision((v) => v + 1); }, 15_000); return () => clearInterval(timer); }, []);
   const change = () => { if (mounted.current) setRevision((v) => v + 1); };
   function choose(id: string, jobId?: string) {
-    setParameters(new URLSearchParams({ study: id, ...(jobId ? { job: jobId } : {}) })); setCreating(false); setAdmin(false); setMobileList(false);
+    setParameters(new URLSearchParams({ study: id, ...(jobId ? { job: jobId } : {}) })); setCreating(false); setMobileList(false);
   }
   async function moreStudies() {
     if (loading) return; const requested = search; setLoading(true); setListError("");
@@ -61,11 +60,7 @@ export default function WorkbenchWorkspace({ api, session, available, onLogout }
     }
   }
   return <>
-    <header className="wb-top"><div><span className="wb-eyebrow">个人研究工作台</span><h1>研究查询</h1></div><div className="wb-account"><span><Github size={16} /> @{session.member.github_login}</span>
-      <details><summary>账号与退出</summary><div><p>当前设备会话至 {dateText(session.expires_at)}</p><button onClick={() => onLogout(false)}><LogOut size={15} />退出当前设备</button><button onClick={() => onLogout(true)}>退出所有设备</button></div></details></div></header>
-    <nav className="wb-tabs" aria-label="工作台"><button aria-pressed={!admin} onClick={() => setAdmin(false)}><BookOpen size={17} />我的研究</button>
-      {session.member.is_admin && <button aria-pressed={admin} onClick={() => setAdmin(true)}><ShieldCheck size={17} />管理</button>}</nav>
-    {admin && session.member.is_admin ? <WorkbenchAdmin api={api} available={available} /> : <>
+    <header className="wb-top"><div><span className="wb-eyebrow">个人研究工作台</span><h1>研究查询</h1></div></header>
       <button className="wb-mobile-toggle" aria-expanded={mobileList} aria-controls="wb-studies" onClick={() => setMobileList((v) => !v)}><List size={17} />我的研究 · 选择研究</button>
       <div className="wb-layout"><aside id="wb-studies" className={`wb-studies${mobileList ? " wb-list-open" : ""}`} aria-label="我的研究列表">
         <div className="wb-aside-heading"><h2>我的研究</h2><button aria-label="新建研究" onClick={() => { setCreating(true); setMobileList(false); }}><Plus size={18} />新建</button></div>
@@ -84,7 +79,6 @@ export default function WorkbenchWorkspace({ api, session, available, onLogout }
             operation={operations[selected]} operationError={opError[selected]} onGenerate={(draft, retryOf) => void generate(selected, draft, retryOf)}
             onChanged={change} onJob={(id) => choose(selected, id)} onDeleted={() => { setParameters({}); setCreating(true); change(); }} />}
       </main></div>
-    </>}
   </>;
 }
 function CreateStudy({ api, available, operation, onOperation, onCreated, onCancel }: {

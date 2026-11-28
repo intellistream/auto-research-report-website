@@ -19,6 +19,7 @@ import type { Catalog } from "../pages/report-preview-data";
 import CommandSearchModal from "./CommandSearchModal";
 import ResearchAssistant from "./ResearchAssistant";
 import "./shell.css";
+import WorkbenchAccount from "./WorkbenchAccount";
 
 function getInitialTheme(): "light" | "dark" {
   if (typeof document === "undefined") return "light";
@@ -44,7 +45,7 @@ export default function SiteLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme);
 
-  const privateResearch = pathname === "/research" && import.meta.env.VITE_WORKBENCH_MODE === "enabled";
+  const privateResearch = /^\/research(?:\/|$)/.test(pathname) && import.meta.env.VITE_WORKBENCH_MODE === "enabled";
   const reading = pathname.startsWith("/reports/");
   const latestDay = days[0];
 
@@ -175,6 +176,7 @@ export default function SiteLayout({
             >
               {mobileMenuOpen ? <X size={19} aria-hidden /> : <Menu size={19} aria-hidden />}
             </button>
+            <WorkbenchAccount />
           </div>
         </div>
 

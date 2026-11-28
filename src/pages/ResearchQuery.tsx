@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useHref, useSearchParams } from "react-router-dom";
+import { useHref, useLocation, useSearchParams } from "react-router-dom";
 import { Check, CheckCircle2, ChevronDown, Circle, Clock3, Copy, Download, ExternalLink, FileText, LoaderCircle, TriangleAlert } from "lucide-react";
 import { researchTaskHref, type ResearchJob, type ResearchStage } from "./research-api";
 import ResearchWorkbench from "./ResearchWorkbench";
@@ -188,7 +188,8 @@ export function ResearchTaskLink({ id }: { id: string }) {
 
 export default function ResearchQuery() {
   const [parameters] = useSearchParams();
-  if (parameters.has("task")) return <section className="research-query"><h1>研究查询</h1><p role="status">旧匿名任务不在个人工作台中提供访问，也不会自动归入当前账号。请从研究查询入口登录并查看本人的研究。</p></section>;
+  const { pathname } = useLocation();
+  if (pathname !== "/research/admin" && parameters.has("task")) return <section className="research-query"><h1>研究查询</h1><p role="status">旧匿名任务不在个人工作台中提供访问，也不会自动归入当前账号。请从研究查询入口登录并查看本人的研究。</p></section>;
   if (import.meta.env.VITE_WORKBENCH_MODE === "enabled") return <ResearchWorkbench />;
   const entry = workbenchEntry(import.meta.env.VITE_WORKBENCH_ORIGIN);
   return <section className="research-query research-query-gateway" aria-labelledby="research-title">
