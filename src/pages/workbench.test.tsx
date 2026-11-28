@@ -41,9 +41,9 @@ beforeEach(() => {
     if (path === "/api/admin/members/resolve") return json({ identity: { github_id: 22, github_login: "controlled-new" }, confirmation_token: "controlled-confirmation" });
     if (path === "/api/admin/members" && method === "POST") return json({ member });
     if (url.pathname === "/api/admin/members") return json({ members: adminMembers, next_offset: null });
-    if (url.pathname === "/api/admin/research/queue") return json({ jobs: [{ id: "queue-1", studyId: "study-number", userId: "member-number", status: "running", stage: "searching", createdAt: time }], total: 1, offset: 0, limit: 20 });
-    if (path === "/api/admin/research/usage") return json({ usage: [{ userId: "member-number", accepted: 2, charged: 2, refunded: 0, succeeded: 1, failed: 0, active: 1 }] });
-    if (path === "/api/admin/audit") return json({ events: [{ action: "study_created", userId: "member-number", studyId: "study-number", createdAt: time, result: "accepted" }] });
+    if (url.pathname === "/api/admin/research/queue") return json({ jobs: [{ id: "queue-1", studyId: "study-number", userId: "member-number", githubLogin: "controlled-queue-member", status: "running", stage: "searching", createdAt: time, updatedAt: time, waitSeconds: 120, runningSeconds: 480 }], total: 1, offset: 0, limit: 20 });
+    if (url.pathname === "/api/admin/research/usage") return json({ day: url.searchParams.get("day"), usage: [{ userId: "member-number", githubLogin: "controlled-queue-member", day: url.searchParams.get("day"), accepted: 2, charged: 2, refunded: 0, succeeded: 1, failed: 0, active: 1 }] });
+    if (url.pathname === "/api/admin/audit") return json({ events: [{ id: "event-1", action: "study.create", userId: "member-number", actorGithubLogin: "controlled-queue-member", studyId: "study-number", createdAt: time, result: "accepted" }], total: 1, next_offset: null });
     if (path.startsWith("/api/admin/members/") && method === "PATCH") {
       const id = path.split("/").at(-1), target = adminMembers.find((m) => m.user_id === id)!;
       Object.assign(target, JSON.parse(String(options.body))); return json({ member: target });
@@ -177,8 +177,8 @@ describe("admin workbench safe views", () => {
   });
   it("uses safe queue, usage and audit endpoints without requesting member reports", async () => {
     session.member.is_admin = true; show(); await screen.findByText("第二份报告问题"); fireEvent.click(screen.getByLabelText(/账号菜单 @/)); fireEvent.click(screen.getByRole("link", { name: "管理后台" })); await screen.findByLabelText("GitHub 用户名");
-    const start = fetcher.mock.calls.length; fireEvent.click(screen.getByRole("button", { name: "生成队列" })); await screen.findByText("queue-1"); expect(screen.queryByRole("heading", { name: /第一份报告问题/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "用量" })); await screen.findByText(/实际模型资源消耗尚未提供/); fireEvent.click(screen.getByRole("button", { name: "操作记录" })); await screen.findByText("study_created");
+    const start = fetcher.mock.calls.length; fireEvent.click(screen.getByRole("button", { name: "生成队列" })); await screen.findByRole("table", { name: "生成队列" }); expect(screen.queryByRole("heading", { name: /第一份报告问题/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "用量统计" })); await screen.findByRole("table", { name: /用量统计/ }); fireEvent.click(screen.getByRole("button", { name: "操作记录" })); await screen.findByText("新建研究");
     expect(fetcher.mock.calls.slice(start).every(([path]) => path.startsWith("/api/admin/"))).toBe(true); expect(fetcher.mock.calls.some(([path]) => path.includes("/report."))).toBe(false); expect(screen.queryByRole("button", { name: /重试/ })).toBeNull();
   });
 });
@@ -233,16 +233,16 @@ describe("independent management navigation and header account", () => {
     show("/research/admin"); await screen.findByTestId("member-row-member-a");
     const a = screen.getByTestId("member-row-member-a"), b = screen.getByTestId("member-row-member-b");
     expect(a.closest("table")).toBe(screen.getByRole("table", { name: "成员与额度" })); expect(b.closest("table")).toBe(a.closest("table"));
-    fireEvent.change(within(a).getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "7" } });
-    fireEvent.change(within(b).getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "9" } });
-    adminMembers.reverse(); fireEvent.click(within(b).getByRole("button", { name: "保存额度" }));
+    fireEvent.change(within(a).getByRole("spinbutton", { name: /每日生成上限/ }), { target: { value: "7" } });
+    fireEvent.change(within(b).getByRole("spinbutton", { name: /每日生成上限/ }), { target: { value: "9" } });
+    adminMembers.reverse(); fireEvent.click(within(b).getByRole("button", { name: "保存上限" }));
     await waitFor(() => expect(adminMembers.find((m) => m.user_id === "member-b")?.daily_generation_limit).toBe(9));
-    await waitFor(() => expect((within(screen.getByTestId("member-row-member-a")).getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("7"));
-    fireEvent.click(screen.getByRole("button", { name: "刷新管理数据" })); await screen.findByTestId("member-row-member-b");
-    expect((within(screen.getByTestId("member-row-member-a")).getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("7");
-    fireEvent.click(screen.getByRole("button", { name: "生成队列" })); await screen.findByText("queue-1");
+    await waitFor(() => expect((within(screen.getByTestId("member-row-member-a")).getByRole("spinbutton", { name: /每日生成上限/ }) as HTMLInputElement).value).toBe("7"));
+    fireEvent.click(screen.getByRole("button", { name: "刷新" })); await screen.findByTestId("member-row-member-b");
+    expect((within(screen.getByTestId("member-row-member-a")).getByRole("spinbutton", { name: /每日生成上限/ }) as HTMLInputElement).value).toBe("7");
+    fireEvent.click(screen.getByRole("button", { name: "生成队列" })); await screen.findByRole("table", { name: "生成队列" });
     fireEvent.click(screen.getByRole("button", { name: "成员与额度" }));
-    expect((within(screen.getByTestId("member-row-member-a")).getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("7");
+    expect((within(screen.getByTestId("member-row-member-a")).getByRole("spinbutton", { name: /每日生成上限/ }) as HTMLInputElement).value).toBe("7");
     expect(fetcher.mock.calls.filter(([path, opts]) => opts.method === "PATCH").map(([path]) => path)).toEqual(["/api/admin/members/member-b"]);
   });
   it("does not request a private session or show account controls in the public build", async () => {
@@ -484,7 +484,7 @@ describe("compact member table and row-owned operations", () => {
   it("uses six clear columns with independent role and real membership state, without the removed explanation", async () => {
     members(); await screen.findByTestId("member-row-member-a");
     const table = screen.getByRole("table", { name: "成员与额度" });
-    expect(within(table).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["用户名", "身份", "状态", "每日报告上限", "同时未完成上限", "操作"]);
+    expect(within(table).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["用户名", "身份", "状态", "每日生成上限", "未完成任务上限", "操作"]);
     expect(within(screen.getByTestId("member-row-member-a")).getByText("管理员")).toBeTruthy();
     expect(within(screen.getByTestId("member-row-member-b")).getByText("成员", { exact: true })).toBeTruthy();
     expect(within(screen.getByTestId("member-row-member-b")).getByText("已开通")).toBeTruthy();
@@ -497,31 +497,31 @@ describe("compact member table and row-owned operations", () => {
     hook = (path, options) => path === "/api/admin/members/member-a" && options.method === "PATCH" ? new Promise((done) => { resolve = done; }) : undefined;
     members(); await screen.findByTestId("member-row-member-a");
     const a = () => within(screen.getByTestId("member-row-member-a")), b = () => within(screen.getByTestId("member-row-member-b"));
-    fireEvent.change(a().getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "7" } }); fireEvent.click(a().getByRole("button", { name: "保存额度" }));
-    await a().findByRole("button", { name: "正在保存…" }); expect((b().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).disabled).toBe(false);
-    fireEvent.change(b().getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "9" } }); fireEvent.click(b().getByRole("button", { name: "保存额度" }));
-    await b().findByText("额度已保存"); fireEvent.change(b().getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "11" } });
+    fireEvent.change(a().getByRole("spinbutton", { name: /每日生成上限/ }), { target: { value: "7" } }); fireEvent.click(a().getByRole("button", { name: "保存上限" }));
+    await a().findByRole("button", { name: "正在保存…" }); expect((b().getByRole("spinbutton", { name: /每日生成上限/ }) as HTMLInputElement).disabled).toBe(false);
+    fireEvent.change(b().getByRole("spinbutton", { name: /每日生成上限/ }), { target: { value: "9" } }); fireEvent.click(b().getByRole("button", { name: "保存上限" }));
+    await b().findByText("上限已更新"); fireEvent.change(b().getByRole("spinbutton", { name: /每日生成上限/ }), { target: { value: "11" } });
     adminMembers.find((m) => m.user_id === "member-a")!.daily_generation_limit = 7;
-    await act(async () => { resolve(json({ member: adminMembers.find((m) => m.user_id === "member-a") })); }); await a().findByText("额度已保存");
-    expect((a().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("7"); expect((b().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("11");
-    expect(b().getByText("未保存")).toBeTruthy(); expect(b().queryByText("额度已保存")).toBeNull();
+    await act(async () => { resolve(json({ member: adminMembers.find((m) => m.user_id === "member-a") })); }); await a().findByText("上限已更新");
+    expect((a().getByRole("spinbutton", { name: /每日生成上限/ }) as HTMLInputElement).value).toBe("7"); expect((b().getByRole("spinbutton", { name: /每日生成上限/ }) as HTMLInputElement).value).toBe("11");
+    expect(b().getByText("未保存")).toBeTruthy(); expect(b().queryByText("上限已更新")).toBeNull();
     expect(fetcher.mock.calls.filter(([, options]) => options.method === "PATCH").map(([path, options]) => [path, JSON.parse(String(options.body)).daily_generation_limit])).toEqual([["/api/admin/members/member-a", 7], ["/api/admin/members/member-b", 9]]);
   });
   it("keeps an uncertain save error in its own row and preserves other drafts through refresh or temporary pagination removal", async () => {
     members(); await screen.findByTestId("member-row-member-a");
     const a = () => within(screen.getByTestId("member-row-member-a")), b = () => within(screen.getByTestId("member-row-member-b"));
-    fireEvent.change(a().getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "7" } }); fireEvent.change(b().getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "9" } });
+    fireEvent.change(a().getByRole("spinbutton", { name: /每日生成上限/ }), { target: { value: "7" } }); fireEvent.change(b().getByRole("spinbutton", { name: /每日生成上限/ }), { target: { value: "9" } });
     hook = (path, options) => path === "/api/admin/members/member-a" && options.method === "PATCH" ? Promise.reject(new TypeError("controlled response loss")) : undefined;
-    fireEvent.click(a().getByRole("button", { name: "保存额度" })); await a().findByText("保存结果尚未确认，请刷新成员列表核对后再操作。");
-    expect(b().queryByRole("alert")).toBeNull(); expect((b().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("9");
-    const other = adminMembers.pop()!; fireEvent.click(screen.getByRole("button", { name: "刷新管理数据" })); await waitFor(() => expect(screen.queryByTestId("member-row-member-b")).toBeNull());
-    adminMembers.push(other); fireEvent.click(screen.getByRole("button", { name: "刷新管理数据" })); await screen.findByTestId("member-row-member-b");
-    expect((b().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("9"); expect((a().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("7");
+    fireEvent.click(a().getByRole("button", { name: "保存上限" })); await a().findByText("保存结果待确认，请刷新核对。");
+    expect(b().queryByRole("alert")).toBeNull(); expect((b().getByRole("spinbutton", { name: /每日生成上限/ }) as HTMLInputElement).value).toBe("9");
+    const other = adminMembers.pop()!; fireEvent.click(screen.getByRole("button", { name: "刷新" })); await waitFor(() => expect(screen.queryByTestId("member-row-member-b")).toBeNull());
+    adminMembers.push(other); fireEvent.click(screen.getByRole("button", { name: "刷新" })); await screen.findByTestId("member-row-member-b");
+    expect((b().getByRole("spinbutton", { name: /每日生成上限/ }) as HTMLInputElement).value).toBe("9"); expect((a().getByRole("spinbutton", { name: /每日生成上限/ }) as HTMLInputElement).value).toBe("7");
   });
   it("confirms status changes for the chosen member and locates a failure in that row without erasing quota drafts", async () => {
     members(); await screen.findByTestId("member-row-member-a");
     const a = () => within(screen.getByTestId("member-row-member-a")), b = () => within(screen.getByTestId("member-row-member-b"));
-    fireEvent.change(a().getByRole("spinbutton", { name: /每日报告上限/ }), { target: { value: "8" } });
+    fireEvent.change(a().getByRole("spinbutton", { name: /每日生成上限/ }), { target: { value: "8" } });
     fireEvent.click(b().getByRole("button", { name: "停用成员" }));
     let dialog = screen.getByRole("dialog", { name: "停用成员" }); expect(within(dialog).getByText(/GitHub ID 22/)).toBeTruthy();
     expect(fetcher.mock.calls.some(([, options]) => options.method === "PATCH")).toBe(false); fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
@@ -530,9 +530,82 @@ describe("compact member table and row-owned operations", () => {
     hook = (path, options) => path === "/api/admin/members/member-b" && options.method === "PATCH" ? Promise.resolve(json({ detail: { code: "controlled_conflict", message: "受控启用失败，请刷新后重试。" } }, 409)) : undefined;
     fireEvent.click(b().getByRole("button", { name: "重新启用" })); fireEvent.click(within(screen.getByRole("dialog", { name: "重新启用成员" })).getByRole("button", { name: "确认" }));
     await b().findByText("受控启用失败，请刷新后重试。"); expect(screen.queryByRole("dialog")).toBeNull(); expect(a().queryByRole("alert")).toBeNull();
-    expect((a().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("8");
+    expect((a().getByRole("spinbutton", { name: /每日生成上限/ }) as HTMLInputElement).value).toBe("8");
     hook = undefined; fireEvent.click(b().getByRole("button", { name: "重新启用" })); fireEvent.click(within(screen.getByRole("dialog", { name: "重新启用成员" })).getByRole("button", { name: "确认" }));
-    await b().findByText("成员已重新启用"); expect(b().getByText("已开通")).toBeTruthy(); expect((a().getByRole("spinbutton", { name: /每日报告上限/ }) as HTMLInputElement).value).toBe("8");
+    await b().findByText("成员已重新启用"); expect(b().getByText("已开通")).toBeTruthy(); expect((a().getByRole("spinbutton", { name: /每日生成上限/ }) as HTMLInputElement).value).toBe("8");
     expect(fetcher.mock.calls.filter(([, options]) => options.method === "PATCH").every(([path]) => path === "/api/admin/members/member-b")).toBe(true);
+  });
+});
+
+
+describe("approved management tables and confirmed limits", () => {
+  async function management() { session.member.is_admin = true; adminMembers = [{ ...member }, { ...member, user_id: "member-b", github_id: 22, github_login: "controlled-b" }]; show("/research/admin"); await screen.findByTestId("member-row-member-a"); }
+  it("disables unchanged rows and preserves the other limit when only one changes", async () => {
+    await management(); const row = within(screen.getByTestId("member-row-member-a"));
+    expect((row.getByRole("button", { name: "保存上限" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.submit(row.getByRole("button", { name: "保存上限" }).closest("form")!);
+    expect(fetcher.mock.calls.some(([, options]) => options.method === "PATCH")).toBe(false);
+    fireEvent.change(row.getByRole("spinbutton", { name: /未完成任务上限/ }), { target: { value: "2" } }); fireEvent.click(row.getByRole("button", { name: "保存上限" }));
+    await row.findByText("上限已更新");
+    const writes = fetcher.mock.calls.filter(([, options]) => options.method === "PATCH");
+    expect(JSON.parse(String(writes[0][1].body))).toEqual({ daily_generation_limit: 5, active_job_limit: 2 }); expect(charged).toBe(2);
+    expect((row.getByRole("button", { name: "保存上限" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+  it("adopts both limits confirmed by the backend, without replacing another member's draft", async () => {
+    await management(); const a = within(screen.getByTestId("member-row-member-a")), b = within(screen.getByTestId("member-row-member-b"));
+    fireEvent.change(b.getByRole("spinbutton", { name: /每日生成上限/ }), { target: { value: "11" } });
+    hook = (path, options) => {
+      if (path === "/api/admin/members/member-a" && options.method === "PATCH") { Object.assign(adminMembers[0], { daily_generation_limit: 8, active_job_limit: 3 }); return Promise.resolve(json({ member: adminMembers[0] })); }
+    };
+    fireEvent.change(a.getByRole("spinbutton", { name: /每日生成上限/ }), { target: { value: "7" } }); fireEvent.click(a.getByRole("button", { name: "保存上限" })); await a.findByText("上限已更新");
+    expect((a.getByRole("spinbutton", { name: /每日生成上限/ }) as HTMLInputElement).value).toBe("8"); expect((a.getByRole("spinbutton", { name: /未完成任务上限/ }) as HTMLInputElement).value).toBe("3");
+    expect((b.getByRole("spinbutton", { name: /每日生成上限/ }) as HTMLInputElement).value).toBe("11"); expect(b.getByText("未保存")).toBeTruthy();
+  });
+  it("requires a read after an uncertain write and never silently resends", async () => {
+    await management(); const a = () => within(screen.getByTestId("member-row-member-a"));
+    hook = (path, options) => { if (path === "/api/admin/members/member-a" && options.method === "PATCH") { adminMembers[0].daily_generation_limit = 7; return Promise.reject(new TypeError("controlled timeout")); } };
+    fireEvent.change(a().getByRole("spinbutton", { name: /每日生成上限/ }), { target: { value: "7" } }); fireEvent.click(a().getByRole("button", { name: "保存上限" })); await a().findByText("保存结果待确认，请刷新核对。");
+    expect((a().getByRole("button", { name: "保存上限" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "刷新" })); await a().findByText("上限已更新"); expect(a().queryByText("未保存")).toBeNull();
+    expect(fetcher.mock.calls.filter(([, options]) => options.method === "PATCH")).toHaveLength(1);
+  });
+  it("shows real queue durations and safe expandable identifiers without private links", async () => {
+    await management(); fireEvent.click(screen.getByRole("button", { name: "生成队列" })); const table = await screen.findByRole("table", { name: "生成队列" }); const view = within(table);
+    expect(view.getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["用户名", "生成编号", "状态", "当前阶段", "提交时间", "等待时长", "运行时长"]);
+    expect(view.getByText("@controlled-queue-member")).toBeTruthy(); expect(view.getByText("2分0秒")).toBeTruthy(); expect(view.getByText("8分0秒")).toBeTruthy();
+    fireEvent.click(view.getByLabelText("生成 queue-1 的完整元信息")); expect(view.getByText("study-number")).toBeTruthy(); expect(view.queryByRole("link")).toBeNull();
+    expect(fetcher.mock.calls.filter(([path]) => path.startsWith("/api/admin/")).every(([path]) => !path.includes("report"))).toBe(true);
+  });
+  it("keeps historical acceptance date, net charge, and missing counts instead of inventing live totals", async () => {
+    await management(); fireEvent.click(screen.getByRole("button", { name: "用量统计" })); await screen.findByRole("table", { name: /用量统计/ });
+    hook = (path) => path === "/api/admin/research/usage?day=2026-11-27" ? Promise.resolve(json({ day: "2026-11-27", usage: [{ userId: "member-outside-first-page", githubLogin: "historical-member", day: "2026-11-27", accepted: 4, charged: 3, refunded: 1, succeeded: 2, active: 99 }] })) : undefined;
+    fireEvent.change(screen.getByLabelText(/统计日期/), { target: { value: "2026-11-27" } }); const table = await screen.findByRole("table", { name: "用量统计 2026-11-27" });
+    expect(within(table).getAllByRole("cell").map((cell) => cell.textContent)).toEqual(["4", "3", "1", "2", "未提供"]);
+    expect(within(table).getByText("@historical-member")).toBeTruthy(); expect(within(table).queryByText("99")).toBeNull(); expect(screen.queryByText(/实际模型资源消耗/)).toBeNull();
+    expect(screen.getByText("2026-11-27 受理的任务 · 北京时间")).toBeTruthy();
+  });
+  it("discards a previous day's late response and shows no fabricated members on an empty day", async () => {
+    await management(); let release!: (response: Response) => void;
+    hook = (path) => path === "/api/admin/research/usage?day=2026-11-27" ? new Promise((done) => { release = done; }) : path === "/api/admin/research/usage?day=2026-11-26" ? Promise.resolve(json({ day: "2026-11-26", usage: [] })) : undefined;
+    fireEvent.click(screen.getByRole("button", { name: "用量统计" })); await screen.findByRole("table", { name: /用量统计/ });
+    fireEvent.change(screen.getByLabelText(/统计日期/), { target: { value: "2026-11-27" } }); await waitFor(() => expect(release).toBeTypeOf("function"));
+    fireEvent.change(screen.getByLabelText(/统计日期/), { target: { value: "2026-11-26" } }); await screen.findByText("该日没有生成用量");
+    await act(async () => { release(json({ day: "2026-11-27", usage: [{ userId: "late-account", accepted: 1 }] })); });
+    expect(screen.queryByText(/late-account/)).toBeNull(); expect(screen.getByText("2026-11-26 受理的任务 · 北京时间")).toBeTruthy();
+  });
+  it("distinguishes actor and target, explains worker failures, and follows the real audit cursor", async () => {
+    await management();
+    hook = (path) => path === "/api/admin/audit?limit=50&offset=0" ? Promise.resolve(json({ total: 51, next_offset: 50, events: [{ id: "auth-event", action: "member.update", userId: "admin-id", actorGithubLogin: "admin-name", actorType: "member", targetUserId: "member-outside-page", targetGithubLogin: "target-name", createdAt: time, result: "ok" }] }))
+      : path === "/api/admin/audit?limit=50&offset=50" ? Promise.resolve(json({ total: 51, next_offset: null, events: [{ id: "research-event", action: "job.fail", userId: "member-outside-page", actorType: "system", targetUserId: "member-outside-page", targetGithubLogin: "target-name", jobId: "job-unique-id", studyId: "study-id", createdAt: time, result: "ok" }] })) : undefined;
+    fireEvent.click(screen.getByRole("button", { name: "操作记录" })); let table = await screen.findByRole("table", { name: "操作记录" });
+    expect(within(table).getByText("@admin-name")).toBeTruthy(); expect(within(table).getByText("@target-name")).toBeTruthy(); expect(within(table).getByText("更新成员设置")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "加载更多操作记录" })); await within(table).findByText("系统");
+    const failedRow = within(table).getByText("报告生成").closest("tr")!; expect(within(failedRow).getAllByText("失败").length).toBeGreaterThan(0); expect(within(failedRow).queryByText("已完成")).toBeNull(); expect(within(failedRow).queryByRole("link")).toBeNull();
+    expect(screen.queryByRole("button", { name: "加载更多操作记录" })).toBeNull();
+  });
+  it("clears all management data when a protected response revokes admin permission", async () => {
+    await management(); hook = (path) => path.startsWith("/api/admin/members?") ? Promise.resolve(json({ detail: { code: "admin_required", message: "此操作需要管理员权限。" } }, 403)) : undefined;
+    fireEvent.click(screen.getByRole("button", { name: "刷新" })); await screen.findByText("当前账号没有管理权限，请重新登录后核对。");
+    expect(screen.queryByRole("table")).toBeNull(); expect(screen.queryByRole("spinbutton")).toBeNull(); expect(screen.getByRole("link", { name: "使用 GitHub 登录" })).toBeTruthy();
   });
 });
