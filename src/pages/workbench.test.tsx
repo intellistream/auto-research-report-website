@@ -118,6 +118,10 @@ describe("member workbench interactions using controlled fixtures", () => {
   it("does not auto-resubmit after a lost response and confirms the same key and parameters", async () => {
     loseSubmission = true; show(); await screen.findByText("第二份报告问题"); fireEvent.change(screen.getByPlaceholderText("请输入你想生成的报告内容"), { target: { value: "需要确认的生成" } }); fireEvent.click(screen.getByRole("button", { name: "生成报告" }));
     await screen.findByRole("button", { name: "检查本次提交结果" }); const posts = () => fetcher.mock.calls.filter(([path, o]) => path.includes("/jobs") && o.method === "POST");
+    expect(posts()).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "额度详情" }));
+    expect(screen.getByRole("region", { name: "生成额度详情" })).toBeTruthy();
+    expect((screen.getByPlaceholderText("请输入你想生成的报告内容") as HTMLTextAreaElement).disabled).toBe(true);
     expect(posts()).toHaveLength(1); fireEvent.click(screen.getByRole("button", { name: "检查本次提交结果" })); await screen.findByText("需要确认的生成");
     expect(posts()).toHaveLength(2); expect(posts()[0][1].headers["Idempotency-Key"]).toBe(posts()[1][1].headers["Idempotency-Key"]); expect(posts()[0][1].body).toBe(posts()[1][1].body); expect(jobs).toHaveLength(3); expect(charged).toBe(3);
   });
@@ -134,7 +138,9 @@ describe("member workbench interactions using controlled fixtures", () => {
   });
   it("explains quota across studies while allowing existing report reading", async () => {
     session.member.daily_generation_limit = 2; show(); await screen.findByText(/今日生成额度不足/); fireEvent.change(screen.getByPlaceholderText("请输入你想生成的报告内容"), { target: { value: "测试额度" } });
-    expect((screen.getByRole("button", { name: "生成报告" }) as HTMLButtonElement).disabled).toBe(true); expect(screen.getAllByRole("button", { name: "查看报告" })).toHaveLength(2); expect(screen.getByText(/额度跨本人所有研究合计/)).toBeTruthy();
+    expect((screen.getByRole("button", { name: "生成报告" }) as HTMLButtonElement).disabled).toBe(true); expect(screen.getAllByRole("button", { name: "查看报告" })).toHaveLength(2);
+    expect(screen.getByText("今日已用 2/2 · 进行中 0/1")).toBeTruthy(); fireEvent.click(screen.getByRole("button", { name: "额度详情" }));
+    expect(within(screen.getByRole("region", { name: "生成额度详情" })).getByText(/额度跨本人所有研究合计/)).toBeTruthy();
   });
 
   it.each([401, 403])("clears reports and drafts on expired or disabled session (%i)", async (status) => {
@@ -357,5 +363,60 @@ describe("automatic session checks and failure-only retry", () => {
     fireEvent(window, new Event("focus")); await screen.findByText("登录会话已过期，请重新登录。");
     expect(screen.queryByText("第一份报告问题")).toBeNull(); expect(screen.queryByLabelText(/账号菜单 @/)).toBeNull();
     expect(screen.getByText("无法连接登录服务，请检查网络后重试。")).toBeTruthy();
+  });
+});
+
+
+describe("compact generation and research tools", () => {
+  it("keeps search and creation accessible without repeated sidebar headings", async () => {
+    show(); await screen.findByText("第二份报告问题");
+    const sidebar = screen.getByRole("complementary", { name: "我的研究列表" });
+    expect(within(sidebar).queryByRole("heading")).toBeNull(); expect(within(sidebar).queryByText("搜索本人研究")).toBeNull();
+    const search = within(sidebar).getByRole("searchbox", { name: "搜索本人研究" });
+    expect(search.getAttribute("placeholder")).toBe("按研究名称搜索");
+    fireEvent.change(search, { target: { value: "研究乙" } });
+    await waitFor(() => expect(within(sidebar).queryByRole("button", { name: /研究甲/ })).toBeNull());
+    expect(await within(sidebar).findByRole("button", { name: /研究乙/ })).toBeTruthy();
+    expect(fetcher.mock.calls.some(([path]) => path.includes("search=%E7%A0%94%E7%A9%B6%E4%B9%99"))).toBe(true);
+    fireEvent.click(within(sidebar).getByRole("button", { name: "新建研究" })); await screen.findByRole("heading", { name: "新建一项研究" });
+    expect(fetcher.mock.calls.some(([, options]) => options.method === "POST")).toBe(false);
+    expect(screen.getByRole("button", { name: "我的研究 · 选择研究" })).toBeTruthy();
+  });
+  it("opens quota details without submitting or changing the draft and preserves validation", async () => {
+    show(); await screen.findByText("第二份报告问题");
+    const form = screen.getByRole("region", { name: "生成报告" });
+    expect(within(form).getByText("今日已用 2/5 · 进行中 0/1")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "生成额度详情" })).toBeNull();
+    const field = within(form).getByRole("textbox", { name: "报告内容" });
+    fireEvent.change(field, { target: { value: "!!" } });
+    expect(field.getAttribute("aria-invalid")).toBe("true"); expect((within(form).getByRole("button", { name: "生成报告" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(field, { target: { value: "保留的研究问题" } }); fireEvent.change(within(form).getByLabelText("检索时间"), { target: { value: "90" } });
+    const toggle = within(form).getByRole("button", { name: "额度详情" }); fireEvent.click(toggle);
+    expect(toggle.getAttribute("type")).toBe("button"); expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    const details = screen.getByRole("region", { name: "生成额度详情" });
+    expect(within(details).getByText("额度跨本人所有研究合计，创建研究不计入。")).toBeTruthy(); expect(within(details).getByText(/恢复日额度/)).toBeTruthy();
+    fireEvent.click(toggle); expect(screen.queryByRole("region", { name: "生成额度详情" })).toBeNull();
+    expect((field as HTMLTextAreaElement).value).toBe("保留的研究问题"); expect((within(form).getByLabelText("检索时间") as HTMLSelectElement).value).toBe("90");
+    expect(fetcher.mock.calls.some(([, options]) => options.method === "POST")).toBe(false);
+    expect(within(form).getByText("报告生成可能需要十几分钟，可关闭页面稍后在本研究查看。")).toBeTruthy();
+  });
+  it("keeps pending generation disabled while quota details remain operable", async () => {
+    let resolve!: (response: Response) => void;
+    hook = (path, options) => path === "/api/research/studies/s1/jobs" && options.method === "POST" ? new Promise((done) => { resolve = done; }) : undefined;
+    show(); await screen.findByText("第二份报告问题"); fireEvent.change(screen.getByPlaceholderText("请输入你想生成的报告内容"), { target: { value: "延迟返回的生成" } });
+    fireEvent.click(screen.getByRole("button", { name: "生成报告" })); await screen.findByRole("button", { name: "正在提交…" });
+    expect((screen.getByRole("button", { name: "正在提交…" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByLabelText("检索时间") as HTMLSelectElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "额度详情" })); expect(screen.getByRole("region", { name: "生成额度详情" })).toBeTruthy();
+    expect(fetcher.mock.calls.filter(([, options]) => options.method === "POST")).toHaveLength(1);
+    const job = makeJob("j3", "s1", "延迟返回的生成", 3); jobs.push(job); charged++;
+    await act(async () => { resolve(json(job)); }); await screen.findByText("今日已用 3/5 · 进行中 0/1");
+    expect(screen.getByText("第一份报告问题")).toBeTruthy(); expect(screen.getByText("第二份报告问题")).toBeTruthy();
+  });
+  it("does not invent zero usage when the quota read fails", async () => {
+    hook = (path) => path === "/api/research/usage" ? Promise.reject(new TypeError("controlled usage outage")) : undefined;
+    show(); await screen.findByText("用量暂不可用，提交时核验"); expect(screen.queryByText(/今日已用 0/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "额度详情" }));
+    expect(within(screen.getByRole("region", { name: "生成额度详情" })).getByText("暂时无法读取用量，提交时仍由服务端检查额度。")).toBeTruthy();
   });
 });
