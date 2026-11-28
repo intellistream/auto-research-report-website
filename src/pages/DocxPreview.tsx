@@ -49,19 +49,20 @@ export default function DocxPreview() {
     [catalog],
   );
   const research = useMatch("/research");
+  const workbenchRoute = !!research || pathname === "/research/admin";
   const overview = pathname === "/";
   const flow = useJson<FlowIndex>(overview ? "flow-index.json" : undefined);
   const topics = useJson<TopicIndex>(topicRoute && !kvTopicRoute ? "topics.json" : undefined);
 
   return (
-    <SiteLayout catalog={catalog} days={days} wide={overview || !!research}>
+    <SiteLayout catalog={catalog} days={days} wide={overview || workbenchRoute}>
       {groupRoute ? (
         <Suspense fallback={<div className="overview-status-card" role="status">正在打开组内 MOD…</div>}><Routes><Route path="/group-mods/*" element={<GroupMods />} /></Routes></Suspense>
       ) : pathname === "/contributors" ? (
         <Suspense fallback={<div className="overview-status-card" role="status">正在打开贡献者页面…</div>}>
           <Contributors />
         </Suspense>
-      ) : research ? (
+      ) : workbenchRoute ? (
         <Suspense fallback={<div className="overview-status-card" role="status">正在打开研究查询…</div>}>
           <ResearchQuery />
         </Suspense>

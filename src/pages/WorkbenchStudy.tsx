@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Copy, ShieldCheck } from "lucide-react";
+import { Copy } from "lucide-react";
 import { ResearchProgress } from "./ResearchQuery";
 import { WorkbenchError, errorMessage, privateLocation, type WorkbenchApi, type Job, type Study, type Usage } from "./workbench-api";
 import { ConfirmDialog, Notice, dateText, generationWait, pending } from "./workbench-ui";
@@ -78,10 +78,14 @@ export default function WorkbenchStudy({ api, id, jobId, revision, available, dr
   const unavailableQuota = !!usage && (usage.charged >= usage.dailyGenerationLimit || usage.active >= usage.activeJobLimit);
   const blocked = !available || !!operation || unavailableQuota;
   return <>
-    <section className="wb-card wb-study-heading"><span className="wb-eyebrow"><ShieldCheck size={15} />仅本人可见</span><h2>{study.name}</h2>{study.description && <p>{study.description}</p>}
-      <p className="wb-muted">已生成 {study.reportCount} 份可读报告 · {study.activeJobCount} 项生成中</p><p className="wb-meta">研究历史保留至 {dateText(study.expiresAt)} · 每份报告文件单独到期</p>
-      <div className="wb-actions"><button onClick={() => void copy()}><Copy size={15} />复制研究链接</button><button disabled={!available} onClick={() => setRename(!rename)}>重命名</button><button className="wb-danger-text" disabled={!available || study.activeJobCount > 0} onClick={() => setRemove("study")}>删除整项研究</button></div>
-      {study.activeJobCount > 0 && <p className="wb-meta">有生成尚未结束，暂不能删除整项研究。</p>}
+    <section className="wb-study-summary" aria-label="当前研究概览">
+      <div className="wb-study-toolbar"><h2 title={study.name}>{study.name}</h2>
+        <span className="wb-study-counts">{study.reportCount} 份报告 · {study.activeJobCount} 项生成中</span>
+        <span className="wb-study-retention">{study.expiresAt ? <>研究保留至 <time dateTime={study.expiresAt}>{dateText(study.expiresAt)}</time></> : "研究到期时间尚未提供"}<span> · 报告文件逐份到期</span></span>
+        <div className="wb-actions" aria-label="当前研究操作"><button onClick={() => void copy()}><Copy size={15} />复制链接</button><button disabled={!available} onClick={() => setRename(!rename)}>重命名</button><button className="wb-danger-text" disabled={!available || study.activeJobCount > 0} title={study.activeJobCount > 0 ? "有生成尚未结束，暂不能删除整项研究" : undefined} onClick={() => setRemove("study")}>删除研究</button></div>
+      </div>
+      {study.description && <details className="wb-study-description"><summary>研究说明</summary><p>{study.description}</p></details>}
+      {study.activeJobCount > 0 && <p className="wb-meta wb-study-pending-note">有生成尚未结束，暂不能删除整项研究。</p>}
       {rename && <form className="wb-inline-form" onSubmit={saveName}><label>新的研究名称<input value={name} maxLength={120} required onChange={(e) => setName(e.target.value)} /></label><button disabled={busy || !available || !name.trim()}>保存名称</button></form>}
       {copyMessage && <p role="status" className="wb-meta">{copyMessage}</p>}
     </section>

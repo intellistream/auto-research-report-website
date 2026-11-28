@@ -1,0 +1,22 @@
+.wb-header-account { position: relative; flex: 0 0 auto; min-width: 0; color: var(--ink-primary, #20302d); font-size: .875rem; }
+.wb-header-account > summary { display: flex; align-items: center; gap: .4rem; max-width: 12rem; min-height: 2.5rem; padding: .5rem .65rem; border: 1px solid var(--border-default, #d0ded5); border-radius: .5rem; background: var(--bg-surface, #fff); cursor: pointer; list-style: none; }
+.wb-header-account > summary::-webkit-details-marker { display: none; }
+.wb-header-account > summary::marker { content: ""; }
+.wb-header-account > summary > svg { flex-shrink: 0; }
+.wb-header-login { min-width: 0; max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wb-header-account[open] > summary, .wb-header-account > summary:hover { background: var(--brand-soft, #eaf4ee); border-color: var(--border-accent, #b0cdbd); }
+.wb-header-account :focus-visible { outline: 3px solid var(--brand-primary, #14604d); outline-offset: 3px; }
+.wb-account-menu { position: absolute; top: calc(100% + .65rem); right: 0; z-index: 30; display: grid; width: min(20rem, calc(100vw - 2rem)); padding: .6rem; border: 1px solid var(--border-default, #d0ded5); border-radius: .75rem; background: var(--bg-surface, #fff); color: var(--ink-primary, #20302d); box-shadow: 0 10px 30px #14271f24; }
+.wb-account-menu > .wb-account-identity { margin: .25rem .5rem; font-weight: 700; overflow-wrap: anywhere; }
+.wb-account-menu > .wb-account-expiry { margin: .15rem .5rem .65rem; color: var(--ink-secondary, #54665e); font-size: .8125rem; overflow-wrap: anywhere; }
+.wb-account-menu > a, .wb-account-menu > button { display: flex; align-items: center; gap: .4rem; width: 100%; min-height: 2.75rem; padding: .6rem .65rem; border: 0; border-radius: .4rem; background: transparent; color: inherit; text-align: left; text-decoration: none; font: inherit; cursor: pointer; }
+.wb-account-menu > a:hover, .wb-account-menu > button:hover { background: var(--bg-hover, #f0f6f2); color: var(--brand-primary, #14604d); }
+.wb-account-menu-divider { border-top: 1px solid var(--border-default, #d0ded5); margin: .35rem .4rem; }
+@media (min-width: 1161px) and (max-width: 1500px) { .site-header-actions .wb-header-login { display: none; } }
+@media (max-width: 600px) {
+  .wb-header-login { display: none; }
+  .wb-header-account > summary { width: 2.5rem; padding: .5rem; justify-content: center; }
+  .wb-header-account > summary > svg:last-child { display: none; }
+  .site-header-inner { gap: .5rem; }
+  .site-header-actions { gap: .3rem; }
+}

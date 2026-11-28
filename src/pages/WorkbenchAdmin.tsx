@@ -40,17 +40,22 @@ export default function WorkbenchAdmin({ api, available }: { api: WorkbenchApi; 
     <nav className="wb-tabs" aria-label="管理分类">{(Object.keys(titles) as Tab[]).map((key) => <button key={key} aria-pressed={tab === key} onClick={() => setTab(key)}>{titles[key]}</button>)}</nav>
     <div className="wb-section-heading"><h3>{titles[tab]}</h3><button onClick={() => setRevision((v) => v + 1)}>刷新管理数据</button></div>
     {error && <Notice error>{error}{tab === "audit" && <p>操作记录接口尚不可用时，不用成员正文或其他数据代替。</p>}</Notice>}
-    {loading ? <Notice>正在读取{titles[tab]}…</Notice> : tab === "members" ? <>
+    {loading && <Notice>正在读取{titles[tab]}…</Notice>}
+    <div hidden={tab !== "members"}>
       <form className="wb-inline-form" onSubmit={resolve}><label>GitHub 用户名<input value={login} onChange={(e) => { setLogin(e.target.value); setResolution(undefined); }} required maxLength={100} placeholder="输入用户名，先核对身份" /></label><button disabled={!available || busy || !login.trim()}>核对 GitHub 身份</button></form>
       {resolution && <aside className="wb-notice"><p>核对结果：@{resolution.github_login} · 稳定 GitHub ID {resolution.github_id}</p><p>请确认这是要邀请的成员。保存后自行发送工作台地址。</p><button className="wb-primary" disabled={!available || busy} onClick={() => void mutate(() => api.admit(resolution.confirmation_token))}>确认开通</button></aside>}
-      {!members.length && !error && <p className="wb-empty">尚无成员记录</p>}<ul className="wb-admin-list">{members.map((member) => <li key={member.user_id}><div className="wb-section-heading"><div><strong>@{member.github_login}</strong><p className="wb-meta">GitHub ID {member.github_id} · {member.status === "disabled" ? "已停用" : member.last_login_at == null ? "待首次登录" : "已开通"}{member.is_admin ? " · 管理员" : ""}</p></div><button className="wb-danger-text" disabled={!available || busy} onClick={() => setToggle(member)}>{member.status === "disabled" ? "重新启用" : "停用成员"}</button></div>
-        <MemberLimits key={`${member.user_id}-${member.daily_generation_limit}-${member.active_job_limit}`} member={member} disabled={!available || busy} onSave={(daily, active) => void mutate(() => api.updateMember(member.user_id, { daily_generation_limit: daily, active_job_limit: active }))} /></li>)}</ul>{memberOffset !== undefined && <button disabled={busy} onClick={() => void more()}>加载更多成员</button>}
-    </> : tab === "queue" ? <>
-      {!queue.length && !error && <p className="wb-empty">当前没有排队或运行的生成</p>}<ul className="wb-admin-list">{queue.map((item) => <li key={item.id}><dl className="wb-metadata"><div><dt>生成编号</dt><dd>{item.id}</dd></div><div><dt>研究编号</dt><dd>{item.studyId}</dd></div><div><dt>成员编号</dt><dd>{item.ownerUserId}</dd></div><div><dt>运行状态</dt><dd>{item.status === "queued" ? "排队中" : "运行中"} · {item.stage ? ({searching:"检索资料",synthesizing:"综合分析",reviewing:"审查",revising:"修订",rendering:"生成文件"} as Record<string,string>)[item.stage] || "处理中" : "尚无阶段"}</dd></div><div><dt>提交时刻</dt><dd>{dateText(item.createdAt)}</dd></div></dl></li>)}</ul>{queue.length < queueTotal && <button disabled={busy} onClick={() => void more()}>加载更多队列</button>}
+      {!members.length && !loading && !error && <p className="wb-empty">尚无成员记录</p>}<ul className="wb-member-list" aria-label="成员卡片">{members.map((member) => <li key={member.user_id}><article className="wb-member-card" aria-labelledby={`wb-member-${member.user_id}`} data-testid={`member-card-${member.user_id}`}>
+        <header><div className="wb-member-identity"><h4 id={`wb-member-${member.user_id}`}>@{member.github_login}</h4><p className="wb-meta">GitHub ID {member.github_id} · {member.status === "disabled" ? "已停用" : member.last_login_at == null ? "待首次登录" : "已开通"}{member.is_admin ? " · 管理员" : ""}</p></div>
+          <button className="wb-danger-text" disabled={!available || busy} onClick={() => setToggle(member)}>{member.status === "disabled" ? "重新启用" : "停用成员"}</button></header>
+        <MemberLimits member={member} disabled={!available || busy} onSave={(daily, active) => void mutate(() => api.updateMember(member.user_id, { daily_generation_limit: daily, active_job_limit: active }))} />
+      </article></li>)}</ul>{memberOffset !== undefined && <button disabled={busy} onClick={() => void more()}>加载更多成员</button>}
+    </div>
+    {tab === "members" ? null : tab === "queue" ? <>
+      {!queue.length && !loading && !error && <p className="wb-empty">当前没有排队或运行的生成</p>}<ul className="wb-admin-list">{queue.map((item) => <li key={item.id}><dl className="wb-metadata"><div><dt>生成编号</dt><dd>{item.id}</dd></div><div><dt>研究编号</dt><dd>{item.studyId}</dd></div><div><dt>成员编号</dt><dd>{item.ownerUserId}</dd></div><div><dt>运行状态</dt><dd>{item.status === "queued" ? "排队中" : "运行中"} · {item.stage ? ({searching:"检索资料",synthesizing:"综合分析",reviewing:"审查",revising:"修订",rendering:"生成文件"} as Record<string,string>)[item.stage] || "处理中" : "尚无阶段"}</dd></div><div><dt>提交时刻</dt><dd>{dateText(item.createdAt)}</dd></div></dl></li>)}</ul>{queue.length < queueTotal && <button disabled={busy} onClick={() => void more()}>加载更多队列</button>}
     </> : tab === "usage" ? <>
-      {!usage.length && !error && <p className="wb-empty">当前没有用量记录</p>}<ul className="wb-admin-list">{usage.map((item) => <li key={item.userId}><strong>成员 {item.userId}</strong><p>今日接受 {item.usage.accepted} 次 · 计量 {item.usage.charged} 次 · 退额 {item.usage.refunded} 次</p><p>成功 {item.usage.succeeded} · 失败 {item.usage.failed} · 未结束 {item.usage.active}</p><p className="wb-meta">实际模型资源消耗尚未提供。</p></li>)}</ul>
+      {!usage.length && !loading && !error && <p className="wb-empty">当前没有用量记录</p>}<ul className="wb-admin-list">{usage.map((item) => <li key={item.userId}><strong>成员 {item.userId}</strong><p>今日接受 {item.usage.accepted} 次 · 计量 {item.usage.charged} 次 · 退额 {item.usage.refunded} 次</p><p>成功 {item.usage.succeeded} · 失败 {item.usage.failed} · 未结束 {item.usage.active}</p><p className="wb-meta">实际模型资源消耗尚未提供。</p></li>)}</ul>
     </> : <>
-      {!audit.length && !error && <p className="wb-empty">当前没有操作记录</p>}<ul className="wb-admin-list">{audit.map((item, index) => <li key={item.id || index}><strong>{item.action}</strong><p className="wb-meta">{dateText(item.createdAt)} · 成员编号 {item.userId || "未提供"} · {item.result || "结果未提供"}</p>{item.studyId && <p>研究编号 {item.studyId}</p>}{item.jobId && <p>生成编号 {item.jobId}</p>}</li>)}</ul>
+      {!audit.length && !loading && !error && <p className="wb-empty">当前没有操作记录</p>}<ul className="wb-admin-list">{audit.map((item, index) => <li key={item.id || index}><strong>{item.action}</strong><p className="wb-meta">{dateText(item.createdAt)} · 成员编号 {item.userId || "未提供"} · {item.result || "结果未提供"}</p>{item.studyId && <p>研究编号 {item.studyId}</p>}{item.jobId && <p>生成编号 {item.jobId}</p>}</li>)}</ul>
     </>}
     {toggle && <ConfirmDialog title={toggle.status === "disabled" ? "重新启用成员" : "停用成员"} busy={busy} onCancel={() => setToggle(undefined)} onConfirm={() => void mutate(() => api.updateMember(toggle.user_id, { status: toggle.status === "disabled" ? "active" : "disabled" }))}>
       <p>@{toggle.github_login}（GitHub ID {toggle.github_id}）</p><p>{toggle.status === "disabled" ? "重新启用后须重新登录。原研究和用量按保留规则继续，旧会话不会恢复。" : "保存后撤销该成员所有会话并拒绝新的研究访问。停用不会把其研究转交管理员。"}</p>
@@ -59,10 +64,18 @@ export default function WorkbenchAdmin({ api, available }: { api: WorkbenchApi; 
 }
 function MemberLimits({ member, disabled, onSave }: { member: Member; disabled: boolean; onSave: (daily: number, active: number) => void }) {
   const [daily, setDaily] = useState(String(member.daily_generation_limit)), [active, setActive] = useState(String(member.active_job_limit));
+  const previous = useRef({ daily: member.daily_generation_limit, active: member.active_job_limit });
+  useEffect(() => {
+    const before = previous.current;
+    setDaily((draft) => draft === String(before.daily) ? String(member.daily_generation_limit) : draft);
+    setActive((draft) => draft === String(before.active) ? String(member.active_job_limit) : draft);
+    previous.current = { daily: member.daily_generation_limit, active: member.active_job_limit };
+  }, [member.daily_generation_limit, member.active_job_limit]);
+  const dirty = daily !== String(member.daily_generation_limit) || active !== String(member.active_job_limit);
   const valid = /^\d+$/.test(daily) && /^\d+$/.test(active) && +daily <= 100000 && +active >= 1 && +active <= 100;
   return <form className="wb-limits" onSubmit={(e) => { e.preventDefault(); if (valid && !disabled) onSave(+daily, +active); }}>
     <label>每日报告生成次数<input type="number" min={0} max={100000} step={1} value={daily} onChange={(e) => setDaily(e.target.value)} required /></label>
     <label>同时未结束的生成数<input type="number" min={1} max={100} step={1} value={active} onChange={(e) => setActive(e.target.value)} required /></label>
-    <button disabled={disabled || !valid}>保存额度</button><p className="wb-meta">跨该成员所有研究合计；日额度为 0 时仍可阅读历史，降低额度不取消已接收生成。</p>
+    <button disabled={disabled || !valid}>保存额度</button>{dirty && <p className="wb-draft-note" role="status">此成员的额度尚未保存</p>}<p className="wb-meta">跨该成员所有研究合计；日额度为 0 时仍可阅读历史，降低额度不取消已接收生成。</p>
   </form>;
 }

@@ -3,22 +3,28 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ResearchQuery from "./ResearchQuery";
+import SiteLayout from "../shell/SiteLayout";
+import { WorkbenchSessionProvider } from "./WorkbenchSession";
 import { generationWait } from "./workbench-ui";
-import type { Job, Study } from "./workbench-api";
+import type { Job, Study, Member } from "./workbench-api";
 const time = "2026-11-28T00:00:00Z";
 const makeStudy = (id: string, name: string): Study => ({ id, name, description: "受控测试资料", createdAt: time, updatedAt: time, expiresAt: "2027-05-28T00:00:00Z", reportCount: 0, activeJobCount: 0 });
 const makeJob = (id: string, studyId: string, query: string, number: number, status: Job["status"] = "complete"): Job => ({ id, studyId, query, number, status, days: 30, createdAt: `2026-11-28T00:0${number}:00Z`, completedAt: time, reportExpiresAt: "2027-02-28T00:00:00Z", reviewStatus: "approved", synthesisStatus: "generated", ...(status === "complete" ? { report: { html: `/api/research/studies/${studyId}/jobs/${id}/report.html`, json: `/api/research/studies/${studyId}/jobs/${id}/report.json` } } : { error: "受控生成失败" }) });
 const member = { user_id: "member-a", github_id: 11, github_login: "controlled-a", is_admin: false, status: "active", daily_generation_limit: 5, active_job_limit: 1 };
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
+let adminMembers: Member[];
 let studies: Study[], jobs: Job[], session: any, sessionStatus: number, charged: number, failRead: boolean, loseSubmission: boolean;
 let fetcher: ReturnType<typeof vi.fn>, keys: Map<string, Job>, hook: ((path: string, options: RequestInit) => Promise<Response> | undefined) | undefined;
-function show(path = "/research?study=s1") { return render(<MemoryRouter initialEntries={[path]}><ResearchQuery /></MemoryRouter>); }
+function show(path = "/research?study=s1") { return render(<MemoryRouter initialEntries={[path]}><WorkbenchSessionProvider><SiteLayout days={[]}><ResearchQuery /></SiteLayout></WorkbenchSessionProvider></MemoryRouter>); }
 function summarize(study: Study) { return { ...study, reportCount: jobs.filter((j) => j.studyId === study.id && j.status === "complete" && !j.reportExpired).length, activeJobCount: jobs.filter((j) => j.studyId === study.id && ["running", "queued"].includes(j.status)).length }; }
 beforeEach(() => {
   vi.stubEnv("VITE_WORKBENCH_MODE", "enabled");
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   studies = [makeStudy("s1", "研究甲"), makeStudy("s2", "研究乙")]; jobs = [makeJob("j1", "s1", "第一份报告问题", 1), makeJob("j2", "s1", "第二份报告问题", 2)];
   session = { authenticated: true, member: { ...member }, csrf_token: "controlled-csrf", expires_at: "2099-01-01T00:00:00Z" };
+  adminMembers = [{ ...member }];
+  Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
   sessionStatus = 200; charged = 2; failRead = false; loseSubmission = false; keys = new Map(); hook = undefined;
   Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:controlled-report") });
   Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
@@ -30,11 +36,14 @@ beforeEach(() => {
     if (path === "/api/research/usage") return json({ accepted: charged, charged, refunded: 0, succeeded: 2, failed: 0, active: jobs.filter((j) => ["queued", "running"].includes(j.status)).length, dailyGenerationLimit: session.member.daily_generation_limit, activeJobLimit: session.member.active_job_limit, resetsAt: "2026-11-28T16:00:00Z" });
     if (path === "/api/admin/members/resolve") return json({ identity: { github_id: 22, github_login: "controlled-new" }, confirmation_token: "controlled-confirmation" });
     if (path === "/api/admin/members" && method === "POST") return json({ member });
-    if (url.pathname === "/api/admin/members") return json({ members: [member], next_offset: null });
+    if (url.pathname === "/api/admin/members") return json({ members: adminMembers, next_offset: null });
     if (url.pathname === "/api/admin/research/queue") return json({ jobs: [{ id: "queue-1", studyId: "study-number", userId: "member-number", status: "running", stage: "searching", createdAt: time }], total: 1, offset: 0, limit: 20 });
     if (path === "/api/admin/research/usage") return json({ usage: [{ userId: "member-number", accepted: 2, charged: 2, refunded: 0, succeeded: 1, failed: 0, active: 1 }] });
     if (path === "/api/admin/audit") return json({ events: [{ action: "study_created", userId: "member-number", studyId: "study-number", createdAt: time, result: "accepted" }] });
-    if (path.startsWith("/api/admin/members/") && method === "PATCH") return json({ member });
+    if (path.startsWith("/api/admin/members/") && method === "PATCH") {
+      const id = path.split("/").at(-1), target = adminMembers.find((m) => m.user_id === id)!;
+      Object.assign(target, JSON.parse(String(options.body))); return json({ member: target });
+    }
     if (failRead && method === "GET" && path.includes("/jobs?")) throw new TypeError("controlled offline");
     if (url.pathname === "/api/research/studies" && method === "POST") {
       const body = JSON.parse(String(options.body)), study = makeStudy("s-new", body.name); studies.push(study); return json(study);
@@ -132,11 +141,11 @@ describe("member workbench interactions using controlled fixtures", () => {
   it("clears the previous member when the authenticated identity changes", async () => {
     show(); await screen.findByText("第二份报告问题"); fireEvent.change(screen.getByPlaceholderText("请输入你想生成的报告内容"), { target: { value: "A的草稿" } });
     session = { ...session, member: { ...member, user_id: "member-b", github_id: 22, github_login: "controlled-b" } }; studies = [makeStudy("b1", "B的研究")]; jobs = [];
-    fireEvent(window, new Event("focus")); await screen.findByText(/@controlled-b/); expect(screen.queryByDisplayValue("A的草稿")).toBeNull(); expect(screen.queryByText("第一份报告问题")).toBeNull();
+    fireEvent(window, new Event("focus")); await screen.findByLabelText("账号菜单 @controlled-b"); expect(screen.queryByDisplayValue("A的草稿")).toBeNull(); expect(screen.queryByText("第一份报告问题")).toBeNull();
     fireEvent.click(await screen.findByRole("button", { name: /B的研究/ })); await screen.findByPlaceholderText("请输入你想生成的报告内容"); expect((screen.getByPlaceholderText("请输入你想生成的报告内容") as HTMLTextAreaElement).value).toBe("");
   });
   it("revokes the selected device session and clears private UI on logout", async () => {
-    show(); await screen.findByText("第二份报告问题"); fireEvent.click(screen.getByText("账号与退出")); fireEvent.click(screen.getByRole("button", { name: "退出所有设备" }));
+    show(); await screen.findByText("第二份报告问题"); fireEvent.click(screen.getByLabelText(/账号菜单 @/)); fireEvent.click(screen.getByRole("button", { name: "退出所有设备" }));
     await screen.findByText("已退出所有设备。"); expect(screen.queryByText("第一份报告问题")).toBeNull(); expect(fetcher.mock.calls.some(([path, o]) => path === "/api/session/logout-all" && o.headers["X-CSRF-Token"] === "controlled-csrf")).toBe(true);
   });
   it("deletes one terminal report only after confirming its scope", async () => {
@@ -150,15 +159,83 @@ describe("member workbench interactions using controlled fixtures", () => {
 });
 describe("admin workbench safe views", () => {
   it("resolves a stable GitHub identity before allowing admission", async () => {
-    session.member.is_admin = true; show(); await screen.findByRole("button", { name: "管理" }); fireEvent.click(screen.getByRole("button", { name: "管理" }));
+    session.member.is_admin = true; show(); await screen.findByLabelText(/账号菜单 @/); fireEvent.click(screen.getByLabelText(/账号菜单 @/)); fireEvent.click(screen.getByRole("link", { name: "管理后台" }));
     await screen.findByLabelText("GitHub 用户名"); fireEvent.change(screen.getByLabelText("GitHub 用户名"), { target: { value: "controlled-new" } }); fireEvent.click(screen.getByRole("button", { name: "核对 GitHub 身份" }));
     await screen.findByText(/稳定 GitHub ID 22/); expect(fetcher.mock.calls.some(([path, o]) => path === "/api/admin/members" && o.method === "POST")).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "确认开通" })); await waitFor(() => expect(fetcher.mock.calls.some(([path, o]) => path === "/api/admin/members" && o.method === "POST")).toBe(true));
   });
   it("uses safe queue, usage and audit endpoints without requesting member reports", async () => {
-    session.member.is_admin = true; show(); await screen.findByText("第二份报告问题"); fireEvent.click(screen.getByRole("button", { name: "管理" })); await screen.findByLabelText("GitHub 用户名");
-    const start = fetcher.mock.calls.length; fireEvent.click(screen.getByRole("button", { name: "生成队列" })); await screen.findByText("queue-1"); expect(screen.queryByText("第一份报告问题")).toBeNull();
+    session.member.is_admin = true; show(); await screen.findByText("第二份报告问题"); fireEvent.click(screen.getByLabelText(/账号菜单 @/)); fireEvent.click(screen.getByRole("link", { name: "管理后台" })); await screen.findByLabelText("GitHub 用户名");
+    const start = fetcher.mock.calls.length; fireEvent.click(screen.getByRole("button", { name: "生成队列" })); await screen.findByText("queue-1"); expect(screen.queryByRole("heading", { name: /第一份报告问题/ })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "用量" })); await screen.findByText(/实际模型资源消耗尚未提供/); fireEvent.click(screen.getByRole("button", { name: "操作记录" })); await screen.findByText("study_created");
     expect(fetcher.mock.calls.slice(start).every(([path]) => path.startsWith("/api/admin/"))).toBe(true); expect(fetcher.mock.calls.some(([path]) => path.includes("/report."))).toBe(false); expect(screen.queryByRole("button", { name: /重试/ })).toBeNull();
+  });
+});
+
+describe("independent management navigation and header account", () => {
+  it("puts the only account control in the global header and removes the redundant workspace tabs", async () => {
+    session.member.is_admin = true; show(); await screen.findByText("第二份报告问题");
+    const trigger = screen.getByLabelText("账号菜单 @controlled-a");
+    expect(trigger.closest(".site-header-actions")).toBeTruthy(); expect(document.querySelectorAll(".wb-header-account")).toHaveLength(1);
+    expect(screen.queryByRole("navigation", { name: "工作台" })).toBeNull(); expect(screen.queryByText("账号与退出")).toBeNull();
+    fireEvent.click(trigger); expect(screen.getByRole("link", { name: "我的研究" })).toBeTruthy(); expect(screen.getByRole("link", { name: "管理后台" })).toBeTruthy();
+    fireEvent.keyDown(trigger, { key: "Escape" }); expect(trigger.closest("details")?.open).toBe(false);
+  });
+  it("shows a compact research summary without the large card or visibility decoration", async () => {
+    show(); await screen.findByText("第二份报告问题");
+    const summary = screen.getByRole("region", { name: "当前研究概览" });
+    expect(summary.classList.contains("wb-card")).toBe(false); expect(screen.queryByText("仅本人可见")).toBeNull();
+    expect(within(summary).getByRole("heading", { name: "研究甲" })).toBeTruthy();
+    expect(within(summary).getByText(/研究保留至/)).toBeTruthy(); expect(within(summary).getByText(/报告文件逐份到期/)).toBeTruthy();
+    expect(within(summary).getByRole("button", { name: "复制链接" })).toBeTruthy(); expect(within(summary).getByRole("button", { name: "删除研究" })).toBeTruthy();
+    expect(screen.getByPlaceholderText("请输入你想生成的报告内容")).toBeTruthy(); expect(screen.getByRole("complementary", { name: "我的研究列表" })).toBeTruthy();
+  });
+  it("requires login for a direct management URL and returns login to that URL", async () => {
+    sessionStatus = 401; show("/research/admin");
+    const link = await screen.findByRole("link", { name: "使用 GitHub 登录" });
+    expect(link.getAttribute("href")).toContain("return_to=%2F%23%2Fresearch%2Fadmin");
+    expect(screen.getByRole("heading", { name: "管理后台", level: 1 })).toBeTruthy();
+    expect(fetcher.mock.calls.some(([path]) => path.startsWith("/api/admin/"))).toBe(false);
+  });
+  it("does not show management to members and rejects its direct URL without fetching admin data", async () => {
+    show("/research/admin"); await screen.findByText(/当前账号没有管理权限/);
+    fireEvent.click(screen.getByLabelText(/账号菜单 @/)); expect(screen.queryByRole("link", { name: "管理后台" })).toBeNull();
+    expect(fetcher.mock.calls.some(([path]) => path.startsWith("/api/admin/"))).toBe(false);
+    fireEvent.click(screen.getByRole("link", { name: "返回我的研究" })); await screen.findByRole("heading", { name: "研究查询", level: 1 });
+  });
+  it("returns from management to the selected report, retaining its reader and scroll position", async () => {
+    session.member.is_admin = true; show("/research?study=s1&job=j1"); await screen.findByTitle("当前报告预览");
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 627 });
+    fireEvent.click(screen.getByLabelText(/账号菜单 @/)); fireEvent.click(screen.getByRole("link", { name: "管理后台" }));
+    await screen.findByRole("heading", { name: "管理后台", level: 1 }); expect(screen.queryByRole("heading", { name: "研究查询", level: 1 })).toBeNull();
+    fireEvent.click(screen.getByRole("link", { name: "返回我的研究" })); await screen.findByRole("heading", { name: "第一份报告问题" });
+    await waitFor(() => expect(window.scrollTo).toHaveBeenCalledWith(0, 627));
+  });
+  it("provides a safe research return when management is opened directly", async () => {
+    session.member.is_admin = true; show("/research/admin"); await screen.findByLabelText("GitHub 用户名");
+    expect(fetcher.mock.calls.some(([path]) => path.startsWith("/api/research/studies"))).toBe(false);
+    fireEvent.click(screen.getByRole("link", { name: "返回我的研究" })); await screen.findByRole("heading", { name: "新建一项研究" });
+  });
+  it("keeps independent member drafts when saving another card, refreshing or changing category", async () => {
+    session.member.is_admin = true;
+    adminMembers = [{ ...member }, { ...member, user_id: "member-b", github_id: 22, github_login: "long-controlled-member-name-for-responsive-layout" }];
+    show("/research/admin"); await screen.findByTestId("member-card-member-a");
+    const a = screen.getByTestId("member-card-member-a"), b = screen.getByTestId("member-card-member-b");
+    expect(a.tagName).toBe("ARTICLE"); expect(b.tagName).toBe("ARTICLE");
+    fireEvent.change(within(a).getByLabelText("每日报告生成次数"), { target: { value: "7" } });
+    fireEvent.change(within(b).getByLabelText("每日报告生成次数"), { target: { value: "9" } });
+    adminMembers.reverse(); fireEvent.click(within(b).getByRole("button", { name: "保存额度" }));
+    await waitFor(() => expect(adminMembers.find((m) => m.user_id === "member-b")?.daily_generation_limit).toBe(9));
+    await waitFor(() => expect((within(screen.getByTestId("member-card-member-a")).getByLabelText("每日报告生成次数") as HTMLInputElement).value).toBe("7"));
+    fireEvent.click(screen.getByRole("button", { name: "刷新管理数据" })); await screen.findByTestId("member-card-member-b");
+    expect((within(screen.getByTestId("member-card-member-a")).getByLabelText("每日报告生成次数") as HTMLInputElement).value).toBe("7");
+    fireEvent.click(screen.getByRole("button", { name: "生成队列" })); await screen.findByText("queue-1");
+    fireEvent.click(screen.getByRole("button", { name: "成员与额度" }));
+    expect((within(screen.getByTestId("member-card-member-a")).getByLabelText("每日报告生成次数") as HTMLInputElement).value).toBe("7");
+    expect(fetcher.mock.calls.filter(([path, opts]) => opts.method === "PATCH").map(([path]) => path)).toEqual(["/api/admin/members/member-b"]);
+  });
+  it("does not request a private session or show account controls in the public build", async () => {
+    vi.stubEnv("VITE_WORKBENCH_MODE", ""); show("/research"); await screen.findByText("工作台入口尚未配置，请联系管理员。");
+    expect(fetcher.mock.calls.some(([path]) => path === "/api/session")).toBe(false); expect(screen.queryByLabelText(/账号菜单 @/)).toBeNull();
   });
 });
