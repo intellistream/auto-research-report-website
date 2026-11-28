@@ -12,6 +12,7 @@ export type Study = {
 export type Job = ResearchJob & {
   studyId: string; number: number; createdAt: string; updatedAt?: string; completedAt?: string;
   retryOf?: string; retryable?: boolean; reportExpiresAt?: string; reportExpired?: boolean;
+  reviewOutcome?: string; synthesisOutcome?: string;
   report?: { html: string; pdf?: string; json?: string };
 };
 export type Page<T> = { items: T[]; offset: number; total: number; limit: number };
@@ -76,6 +77,7 @@ export function parseJob(value: unknown, studyId: string): Job {
   const job: Job = { id, studyId, status: data.status, number: data.number, createdAt: data.createdAt,
     updatedAt: str(data.updatedAt) || undefined, completedAt: str(data.generatedAt || data.finishedAt || data.completedAt) || undefined,
     query: data.query, days: data.days, reportExpiresAt: str(data.reportExpiresAt) || undefined,
+    reviewOutcome: str(data.reviewStatus) || undefined, synthesisOutcome: str(data.synthesisStatus) || undefined,
     reportExpired: data.reportExpired === true, retryable: typeof data.retryable === "boolean" ? data.retryable : undefined, retryOf: str(data.retryOf) || undefined };
   if (stages.includes(data.stage)) job.stage = data.stage;
   if (Array.isArray(data.stageHistory)) job.stageHistory = data.stageHistory.filter((v: unknown) => stages.includes(String(v))).slice(-32);

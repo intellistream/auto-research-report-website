@@ -1,9 +1,12 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import type { Job } from "./workbench-api";
 export const generationWait = "报告生成可能需要十几分钟，可关闭页面稍后在本研究查看。";
+export const workbenchStageLabels: Record<string, string> = { searching: "检索资料", supplementing_1: "补充检索", supplementing_2: "再次补充检索", synthesizing: "综合分析", reviewing: "审查报告", revising: "修订报告", rendering: "生成文件" };
 export const pending = (job: Job) => job.status === "queued" || job.status === "running";
 export const dateText = (value?: string) => value && !Number.isNaN(Date.parse(value))
   ? new Date(value).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", hour12: false }) : "尚未提供";
+export const listDateText = (value?: string, dateOnly = false) => value && !Number.isNaN(Date.parse(value))
+  ? new Date(value).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", ...(dateOnly ? {} : { hour: "2-digit", minute: "2-digit", hour12: false }) }) : "尚未提供";
 export function Notice({ children, error = false }: { children: ReactNode; error?: boolean }) {
   return <div className={`wb-notice${error ? " wb-error" : ""}`} role={error ? "alert" : "status"}>{children}</div>;
 }
