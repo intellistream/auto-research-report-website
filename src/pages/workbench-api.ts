@@ -91,7 +91,9 @@ export function parseJob(value: unknown, studyId: string): Job {
   if (stages.includes(data.stage)) job.stage = data.stage;
   if (Array.isArray(data.stageHistory)) job.stageHistory = data.stageHistory.filter((v: unknown) => stages.includes(String(v))).slice(-32);
   if (typeof data.error === "string") job.error = data.error;
-  if (["approved", "needs_review", "unavailable", "insufficient_evidence"].includes(data.reviewStatus)) job.reviewStatus = data.reviewStatus;
+  // The report producer calls this outcome needs_revision; preserve its meaning in the reader.
+  const reviewStatus = data.reviewStatus === "needs_revision" ? "needs_review" : data.reviewStatus;
+  if (["approved", "needs_review", "unavailable", "insufficient_evidence"].includes(reviewStatus)) job.reviewStatus = reviewStatus;
   if (["generated", "unavailable", "insufficient_evidence"].includes(data.synthesisStatus)) job.synthesisStatus = data.synthesisStatus;
   if (data.report && !job.reportExpired) {
     const formats = obj(data.report);

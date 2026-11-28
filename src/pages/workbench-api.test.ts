@@ -24,6 +24,13 @@ describe("same-origin workbench client", () => {
     for (const url of ["https://other.org/report.html", "/api/research/jobs/j1/report.html", "/api/research/studies/s2/jobs/j1/report.html"]) expect(() => parseJob({ ...job, report: { html: url } }, "s1")).toThrow();
     expect(parseJob({ ...job, report: { html: "/api/research/studies/s1/jobs/j1/report.html" } }, "s1").report?.html).toContain("/studies/s1/jobs/j1/");
   });
+  it("shows the producer needs_revision result as a review warning", () => {
+    const job = parseJob({ id: "j1", studyId: "s1", number: 1, query: "测试问题", days: 30,
+      createdAt: "2026-11-28T00:00:00Z", status: "complete",
+      reviewStatus: "needs_revision", synthesisStatus: "insufficient_evidence" }, "s1");
+    expect(job.reviewStatus).toBe("needs_review");
+    expect(job.synthesisStatus).toBe("insufficient_evidence");
+  });
   it("invalidates late responses after identity is cleared", async () => {
     let resolve!: (response: Response) => void;
     vi.stubGlobal("fetch", vi.fn().mockImplementation(() => new Promise<Response>((done) => { resolve = done; })));
