@@ -75,8 +75,15 @@ interaction suite:
 - The header contains one account menu beside the theme control, and current
   or all-device logout clears private views. Returning from administration
   preserves the selected research, report and scroll context.
-- Each member's identity, policy and actions occupy one card; changing another
-  card, refreshing or changing tabs preserves unsaved policy inputs.
+- Administration lists members in a compact table with explicit username,
+  role, status, daily-generation limit, unfinished-job limit and action columns.
+  Each row keeps its own unsaved policy inputs when another row is saved,
+  refreshed or revisited. Save/toggle confirmations, results and errors must
+  identify the intended member; a failed row must not submit another row's draft.
+  Keep the requested redundant quota paragraph removed rather than relocating
+  it to a row, disclosure or tooltip. The calculation and execution rules remain.
+  On narrow screens the table may scroll inside its own labelled container,
+  while the page and its account menu stay within the viewport.
 - The research page has no redundant research/admin switch bar. Its compact
   research summary retains counts, expiry information and actions without a
   visibility badge. The report prompt starts empty, the approximate waiting
@@ -98,7 +105,7 @@ interaction suite:
   insufficient evidence. Do not add a generic review warning, invent reasons
   or treat completion/unknown quality as approval. List layout and the shared
   status adapter must preserve the backend's `needs_revision` compatibility.
-- Repeat the account menu, administration, member cards and research actions on
+- Repeat the account menu, administration, member table and research actions on
   a narrow viewport and both themes. Check wrapping and horizontal overflow.
   Preserve the producer's `needs_revision` display when reviewing reports.
 
