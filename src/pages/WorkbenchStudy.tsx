@@ -13,6 +13,7 @@ export default function WorkbenchStudy({ api, id, jobId, revision, available, dr
   const [study, setStudy] = useState<Study>(), [jobs, setJobs] = useState<Job[]>([]), [total, setTotal] = useState(0), [usage, setUsage] = useState<Usage>();
   const [error, setError] = useState(""), [usageError, setUsageError] = useState(""), [loading, setLoading] = useState(true), [refresh, setRefresh] = useState(0);
   const [reportJob, setReportJob] = useState<Job>(), [jobError, setJobError] = useState("");
+  const [quotaOpen, setQuotaOpen] = useState(false);
   const [rename, setRename] = useState(false), [name, setName] = useState(""), [remove, setRemove] = useState<Job | "study">();
   const [busy, setBusy] = useState(false), [actionError, setActionError] = useState(""), [copyMessage, setCopyMessage] = useState("");
   const historyPosition = useRef<number | undefined>(undefined);
@@ -92,12 +93,20 @@ export default function WorkbenchStudy({ api, id, jobId, revision, available, dr
     {error && <Notice error>状态暂未更新：{error}<button onClick={() => setRefresh((v) => v + 1)}>恢复读取</button></Notice>}{actionError && <Notice error>{actionError}</Notice>}
     {jobId ? <section className="wb-card"><div className="wb-actions"><button onClick={() => openJob()}>返回本研究的报告与生成记录</button><button onClick={() => void copy(jobId)}>复制报告链接</button></div>
       {jobError ? <Notice error>{jobError}<button onClick={() => setRefresh((v) => v + 1)}>重新读取记录</button></Notice> : !reportJob ? <Notice>正在读取这份生成记录…</Notice> : <WorkbenchReport key={reportJob.id} api={api} job={reportJob} available={available} />}</section>
-      : <><section className="wb-card"><h3>在本研究内生成报告</h3><form className="wb-form" onSubmit={(e) => { e.preventDefault(); if (valid && !blocked) onGenerate(draft); }}>
-        <label>报告内容<textarea name="query" value={draft.query} placeholder="请输入你想生成的报告内容" rows={3} maxLength={120} required disabled={!!operation} aria-describedby="wb-query-guidance" onChange={(e) => onDraft({ ...draft, query: e.target.value })} /></label>
-        <p id="wb-query-guidance" className="wb-meta">请输入 2 至 120 个字符，包含文字或数字。本次内容作为取材问题，已有报告继续保留。</p>
-        <label className="wb-days">检索时间<select value={draft.days} disabled={!!operation} onChange={(e) => onDraft({ ...draft, days: Number(e.target.value) })}>{[7, 30, 90, 180, 365].map((days) => <option key={days} value={days}>最近 {days} 天</option>)}</select></label>
-        <button className="wb-primary" disabled={!valid || blocked}>{operation?.state === "pending" ? "正在提交…" : "生成报告"}</button>
-        <p className="wb-meta">{usage ? `今日已用 ${usage.charged} / ${usage.dailyGenerationLimit} 次生成 · 当前 ${usage.active} / ${usage.activeJobLimit} 项未结束` : usageError || "正在读取用量…"}。额度跨本人所有研究合计，创建研究不计入。{usage?.resetsAt && ` 北京时间 ${dateText(usage.resetsAt)} 恢复日额度。`}</p>
+      : <><section className="wb-card wb-generator" aria-labelledby="wb-generate-title"><h3 id="wb-generate-title">生成报告</h3><form className="wb-form wb-generation-form" onSubmit={(e) => { e.preventDefault(); if (valid && !blocked) onGenerate(draft); }}>
+        <label><span className="wb-sr-only">报告内容</span><textarea name="query" value={draft.query} placeholder="请输入你想生成的报告内容" rows={3} maxLength={120} required disabled={!!operation} aria-describedby="wb-query-guidance" aria-invalid={draft.query.length > 0 && !valid ? true : undefined} onChange={(e) => onDraft({ ...draft, query: e.target.value })} /></label>
+        <p id="wb-query-guidance" className={`wb-query-guidance ${draft.query.length > 0 && !valid ? "wb-warning" : "wb-meta"}`}>{draft.query.length > 0 && !valid ? "请输入 2–120 字，且包含文字或数字。" : "2–120 字"}</p>
+        <div className="wb-generate-controls" role="group" aria-label="生成设置与额度">
+          <label className="wb-days"><span className="wb-sr-only">检索时间</span><select value={draft.days} disabled={!!operation} onChange={(e) => onDraft({ ...draft, days: Number(e.target.value) })}>{[7, 30, 90, 180, 365].map((days) => <option key={days} value={days}>最近 {days} 天</option>)}</select></label>
+          <button className="wb-primary" disabled={!valid || blocked}>{operation?.state === "pending" ? "正在提交…" : "生成报告"}</button>
+          <span className="wb-quota-summary">{usage ? `今日已用 ${usage.charged}/${usage.dailyGenerationLimit} · 进行中 ${usage.active}/${usage.activeJobLimit}` : usageError ? "用量暂不可用，提交时核验" : "正在读取用量…"}</span>
+          <button type="button" className="wb-quota-toggle" aria-expanded={quotaOpen} aria-controls="wb-quota-details" onClick={() => setQuotaOpen((open) => !open)}>额度详情</button>
+        </div>
+        <div id="wb-quota-details" className="wb-quota-details" role="region" aria-label="生成额度详情" hidden={!quotaOpen}>
+          <p>额度跨本人所有研究合计，创建研究不计入。</p>
+          {usage?.resetsAt && <p>北京时间 <time dateTime={usage.resetsAt}>{dateText(usage.resetsAt)}</time> 恢复日额度。</p>}
+          {usageError && <p className="wb-warning">{usageError}</p>}
+        </div>
         <p className="wb-wait">{generationWait}</p>
         {unavailableQuota && usage && <Notice>{usage.active >= usage.activeJobLimit ? "你有生成尚未结束，请在我的研究列表查看对应研究和进度，结束后再提交。" : "今日生成额度不足，可继续阅读已有报告，等待恢复或联系管理员。"}</Notice>}
         {operationError && <Notice error>{operationError}</Notice>}{operation?.state === "unknown" && <Notice error>{operation.error}<button type="button" disabled={!available} onClick={() => onGenerate()}>检查本次提交结果</button><p>检查沿用原研究、原参数和同一次操作标记，不另建生成。</p></Notice>}

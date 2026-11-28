@@ -63,8 +63,8 @@ export default function WorkbenchWorkspace({ api, available, researchSearch, onN
     <header className="wb-top"><div><span className="wb-eyebrow">个人研究工作台</span><h1>研究查询</h1></div></header>
       <button className="wb-mobile-toggle" aria-expanded={mobileList} aria-controls="wb-studies" onClick={() => setMobileList((v) => !v)}><List size={17} />我的研究 · 选择研究</button>
       <div className="wb-layout"><aside id="wb-studies" className={`wb-studies${mobileList ? " wb-list-open" : ""}`} aria-label="我的研究列表">
-        <div className="wb-aside-heading"><h2>我的研究</h2><button aria-label="新建研究" onClick={() => { setCreating(true); setMobileList(false); }}><Plus size={18} />新建</button></div>
-        <label className="wb-search"><span>搜索本人研究</span><input type="search" value={search} onChange={(e) => { setStudies([]); setSearch(e.target.value); }} placeholder="按研究名称搜索" /></label>
+        <div className="wb-study-tools"><input aria-label="搜索本人研究" type="search" value={search} onChange={(e) => { setStudies([]); setSearch(e.target.value); }} placeholder="按研究名称搜索" />
+          <button aria-label="新建研究" onClick={() => { setCreating(true); setMobileList(false); }}><Plus size={18} />新建</button></div>
         {loading && !studies.length && <Notice>正在读取研究列表…</Notice>}{listError && <Notice error>{listError}<button onClick={change}>重新读取列表</button></Notice>}
         {!loading && !listError && !studies.length && <p className="wb-empty">{search ? "没有匹配的本人研究" : "还没有研究"}</p>}
         <ul>{studies.map((study) => <li key={study.id}><button aria-current={!creating && selected === study.id ? "page" : undefined} onClick={() => choose(study.id)}>

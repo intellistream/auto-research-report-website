@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import type { Job } from "./workbench-api";
-export const generationWait = "报告生成时间较长，可能需要十几分钟。你可以关闭页面，稍后在本研究中查看进度和报告。";
+export const generationWait = "报告生成可能需要十几分钟，可关闭页面稍后在本研究查看。";
 export const pending = (job: Job) => job.status === "queued" || job.status === "running";
 export const dateText = (value?: string) => value && !Number.isNaN(Date.parse(value))
   ? new Date(value).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", hour12: false }) : "尚未提供";
