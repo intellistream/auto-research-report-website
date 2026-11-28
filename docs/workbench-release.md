@@ -61,6 +61,16 @@ interaction suite:
   member cannot see the admin menu or load admin data. The admin APIs still
   reject that member directly. An administrator cannot fetch another member's
   report through any format.
+- A normal anonymous session offers GitHub login without a permanent check or
+  retry button. Callback return, tab focus and page restoration check the
+  session automatically. A network/check failure shows a safe reason and a
+  retry action; recovery returns to the correct anonymous or member view.
+  Do not render raw backend exceptions as a failure reason.
+- A consumed admission/disabled/expired-session notice survives subsequent
+  anonymous checks. Development remounts must not consume it twice. A delayed
+  session or study response cannot restore private content after logout or an
+  identity change. Exercise these races as controlled tests with real session
+  responses, separately from browser layout inspection.
 - The header contains one account menu beside the theme control, and current
   or all-device logout clears private views. Returning from administration
   preserves the selected research, report and scroll context.
