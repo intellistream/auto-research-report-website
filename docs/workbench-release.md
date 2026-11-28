@@ -84,6 +84,22 @@ interaction suite:
   it to a row, disclosure or tooltip. The calculation and execution rules remain.
   On narrow screens the table may scroll inside its own labelled container,
   while the page and its account menu stay within the viewport.
+- All four admin tabs use explicit compact tables. Member inputs save both
+  limits as "保存上限"; unchanged rows cannot submit, successful rows use the
+  backend-confirmed member and show "上限已更新". Do not clear the ledger or
+  cancel accepted work when a limit changes.
+- Queue rows retain the backend's wait/running durations and oldest-first
+  ordering, with manual refresh and real pagination. Expanding IDs never opens
+  another member's private study, job or report.
+- Daily usage preserves the selected and returned Asia/Shanghai acceptance date.
+  Charged counts already exclude refunds; historical rows omit live active-job
+  counts, invented zero members and unsupported model/token costs.
+- Audit rows separate actor from target and paginate the actual event history.
+  Only explicitly identified automatic events show a system actor; a failed
+  generation remains failed even if its audit record says ok. Generic historic
+  member updates must not be labelled as a particular quota or status change.
+  Missing identities remain missing, and late admin responses cannot survive
+  logout, account changes or management-permission loss.
 - The research page has no redundant research/admin switch bar. Its compact
   research summary retains counts, expiry information and actions without a
   visibility badge. The report prompt starts empty, the approximate waiting
