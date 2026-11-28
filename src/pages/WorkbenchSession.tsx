@@ -21,6 +21,7 @@ function businessResult(error: WorkbenchError) {
 }
 function businessMessage(error: WorkbenchError) {
   const login = error.account && /^[a-zA-Z0-9-]{1,39}$/.test(error.account) ? `GitHub @${error.account}：` : "";
+  if (error.code === "admin_required") return "当前账号没有管理权限，请重新登录后核对。";
   if (disabledCodes.has(error.code)) return login + "当前账号已停用，请联系管理员。";
   if (admissionCodes.has(error.code)) return login + "当前 GitHub 账号尚未开通研究权限，请联系管理员。";
   if (error.code === "session_expired") return "登录会话已过期，请重新登录。";

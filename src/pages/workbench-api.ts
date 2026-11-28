@@ -20,8 +20,10 @@ export type Usage = {
   accepted: number; charged: number; refunded: number; succeeded: number; failed: number; active: number;
   dailyGenerationLimit: number; activeJobLimit: number; resetsAt?: string;
 };
-export type QueueItem = { id: string; studyId: string; ownerUserId: string; status: string; stage?: string; createdAt?: string };
-export type AuditItem = { id?: string; userId?: string; action: string; studyId?: string; jobId?: string; createdAt?: string; result?: string };
+export type QueueItem = { id: string; studyId: string; ownerUserId: string; githubLogin?: string; status: string; stage?: string; createdAt?: string; updatedAt?: string; waitSeconds?: number; runningSeconds?: number | null };
+export type AdminUsage = { day: string; items: { userId: string; githubLogin?: string; usage: Partial<Pick<Usage, "accepted" | "charged" | "refunded" | "succeeded" | "failed">> }[] };
+export type AuditItem = { id?: string; userId?: string; actorUserId?: string; actorType?: "member" | "system" | "unknown"; actorGithubLogin?: string; targetUserId?: string; targetGithubLogin?: string; action: string; studyId?: string; jobId?: string; createdAt?: string; result?: string };
+export type AuditPage = { items: AuditItem[]; total?: number; nextOffset?: number };
 export type MemberResolution = { github_id: number; github_login: string; confirmation_token: string };
 
 const unavailable = "工作台暂时无法连接，请稍后重新读取。";
@@ -31,6 +33,13 @@ const obj = (value: unknown): Record<string, any> => {
   return value as Record<string, any>;
 };
 const str = (value: unknown) => typeof value === "string" ? value : "";
+const optionalCount = (value: unknown) => typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+const seconds = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
+const loginName = (value: unknown) => typeof value === "string" && /^[a-zA-Z0-9-]{1,39}$/.test(value) ? value : undefined;
+const optionalId = (value: unknown) => validId(value) ? value : undefined;
+export function validUsageDay(value: unknown): value is string {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value + "T00:00:00Z")) && new Date(value + "T00:00:00Z").toISOString().slice(0, 10) === value;
+}
 const count = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
 export const validId = (value: unknown): value is string => typeof value === "string" && /^[a-zA-Z0-9_-]{1,80}$/.test(value);
 function identifier(value: unknown): string {
@@ -168,7 +177,7 @@ export class WorkbenchApi {
         const detail = typeof data.detail === "object" && data.detail ? data.detail : {};
         const error = new WorkbenchError(str(detail.message).slice(0, 500) || unavailable, str(detail.code) || "request_failed", response.status,
           write && response.status >= 500, str(detail.github_login) || undefined);
-        if (path !== "/api/session" && (response.status === 401 || (response.status === 403 && /disabled|inactive|not_approved|not_admitted|not_allowed|membership/.test(error.code)))) {
+        if (path !== "/api/session" && (response.status === 401 || (response.status === 403 && (path.startsWith("/api/admin/") || /disabled|inactive|not_approved|not_admitted|not_allowed|membership/.test(error.code))))) {
           this.onSessionRejected?.(error);
         }
         throw error;
@@ -243,29 +252,50 @@ export class WorkbenchApi {
     return { github_id: identity.github_id, github_login: identity.github_login, confirmation_token: data.confirmation_token };
   }
   async admit(confirmation_token: string) { return this.request("/api/admin/members", "POST", { confirmation_token }); }
-  updateMember(id: string, patch: { status?: string; daily_generation_limit?: number; active_job_limit?: number }) {
-    return this.request(`/api/admin/members/${identifier(id)}`, "PATCH", patch);
+  async updateMember(id: string, patch: { status?: string; daily_generation_limit?: number; active_job_limit?: number }): Promise<Member> {
+    const data = await this.request(`/api/admin/members/${identifier(id)}`, "PATCH", patch);
+    try {
+      const member = parseMember(data?.member);
+      if (member.user_id !== id) throw new Error("target mismatch");
+      return member;
+    } catch {
+      throw new WorkbenchError("保存结果待确认，请刷新核对。", "invalid_response", 200, true);
+    }
   }
   async queue(offset = 0, signal?: AbortSignal): Promise<Page<QueueItem>> {
     const data = await this.request(`/api/admin/research/queue?limit=20&offset=${offset}`, "GET", undefined, undefined, signal);
-    if (!Array.isArray(data.jobs)) throw new WorkbenchError(unavailable, "invalid_response");
-    const items = data.jobs.map((value: unknown) => {
+    if (!Array.isArray(data.jobs) || optionalCount(data.total) === undefined) throw new WorkbenchError(unavailable, "invalid_response");
+    const items = data.jobs.map((value: unknown): QueueItem => {
       const item = obj(value);
-      return { id: identifier(item.id), studyId: identifier(item.studyId), ownerUserId: identifier(item.userId),
-        status: str(item.status), stage: str(item.stage) || undefined, createdAt: str(item.createdAt) || undefined };
+      if (!["queued", "running"].includes(item.status)) throw new WorkbenchError(unavailable, "invalid_response");
+      return { id: identifier(item.id), studyId: identifier(item.studyId), ownerUserId: identifier(item.userId), githubLogin: loginName(item.githubLogin),
+        status: item.status, stage: str(item.stage) || undefined, createdAt: str(item.createdAt) || undefined, updatedAt: str(item.updatedAt) || undefined,
+        waitSeconds: seconds(item.waitSeconds), runningSeconds: item.runningSeconds === null ? null : seconds(item.runningSeconds) };
     });
-    return { items, total: count(data.total), offset, limit: 20 };
+    return { items, total: data.total, offset, limit: 20 };
   }
-  async adminUsage(signal?: AbortSignal): Promise<{ userId: string; usage: Usage }[]> {
-    const data = await this.request("/api/admin/research/usage", "GET", undefined, undefined, signal);
-    if (!Array.isArray(data.usage)) throw new WorkbenchError(unavailable, "invalid_response");
-    return data.usage.map((value: unknown) => { const item = obj(value); return { userId: identifier(item.userId), usage: parseUsage(item) }; });
+  async adminUsage(day: string, signal?: AbortSignal): Promise<AdminUsage> {
+    if (!validUsageDay(day)) throw new WorkbenchError("统计日期无效，请重新选择。", "invalid_input");
+    const data = await this.request(`/api/admin/research/usage?${new URLSearchParams({ day })}`, "GET", undefined, undefined, signal);
+    if (!Array.isArray(data.usage) || !validUsageDay(data.day) || data.day !== day) throw new WorkbenchError("用量统计日期未确认，请刷新重试。", "invalid_response");
+    return { day: data.day, items: data.usage.map((value: unknown) => {
+      const item = obj(value);
+      if (item.day !== undefined && item.day !== data.day) throw new WorkbenchError("用量记录日期不一致，请刷新重试。", "invalid_response");
+      return { userId: identifier(item.userId), githubLogin: loginName(item.githubLogin), usage: {
+        accepted: optionalCount(item.accepted), charged: optionalCount(item.charged), refunded: optionalCount(item.refunded),
+        succeeded: optionalCount(item.succeeded), failed: optionalCount(item.failed),
+      } };
+    }) };
   }
-  async audit(signal?: AbortSignal): Promise<AuditItem[]> {
-    const data = await this.request("/api/admin/audit", "GET", undefined, undefined, signal);
-    if (!Array.isArray(data.events)) throw new WorkbenchError(unavailable, "invalid_response");
-    return data.events.map((value: unknown) => { const item = obj(value); return { id: str(item.id), userId: str(item.userId), action: str(item.action),
-      studyId: str(item.studyId), jobId: str(item.jobId), createdAt: str(item.createdAt), result: str(item.result) }; });
+  async audit(offset = 0, signal?: AbortSignal): Promise<AuditPage> {
+    const data = await this.request(`/api/admin/audit?limit=50&offset=${offset}`, "GET", undefined, undefined, signal);
+    if (!Array.isArray(data.events) || (data.next_offset != null && (optionalCount(data.next_offset) === undefined || data.next_offset <= offset))) throw new WorkbenchError(unavailable, "invalid_response");
+    return { total: optionalCount(data.total), nextOffset: data.next_offset ?? undefined, items: data.events.map((value: unknown): AuditItem => {
+      const item = obj(value);
+      return { id: str(item.id) || undefined, userId: optionalId(item.userId), action: str(item.action), actorType: ["member", "system", "unknown"].includes(item.actorType) ? item.actorType : undefined,
+        actorUserId: optionalId(item.actorUserId), actorGithubLogin: loginName(item.actorGithubLogin), targetUserId: optionalId(item.targetUserId), targetGithubLogin: loginName(item.targetGithubLogin),
+        studyId: optionalId(item.studyId), jobId: optionalId(item.jobId), createdAt: str(item.createdAt) || undefined, result: str(item.result) || undefined };
+    }) };
   }
 }
 
