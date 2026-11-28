@@ -181,6 +181,15 @@ describe("independent management navigation and header account", () => {
     fireEvent.click(trigger); expect(screen.getByRole("link", { name: "我的研究" })).toBeTruthy(); expect(screen.getByRole("link", { name: "管理后台" })).toBeTruthy();
     fireEvent.keyDown(trigger, { key: "Escape" }); expect(trigger.closest("details")?.open).toBe(false);
   });
+  it("shows a compact research summary without the large card or visibility decoration", async () => {
+    show(); await screen.findByText("第二份报告问题");
+    const summary = screen.getByRole("region", { name: "当前研究概览" });
+    expect(summary.classList.contains("wb-card")).toBe(false); expect(screen.queryByText("仅本人可见")).toBeNull();
+    expect(within(summary).getByRole("heading", { name: "研究甲" })).toBeTruthy();
+    expect(within(summary).getByText(/研究保留至/)).toBeTruthy(); expect(within(summary).getByText(/报告文件逐份到期/)).toBeTruthy();
+    expect(within(summary).getByRole("button", { name: "复制链接" })).toBeTruthy(); expect(within(summary).getByRole("button", { name: "删除研究" })).toBeTruthy();
+    expect(screen.getByPlaceholderText("请输入你想生成的报告内容")).toBeTruthy(); expect(screen.getByRole("complementary", { name: "我的研究列表" })).toBeTruthy();
+  });
   it("requires login for a direct management URL and returns login to that URL", async () => {
     sessionStatus = 401; show("/research/admin");
     const link = await screen.findByRole("link", { name: "使用 GitHub 登录" });
